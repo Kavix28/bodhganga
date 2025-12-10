@@ -4,6 +4,7 @@ import lombok.*;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -14,6 +15,7 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Component
 @Document(collection = "users")
 public class User
 {
@@ -21,6 +23,8 @@ public class User
     private String fName;
     @NonNull
     private String lName;
+    @NonNull
+    private String name;
     @NonNull
     private String gender;
     @NonNull
@@ -41,7 +45,14 @@ public class User
     @NonNull
     private String country;
 
+    public String getName(String fName, String lName)
+    {
+       return fName+" "+lName;
+    }
+
     @DBRef
     private List<Courses> courses = new ArrayList<>();
+
+
 
 }

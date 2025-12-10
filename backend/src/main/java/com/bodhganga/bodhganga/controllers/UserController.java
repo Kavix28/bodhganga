@@ -3,9 +3,14 @@ package com.bodhganga.bodhganga.controllers;
 import java.util.List;
 
 import com.bodhganga.bodhganga.entity.User;
+import lombok.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.bodhganga.bodhganga.entity.Courses;
 import com.bodhganga.bodhganga.service.UserServices;
 
@@ -16,10 +21,12 @@ public class UserController
 {
     @Autowired
     private UserServices userServices;
+    @Autowired
+    private User user;
     @GetMapping()
-    public void getProfile()
+    public String getProfile()
     {
-        return ;
+        return user.getName();
     }
     @GetMapping("/my-courses")
     public List<Courses> getCourses()
@@ -36,11 +43,14 @@ public class UserController
     {
         return "";
     }
+
     @PostMapping("/edit-profile")
     public void editProfile()
     {
         return userServices.editProfile();
     }
+
+
     public String postEditProfile()
     {
         return "";
