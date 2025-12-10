@@ -5,14 +5,17 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
 import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Document(collection = "user")
+@Document(collection = "users")
 public class User
 {
     @NonNull
@@ -25,7 +28,7 @@ public class User
     private Date dateOfBirth;
     @Indexed(unique = true)
     @NonNull
-    private String email
+    private String email;
     private String password;
     private String hashedPassword;
     @Indexed(unique = true)
@@ -38,5 +41,8 @@ public class User
     private String state;
     @NonNull
     private String country;
+
+    @DBRef
+    private List<Courses> courses = new ArrayList<>();
 
 }
