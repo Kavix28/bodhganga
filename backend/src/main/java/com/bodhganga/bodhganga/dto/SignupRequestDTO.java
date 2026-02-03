@@ -2,7 +2,6 @@ package com.bodhganga.bodhganga.dto;
 
 import lombok.Data;
 import jakarta.validation.constraints.*;
-import java.util.Date;
 
 @Data
 public class SignupRequestDTO {
@@ -20,5 +19,14 @@ public class SignupRequestDTO {
     @NotBlank(message = "Password is required")
     @Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
+
+    @NotBlank(message = "City is required")
+    private String city;
+
+    @NotBlank(message = "State is required")
+    private String state;
+
+    @NotBlank(message = "Country is required")
+    private String country;
 
 }
