@@ -39,9 +39,9 @@ public class User
 
 
     private String hashedPassword;
+
     @Indexed(unique = true)
     @NonNull
-
     private String phoneNo;
     public @NonNull String getPhoneNo() {return phoneNo;}
     public void setPhoneNo(@NonNull String phoneNo) {this.phoneNo = phoneNo;}
