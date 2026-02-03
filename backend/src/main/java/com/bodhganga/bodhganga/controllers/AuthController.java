@@ -18,10 +18,8 @@ public class AuthController {
 
     private final AuthService authService;
 
-    /**
-     * Signup endpoint - Register new user
-     * POST /api/auth/signup
-     */
+    @GetMapping("/login")
+
     @PostMapping("/signup")
     public ResponseEntity<ApiResponseDTO> signup(@Valid @RequestBody SignupRequestDTO dto) {
         ApiResponseDTO response = authService.signup(dto);
@@ -29,10 +27,7 @@ public class AuthController {
         return new ResponseEntity<>(response, status);
     }
 
-    /**
-     * Login endpoint - Authenticate user
-     * POST /api/auth/login
-     */
+
     @PostMapping("/login")
     public ResponseEntity<ApiResponseDTO> login(@Valid @RequestBody LoginRequestDTO dto) {
         ApiResponseDTO response = authService.login(dto);
@@ -40,10 +35,6 @@ public class AuthController {
         return new ResponseEntity<>(response, status);
     }
 
-    /**
-     * Health check endpoint (optional)
-     * GET /api/auth/health
-     */
     @GetMapping("/health")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("Auth service is running");
