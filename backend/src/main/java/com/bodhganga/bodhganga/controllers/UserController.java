@@ -6,10 +6,7 @@ import com.bodhganga.bodhganga.entity.User;
 import lombok.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.bodhganga.bodhganga.entity.Courses;
 import com.bodhganga.bodhganga.service.UserServices;
@@ -21,8 +18,28 @@ public class UserController
 {
     @Autowired
     private UserServices userServices;
-    @Autowired
-    private User user;
+
+    @GetMapping
+    public List<User> getUser()
+    {
+        return userServices.getAll();
+    }
+
+    @PostMapping
+    public void createUser(@RequestBody User user)
+    {
+        userServices.saveUser(user);
+    }
+
+    @PutMapping
+    public void updateUser(@RequestBody User user) //to update user has to enter email and password. we will first check the credentials and then find the email add in db and update details.
+    {
+        User userinDb = userServices.findByEmail(user.getEmail());
+
+    }
+
+
+
     @GetMapping()
     public String getProfile()
     {

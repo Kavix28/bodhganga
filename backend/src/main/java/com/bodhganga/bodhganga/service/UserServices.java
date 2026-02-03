@@ -1,30 +1,35 @@
 package com.bodhganga.bodhganga.service;
 
-import java.util.Collections;
 import java.util.List;
 
-import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
-import com.bodhganga.bodhganga.entity.Courses;
 import com.bodhganga.bodhganga.entity.User;
 import com.bodhganga.bodhganga.repo.userRepo;
 
-@Service
+@Component
 public class UserServices {
 
-    private final userRepo userRepo;
+    @Autowired
+    private userRepo userRepo;
 
-    public UserServices(userRepo userRepo) {
-        this.userRepo = userRepo;
-    }
-
-    public void signUp(User user) {
+    public void saveUser(User user)
+    {
         userRepo.save(user);
     }
 
-    public List<Courses> getCourses() {
-        return userRepo.findByEmail(email)
-                .map(User::getCourses)
-                .orElse(Collections.emptyList());
+    public List<User> getAll()
+    {
+        return userRepo.findAll();
+    }
+
+    public User findByEmail(String email) {
+        return userRepo.findByEmail(email);
+    }
+
+    public List<User> getCourses()
+    {
+        return userRepo.findAll();
     }
 }

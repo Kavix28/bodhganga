@@ -9,5 +9,5 @@ import com.bodhganga.bodhganga.entity.User;
 
 @Repository
 public interface userRepo extends MongoRepository<User, String> {
-    Optional<User> findByEmail(String email);
+    User findByEmail(String email);
 }
