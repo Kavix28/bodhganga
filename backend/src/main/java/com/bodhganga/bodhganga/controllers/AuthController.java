@@ -18,15 +18,12 @@ public class AuthController {
 
     private final AuthService authService;
 
-    @GetMapping("/login")
-
     @PostMapping("/signup")
     public ResponseEntity<ApiResponseDTO> signup(@Valid @RequestBody SignupRequestDTO dto) {
         ApiResponseDTO response = authService.signup(dto);
         HttpStatus status = response.isSuccess() ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST;
         return new ResponseEntity<>(response, status);
     }
-
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponseDTO> login(@Valid @RequestBody LoginRequestDTO dto) {
