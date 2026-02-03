@@ -11,11 +11,11 @@ import java.util.Date;
 import java.util.List;
 
 @Data
-@Getter
-@Setter
-@AllArgsConstructor
-@NoArgsConstructor
-@Component
+//@Getter
+//@Setter
+//@AllArgsConstructor
+//@NoArgsConstructor
+//@Component
 @Document(collection = "users")
 public class User
 {
@@ -32,7 +32,6 @@ public class User
     @Indexed(unique = true)
     @NonNull
     private String email;
-    private String password;
     private String hashedPassword;
     @Indexed(unique = true)
     @NonNull
