@@ -19,7 +19,7 @@ public class User {
 
     // Basic Profile Information
     @NonNull
-    private String Name;
+    private String name;
 
     @NonNull
     private String gender;
