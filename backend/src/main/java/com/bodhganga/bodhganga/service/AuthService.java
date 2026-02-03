@@ -1,0 +1,132 @@
+package com.bodhganga.bodhganga.service;
+
+import com.bodhganga.bodhganga.dto.*;
+import com.bodhganga.bodhganga.entity.User;
+import com.bodhganga.bodhganga.repo.UserRepo;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import java.util.Date;
+
+@Service
+@RequiredArgsConstructor
+public class AuthService {
+
+    private final UserRepo userRepo;
+    private final PasswordEncoder passwordEncoder;
+
+    /**
+     * User Signup - Register new user
+     */
+    public ApiResponseDTO signup(SignupRequestDTO dto) {
+        // Check if email already exists
+        if (userRepo.existsByEmail(dto.getEmail())) {
+            return ApiResponseDTO.builder()
+                    .success(false)
+                    .message("Email already registered")
+                    .build();
+        }
+
+        // Check if phone already exists
+        if (userRepo.existsByPhoneNo(dto.getPhoneNo())) {
+            return ApiResponseDTO.builder()
+                    .success(false)
+                    .message("Phone number already registered")
+                    .build();
+        }
+
+        // Create new user with hashed password
+        User user = User.builder()
+                .name(dto.getName())
+                .email(dto.getEmail())
+                .phoneNo(dto.getPhoneNo())
+                .hashedPassword(passwordEncoder.encode(dto.getPassword()))
+                .gender(dto.getGender())
+                .dateOfBirth(dto.getDateOfBirth())
+                .city(dto.getCity())
+                .state(dto.getState())
+                .country(dto.getCountry())
+                .role("USER")
+                .isVerified(true) // Set to true for now, will add OTP later
+                .isActive(true)
+                .createdAt(new Date())
+                .build();
+
+        // Save user to database
+        User savedUser = userRepo.save(user);
+
+        // Convert to response DTO (without sensitive data)
+        UserResponseDTO userResponse = mapToUserResponse(savedUser);
+
+        return ApiResponseDTO.builder()
+                .success(true)
+                .message("User registered successfully")
+                .data(userResponse)
+                .build();
+    }
+
+    /**
+     * User Login - Authenticate user
+     */
+    public ApiResponseDTO login(LoginRequestDTO dto) {
+        // Find user by email
+        User user = userRepo.findByEmail(dto.getEmail())
+                .orElse(null);
+
+        if (user == null) {
+            return ApiResponseDTO.builder()
+                    .success(false)
+                    .message("Invalid email or password")
+                    .build();
+        }
+
+        // Check if account is active
+        if (!user.getIsActive()) {
+            return ApiResponseDTO.builder()
+                    .success(false)
+                    .message("Account is deactivated. Please contact support.")
+                    .build();
+        }
+
+        // Verify password
+        if (!passwordEncoder.matches(dto.getPassword(), user.getHashedPassword())) {
+            return ApiResponseDTO.builder()
+                    .success(false)
+                    .message("Invalid email or password")
+                    .build();
+        }
+
+        // Update last login timestamp
+        user.setLastLogin(new Date());
+        userRepo.save(user);
+
+        // Convert to response DTO
+        UserResponseDTO userResponse = mapToUserResponse(user);
+
+        return ApiResponseDTO.builder()
+                .success(true)
+                .message("Login successful")
+                .data(userResponse)
+                .build();
+    }
+
+    /**
+     * Helper method to convert User entity to UserResponseDTO
+     * Excludes sensitive information like hashedPassword
+     */
+    private UserResponseDTO mapToUserResponse(User user) {
+        return UserResponseDTO.builder()
+                .id(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .phoneNo(user.getPhoneNo())
+                .city(user.getCity())
+                .state(user.getState())
+                .country(user.getCountry())
+                .role(user.getRole())
+                .profilePicture(user.getProfilePicture())
+                .qualification(user.getQualification())
+                .build();
+    }
+}
