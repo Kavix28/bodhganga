@@ -68,9 +68,4 @@ public class User {
     private Date createdAt = new Date();
 
     private Date lastLogin;
-
-    // Utility method to get full name
-    public String getName() {
-        return fName + " " + lName;
-    }
 }

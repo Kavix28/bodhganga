@@ -8,6 +8,12 @@ import org.springframework.stereotype.Repository;
 import com.bodhganga.bodhganga.entity.User;
 
 @Repository
-public interface userRepo extends MongoRepository<User, String> {
-    User findByEmail(String email);
+interface UserRepo extends MongoRepository<User, String> {
+    Optional<User> findByEmail(String email);
+
+    Optional<User> findByPhoneNo(String phoneNo);
+
+    Boolean existsByEmail(String email);
+
+    Boolean existsByPhoneNo(String phoneNo);
 }
