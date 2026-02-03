@@ -1,63 +1,76 @@
 package com.bodhganga.bodhganga.entity;
 
 import lombok.*;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 @Data
-//@Getter
-//@Setter
-//@AllArgsConstructor
-//@NoArgsConstructor
-//@Component
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Document(collection = "users")
-public class User
-{
-    @NonNull
-    private String name;
-    public @NonNull String getName() {return name;}
-    public void setName(@NonNull String name) {this.name = name;}
+public class User {
 
+    @Id
+    private String id;
+
+    // Basic Profile Information
+    @NonNull
+    private String Name;
+
+    @NonNull
     private String gender;
 
     @NonNull
     private Date dateOfBirth;
-    public @NonNull Date getDateOfBirth() {return dateOfBirth;}
-    public void setDateOfBirth(@NonNull Date dateOfBirth) {this.dateOfBirth = dateOfBirth;}
 
-
+    // Contact Information
     @Indexed(unique = true)
     @NonNull
     private String email;
-    public @NonNull String getEmail() {return email;}
-    public void setEmail(@NonNull String email) {this.email = email;}
-
-
-    private String hashedPassword;
 
     @Indexed(unique = true)
     @NonNull
     private String phoneNo;
-    public @NonNull String getPhoneNo() {return phoneNo;}
-    public void setPhoneNo(@NonNull String phoneNo) {this.phoneNo = phoneNo;}
 
-    private String profilePicture;
+    // Authentication
+    @NonNull
+    private String hashedPassword;
+
+    @Builder.Default
+    private String role = "USER"; // USER, ADMIN
+
+    @Builder.Default
+    private Boolean isVerified = false;
+
+    @Builder.Default
+    private Boolean isActive = true;
+
+    // Location
+    @NonNull
     private String city;
+
+    @NonNull
     private String state;
+
+    @NonNull
     private String country;
 
+    // Optional Profile Fields (can be updated later)
+    private String profilePicture;
+    private String qualification;
 
-    public String getName(String fName, String lName)
-    {
-       return fName+" "+lName;
+    // Timestamps
+    @Builder.Default
+    private Date createdAt = new Date();
+
+    private Date lastLogin;
+
+    // Utility method to get full name
+    public String getName() {
+        return fName + " " + lName;
     }
-
-    @DBRef
-    private List<Courses> courses = new ArrayList<>();
-
 }
