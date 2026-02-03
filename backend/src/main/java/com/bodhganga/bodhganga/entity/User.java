@@ -25,7 +25,6 @@ public class User
     private String lName;
     @NonNull
     private String name;
-    @NonNull
     private String gender;
     @NonNull
     private Date dateOfBirth;
@@ -37,11 +36,8 @@ public class User
     @NonNull
     private String phoneNo;
     private String profilePicture;
-    @NonNull
     private String city;
-    @NonNull
     private String state;
-    @NonNull
     private String country;
 
     public String getName(String fName, String lName)
