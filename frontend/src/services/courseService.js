@@ -2,11 +2,10 @@ import api from './api';
 
 /**
  * Get all courses
- * @param {object} params - Optional query parameters (future: category, search, sort)
  * @returns {Promise}
  */
-export const getAllCourses = async (params = {}) => {
-    return api.get('/courses', { params });
+export const getAllCourses = async () => {
+    return api.get('/courses/list');
 };
 
 /**
@@ -19,12 +18,21 @@ export const getCourseById = async (courseId) => {
 };
 
 /**
+ * Get courses by category
+ * @param {string} category
+ * @returns {Promise}
+ */
+export const getCoursesByCategory = async (category) => {
+    return api.get(`/courses/category/${category}`);
+};
+
+/**
  * Enroll in a course
  * @param {string} courseId
  * @returns {Promise}
  */
 export const enrollCourse = async (courseId) => {
-    return api.post('/enrollments', { courseId });
+    return api.post(`/courses/enroll/${courseId}`);
 };
 
 /**
@@ -32,7 +40,7 @@ export const enrollCourse = async (courseId) => {
  * @returns {Promise}
  */
 export const getEnrolledCourses = async () => {
-    return api.get('/enrollments/my-courses');
+    return api.get('/courses/my-courses');
 };
 
 /**

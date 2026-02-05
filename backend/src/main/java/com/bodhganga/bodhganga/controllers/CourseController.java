@@ -7,7 +7,7 @@ import com.bodhganga.bodhganga.entity.User;
 import com.bodhganga.bodhganga.repo.CourseRepo;
 import com.bodhganga.bodhganga.repo.EnrollmentRepo;
 import com.bodhganga.bodhganga.repo.UserRepo;
-import com.bodhganga.bodhganga.util.JwtUtil;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -27,7 +27,6 @@ public class CourseController {
     private final CourseRepo courseRepo;
     private final EnrollmentRepo enrollmentRepo;
     private final UserRepo userRepo;
-    private final JwtUtil jwtUtil;
 
     /**
      * GET /api/courses/list
@@ -119,9 +118,7 @@ public class CourseController {
      * Get user's enrolled courses (PROTECTED - auth required)
      */
     @GetMapping("/my-courses")
-    public ResponseEntity<ApiResponseDTO> getMyC
-
-ourses(Authentication authentication) {
+    public ResponseEntity<ApiResponseDTO> getMyCourses(Authentication authentication) {
         String userEmail = authentication.getName();
         User user = userRepo.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));

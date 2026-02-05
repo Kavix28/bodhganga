@@ -5,30 +5,38 @@ import api from './api';
  * @returns {Promise}
  */
 export const getProfile = async () => {
-    return api.get('/users/profile');
+    return api.get('/profile');
+};
+
+/**
+ * Get profile settings
+ * @returns {Promise}
+ */
+export const getProfileSettings = async () => {
+    return api.get('/profile/settings');
 };
 
 /**
  * Update user profile
- * @param {object} data - Profile data to update (name, avatar, etc.)
+ * @param {object} data - Profile data to update (name, city, state, country, qualification, profilePicture)
  * @returns {Promise}
  */
 export const updateProfile = async (data) => {
-    return api.put('/users/profile', data);
+    return api.put('/profile/settings/update', data);
 };
 
 /**
- * Upload profile avatar (future feature)
- * @param {File} file
+ * Get dashboard data
  * @returns {Promise}
  */
-export const uploadAvatar = async (file) => {
-    const formData = new FormData();
-    formData.append('avatar', file);
+export const getDashboard = async () => {
+    return api.get('/dashboard');
+};
 
-    return api.post('/users/avatar', formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data',
-        },
-    });
+/**
+ * Get dashboard stats
+ * @returns {Promise}
+ */
+export const getDashboardStats = async () => {
+    return api.get('/dashboard/stats');
 };

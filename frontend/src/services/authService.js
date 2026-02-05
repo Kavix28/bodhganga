@@ -2,31 +2,11 @@ import api from './api';
 
 /**
  * Register a new user
- * @param {string} emailOrPhone
- * @param {string} password
+ * @param {object} signupData - { name, email, phoneNo, password, city, state, country }
  * @returns {Promise}
  */
-export const register = async (emailOrPhone, password) => {
-    return api.post('/auth/register', { emailOrPhone, password });
-};
-
-/**
- * Verify OTP
- * @param {string} emailOrPhone
- * @param {string} otp
- * @returns {Promise}
- */
-export const verifyOTP = async (emailOrPhone, otp) => {
-    return api.post('/auth/verify-otp', { emailOrPhone, otp });
-};
-
-/**
- * Resend OTP
- * @param {string} emailOrPhone
- * @returns {Promise}
- */
-export const resendOTP = async (emailOrPhone) => {
-    return api.post('/auth/resend-otp', { emailOrPhone });
+export const signup = async (signupData) => {
+    return api.post('/auth/signup', signupData);
 };
 
 /**
