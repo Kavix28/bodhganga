@@ -21,10 +21,8 @@ public class User {
     @NonNull
     private String name;
 
-    @NonNull
     private String gender;
 
-    @NonNull
     private Date dateOfBirth;
 
     // Contact Information

@@ -60,13 +60,21 @@ public class AuthService {
                 // Save user to database
                 User savedUser = userRepo.save(user);
 
+                // Generate JWT token for auto-login
+                String token = jwtUtil.generateToken(savedUser.getEmail(), savedUser.getId(), savedUser.getRole());
+
                 // Convert to response DTO (without sensitive data)
                 UserResponseDTO userResponse = mapToUserResponse(savedUser);
+
+                // Create response with token and user data
+                Map<String, Object> responseData = new HashMap<>();
+                responseData.put("token", token);
+                responseData.put("user", userResponse);
 
                 return ApiResponseDTO.builder()
                                 .success(true)
                                 .message("User registered successfully")
-                                .data(userResponse)
+                                .data(responseData)
                                 .build();
         }
 
@@ -74,14 +82,23 @@ public class AuthService {
          * User Login - Authenticate user
          */
         public ApiResponseDTO login(LoginRequestDTO dto) {
-                // Find user by email
-                User user = userRepo.findByEmail(dto.getEmail())
-                                .orElse(null);
+                // Determine if input is email or phone
+                String emailOrPhone = dto.getEmailOrPhone();
+                User user = null;
+
+                if (emailOrPhone.contains("@")) {
+                        // It's an email
+                        user = userRepo.findByEmail(emailOrPhone).orElse(null);
+                } else {
+                        // It's a phone number - normalize it (remove non-digits)
+                        String normalizedPhone = emailOrPhone.replaceAll("[^0-9]", "");
+                        user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);
+                }
 
                 if (user == null) {
                         return ApiResponseDTO.builder()
                                         .success(false)
-                                        .message("Invalid email or password")
+                                        .message("Invalid email/phone or password")
                                         .build();
                 }
 
