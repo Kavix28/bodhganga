@@ -21,11 +21,9 @@ public class SignupRequestDTO {
     @Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
 
-    @NotBlank(message = "Gender is required")
-    private String gender;
+    private String gender; // Optional
 
-    @NotNull(message = "Date of birth is required")
-    private Date dateOfBirth;
+    private Date dateOfBirth; // Optional
 
     @NotBlank(message = "City is required")
     private String city;

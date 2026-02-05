@@ -53,18 +53,25 @@ const Login = () => {
         setIsLoading(true);
 
         try {
-            await login(formData.emailOrPhone, formData.password);
-            toast.success('Welcome back!');
+            const response = await import('../services/authService').then(m => m.login(formData.emailOrPhone, formData.password));
 
-            const redirectTo = location.state?.from?.pathname || '/dashboard';
-            navigate(redirectTo, { replace: true });
+            if (response.success && response.data?.token && response.data?.user) {
+                // Use AuthContext login to store token and user
+                login(response.data.token, response.data.user);
+                toast.success('Welcome back!');
+
+                const redirectTo = location.state?.from?.pathname || '/dashboard';
+                navigate(redirectTo, { replace: true });
+            } else {
+                throw new Error(response.message || 'Login failed');
+            }
         } catch (error) {
             console.error('Login error:', error);
             setErrors({
                 emailOrPhone: 'Invalid credentials',
                 password: 'Invalid credentials'
             });
-            toast.error(error.response?.data?.message || 'Login failed. Please try again.');
+            toast.error(error.message || 'Login failed. Please check your credentials.');
         } finally {
             setIsLoading(false);
         }
