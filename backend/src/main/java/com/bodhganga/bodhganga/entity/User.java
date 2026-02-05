@@ -63,7 +63,6 @@ public class User {
     private String profilePicture;
     private String qualification;
 
-    // Timestamps
     @Builder.Default
     private Date createdAt = new Date();
 
