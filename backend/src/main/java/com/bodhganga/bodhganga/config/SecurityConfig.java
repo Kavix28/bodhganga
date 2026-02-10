@@ -46,6 +46,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/profile/**").authenticated()
                         .requestMatchers("/api/courses/enroll/**").authenticated()
                         .requestMatchers("/api/courses/my-courses").authenticated()
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
 
                         // Any other request requires authentication
                         .anyRequest().permitAll()) // Changed to permitAll for testing
