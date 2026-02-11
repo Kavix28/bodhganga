@@ -103,7 +103,7 @@ public class AuthService {
                 }
 
                 // Check if account is active
-                if (!user.getIsActive()) {
+                if (!user.isActive()) {
                         return ApiResponseDTO.builder()
                                         .success(false)
                                         .message("Account is deactivated. Please contact support.")

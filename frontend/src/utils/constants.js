@@ -1,5 +1,28 @@
 // API Base URL from environment variables
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9090/api';
+const envApiUrl = import.meta.env.VITE_API_BASE_URL;
+
+// FAIL-FAST: Detect missing or invalid API URL configuration
+if (!envApiUrl) {
+    console.error(
+        '❌ CRITICAL: VITE_API_BASE_URL is not defined in .env file!\n' +
+        'Create a .env file in the frontend directory with:\n' +
+        'VITE_API_BASE_URL=http://localhost:9090/api\n' +
+        'Then restart Vite (npm run dev)'
+    );
+    console.warn('⚠️ Using fallback URL: http://localhost:9090/api');
+}
+
+// Validate URL format
+const API_BASE_URL_RAW = envApiUrl || 'http://localhost:9090/api';
+
+// Prevent double /api paths (e.g., http://localhost:9090/api/api)
+if (API_BASE_URL_RAW.endsWith('/api/api')) {
+    console.error('❌ CRITICAL: API_BASE_URL has duplicate /api path!');
+    console.error('Current value:', API_BASE_URL_RAW);
+    console.error('Fix: Remove one /api from VITE_API_BASE_URL in .env');
+}
+
+export const API_BASE_URL = API_BASE_URL_RAW;
 
 // Local Storage Keys
 export const STORAGE_KEYS = {
@@ -47,3 +70,17 @@ export const ERROR_MESSAGES = {
     SESSION_EXPIRED: 'Your session has expired. Please login again.',
     GENERIC_ERROR: 'An error occurred. Please try again.',
 };
+
+// Error Codes for precise classification
+export const ERROR_CODES = {
+    BACKEND_UNAVAILABLE: 'BACKEND_UNAVAILABLE',    // Backend not running on expected port
+    CORS_ERROR: 'CORS_ERROR',                      // CORS policy blocking request
+    TIMEOUT: 'TIMEOUT',                            // Request exceeded timeout limit
+    UNAUTHORIZED: 'UNAUTHORIZED',                  // 401 - Auth token invalid/expired
+    FORBIDDEN: 'FORBIDDEN',                        // 403 - Permission denied
+    NOT_FOUND: 'NOT_FOUND',                        // 404 - Endpoint not found
+    SERVER_ERROR: 'SERVER_ERROR',                  // 500 - Internal server error
+    NETWORK_ERROR: 'NETWORK_ERROR',                // Actual internet disconnection
+    UNKNOWN_ERROR: 'UNKNOWN_ERROR',                // Unclassified error
+};
+
