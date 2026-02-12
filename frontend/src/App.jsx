@@ -7,6 +7,8 @@ import AdminProtectedRoute from './components/common/AdminProtectedRoute';
 import Navbar from './components/common/Navbar';
 import Footer from './components/common/Footer';
 import { isAdminAuthenticated } from './utils/adminAuth';
+// Auto-run backend health check on app load
+import './utils/healthCheck';
 
 // Pages
 import Landing from './pages/Landing';
