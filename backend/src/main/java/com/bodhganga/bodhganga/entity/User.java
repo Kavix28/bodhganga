@@ -18,7 +18,6 @@ public class User {
     private String id;
 
     // Basic Profile Information
-    @NonNull
     private String name;
 
     private String gender;
@@ -27,15 +26,12 @@ public class User {
 
     // Contact Information
     @Indexed(unique = true)
-    @NonNull
     private String email;
 
     @Indexed(unique = true)
-    @NonNull
     private String phoneNo;
 
     // Authentication
-    @NonNull
     private String hashedPassword;
 
     @Builder.Default
@@ -48,13 +44,10 @@ public class User {
     private Boolean isActive = true;
 
     // Location
-    @NonNull
     private String city;
 
-    @NonNull
     private String state;
 
-    @NonNull
     private String country;
 
     // Optional Profile Fields (can be updated later)
@@ -65,4 +58,13 @@ public class User {
     private Date createdAt = new Date();
 
     private Date lastLogin;
+
+    // Manual getters for Boolean fields (Lombok workaround)
+    public Boolean isActive() {
+        return this.isActive;
+    }
+
+    public Boolean isVerified() {
+        return this.isVerified;
+    }
 }
