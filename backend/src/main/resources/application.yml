@@ -3,12 +3,12 @@ spring:
     name: bodhganga
   data:
     mongodb:
-      uri: mongodb+srv://bodh:ganga@test-bodhganga.30wadid.mongodb.net/bodhganga?retryWrites=true&w=majority&appName=test-bodhganga
+      uri: mongodb+srv://<username>:<password>@random.30wadid.mongodb.net/bodhganga?retryWrites=true&w=majority&appName=test-bodhganga
       auto-index-creation: true
 
 server:
   port: 9090
 
 jwt:
-  secret: 5Jf8Kl9mN3pQ6rS8tU1vW4xY7zA2bC5dE8fG1hJ4kL7mN0pQ3rS6tU9vW2xY5zA8
+  secret: jwtsecret
   expiration: 86400000
