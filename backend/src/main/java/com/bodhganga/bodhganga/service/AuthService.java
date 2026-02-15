@@ -57,8 +57,10 @@ public class AuthService {
                                 .createdAt(new Date())
                                 .build();
 
+                System.out.println("Attempting to save user: " + user.getEmail());
                 // Save user to database
                 User savedUser = userRepo.save(user);
+                System.out.println("User saved successfully with ID: " + savedUser.getId());
 
                 // Generate JWT token for auto-login
                 String token = jwtUtil.generateToken(savedUser.getEmail(), savedUser.getId(), savedUser.getRole());
