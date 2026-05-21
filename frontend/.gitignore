@@ -107,3 +107,4 @@ ssl/
 # Application specific
 application-local.yml
 application-local.properties
+.vercel
