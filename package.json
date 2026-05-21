@@ -1,4 +1,11 @@
 {
+  "name": "bodhganga",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "npm --prefix frontend run build",
+    "install-frontend": "npm --prefix frontend install",
+    "dev": "npm --prefix frontend run dev"
+  },
   "dependencies": {
     "mongodb": "^7.2.0"
   }
