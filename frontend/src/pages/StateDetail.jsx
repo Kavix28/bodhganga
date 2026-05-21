@@ -1,196 +1,173 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { BookOpen, HelpCircle, CheckCircle, MapPin, ArrowLeft } from 'lucide-react';
+import { useParams, Link } from 'react-router-dom';
+import api from '../services/api';
 import Breadcrumb from '../components/common/Breadcrumb';
-import NotesViewer from '../components/content/NotesViewer';
-import QuestionBank from '../components/content/QuestionBank';
-import SolutionsViewer from '../components/content/SolutionsViewer';
-import { indianStates, getStateById } from '../data/states';
-import { unionTerritories, getUTById } from '../data/unionTerritories';
+import { FiExternalLink, FiPrinter } from 'react-icons/fi';
+import { MapPin, Globe, BookOpen, Shield } from 'lucide-react';
 
-/**
- * StateDetail Page
- * Shows detailed information and content for a specific state or UT
- */
 const StateDetail = () => {
-    const { stateId } = useParams();
-    const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState('notes');
-    const [region, setRegion] = useState(null);
-    const [isState, setIsState] = useState(true);
+    const { id } = useParams();
+    const [state, setState] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        // Try to find in states first
-        let found = getStateById(stateId);
-        if (found) {
-            setRegion(found);
-            setIsState(true);
-        } else {
-            // Try union territories
-            found = getUTById(stateId);
-            if (found) {
-                setRegion(found);
-                setIsState(false);
-            } else {
-                // Not found, redirect
-                navigate('/states');
-            }
-        }
-    }, [stateId, navigate]);
+        window.scrollTo(0, 0);
+        fetchStateDetail();
+    }, [id]);
 
-    if (!region) {
+    const fetchStateDetail = async () => {
+        try {
+            setIsLoading(true);
+            const res = await api.get(`/states/${id}`);
+            setState(res.data.data || res.data);
+        } catch (error) {
+            console.error('Failed to load state detail:', error);
+            setState(null);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    if (isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                    <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--navy)' }}>Loading...</h2>
+            <div className="min-h-screen bg-ivory-light flex items-center justify-center">
+                <div className="text-center text-xs font-bold uppercase tracking-widest text-emerald-dark/50">
+                    Retrieving regional curriculum...
                 </div>
             </div>
         );
     }
 
-    const breadcrumbItems = [
-        {
-            label: isState ? 'States' : 'Union Territories',
-            path: isState ? '/states' : '/union-territories'
-        },
-        {
-            label: region.name,
-            path: isState ? `/states/${region.id}` : `/union-territories/${region.id}`
-        }
-    ];
+    if (!state) {
+        return (
+            <div className="min-h-screen bg-ivory-light flex items-center justify-center">
+                <div className="text-center text-xs font-bold uppercase tracking-widest text-emerald-dark/50">
+                    Territory mapping not found.
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <div className="min-h-screen bg-gray-50 page-enter">
-            {/* Tricolor Top Accent */}
-            <div className="tricolor-accent h-1"></div>
-
-            <div className="container-custom py-12">
-                {/* Breadcrumb */}
-                <Breadcrumb items={breadcrumbItems} />
-
-                {/* Back Button */}
-                <button
-                    onClick={() => navigate(isState ? '/states' : '/union-territories')}
-                    className="flex items-center gap-2 text-[var(--navy)] hover:text-[var(--saffron)] transition-colors mb-8 font-medium"
-                >
-                    <ArrowLeft className="w-5 h-5" />
-                    Back to {isState ? 'States' : 'Union Territories'}
-                </button>
-
-                {/* State Header */}
-                <div className="bg-white rounded-2xl shadow-lg border-2 border-gray-200 p-8 md:p-12 mb-8 tricolor-accent">
-                    <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-                        <div className="w-20 h-20 bg-gradient-to-br from-[var(--saffron)] to-[var(--saffron-dark)] rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0">
-                            <MapPin className="w-10 h-10 text-white" />
-                        </div>
-
-                        <div className="flex-1">
-                            <h1 className="text-4xl md:text-5xl font-bold mb-3" style={{ color: 'var(--navy)' }}>
-                                {region.name}
-                            </h1>
-                            <div className="flex flex-wrap items-center gap-4 text-gray-600 mb-4">
-                                <div className="flex items-center gap-2">
-                                    <span className="font-semibold">Code:</span>
-                                    <span className="font-mono font-bold text-[var(--saffron)]">{region.code}</span>
-                                </div>
-                                <div className="w-px h-5 bg-gray-300"></div>
-                                <div className="flex items-center gap-2">
-                                    <span className="font-semibold">Capital:</span>
-                                    <span>{region.capital}</span>
-                                </div>
-                            </div>
-                            <p className="text-lg text-gray-600 leading-relaxed">
-                                {region.description}
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Stats */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 pt-8 border-t-2 border-gray-200">
-                        <div className="stats-card navy">
-                            <div className="flex items-center gap-4">
-                                <BookOpen className="w-10 h-10 text-[var(--navy)]" />
-                                <div>
-                                    <div className="stats-value">{region.notesCount}</div>
-                                    <div className="stats-label">Notes Available</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="stats-card saffron">
-                            <div className="flex items-center gap-4">
-                                <HelpCircle className="w-10 h-10 text-[var(--saffron)]" />
-                                <div>
-                                    <div className="stats-value">{region.questionsCount}</div>
-                                    <div className="stats-label">Practice Questions</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="stats-card green">
-                            <div className="flex items-center gap-4">
-                                <CheckCircle className="w-10 h-10 text-[var(--green)]" />
-                                <div>
-                                    <div className="stats-value">{region.solutionsCount}</div>
-                                    <div className="stats-label">Solutions</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Exams */}
-                    {region.exams && region.exams.length > 0 && (
-                        <div className="mt-8 pt-8 border-t-2 border-gray-200">
-                            <h3 className="text-xl font-bold mb-4" style={{ color: 'var(--navy)' }}>
-                                Exam Types Covered
-                            </h3>
-                            <div className="flex flex-wrap gap-3">
-                                {region.exams.map((exam, index) => (
-                                    <span key={index} className="exam-badge">
-                                        {exam}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+        <div className="min-h-screen bg-ivory-light pb-20">
+            {/* Breadcrumb Section */}
+            <div className="bg-emerald-dark border-b border-gold/15 py-4 px-4">
+                <div className="max-w-7xl mx-auto">
+                    <Breadcrumb items={[
+                        { label: 'States & UTs', path: '/states' },
+                        { label: state.name, path: `/states/${state.id}` }
+                    ]} />
                 </div>
+            </div>
 
-                {/* Tabs */}
-                <div className="tab-list">
-                    <button
-                        className={`tab-button ${activeTab === 'notes' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('notes')}
-                    >
-                        <BookOpen className="w-5 h-5 inline mr-2" />
-                        Notes
-                    </button>
-                    <button
-                        className={`tab-button ${activeTab === 'questions' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('questions')}
-                    >
-                        <HelpCircle className="w-5 h-5 inline mr-2" />
-                        Question Bank
-                    </button>
-                    <button
-                        className={`tab-button ${activeTab === 'solutions' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('solutions')}
-                    >
-                        <CheckCircle className="w-5 h-5 inline mr-2" />
-                        Solutions
-                    </button>
-                </div>
+            <div className="max-w-7xl mx-auto px-4 py-12">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    
+                    {/* LEFT SIDEBAR (4 cols) */}
+                    <aside className="lg:col-span-4 space-y-6">
+                        <div className="card-premium bg-white p-6 text-center space-y-6">
+                            <div className="relative w-full h-56 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-2xl overflow-hidden border border-emerald/5 shadow-inner">
+                                <img 
+                                    src={state.images?.[0] || "https://picsum.photos/400/250"} 
+                                    alt={state.name} 
+                                    loading="lazy"
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
+                            <div className="flex flex-col gap-3">
+                                <a 
+                                    href="#" 
+                                    className="w-full py-3.5 border border-emerald/10 text-emerald font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-emerald-50/50 hover:border-emerald transition-all duration-300 flex items-center justify-center gap-2"
+                                >
+                                    State Portal <FiExternalLink className="w-3.5 h-3.5" />
+                                </a>
+                                <a 
+                                    href="#" 
+                                    className="w-full py-3.5 border border-emerald/10 text-emerald font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-emerald-50/50 hover:border-emerald transition-all duration-300 flex items-center justify-center gap-2"
+                                >
+                                    District Directory <FiExternalLink className="w-3.5 h-3.5" />
+                                </a>
+                            </div>
+                        </div>
+                    </aside>
 
-                {/* Content Area */}
-                <div className="bg-white rounded-2xl shadow-md border-2 border-gray-200 p-8 md:p-12 min-h-[400px]">
-                    {activeTab === 'notes' && (
-                        <NotesViewer stateId={region.id} stateName={region.name} />
-                    )}
+                    {/* MAIN CONTENT (8 cols) */}
+                    <main className="lg:col-span-8 card-premium bg-white p-8 sm:p-10 space-y-8">
+                        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 pb-6 border-b border-emerald/5">
+                            <div className="space-y-1">
+                                <h1 className="text-3xl md:text-4xl font-bold text-emerald-dark font-serif tracking-tight">
+                                    {state.name}
+                                </h1>
+                                <p className="text-xs text-gold font-bold uppercase tracking-widest flex items-center gap-1">
+                                    <MapPin className="w-3.5 h-3.5" /> Capital: {state.capital}
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-wider text-emerald-dark/60">
+                                <FiPrinter className="cursor-pointer hover:text-emerald text-base transition-colors" />
+                                <span>A- A A+</span>
+                            </div>
+                        </div>
 
-                    {activeTab === 'questions' && (
-                        <QuestionBank stateId={region.id} stateName={region.name} />
-                    )}
+                        {/* Particulars Table */}
+                        <div className="overflow-hidden border border-emerald/15 rounded-2xl shadow-sm">
+                            <table className="w-full border-collapse">
+                                <thead className="bg-emerald text-white">
+                                    <tr>
+                                        <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Particulars</th>
+                                        <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-sm font-semibold text-emerald-dark divide-y divide-emerald/5">
+                                    <tr className="bg-white">
+                                        <td className="px-6 py-3.5 text-emerald-dark/60 text-xs font-bold uppercase tracking-wider">Area</td>
+                                        <td className="px-6 py-3.5">{state.area || 'N/A'}</td>
+                                    </tr>
+                                    <tr className="bg-emerald-light/5">
+                                        <td className="px-6 py-3.5 text-emerald-dark/60 text-xs font-bold uppercase tracking-wider">Population</td>
+                                        <td className="px-6 py-3.5">{state.population || 'N/A'}</td>
+                                    </tr>
+                                    <tr className="bg-white">
+                                        <td className="px-6 py-3.5 text-emerald-dark/60 text-xs font-bold uppercase tracking-wider">Capital</td>
+                                        <td className="px-6 py-3.5">{state.capital}</td>
+                                    </tr>
+                                    <tr className="bg-emerald-light/5">
+                                        <td className="px-6 py-3.5 text-emerald-dark/60 text-xs font-bold uppercase tracking-wider">Principal Languages</td>
+                                        <td className="px-6 py-3.5">{state.language || 'N/A'}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
 
-                    {activeTab === 'solutions' && (
-                        <SolutionsViewer stateId={region.id} stateName={region.name} />
-                    )}
+                        {/* Introduction / History Text */}
+                        <div className="space-y-8 text-emerald-dark text-sm leading-relaxed font-medium">
+                            <div className="space-y-3">
+                                <h2 className="text-xl font-bold text-emerald-dark font-serif tracking-tight pb-2 border-b border-emerald/5">
+                                    Introduction
+                                </h2>
+                                <p className="text-emerald-dark/80">
+                                    {state.description || state.details?.description || `${state.name} is a vital and strategic region in India, featuring unique historical patterns and cultural depth.`}
+                                </p>
+                            </div>
+                            
+                            <div className="space-y-3">
+                                <h2 className="text-xl font-bold text-emerald-dark font-serif tracking-tight pb-2 border-b border-emerald/5">
+                                    History
+                                </h2>
+                                <p className="text-emerald-dark/80">
+                                    {state.history || 'Comprehensive historical archive compilation currently in progress.'}
+                                </p>
+                            </div>
+                            
+                            {state.geography && (
+                                <div className="space-y-3">
+                                    <h2 className="text-xl font-bold text-emerald-dark font-serif tracking-tight pb-2 border-b border-emerald/5">
+                                        Geography & Topography
+                                    </h2>
+                                    <p className="text-emerald-dark/80">{state.geography}</p>
+                                </div>
+                            )}
+                        </div>
+                    </main>
                 </div>
             </div>
         </div>

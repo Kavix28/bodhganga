@@ -102,21 +102,21 @@ const CourseDetail = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <div className="container-custom py-8">
+            <div className="container-custom py-[20px]">
                 {/* Back Button */}
                 <button
                     onClick={handleBack}
-                    className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-6"
+                    className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-[12px]"
                 >
                     <FiArrowLeft className="w-5 h-5" />
                     <span>Back to Courses</span>
                 </button>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="card-grid">
                     {/* Main Content */}
                     <div className="lg:col-span-2">
                         {/* Course Header */}
-                        <div className="card mb-8">
+                        <div className="card mb-[16px]">
                             <div className="flex items-start justify-between mb-4">
                                 <div className="flex-1">
                                     <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -135,7 +135,7 @@ const CourseDetail = () => {
                             </div>
 
                             {/* Course Meta */}
-                            <div className="flex flex-wrap items-center gap-6 text-sm text-gray-600 mb-6">
+                            <div className="flex flex-wrap items-center gap-[15px] text-sm text-gray-600 mb-[12px]">
                                 <div className="flex items-center space-x-2">
                                     <FiUser className="w-4 h-4" />
                                     <span>Created by Admin</span>
@@ -152,9 +152,9 @@ const CourseDetail = () => {
 
                             {/* Video Preview */}
                             {course.youtubeUrl && (
-                                <div className="mb-6">
+                                <div className="mb-[12px]">
                                     <h3 className="text-lg font-semibold text-gray-900 mb-3">Course Preview</h3>
-                                    <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                                    <div className="aspect-video bg-gray-100 rounded-[2px] overflow-hidden">
                                         {course.youtubeThumbnailUrl ? (
                                             <div className="relative w-full h-full">
                                                 <img
@@ -180,8 +180,8 @@ const CourseDetail = () => {
                             {/* Course Content */}
                             <div>
                                 <h3 className="text-lg font-semibold text-gray-900 mb-3">What You'll Learn</h3>
-                                <div className="bg-gray-50 rounded-lg p-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="bg-gray-50 rounded-[2px] p-4">
+                                    <div className="card-grid">
                                         <div className="flex items-center space-x-3">
                                             <FiBookOpen className="w-5 h-5 text-primary-600" />
                                             <span>Comprehensive PDF materials</span>
@@ -208,12 +208,12 @@ const CourseDetail = () => {
                     <div className="lg:col-span-1">
                         <div className="card sticky top-8">
                             {/* Course Thumbnail */}
-                            <div className="w-full h-48 bg-gradient-to-br from-primary-100 to-secondary-100 rounded-lg mb-6 flex items-center justify-center">
+                            <div className="w-full h-48 bg-gradient-to-br from-primary-100 to-secondary-100 rounded-[2px] mb-[12px] flex items-center justify-center">
                                 {course.youtubeThumbnailUrl ? (
                                     <img
                                         src={course.youtubeThumbnailUrl}
                                         alt={course.title}
-                                        className="w-full h-full object-cover rounded-lg"
+                                        className="w-full h-full object-cover rounded-[2px]"
                                     />
                                 ) : (
                                     <FiPlay className="w-16 h-16 text-primary-600" />
@@ -221,7 +221,7 @@ const CourseDetail = () => {
                             </div>
 
                             {/* Price */}
-                            <div className="text-center mb-6">
+                            <div className="text-center mb-[12px]">
                                 <div className="text-3xl font-bold text-primary-600 mb-2">
                                     ₹{course.price}
                                 </div>
@@ -284,7 +284,7 @@ const CourseDetail = () => {
                             </div>
 
                             {/* Money Back Guarantee */}
-                            <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
+                            <div className="mt-6 p-4 bg-green-50 rounded-[2px] border border-green-200">
                                 <div className="flex items-center space-x-2 text-green-800 mb-2">
                                     <FiCheck className="w-5 h-5" />
                                     <span className="font-medium">30-Day Money Back Guarantee</span>

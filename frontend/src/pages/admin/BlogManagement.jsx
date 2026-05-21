@@ -122,7 +122,7 @@ const BlogManagement = () => {
 
             {/* Filters */}
             <div className="card">
-                <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex flex-col sm:flex-row gap-[14px]">
                     <div className="flex-1">
                         <div className="relative">
                             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -154,8 +154,8 @@ const BlogManagement = () => {
                 {isLoading ? (
                     <div className="space-y-4">
                         {[...Array(5)].map((_, i) => (
-                            <div key={i} className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg loading">
-                                <div className="w-16 h-16 loading-skeleton rounded-lg"></div>
+                            <div key={i} className="flex items-center gap-[14px] p-4 border border-gray-200 rounded-[2px] loading">
+                                <div className="w-16 h-16 loading-skeleton rounded-[2px]"></div>
                                 <div className="flex-1">
                                     <div className="h-5 loading-skeleton rounded mb-2"></div>
                                     <div className="h-4 loading-skeleton rounded w-3/4 mb-2"></div>
@@ -195,12 +195,12 @@ const BlogManagement = () => {
                                     <tr key={post.id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4">
                                             <div className="flex items-start gap-3">
-                                                <div className="w-12 h-12 bg-gradient-to-br from-primary-100 to-secondary-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <div className="w-12 h-12 bg-gradient-to-br from-primary-100 to-secondary-100 rounded-[2px] flex items-center justify-center flex-shrink-0">
                                                     {post.featuredImage ? (
                                                         <img
                                                             src={post.featuredImage}
                                                             alt={post.title}
-                                                            className="w-full h-full object-cover rounded-lg"
+                                                            className="w-full h-full object-cover rounded-[2px]"
                                                         />
                                                     ) : (
                                                         <svg className="w-6 h-6 text-primary-600" fill="currentColor" viewBox="0 0 20 20">

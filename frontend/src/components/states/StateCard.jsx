@@ -1,108 +1,55 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { BookOpen, HelpCircle, CheckCircle, MapPin } from 'lucide-react';
 
-/**
- * StateCard Component
- * Displays a state or union territory card with tricolor accent
- * @param {Object} state - State/UT data object
- * @param {string} type - 'state' or 'union-territory'
- */
 const StateCard = ({ state, type = 'state' }) => {
-    const navigate = useNavigate();
-
-    const handleClick = () => {
-        const path = type === 'state'
-            ? `/states/${state.id}`
-            : `/union-territories/${state.id}`;
-        navigate(path);
-    };
+    const path = type === 'state' ? `/states/${state.id}` : `/union-territories/${state.id}`;
+    const imageUrl = state.images?.[0] || state.image || 'https://picsum.photos/400/250';
 
     return (
-        <div
-            className="state-card group"
-            onClick={handleClick}
-            role="button"
-            tabIndex={0}
-            aria-label={`View ${state.name} preparation materials`}
-            onKeyPress={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    handleClick();
-                }
-            }}
-        >
-            {/* State Header */}
-            <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                    <h3 className="state-card-title group-hover:text-[var(--navy)] transition-colors">
-                        {state.name}
-                    </h3>
-                    <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
-                        <MapPin className="w-4 h-4" />
-                        <span className="font-medium">{state.code}</span>
-                        <span className="text-gray-400">•</span>
-                        <span className="line-clamp-1">{state.capital}</span>
-                    </div>
-                </div>
+        <Link to={path} className="card-premium flex flex-col group h-full relative bg-white border border-emerald/5 hover:border-gold/30 hover:shadow-lg transition-all duration-300">
+            {/* Image section */}
+            <div className="relative w-full h-44 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-2xl overflow-hidden mb-4 border border-emerald/5 shadow-inner">
+                <img 
+                    src={imageUrl} 
+                    alt={state.name} 
+                    loading="lazy" 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+                />
+                
+                {/* Territory code badge */}
+                {state.code && (
+                    <span className="absolute top-3 left-3 text-[9px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full bg-emerald-dark/90 text-gold border border-gold/25 backdrop-blur-md">
+                        {state.code}
+                    </span>
+                )}
             </div>
 
-            {/* Content Statistics */}
-            <div className="state-card-stats">
-                <div className="flex items-center gap-2 state-stat-badge">
-                    <BookOpen className="w-4 h-4 text-[var(--navy)]" />
-                    <span>{state.notesCount} Notes</span>
-                </div>
-                <div className="flex items-center gap-2 state-stat-badge">
-                    <HelpCircle className="w-4 h-4 text-[var(--saffron)]" />
-                    <span>{state.questionsCount} Questions</span>
-                </div>
-                <div className="flex items-center gap-2 state-stat-badge">
-                    <CheckCircle className="w-4 h-4 text-[var(--green)]" />
-                    <span>{state.solutionsCount} Solutions</span>
-                </div>
+            {/* Title */}
+            <div className="px-1 flex-grow">
+                <h3 className="font-bold text-emerald-dark text-lg mb-1.5 font-serif group-hover:text-emerald transition-colors duration-300">
+                    {state.name}
+                </h3>
+                {state.capital && (
+                    <p className="text-[10px] text-emerald-dark/50 font-bold uppercase tracking-wider mb-4 flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-gold" /> {state.capital}
+                    </p>
+                )}
             </div>
 
-            {/* Exam Types */}
-            {state.exams && state.exams.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                    <div className="flex flex-wrap gap-2">
-                        {state.exams.slice(0, 3).map((exam, index) => (
-                            <span
-                                key={index}
-                                className="exam-badge"
-                            >
-                                {exam}
-                            </span>
-                        ))}
-                        {state.exams.length > 3 && (
-                            <span className="state-stat-badge">
-                                +{state.exams.length - 3} more
-                            </span>
-                        )}
-                    </div>
-                </div>
-            )}
-
-            {/* Description (Hidden on mobile, shown on hover for desktop) */}
-            <p className="text-sm text-gray-600 mt-4 line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hidden md:block">
-                {state.description}
-            </p>
-
-            {/* Hover Effect - View Details */}
-            <div className="mt-4 pt-3 border-t border-gray-200 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <span className="text-sm font-semibold text-[var(--navy)] flex items-center gap-2">
-                    View Preparation Materials
-                    <svg
-                        className="w-4 h-4 transform group-hover:translate-x-1 transition-transform"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
+            {/* Meta Stats */}
+            <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-wider text-emerald-dark/60 mt-auto pt-3 border-t border-emerald/5 px-1 pb-1">
+                <span title="Notes" className="flex items-center gap-1">
+                    <BookOpen className="w-3.5 h-3.5 text-emerald" /> {state.notesCount}
+                </span>
+                <span title="Questions" className="flex items-center gap-1">
+                    <HelpCircle className="w-3.5 h-3.5 text-gold" /> {state.questionsCount}
+                </span>
+                <span title="Solutions" className="flex items-center gap-1">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-dark" /> {state.solutionsCount}
                 </span>
             </div>
-        </div>
+        </Link>
     );
 };
 

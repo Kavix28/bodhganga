@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import PropTypes from 'prop-types';
 
 const SpaceThemeContext = createContext();
 
@@ -43,8 +42,4 @@ export const SpaceThemeProvider = ({ children }) => {
             {children}
         </SpaceThemeContext.Provider>
     );
-};
-
-SpaceThemeProvider.propTypes = {
-    children: PropTypes.node.isRequired
 };

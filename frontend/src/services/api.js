@@ -17,7 +17,8 @@ console.log('🌐 API Base URL:', API_BASE_URL);
 // Request interceptor - Add JWT token to headers
 api.interceptors.request.use(
     (config) => {
-        const token = getAuthToken();
+        // Fallback: Check standard auth token first, then admin token
+        const token = getAuthToken() || sessionStorage.getItem('admin_jwt');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }

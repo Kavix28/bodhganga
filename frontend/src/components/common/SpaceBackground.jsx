@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import PropTypes from 'prop-types';
 
 const SpaceBackground = ({ theme = 'starfield' }) => {
     const canvasRef = useRef(null);
@@ -372,10 +371,6 @@ const SpaceBackground = ({ theme = 'starfield' }) => {
             style={{ zIndex: 0 }}
         />
     );
-};
-
-SpaceBackground.propTypes = {
-    theme: PropTypes.oneOf(['starfield', 'meteor', 'planets', 'nebula'])
 };
 
 export default SpaceBackground;

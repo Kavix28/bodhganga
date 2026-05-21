@@ -111,7 +111,7 @@ const AdminPDFManager = () => {
     return (
         <div className="min-h-screen bg-gray-50 p-8">
             {/* Header */}
-            <div className="mb-8">
+            <div className="mb-[16px]">
                 <h1 className="text-4xl font-bold mb-2" style={{ color: 'var(--navy)' }}>
                     PDF Content Manager
                 </h1>
@@ -121,10 +121,10 @@ const AdminPDFManager = () => {
             </div>
 
             {/* Actions Bar */}
-            <div className="bg-white rounded-xl shadow-md border-2 border-gray-200 p-6 mb-8">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="bg-white rounded-[2px] shadow-none border-2 border-gray-200 p-6 mb-[16px]">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-[14px]">
                     {/* Filters */}
-                    <div className="flex items-center gap-4 flex-wrap">
+                    <div className="flex items-center gap-[14px] flex-wrap">
                         <div className="flex items-center gap-2">
                             <Filter className="w-5 h-5 text-gray-600" />
                             <span className="text-sm font-semibold text-gray-700">Filter:</span>
@@ -133,7 +133,7 @@ const AdminPDFManager = () => {
                         <select
                             value={filterType}
                             onChange={(e) => setFilterType(e.target.value)}
-                            className="border-2 border-gray-300 rounded-lg px-4 py-2 text-sm font-medium"
+                            className="border-2 border-gray-300 rounded-[2px] px-4 py-2 text-sm font-medium"
                         >
                             <option value="all">All Types</option>
                             <option value="notes">Notes Only</option>
@@ -144,7 +144,7 @@ const AdminPDFManager = () => {
                         <select
                             value={filterRegion}
                             onChange={(e) => setFilterRegion(e.target.value)}
-                            className="border-2 border-gray-300 rounded-lg px-4 py-2 text-sm font-medium"
+                            className="border-2 border-gray-300 rounded-[2px] px-4 py-2 text-sm font-medium"
                         >
                             <option value="all">All Regions</option>
                             <option value="Maharashtra">Maharashtra</option>
@@ -166,7 +166,7 @@ const AdminPDFManager = () => {
             </div>
 
             {/* PDF List */}
-            <div className="bg-white rounded-xl shadow-md border-2 border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-[2px] shadow-none border-2 border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead className="bg-gray-100 border-b-2 border-gray-200">
@@ -204,20 +204,20 @@ const AdminPDFManager = () => {
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-2">
                                             <button
-                                                className="p-2 text-[var(--navy)] hover:bg-blue-50 rounded-lg transition-colors"
+                                                className="p-2 text-[var(--navy)] hover:bg-blue-50 rounded-[2px] transition-colors"
                                                 title="Download"
                                             >
                                                 <Download className="w-5 h-5" />
                                             </button>
                                             <button
-                                                className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors"
+                                                className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-[2px] transition-colors"
                                                 title="Edit"
                                             >
                                                 <Edit className="w-5 h-5" />
                                             </button>
                                             <button
                                                 onClick={() => handleDelete(pdf.id)}
-                                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                className="p-2 text-red-600 hover:bg-red-50 rounded-[2px] transition-colors"
                                                 title="Delete"
                                             >
                                                 <Trash2 className="w-5 h-5" />
@@ -253,7 +253,7 @@ const AdminPDFManager = () => {
                                 <h2 className="text-2xl font-bold">Upload New PDF</h2>
                                 <button
                                     onClick={() => setUploadModalOpen(false)}
-                                    className="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2 transition-colors"
+                                    className="text-white hover:bg-white hover:bg-opacity-20 rounded-[2px] p-2 transition-colors"
                                 >
                                     <X className="w-6 h-6" />
                                 </button>
@@ -267,7 +267,7 @@ const AdminPDFManager = () => {
                                 <label className="block text-sm font-bold text-gray-700 mb-2">
                                     Select PDF File *
                                 </label>
-                                <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-[var(--saffron)] transition-colors cursor-pointer">
+                                <div className="border-2 border-dashed border-gray-300 rounded-[2px] p-8 text-center hover:border-[var(--saffron)] transition-colors cursor-pointer">
                                     <input
                                         type="file"
                                         accept="application/pdf"
@@ -288,7 +288,7 @@ const AdminPDFManager = () => {
                             </div>
 
                             {/* Region Selection */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="card-grid">
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2">
                                         Region Type *
@@ -296,7 +296,7 @@ const AdminPDFManager = () => {
                                     <select
                                         value={newPDF.regionType}
                                         onChange={(e) => setNewPDF({ ...newPDF, regionType: e.target.value })}
-                                        className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 font-medium focus:ring-2 focus:ring-[var(--saffron)] focus:border-[var(--saffron)]"
+                                        className="w-full border-2 border-gray-300 rounded-[2px] px-4 py-3 font-medium focus:ring-2 focus:ring-[var(--saffron)] focus:border-[var(--saffron)]"
                                     >
                                         <option value="state">State</option>
                                         <option value="ut">Union Territory</option>
@@ -310,7 +310,7 @@ const AdminPDFManager = () => {
                                     <select
                                         value={newPDF.region}
                                         onChange={(e) => setNewPDF({ ...newPDF, region: e.target.value })}
-                                        className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 font-medium focus:ring-2 focus:ring-[var(--saffron)] focus:border-[var(--saffron)]"
+                                        className="w-full border-2 border-gray-300 rounded-[2px] px-4 py-3 font-medium focus:ring-2 focus:ring-[var(--saffron)] focus:border-[var(--saffron)]"
                                     >
                                         <option value="">-- Select Region --</option>
                                         <option value="Maharashtra">Maharashtra</option>
@@ -326,10 +326,10 @@ const AdminPDFManager = () => {
                                 <label className="block text-sm font-bold text-gray-700 mb-2">
                                     Content Type *
                                 </label>
-                                <div className="grid grid-cols-3 gap-4">
+                                <div className="card-grid">
                                     <button
                                         onClick={() => setNewPDF({ ...newPDF, contentType: 'notes' })}
-                                        className={`p-4 rounded-lg border-2 font-semibold transition-all ${newPDF.contentType === 'notes'
+                                        className={`p-4 rounded-[2px] border-2 font-semibold transition-all ${newPDF.contentType === 'notes'
                                             ? 'border-[var(--navy)] bg-blue-50 text-[var(--navy)]'
                                             : 'border-gray-300 text-gray-700 hover:border-[var(--navy)]'
                                             }`}
@@ -338,7 +338,7 @@ const AdminPDFManager = () => {
                                     </button>
                                     <button
                                         onClick={() => setNewPDF({ ...newPDF, contentType: 'questions' })}
-                                        className={`p-4 rounded-lg border-2 font-semibold transition-all ${newPDF.contentType === 'questions'
+                                        className={`p-4 rounded-[2px] border-2 font-semibold transition-all ${newPDF.contentType === 'questions'
                                             ? 'border-[var(--saffron)] bg-orange-50 text-[var(--saffron)]'
                                             : 'border-gray-300 text-gray-700 hover:border-[var(--saffron)]'
                                             }`}
@@ -347,7 +347,7 @@ const AdminPDFManager = () => {
                                     </button>
                                     <button
                                         onClick={() => setNewPDF({ ...newPDF, contentType: 'solutions' })}
-                                        className={`p-4 rounded-lg border-2 font-semibold transition-all ${newPDF.contentType === 'solutions'
+                                        className={`p-4 rounded-[2px] border-2 font-semibold transition-all ${newPDF.contentType === 'solutions'
                                             ? 'border-[var(--green)] bg-green-50 text-[var(--green)]'
                                             : 'border-gray-300 text-gray-700 hover:border-[var(--green)]'
                                             }`}
@@ -358,7 +358,7 @@ const AdminPDFManager = () => {
                             </div>
 
                             {/* Action Buttons */}
-                            <div className="flex gap-4 pt-4">
+                            <div className="flex gap-[14px] pt-4">
                                 <button
                                     onClick={handleUpload}
                                     className="btn-saffron flex-1"

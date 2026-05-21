@@ -98,7 +98,7 @@ const CoursePlayer = () => {
                         <FiLock className="w-10 h-10 text-yellow-600" />
                     </div>
                     <h2 className="text-2xl font-bold text-gray-900 mb-4">Course Not Purchased</h2>
-                    <p className="text-gray-600 mb-6">
+                    <p className="text-gray-600 mb-[12px]">
                         You need to purchase this course to access the full content.
                     </p>
                     <div className="space-y-3">
@@ -122,9 +122,9 @@ const CoursePlayer = () => {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            <div className="container-custom py-8">
+            <div className="container-custom py-[20px]">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-[12px]">
                     <button
                         onClick={handleBack}
                         className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
@@ -141,7 +141,7 @@ const CoursePlayer = () => {
                 </div>
 
                 {/* Content Tabs */}
-                <div className="card mb-6">
+                <div className="card mb-[12px]">
                     <div className="flex border-b border-gray-200">
                         <button
                             onClick={() => setActiveTab('video')}
@@ -173,7 +173,7 @@ const CoursePlayer = () => {
                 </div>
 
                 {/* Content Area */}
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <div className="card-grid">
                     {/* Main Content */}
                     <div className="lg:col-span-3">
                         {activeTab === 'video' && (
@@ -183,7 +183,7 @@ const CoursePlayer = () => {
                                 {course.youtubeUrl ? (
                                     <div>
                                         {/* Video Thumbnail */}
-                                        <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden mb-4">
+                                        <div className="aspect-video bg-gray-100 rounded-[2px] overflow-hidden mb-4">
                                             {course.youtubeThumbnailUrl ? (
                                                 <div className="relative w-full h-full cursor-pointer" onClick={handleVideoAccess}>
                                                     <img
@@ -216,7 +216,7 @@ const CoursePlayer = () => {
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="text-center py-12">
+                                    <div className="text-center py-[24px]">
                                         <FiPlay className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                                         <p className="text-gray-600">No video content available for this course.</p>
                                     </div>
@@ -231,7 +231,7 @@ const CoursePlayer = () => {
                                 {course.pdfFileName ? (
                                     <div>
                                         {/* PDF Info */}
-                                        <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                                        <div className="bg-gray-50 rounded-[2px] p-4 mb-4">
                                             <div className="flex items-center justify-between">
                                                 <div>
                                                     <h4 className="font-medium text-gray-900 mb-1">
@@ -264,14 +264,14 @@ const CoursePlayer = () => {
                                         </div>
                                         
                                         {/* PDF Preview Note */}
-                                        <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                                        <div className="mt-4 p-3 bg-green-50 rounded-[2px] border border-green-200">
                                             <p className="text-green-800 text-sm">
                                                 <strong>Full Access:</strong> You have purchased this course and can view all {course.totalPages} pages of the PDF.
                                             </p>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="text-center py-12">
+                                    <div className="text-center py-[24px]">
                                         <FiBookOpen className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                                         <p className="text-gray-600">No PDF materials available for this course.</p>
                                     </div>
@@ -287,7 +287,7 @@ const CoursePlayer = () => {
                             
                             {/* Progress Items */}
                             <div className="space-y-3">
-                                <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+                                <div className="flex items-center justify-between p-3 bg-green-50 rounded-[2px] border border-green-200">
                                     <div className="flex items-center space-x-3">
                                         <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
                                             <FiBookOpen className="w-4 h-4 text-white" />
@@ -297,7 +297,7 @@ const CoursePlayer = () => {
                                 </div>
                                 
                                 {course.youtubeUrl && (
-                                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-[2px]">
                                         <div className="flex items-center space-x-3">
                                             <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
                                                 <FiPlay className="w-4 h-4 text-gray-600" />
@@ -308,7 +308,7 @@ const CoursePlayer = () => {
                                 )}
                                 
                                 {course.pdfFileName && (
-                                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-[2px]">
                                         <div className="flex items-center space-x-3">
                                             <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
                                                 <FiBookOpen className="w-4 h-4 text-gray-600" />
@@ -341,7 +341,7 @@ const CoursePlayer = () => {
                             </div>
 
                             {/* Support */}
-                            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                            <div className="mt-6 p-4 bg-blue-50 rounded-[2px] border border-blue-200">
                                 <h5 className="font-medium text-blue-900 mb-2">Need Help?</h5>
                                 <p className="text-blue-800 text-sm mb-3">
                                     Having trouble accessing the content?

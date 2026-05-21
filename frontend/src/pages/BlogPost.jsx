@@ -4,7 +4,7 @@ import { FiCalendar, FiClock, FiUser, FiArrowLeft, FiShare2, FiBookmark } from '
 import api from '../services/api';
 import toast from 'react-hot-toast';
 
-const BlogPost = () => {
+const BlogPost = ({ previewData }) => {
     const { slug } = useParams();
     const navigate = useNavigate();
     const [post, setPost] = useState(null);
@@ -21,7 +21,8 @@ const BlogPost = () => {
         try {
             setIsLoading(true);
             setError(null);
-            const response = await api.get(`/blog/posts/${slug}`);
+            // Backend: GET /api/blog/{slug} returns ApiResponseDTO { success, message, data: BlogPost }
+            const response = await api.get(`/blog/${slug}`);
             setPost(response.data);
         } catch (error) {
             console.error('Error fetching blog post:', error);
@@ -33,8 +34,10 @@ const BlogPost = () => {
 
     const fetchRecentPosts = async () => {
         try {
-            const response = await api.get('/blog/posts/recent?limit=3');
-            setRecentPosts(response.data.filter(p => p.slug !== slug));
+            const response = await api.get('/blog/posts?page=0&size=4');
+            // ApiResponseDTO: response.data = { data: [...], pagination: {} }
+            const posts = (response.data && response.data.data) || [];
+            setRecentPosts(posts.filter(p => p.slug !== slug).slice(0, 3));
         } catch (error) {
             console.error('Error fetching recent posts:', error);
         }
@@ -117,12 +120,12 @@ const BlogPost = () => {
     if (isLoading) {
         return (
             <div className="min-h-screen bg-background">
-                <div className="container-custom py-12">
+                <div className="container-custom py-[24px]">
                     <div className="max-w-4xl mx-auto">
                         <div className="loading">
                             <div className="h-8 loading-skeleton rounded mb-4"></div>
-                            <div className="h-6 loading-skeleton rounded w-3/4 mb-8"></div>
-                            <div className="h-64 loading-skeleton rounded mb-8"></div>
+                            <div className="h-6 loading-skeleton rounded w-3/4 mb-[16px]"></div>
+                            <div className="h-64 loading-skeleton rounded mb-[16px]"></div>
                             <div className="space-y-4">
                                 {[...Array(10)].map((_, i) => (
                                     <div key={i} className="h-4 loading-skeleton rounded"></div>
@@ -141,8 +144,8 @@ const BlogPost = () => {
                 <div className="text-center">
                     <h1 className="text-4xl font-bold text-gray-900 mb-4">404</h1>
                     <h2 className="text-2xl font-semibold text-gray-700 mb-4">Blog Post Not Found</h2>
-                    <p className="text-muted mb-8">The article you're looking for doesn't exist or has been moved.</p>
-                    <div className="flex gap-4 justify-center">
+                    <p className="text-muted mb-[16px]">The article you're looking for doesn't exist or has been moved.</p>
+                    <div className="flex gap-[14px] justify-center">
                         <button
                             onClick={() => navigate(-1)}
                             className="btn-outline"
@@ -173,21 +176,21 @@ const BlogPost = () => {
                 </div>
             </div>
 
-            <article className="py-12">
+            <article className="py-[24px]">
                 <div className="container-custom">
                     <div className="max-w-4xl mx-auto">
                         {/* Article Header */}
-                        <header className="mb-8">
-                            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">
+                        <header className="mb-[16px]">
+                            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-[12px] leading-tight">
                                 {post.title}
                             </h1>
                             
-                            <p className="text-xl text-muted mb-6 leading-relaxed">
+                            <p className="text-xl text-muted mb-[12px] leading-relaxed">
                                 {post.summary}
                             </p>
                             
                             {/* Article Meta */}
-                            <div className="flex flex-wrap items-center gap-6 text-sm text-subtle mb-6">
+                            <div className="flex flex-wrap items-center gap-[15px] text-sm text-subtle mb-[12px]">
                                 <div className="flex items-center gap-2">
                                     <FiUser className="w-4 h-4" />
                                     <span className="font-medium">{post.author}</span>
@@ -203,7 +206,7 @@ const BlogPost = () => {
                             </div>
                             
                             {/* Action Buttons */}
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-[14px]">
                                 <button
                                     onClick={handleShare}
                                     className="btn-outline btn-sm flex items-center gap-2"
@@ -220,11 +223,11 @@ const BlogPost = () => {
 
                         {/* Featured Image */}
                         {post.featuredImage && (
-                            <div className="mb-8">
+                            <div className="mb-[16px]">
                                 <img
                                     src={post.featuredImage}
                                     alt={post.title}
-                                    className="w-full h-64 md:h-96 object-cover rounded-xl"
+                                    className="w-full h-64 md:h-96 object-cover rounded-[2px]"
                                 />
                             </div>
                         )}
@@ -239,7 +242,7 @@ const BlogPost = () => {
                         {/* Article Footer */}
                         <footer className="mt-12 pt-8 border-t border-gray-200">
                             <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-[14px]">
                                     <span className="text-sm text-subtle">Share this article:</span>
                                     <button
                                         onClick={handleShare}
@@ -259,23 +262,23 @@ const BlogPost = () => {
 
             {/* Related Articles */}
             {recentPosts.length > 0 && (
-                <section className="py-16 bg-gray-50">
+                <section className="py-[24px] bg-gray-50">
                     <div className="container-custom">
                         <div className="max-w-4xl mx-auto">
-                            <h2 className="text-2xl font-bold text-gray-900 mb-8">More Articles</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <h2 className="text-2xl font-bold text-gray-900 mb-[16px]">More Articles</h2>
+                            <div className="card-grid">
                                 {recentPosts.map((relatedPost) => (
                                     <Link
                                         key={relatedPost.id}
                                         to={`/blog/${relatedPost.slug}`}
                                         className="card-hover"
                                     >
-                                        <div className="w-full h-32 bg-gradient-to-br from-primary-100 to-secondary-100 rounded-lg mb-3 flex items-center justify-center">
+                                        <div className="w-full h-32 bg-gradient-to-br from-primary-100 to-secondary-100 rounded-[2px] mb-3 flex items-center justify-center">
                                             {relatedPost.featuredImage ? (
                                                 <img
                                                     src={relatedPost.featuredImage}
                                                     alt={relatedPost.title}
-                                                    className="w-full h-full object-cover rounded-lg"
+                                                    className="w-full h-full object-cover rounded-[2px]"
                                                 />
                                             ) : (
                                                 <div className="text-primary-600">

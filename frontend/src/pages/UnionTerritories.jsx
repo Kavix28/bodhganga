@@ -14,7 +14,7 @@ const UnionTerritories = () => {
             {/* Tricolor Top Accent */}
             <div className="tricolor-accent h-1"></div>
 
-            <div className="container-custom py-12">
+            <div className="container-custom py-[24px]">
                 {/* Breadcrumb */}
                 <Breadcrumb items={[
                     { label: 'Union Territories', path: '/union-territories' }
@@ -22,12 +22,12 @@ const UnionTerritories = () => {
 
                 {/* Page Header */}
                 <div className="text-center mb-12 mt-8">
-                    <div className="inline-flex items-center gap-3 mb-6">
-                        <div className="w-16 h-16 bg-gradient-to-br from-[var(--green)] to-[var(--green-dark)] rounded-2xl flex items-center justify-center shadow-lg">
+                    <div className="inline-flex items-center gap-3 mb-[12px]">
+                        <div className="w-16 h-16 bg-gradient-to-br from-[var(--green)] to-[var(--green-dark)] rounded-2xl flex items-center justify-center shadow-none">
                             <Building className="w-8 h-8 text-white" />
                         </div>
                     </div>
-                    <h1 className="text-5xl lg:text-6xl font-bold mb-6" style={{ color: 'var(--navy)' }}>
+                    <h1 className="text-5xl lg:text-6xl font-bold mb-[12px]" style={{ color: 'var(--navy)' }}>
                         Union Territories
                     </h1>
                     <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
@@ -42,8 +42,8 @@ const UnionTerritories = () => {
                 />
 
                 {/* Info Section */}
-                <div className="mt-20 bg-white rounded-2xl p-8 md:p-12 shadow-md border-2 border-gray-200">
-                    <h2 className="text-3xl font-bold mb-6" style={{ color: 'var(--navy)' }}>
+                <div className="mt-20 bg-white rounded-2xl p-8 md:p-12 shadow-none border-2 border-gray-200">
+                    <h2 className="text-3xl font-bold mb-[12px]" style={{ color: 'var(--navy)' }}>
                         About Union Territory Exam Preparation
                     </h2>
                     <div className="prose prose-lg max-w-none text-gray-600">

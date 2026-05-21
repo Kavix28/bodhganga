@@ -1,0 +1,314 @@
+/* =========================================
+   BODHGANGA GOV FRONTEND EXACT MATCH CSS 
+   ========================================= */
+
+/* Typography Rules */
+body {
+    font-family: "Noto Sans", "Segoe UI", Arial, sans-serif;
+    font-size: 13px;
+    line-height: 1.28;
+    letter-spacing: 0.1px;
+    background-color: #f9f9f9;
+    color: #444;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: "Noto Sans", "Segoe UI", Arial, sans-serif;
+}
+
+h1 {
+    font-size: 30px;
+    font-weight: 600;
+    color: #134931;
+}
+
+h2 {
+    font-size: 21px;
+    font-weight: 600;
+    color: #134931;
+}
+
+h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #134931;
+}
+
+/* Container Model */
+.container {
+    max-width: 1170px !important;
+    margin: 0 auto !important;
+    padding: 0 12px !important;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Navbar Structure */
+.section-heading-gov {
+  display: inline-block;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937;
+  border-bottom: 2px solid #e67e00;
+  padding-bottom: 0.25rem;
+  margin-bottom: 2rem;
+}
+
+.top-bar {
+    height: 35px;
+    font-size: 12px;
+    background: #eeeeee;
+    border-bottom: 1px solid #e5e5e5;
+    display: flex;
+    align-items: center;
+}
+
+.top-bar .left {
+    color: #333;
+    font-weight: 500;
+}
+
+.top-bar .right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.top-bar .right a {
+    color: #333;
+    text-decoration: none;
+}
+.top-bar .right a:hover {
+    color: #e67e00;
+}
+
+.branding-bar {
+    height: 160px;
+    background: white;
+    display: flex;
+    align-items: center;
+}
+
+.main-navbar {
+    height: 56px;
+    background-color: #1c1c1c !important;
+    color: white;
+    border-bottom: none;
+    display: flex;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.tab-item-gov.active {
+  color: #e67e00;
+  border-bottom-color: #e67e00;
+}
+.state-card-gov:hover {
+  border-color: #e67e00;
+  box-shadow: 0 1px 6px rgba(230, 126, 0, 0.15);
+}
+
+.nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 56px !important;
+}
+
+.nav-inner .logo {
+    display: flex;
+    align-items: center;
+    font-size: 18px;
+    font-weight: 700;
+    color: #e67e00;
+    text-decoration: none;
+    letter-spacing: 1px;
+}
+
+.nav-inner .logo img {
+    height: 46px;
+    width: 36px;
+    background: white;
+    padding: 2px;
+    border: 1px solid #dcdcdc;
+    margin-right: 10px;
+}
+
+.nav-inner .menu {
+    display: flex !important;
+    gap: 16px !important;
+    align-items: center;
+    height: 100%;
+}
+
+.nav-inner .menu a {
+    color: white !important;
+    padding: 0 8px !important;
+    font-size: 13px !important;
+    letter-spacing: 0.1px !important;
+    text-transform: uppercase;
+    font-weight: 700;
+    text-decoration: none;
+    line-height: 56px !important;
+    display: inline-block !important;
+}
+
+.nav-inner .menu a:hover,
+.nav-inner .menu a.active {
+    background-color: #e67e00 !important;
+    color: white !important;
+}
+
+/* Auth Buttons Navbar */
+.nav-auth-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    background-color: #e67e00;
+    color: #134931;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+}
+.nav-auth-btn:hover {
+    opacity: 0.9;
+}
+
+/* Grid System */
+.card-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 11px !important;
+    border-top: 1px solid #dcdcdc;
+}
+
+@media (max-width: 1024px) {
+    .card-grid { grid-template-columns: repeat(3, 1fr) !important; }
+}
+
+@media (max-width: 768px) {
+    .card-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+@media (max-width: 480px) {
+    .card-grid { grid-template-columns: repeat(1, 1fr) !important; }
+}
+
+/* Card Structure */
+.card {
+    border-right: 1px solid #dcdcdc;
+    border-bottom: 1px solid #dcdcdc;
+    padding: 6px !important;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    cursor: pointer;
+    border-radius: 0;
+}
+
+.card:hover {
+    background-color: #f9f9f9;
+}
+
+.card-image {
+    height: 88px !important;
+    background-size: cover;
+    background-position: center;
+    background-color: #f1f1f1;
+    margin-bottom: 8px;
+    border: 1px solid #dcdcdc;
+    position: relative;
+}
+.card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.card-title {
+    font-size: 13px !important;
+    text-align: left;
+    font-weight: 700;
+    color: #000;
+    margin: 5px 0 5px 0 !important;
+    text-transform: none;
+    line-height: 1.28 !important;
+}
+
+.card-meta {
+    font-size: 12px;
+    color: #e31e24; /* Govt Red */
+    text-align: left;
+    margin: 0;
+    display: flex;
+    justify-content: flex-start;
+    gap: 6px;
+    font-weight: 400;
+}
+
+/* Section Spacing */
+.section {
+    padding: 20px 0 !important;
+    background-color: white;
+}
+
+.section-bg-gray {
+    background-color: #f9f9f9;
+}
+
+.page-header {
+    border-bottom: 3px solid #e67e00;
+    position: relative;
+    padding-bottom: 10px;
+}
+
+.page-header::after {
+    content: "";
+    display: block;
+    position: absolute;
+    bottom: -3px;
+    left: 0;
+    height: 3px;
+    width: 100%;
+    background: linear-gradient(to right, #e67e00 0%, #e67e00 33%, #ffffff 33%, #ffffff 66%, #134931 66%, #134931 100%);
+}
+
+.heading {
+    margin-bottom: 10px !important;
+    font-size: 21px;
+    font-weight: 600;
+    color: #134931;
+    padding-bottom: 6px;
+}
+
+/* Hero Section */
+.hero {
+    height: 220px;
+    position: relative;
+    background-color: #134931;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+}
+.hero-content {
+    position: relative;
+    z-index: 2;
+    padding: 20px 0;
+    color: white;
+}
+.hero-title {
+    font-size: 30px;
+    font-weight: 600;
+    color: #e67e00;
+    margin-bottom: 6px;
+}
+.hero-subtitle {
+    font-size: 14px;
+    color: #f1f1f1;
+    max-width: 800px;
+}

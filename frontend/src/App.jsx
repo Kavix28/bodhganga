@@ -1,3 +1,5 @@
+import { Suspense, lazy } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
@@ -6,149 +8,183 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 import AdminProtectedRoute from './components/common/AdminProtectedRoute';
 import Navbar from './components/common/Navbar';
 import Footer from './components/common/Footer';
+import Loader from './components/common/Loader';
+import ErrorBoundary from './components/common/ErrorBoundary';
 import { isAdminAuthenticated } from './utils/adminAuth';
 // Auto-run backend health check on app load
 import './utils/healthCheck';
 
-// Pages
-import Landing from './pages/Landing';
-import Register from './pages/Register';
-import VerifyOTP from './pages/VerifyOTP';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Courses from './pages/Courses';
-import CourseDetail from './pages/CourseDetail';
-import CoursePlayer from './pages/CoursePlayer';
-import Profile from './pages/Profile';
-import Blog from './pages/Blog';
-import BlogPost from './pages/BlogPost';
-import States from './pages/States';
-import UnionTerritories from './pages/UnionTerritories';
-import StateDetail from './pages/StateDetail';
-import NotFound from './pages/NotFound';
-import Error from './pages/Error';
+// Lazy loaded Pages
+const Landing = lazy(() => import('./pages/Landing'));
+const Register = lazy(() => import('./pages/Register'));
+const VerifyOTP = lazy(() => import('./pages/VerifyOTP'));
+const Login = lazy(() => import('./pages/Login'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Courses = lazy(() => import('./pages/Courses'));
+const CourseDetail = lazy(() => import('./pages/CourseDetail'));
+const CoursePlayer = lazy(() => import('./pages/CoursePlayer'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Blog = lazy(() => import('./pages/Blog'));
+const BlogPost = lazy(() => import('./pages/BlogPost'));
+const States = lazy(() => import('./pages/States'));
+const UnionTerritories = lazy(() => import('./pages/UnionTerritories'));
+const StateDetail = lazy(() => import('./pages/StateDetail'));
+const QuestionBank = lazy(() => import('./pages/QuestionBank'));
+const Subjects = lazy(() => import('./pages/Subjects'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+const ErrorPage = lazy(() => import('./pages/Error'));
+const AboutIndia = lazy(() => import('./pages/AboutIndia'));
 
 // Admin Pages
-import AdminLogin from './pages/admin/AdminLogin';
-import AdminDashboardPage from './pages/admin/Dashboard';
+const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'));
+const AdminLayout = lazy(() => import('./layouts/AdminLayout'));
+const AdminDashboardPage = lazy(() => import('./pages/admin/Dashboard'));
+const AdminStates = lazy(() => import('./pages/admin/AdminStates'));
+const AdminBlogs = lazy(() => import('./pages/admin/AdminBlogs'));
+const AdminContent = lazy(() => import('./pages/admin/AdminContent'));
+const Marketplace = lazy(() => import('./pages/Marketplace'));
+const AdminMarketplace = lazy(() => import('./pages/admin/AdminMarketplace'));
+
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            retry: 1,
+            refetchOnWindowFocus: false,
+            staleTime: 5 * 60 * 1000,
+        },
+    },
+});
 
 function App() {
     const isAdminRoute = window.location.pathname.startsWith('/admin');
     const isAdminLoggedIn = isAdminAuthenticated();
 
     return (
-        <SpaceThemeProvider>
-            <AuthProvider>
-                <Router>
-                    <div className="min-h-screen flex flex-col">
-                        {/* Only show regular navbar for non-admin routes or when admin is not logged in */}
-                        {(!isAdminRoute || (isAdminRoute && !isAdminLoggedIn)) && <Navbar />}
+        <QueryClientProvider client={queryClient}>
+            <SpaceThemeProvider>
+                <AuthProvider>
+                    <Router>
+                        <div className="min-h-screen flex flex-col">
+                            {/* Only show regular navbar for non-admin routes or when admin is not logged in */}
+                            {(!isAdminRoute || (isAdminRoute && !isAdminLoggedIn)) && <Navbar />}
 
-                        <main className="flex-grow">
-                            <Routes>
-                                {/* Public Routes */}
-                                <Route path="/" element={<Landing />} />
-                                <Route path="/states" element={<States />} />
-                                <Route path="/union-territories" element={<UnionTerritories />} />
-                                <Route path="/states/:stateId" element={<StateDetail />} />
-                                <Route path="/union-territories/:stateId" element={<StateDetail />} />
-                                <Route path="/blog" element={<Blog />} />
-                                <Route path="/blog/:slug" element={<BlogPost />} />
-                                <Route path="/register" element={<Register />} />
-                                <Route path="/verify-otp" element={<VerifyOTP />} />
-                                <Route path="/login" element={<Login />} />
-                                <Route path="/error" element={<Error />} />
+                            <main className="flex-grow">
+                                <ErrorBoundary>
+                                    <Suspense fallback={<Loader fullScreen />}>
+                                        <Routes>
+                                            {/* Public Routes */}
+                                            <Route path="/" element={<Landing />} />
+                                            <Route path="/about-india" element={<AboutIndia />} />
+                                            <Route path="/states" element={<States />} />
+                                            <Route path="/union-territories" element={<UnionTerritories />} />
+                                            <Route path="/states/:id" element={<StateDetail />} />
+                                            <Route path="/union-territories/:id" element={<StateDetail />} />
+                                            <Route path="/question-bank" element={<QuestionBank />} />
+                                            <Route path="/subjects" element={<Subjects />} />
+                                            <Route path="/store" element={<Marketplace />} />
+                                            <Route path="/store/state/:slug" element={<Marketplace />} />
+                                            <Route path="/blog" element={<Blog />} />
+                                            <Route path="/blog/:slug" element={<BlogPost />} />
+                                            <Route path="/register" element={<Register />} />
+                                            <Route path="/verify-otp" element={<VerifyOTP />} />
+                                            <Route path="/login" element={<Login />} />
+                                            <Route path="/forgot-password" element={<ForgotPassword />} />
+                                            <Route path="/error" element={<ErrorPage />} />
 
-                                {/* Admin Routes */}
-                                <Route path="/admin/login" element={<AdminLogin />} />
-                                <Route
-                                    path="/admin/dashboard"
-                                    element={
-                                        <AdminProtectedRoute>
-                                            <AdminDashboardPage />
-                                        </AdminProtectedRoute>
-                                    }
-                                />
+                                            {/* Admin Routes */}
+                                            <Route path="/admin/login" element={<AdminLogin />} />
+                                            <Route path="/admin" element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}>
+                                                <Route index element={<Navigate to="/admin/dashboard" replace />} />
+                                                <Route path="dashboard" element={<AdminDashboardPage />} />
+                                                <Route path="states" element={<AdminStates />} />
+                                                <Route path="blogs" element={<AdminBlogs />} />
+                                                <Route path="content" element={<AdminContent />} />
+                                                <Route path="content-marketplace" element={<AdminMarketplace />} />
+                                            </Route>
 
-                                {/* Protected User Routes */}
-                                <Route
-                                    path="/dashboard"
-                                    element={
-                                        <ProtectedRoute>
-                                            <Dashboard />
-                                        </ProtectedRoute>
-                                    }
-                                />
-                                <Route
-                                    path="/courses"
-                                    element={
-                                        <ProtectedRoute>
-                                            <Courses />
-                                        </ProtectedRoute>
-                                    }
-                                />
-                                <Route
-                                    path="/courses/:id"
-                                    element={
-                                        <ProtectedRoute>
-                                            <CourseDetail />
-                                        </ProtectedRoute>
-                                    }
-                                />
-                                <Route
-                                    path="/courses/:courseId/player"
-                                    element={
-                                        <ProtectedRoute>
-                                            <CoursePlayer />
-                                        </ProtectedRoute>
-                                    }
-                                />
-                                <Route
-                                    path="/profile"
-                                    element={
-                                        <ProtectedRoute>
-                                            <Profile />
-                                        </ProtectedRoute>
-                                    }
-                                />
+                                            {/* Protected User Routes */}
+                                            <Route
+                                                path="/dashboard"
+                                                element={
+                                                    <ProtectedRoute>
+                                                        <Dashboard />
+                                                    </ProtectedRoute>
+                                                }
+                                            />
+                                            <Route
+                                                path="/courses"
+                                                element={
+                                                    <ProtectedRoute>
+                                                        <Courses />
+                                                    </ProtectedRoute>
+                                                }
+                                            />
+                                            <Route
+                                                path="/courses/:id"
+                                                element={
+                                                    <ProtectedRoute>
+                                                        <CourseDetail />
+                                                    </ProtectedRoute>
+                                                }
+                                            />
+                                            <Route
+                                                path="/courses/:courseId/player"
+                                                element={
+                                                    <ProtectedRoute>
+                                                        <CoursePlayer />
+                                                    </ProtectedRoute>
+                                                }
+                                            />
+                                            <Route
+                                                path="/profile"
+                                                element={
+                                                    <ProtectedRoute>
+                                                        <Profile />
+                                                    </ProtectedRoute>
+                                                }
+                                            />
 
-                                {/* 404 Route */}
-                                <Route path="/404" element={<NotFound />} />
-                                <Route path="*" element={<Navigate to="/404" replace />} />
-                            </Routes>
-                        </main>
+                                            {/* 404 Route */}
+                                            <Route path="/404" element={<NotFound />} />
+                                            <Route path="*" element={<Navigate to="/404" replace />} />
+                                        </Routes>
+                                    </Suspense>
+                                </ErrorBoundary>
+                            </main>
 
-                        {/* Only show footer for non-admin routes or when admin is not logged in */}
-                        {(!isAdminRoute || (isAdminRoute && !isAdminLoggedIn)) && <Footer />}
-                    </div>
+                            {/* Only show footer for non-admin routes or when admin is not logged in */}
+                            {(!isAdminRoute || (isAdminRoute && !isAdminLoggedIn)) && <Footer />}
+                        </div>
 
-                    {/* Toast Notifications */}
-                    <Toaster
-                        position="top-right"
-                        toastOptions={{
-                            duration: 4000,
-                            style: {
-                                background: '#fff',
-                                color: '#1f2937',
-                                boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-                            },
-                            success: {
-                                iconTheme: {
-                                    primary: '#10b981',
-                                    secondary: '#fff',
+                        {/* Toast Notifications */}
+                        <Toaster
+                            position="top-right"
+                            toastOptions={{
+                                duration: 4000,
+                                style: {
+                                    background: '#fff',
+                                    color: '#1f2937',
+                                    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
                                 },
-                            },
-                            error: {
-                                iconTheme: {
-                                    primary: '#ef4444',
-                                    secondary: '#fff',
+                                success: {
+                                    iconTheme: {
+                                        primary: '#10b981',
+                                        secondary: '#fff',
+                                    },
                                 },
-                            },
-                        }}
-                    />
-                </Router>
-            </AuthProvider>
-        </SpaceThemeProvider>
+                                error: {
+                                    iconTheme: {
+                                        primary: '#ef4444',
+                                        secondary: '#fff',
+                                    },
+                                },
+                            }}
+                        />
+                    </Router>
+                </AuthProvider>
+            </SpaceThemeProvider>
+        </QueryClientProvider>
     );
 }
 

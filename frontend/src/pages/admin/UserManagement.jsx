@@ -221,7 +221,7 @@ const UserManagement = () => {
                 </div>
 
                 {filteredUsers.length === 0 && (
-                    <div className="text-center py-12">
+                    <div className="text-center py-[24px]">
                         <FiUsers className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                         <p className="text-gray-600 text-lg">No users found</p>
                     </div>

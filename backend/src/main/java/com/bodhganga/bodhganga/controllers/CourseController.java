@@ -8,38 +8,61 @@ import com.bodhganga.bodhganga.repo.CourseRepo;
 import com.bodhganga.bodhganga.repo.EnrollmentRepo;
 import com.bodhganga.bodhganga.repo.UserRepo;
 
-import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/courses")
 @CrossOrigin(origins = "http://localhost:5173")
-@RequiredArgsConstructor
 public class CourseController {
 
     private final CourseRepo courseRepo;
     private final EnrollmentRepo enrollmentRepo;
     private final UserRepo userRepo;
 
+    public CourseController(CourseRepo courseRepo, EnrollmentRepo enrollmentRepo, UserRepo userRepo) {
+        this.courseRepo = courseRepo;
+        this.enrollmentRepo = enrollmentRepo;
+        this.userRepo = userRepo;
+    }
+
     /**
-     * GET /api/courses/list
-     * Get all available courses (PUBLIC - no auth required)
+     * GET /api/courses/list?page=0&size=12&sort=createdAt
+     * Get all available courses with pagination (PUBLIC)
      */
     @GetMapping("/list")
-    public ResponseEntity<ApiResponseDTO> getAllCourses() {
-        List<Courses> courses = courseRepo.findAll();
+    public ResponseEntity<ApiResponseDTO> getAllCourses(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "12") int size,
+            @RequestParam(defaultValue = "createdAt") String sort) {
+
+        size = Math.min(size, 50); // cap at 50 per page
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, sort));
+        Page<Courses> coursePage = courseRepo.findAll(pageable);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("courses", coursePage.getContent());
+        data.put("totalElements", coursePage.getTotalElements());
+        data.put("totalPages", coursePage.getTotalPages());
+        data.put("currentPage", page);
+        data.put("pageSize", size);
 
         return ResponseEntity.ok(ApiResponseDTO.builder()
                 .success(true)
                 .message("Courses retrieved successfully")
-                .data(courses)
+                .data(data)
                 .build());
     }
 

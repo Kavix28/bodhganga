@@ -103,7 +103,7 @@ const StateNavigator = ({ items, type = 'state', title }) => {
 
             {/* Grid of Cards */}
             {filteredItems.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 fade-in">
+                <div className="card-grid">
                     {filteredItems.map((item) => (
                         <StateCard
                             key={item.id}

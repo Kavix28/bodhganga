@@ -13,12 +13,17 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Service
-@RequiredArgsConstructor
 public class AuthService {
 
         private final UserRepo userRepo;
         private final PasswordEncoder passwordEncoder;
         private final JwtUtil jwtUtil;
+
+        public AuthService(UserRepo userRepo, PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
+                this.userRepo = userRepo;
+                this.passwordEncoder = passwordEncoder;
+                this.jwtUtil = jwtUtil;
+        }
 
         /**
          * User Signup - Register new user
@@ -52,13 +57,15 @@ public class AuthService {
                                 .state(dto.getState())
                                 .country(dto.getCountry())
                                 .role("USER")
-                                .isVerified(true) // Set to true for now, will add OTP later
+                                .isVerified(false) // Requires email OTP verification
                                 .isActive(true)
                                 .createdAt(new Date())
                                 .build();
 
+                System.out.println("Attempting to save user: " + user.getEmail());
                 // Save user to database
                 User savedUser = userRepo.save(user);
+                System.out.println("User saved successfully with ID: " + savedUser.getId());
 
                 // Generate JWT token for auto-login
                 String token = jwtUtil.generateToken(savedUser.getEmail(), savedUser.getId(), savedUser.getRole());
@@ -141,6 +148,40 @@ public class AuthService {
         }
 
         /**
+         * Admin Login - Authenticate and validate ADMIN role
+         */
+        public ApiResponseDTO adminLogin(LoginRequestDTO dto) {
+                // First perform standard login
+                ApiResponseDTO loginResult = login(dto);
+
+                // If login failed, return error as-is
+                if (!loginResult.isSuccess()) {
+                        return loginResult;
+                }
+
+                // Determine user from email or phone
+                String emailOrPhone = dto.getEmailOrPhone();
+                User user = null;
+                if (emailOrPhone.contains("@")) {
+                        user = userRepo.findByEmail(emailOrPhone).orElse(null);
+                } else {
+                        String normalizedPhone = emailOrPhone.replaceAll("[^0-9]", "");
+                        user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);
+                }
+
+                // Validate ADMIN role
+                if (user == null || !"ADMIN".equals(user.getRole())) {
+                        return ApiResponseDTO.builder()
+                                        .success(false)
+                                        .message("ACCESS_DENIED")
+                                        .build();
+                }
+
+                // Admin role confirmed — return the full login result
+                return loginResult;
+        }
+
+        /**
          * Helper method to convert User entity to UserResponseDTO
          * Excludes sensitive information like hashedPassword
          */
@@ -156,6 +197,7 @@ public class AuthService {
                                 .role(user.getRole())
                                 .profilePicture(user.getProfilePicture())
                                 .qualification(user.getQualification())
+                                .forcePasswordReset(user.getForcePasswordReset())
                                 .build();
         }
 }

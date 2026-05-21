@@ -1,97 +1,102 @@
-// Frontend-only admin authentication
-const ADMIN_CREDENTIALS = {
-    username: 'admin',
-    password: 'BodhGanga@2024'
-};
-
-const ADMIN_SESSION_KEY = 'admin_session';
-
 /**
- * Authenticate admin with hardcoded credentials
- * @param {string} username 
- * @param {string} password 
- * @returns {boolean}
+ * Admin Authentication — JWT-backed
+ *
+ * Uses the backend POST /api/auth/admin/login endpoint.
+ * The backend validates credentials AND ensures role === "ADMIN".
+ * The returned JWT is stored in sessionStorage (not localStorage)
+ * so it's cleared automatically when the browser tab closes.
  */
-export const authenticateAdmin = (username, password) => {
-    if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
-        // Store admin session
-        const session = {
-            isAuthenticated: true,
-            username: username,
-            loginTime: new Date().toISOString(),
-            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours
-        };
-        localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(session));
-        return true;
+
+import api from '../services/api';
+
+const ADMIN_TOKEN_KEY = 'admin_jwt';
+const ADMIN_USER_KEY = 'admin_user';
+
+/**
+ * Authenticate admin via backend API (validates ROLE_ADMIN server-side)
+ * @param {string} emailOrPhone
+ * @param {string} password
+ * @returns {Promise<{success: boolean, message?: string}>}
+ */
+export const authenticateAdmin = async (emailOrPhone, password) => {
+    try {
+        const response = await api.post('/auth/admin/login', { emailOrPhone, password });
+        // Response from ApiResponseDTO: { success, message, data: { token, user } }
+        if (response.success && response.data?.token) {
+            sessionStorage.setItem(ADMIN_TOKEN_KEY, response.data.token);
+            sessionStorage.setItem(ADMIN_USER_KEY, JSON.stringify(response.data.user));
+            return { success: true };
+        }
+        return { success: false, message: response.message || 'Login failed' };
+    } catch (error) {
+        if (error.status === 403 || error.message === 'ACCESS_DENIED') {
+            return { success: false, message: 'Access denied. You do not have admin privileges.' };
+        }
+        if (error.status === 401) {
+            return { success: false, message: 'Invalid username or password.' };
+        }
+        return { success: false, message: error.message || 'Server error. Please try again.' };
     }
-    return false;
 };
 
 /**
- * Check if admin is authenticated
+ * Check if admin JWT is present and not expired
  * @returns {boolean}
  */
 export const isAdminAuthenticated = () => {
     try {
-        const session = localStorage.getItem(ADMIN_SESSION_KEY);
-        if (!session) return false;
+        const token = sessionStorage.getItem(ADMIN_TOKEN_KEY);
+        if (!token) return false;
 
-        const sessionData = JSON.parse(session);
-        const now = new Date();
-        const expiresAt = new Date(sessionData.expiresAt);
+        // Decode JWT payload (base64) to check expiry
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const now = Math.floor(Date.now() / 1000);
 
-        // Check if session is expired
-        if (now > expiresAt) {
-            localStorage.removeItem(ADMIN_SESSION_KEY);
+        if (payload.exp && payload.exp < now) {
+            clearAdminSession();
             return false;
         }
 
-        return sessionData.isAuthenticated === true;
-    } catch (error) {
-        console.error('Error checking admin authentication:', error);
+        return true;
+    } catch {
         return false;
     }
 };
 
 /**
- * Get admin session data
+ * Get the admin JWT token for API calls
+ * @returns {string|null}
+ */
+export const getAdminToken = () => {
+    return sessionStorage.getItem(ADMIN_TOKEN_KEY);
+};
+
+/**
+ * Get the admin user object
  * @returns {object|null}
  */
 export const getAdminSession = () => {
     try {
-        const session = localStorage.getItem(ADMIN_SESSION_KEY);
-        if (!session) return null;
-
-        const sessionData = JSON.parse(session);
-        const now = new Date();
-        const expiresAt = new Date(sessionData.expiresAt);
-
-        if (now > expiresAt) {
-            localStorage.removeItem(ADMIN_SESSION_KEY);
-            return null;
-        }
-
-        return sessionData;
-    } catch (error) {
-        console.error('Error getting admin session:', error);
+        const user = sessionStorage.getItem(ADMIN_USER_KEY);
+        return user ? JSON.parse(user) : null;
+    } catch {
         return null;
     }
 };
 
 /**
- * Logout admin
+ * Clear admin session (logout)
  */
 export const logoutAdmin = () => {
-    localStorage.removeItem(ADMIN_SESSION_KEY);
+    sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+    sessionStorage.removeItem(ADMIN_USER_KEY);
 };
 
-/**
- * Extend admin session
- */
+// Alias for backward compatibility with AdminLayout
+export const clearAdminSession = logoutAdmin;
+
+// Alias for backward compatibility with AdminLayout
 export const extendAdminSession = () => {
-    const session = getAdminSession();
-    if (session) {
-        session.expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-        localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(session));
-    }
+    // JWT expiry is managed server-side — nothing to extend on client
+    // This is a no-op kept for backward compat
 };

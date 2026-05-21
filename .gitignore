@@ -1,0 +1,35 @@
+# ── Secrets — NEVER commit these ─────────────────────────────────
+.env
+.env.local
+.env.production
+backend/.env
+frontend/.env
+
+# ── Backend ───────────────────────────────────────────────────────
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+*.jar
+*.war
+
+# ── Frontend ──────────────────────────────────────────────────────
+node_modules/
+dist/
+.vite/
+.dev-logs/
+
+# ── IDE ───────────────────────────────────────────────────────────
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# ── OS ────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Logs ─────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Docker ───────────────────────────────────────────────────────
+# (docker-compose.yml is committed, .env is not)

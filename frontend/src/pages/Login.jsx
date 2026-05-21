@@ -1,217 +1,173 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
+import { BookOpen } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { login as loginService } from '../services/authService';
 import toast from 'react-hot-toast';
-import SpaceBackground from '../components/common/SpaceBackground';
-import { useSpaceTheme } from '../context/SpaceThemeContext';
+import Logo from '../components/common/Logo';
 
 const Login = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { login } = useAuth();
-    const { spaceTheme } = useSpaceTheme();
 
-    const [formData, setFormData] = useState({
-        emailOrPhone: '',
-        password: ''
-    });
-
+    const [form, setForm] = useState({ emailOrPhone: '', password: '' });
     const [errors, setErrors] = useState({});
-    const [isLoading, setIsLoading] = useState(false);
-    const [showPassword, setShowPassword] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [showPw, setShowPw] = useState(false);
 
-    const handleChange = (e) => {
+    const handleChange = e => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-
-        if (errors[name]) {
-            setErrors(prev => ({ ...prev, [name]: '' }));
-        }
+        setForm(p => ({ ...p, [name]: value }));
+        if (errors[name]) setErrors(p => ({ ...p, [name]: '' }));
     };
 
-    const validateForm = () => {
-        const newErrors = {};
-
-        if (!formData.emailOrPhone.trim()) {
-            newErrors.emailOrPhone = 'Email or phone is required';
-        }
-
-        if (!formData.password.trim()) {
-            newErrors.password = 'Password is required';
-        }
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+    const validate = () => {
+        const e = {};
+        if (!form.emailOrPhone.trim()) e.emailOrPhone = 'Email or phone number is required';
+        if (!form.password) e.password = 'Password is required';
+        setErrors(e);
+        return !Object.keys(e).length;
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async e => {
         e.preventDefault();
-
-        if (!validateForm()) return;
-
-        setIsLoading(true);
-
+        if (!validate()) return;
+        setLoading(true);
         try {
-            const response = await import('../services/authService').then(m => m.login(formData.emailOrPhone, formData.password));
-
-            if (response.success && response.data?.token && response.data?.user) {
-                // Use AuthContext login to store token and user
-                login(response.data.token, response.data.user);
-                toast.success('Welcome back!');
-
-                const redirectTo = location.state?.from?.pathname || '/dashboard';
-                navigate(redirectTo, { replace: true });
+            const res = await loginService(form.emailOrPhone, form.password);
+            if (res?.success && res.data?.token) {
+                login(res.data.token, res.data.user);
+                toast.success(`Welcome back, ${res.data.user?.name?.split(' ')[0] || 'Scholar'}!`);
+                navigate(location.state?.from?.pathname || '/dashboard', { replace: true });
             } else {
-                throw new Error(response.message || 'Login failed');
+                throw new Error(res?.message || 'Login failed');
             }
-        } catch (error) {
-            console.error('Login error:', error);
-            setErrors({
-                emailOrPhone: 'Invalid credentials',
-                password: 'Invalid credentials'
-            });
-            toast.error(error.message || 'Login failed. Please check your credentials.');
+        } catch (err) {
+            const msg = err?.message || 'Invalid credentials';
+            setErrors({ emailOrPhone: msg });
+            toast.error(msg);
         } finally {
-            setIsLoading(false);
+            setLoading(false);
         }
     };
 
     return (
-        <div className="relative min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 overflow-hidden">
-            {/* Space Background */}
-            <SpaceBackground theme={spaceTheme} />
-
-            {/* Content */}
-            <div className="relative z-10 max-w-md w-full space-y-8 fade-in">
-                {/* Header */}
-                <div className="text-center slide-down">
-                    <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 mb-6">
-                        <FiLock className="w-4 h-4 text-cyan-300" />
-                        <span className="text-sm font-semibold text-white">Secure Login</span>
-                    </div>
-                    <h2 className="text-5xl font-black text-white mb-4 drop-shadow-lg">
-                        Welcome Back!
-                    </h2>
-                    <p className="text-xl text-white/90 drop-shadow">
-                        Continue your learning journey
+        <div className="min-h-screen bg-ivory-light flex items-stretch">
+            {/* Left Decorator Panel - Premium Hero Brand */}
+            <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-b from-emerald-dark to-emerald-950 relative overflow-hidden flex-col items-center justify-center p-16">
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(201,169,97,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(201,169,97,0.03)_1px,transparent_1px)] bg-[size:3.5rem_3.5rem]" />
+                <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-gold/5 rounded-full blur-[100px] pointer-events-none" />
+                
+                <div className="relative text-center space-y-8 max-w-sm z-10">
+                    <Logo variant="primary" size="lg" showGlow={true} />
+                    <p className="text-white/60 text-base leading-relaxed font-medium">
+                        "Where Knowledge Takes Root"
                     </p>
+                    <div className="grid grid-cols-3 gap-6 pt-8 border-t border-white/10">
+                        {[['36', 'Regions'], ['48K+', 'Students'], ['10K+', 'MCQs']].map(([v, l]) => (
+                            <div key={l} className="space-y-1">
+                                <div className="text-xl font-bold text-white font-serif">{v}</div>
+                                <div className="text-[9px] text-gold font-bold uppercase tracking-widest">{l}</div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
+            </div>
 
-                {/* Login Form - Enhanced Glassmorphism */}
-                <div className="bg-white/10 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/20 p-8 scale-in hover:shadow-[0_0_40px_rgba(255,255,255,0.1)] transition-all duration-300" style={{ animationDelay: '0.1s' }}>
+            {/* Right Panel - Beautiful Glass Form */}
+            <div className="flex-1 flex items-center justify-center p-6 sm:p-12 md:p-16 lg:p-24 bg-white/40 backdrop-blur-md">
+                <div className="w-full max-w-md space-y-8 card-premium bg-white p-8 sm:p-10 shadow-2xl border border-emerald/5">
+                    {/* Header */}
+                    <div>
+                        <div className="flex items-center gap-3.5 mb-6 lg:hidden">
+                            <Logo variant="navbar" size="sm" theme="light" showGlow={true} />
+                        </div>
+                        <h1 className="text-2xl font-bold text-emerald-dark font-serif tracking-tight">Welcome back, Scholar</h1>
+                        <p className="text-xs text-emerald-dark/60 font-semibold mt-1">Sign in to resume your curriculum.</p>
+                    </div>
+
+                    {/* Form */}
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Email Input */}
-                        <div>
-                            <label htmlFor="emailOrPhone" className="block text-sm font-bold text-white mb-2 drop-shadow">
-                                Email or Phone
-                            </label>
+                        {/* Email/Phone */}
+                        <div className="space-y-1.5">
+                            <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Email or Phone</label>
                             <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <FiMail className="h-5 w-5 text-cyan-300" />
-                                </div>
-                                <input
-                                    id="emailOrPhone"
-                                    name="emailOrPhone"
-                                    type="text"
-                                    value={formData.emailOrPhone}
+                                <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/60" />
+                                <input 
+                                    name="emailOrPhone" 
+                                    type="text" 
+                                    value={form.emailOrPhone} 
                                     onChange={handleChange}
-                                    className={`w-full pl-12 pr-4 py-4 bg-white/90 backdrop-blur-sm border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all duration-200 placeholder:text-slate-400 font-semibold text-slate-900 ${errors.emailOrPhone ? 'border-red-400 ring-2 ring-red-400' : 'border-white/30 focus:scale-[1.01]'
-                                        }`}
-                                    placeholder="Enter your email or phone"
-                                    disabled={isLoading}
+                                    placeholder="you@example.com or 9876543210"
+                                    disabled={loading}
+                                    className={`w-full py-3 pl-11 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
+                                        errors.emailOrPhone ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
+                                    }`} 
                                 />
                             </div>
-                            {errors.emailOrPhone && (
-                                <p className="mt-2 text-sm text-red-300 font-semibold flex items-center gap-2 drop-shadow">
-                                    <FiMail className="w-4 h-4" />
-                                    {errors.emailOrPhone}
-                                </p>
-                            )}
+                            {errors.emailOrPhone && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.emailOrPhone}</p>}
                         </div>
 
-                        {/* Password Input */}
-                        <div>
-                            <div className="flex justify-between items-center mb-2">
-                                <label htmlFor="password" className="block text-sm font-bold text-white drop-shadow">
-                                    Password
-                                </label>
-                                <Link
-                                    to="/forgot-password"
-                                    className="text-sm font-semibold text-cyan-300 hover:text-cyan-100 transition-colors drop-shadow"
-                                >
-                                    Forgot?
-                                </Link>
+                        {/* Password */}
+                        <div className="space-y-1.5">
+                            <div className="flex items-center justify-between">
+                                <label className="text-xs font-bold uppercase tracking-wider text-emerald-dark">Password</label>
+                                <Link to="/forgot-password" className="text-xs font-bold text-gold hover:text-gold-dark transition-colors">Forgot password?</Link>
                             </div>
                             <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <FiLock className="h-5 w-5 text-cyan-300" />
-                                </div>
-                                <input
-                                    id="password"
-                                    name="password"
-                                    type={showPassword ? 'text' : 'password'}
-                                    value={formData.password}
+                                <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/60" />
+                                <input 
+                                    name="password" 
+                                    type={showPw ? 'text' : 'password'} 
+                                    value={form.password} 
                                     onChange={handleChange}
-                                    className={`w-full pl-12 pr-12 py-4 bg-white/90 backdrop-blur-sm border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all duration-200 placeholder:text-slate-400 font-semibold text-slate-900 ${errors.password ? 'border-red-400 ring-2 ring-red-400' : 'border-white/30 focus:scale-[1.01]'
-                                        }`}
-                                    placeholder="Enter your password"
-                                    disabled={isLoading}
+                                    placeholder="••••••••"
+                                    disabled={loading}
+                                    className={`w-full py-3 pl-11 pr-11 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
+                                        errors.password ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
+                                    }`} 
                                 />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute inset-y-0 right-0 pr-4 flex items-center group"
-                                    disabled={isLoading}
-                                    aria-label="Toggle password visibility"
+                                <button 
+                                    type="button" 
+                                    onClick={() => setShowPw(!showPw)}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald/60 hover:text-emerald transition-colors"
                                 >
-                                    {showPassword ? (
-                                        <FiEyeOff className="h-5 w-5 text-cyan-300 group-hover:text-cyan-100 transition-all duration-200 group-hover:scale-125" />
-                                    ) : (
-                                        <FiEye className="h-5 w-5 text-cyan-300 group-hover:text-cyan-100 transition-all duration-200 group-hover:scale-125" />
-                                    )}
+                                    {showPw ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
                                 </button>
                             </div>
-                            {errors.password && (
-                                <p className="mt-2 text-sm text-red-300 font-semibold flex items-center gap-2 drop-shadow">
-                                    <FiLock className="w-4 h-4" />
-                                    {errors.password}
-                                </p>
-                            )}
+                            {errors.password && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.password}</p>}
                         </div>
 
-                        {/* Submit Button - Glowing */}
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-black text-lg py-4 rounded-xl shadow-lg hover:shadow-[0_0_30px_rgba(6,182,212,0.6)] transform hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-3"
+                        {/* Submit Button */}
+                        <button 
+                            type="submit" 
+                            disabled={loading}
+                            className="w-full py-3.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-gold/10 hover:shadow-gold/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-2"
                         >
-                            {isLoading ? (
-                                <>
-                                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-                                    <span>Logging In...</span>
-                                </>
+                            {loading ? (
+                                <><div className="w-4 h-4 border-2 border-emerald-dark border-t-transparent rounded-full animate-spin" /> Signing in...</>
                             ) : (
-                                <>
-                                    <FiLock className="w-5 h-5" />
-                                    <span>Sign In</span>
-                                </>
+                                <><FiLock className="w-4 h-4" /> Sign In</>
                             )}
                         </button>
                     </form>
-                </div>
 
-                {/* Footer Link */}
-                <div className="text-center">
-                    <p className="text-white font-semibold drop-shadow-lg">
-                        Don't have an account?{' '}
-                        <Link
-                            to="/register"
-                            className="font-black text-cyan-300 hover:text-cyan-100 transition-colors hover:underline"
-                        >
-                            Sign Up Free
-                        </Link>
-                    </p>
+                    {/* Divider */}
+                    <div className="relative my-6">
+                        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-emerald/5" /></div>
+                        <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-widest text-emerald-dark/40 bg-white px-3">New to BodhGanga?</div>
+                    </div>
+
+                    {/* Register CTA */}
+                    <Link 
+                        to="/register"
+                        className="w-full py-3.5 border border-emerald/10 text-emerald font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-emerald-50/50 hover:border-emerald transition-all duration-300 flex items-center justify-center gap-2"
+                    >
+                        <BookOpen className="w-4 h-4" />
+                        Create Free Account
+                    </Link>
                 </div>
             </div>
         </div>

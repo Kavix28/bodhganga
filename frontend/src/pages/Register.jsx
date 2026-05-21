@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { FiMail, FiLock, FiEye, FiEyeOff, FiUser, FiPhone, FiMapPin } from 'react-icons/fi';
 import { signup } from '../services/authService';
 import toast from 'react-hot-toast';
+import Logo from '../components/common/Logo';
 
 const Register = () => {
     const { isAuthenticated, login } = useAuth();
@@ -105,21 +106,28 @@ const Register = () => {
         setIsLoading(true);
 
         try {
-            // Remove confirmPassword before sending to backend
             const { confirmPassword, ...signupData } = formData;
 
             const response = await signup(signupData);
 
             if (response.success) {
-                toast.success(response.message || 'Registration successful!');
+                try {
+                    await import('../services/api').then(m =>
+                        m.default.post('/auth/otp/send', { email: formData.email })
+                    );
+                } catch {
+                    // OTP send failure is non-blocking — user can resend on verify page
+                }
+
+                toast.success('Account created! Please verify your email.');
 
                 // Auto-login after registration
                 if (response.data?.token && response.data?.user) {
                     login(response.data.token, response.data.user);
-                    navigate('/dashboard');
-                } else {
-                    navigate('/login');
                 }
+
+                // Navigate to OTP verification
+                navigate('/verify-otp', { state: { email: formData.email } });
             } else {
                 toast.error(response.message || 'Registration failed');
             }
@@ -133,248 +141,212 @@ const Register = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-4xl w-full space-y-8">
-                {/* Header */}
-                <div className="text-center">
-                    <h2 className="text-4xl font-bold text-gray-900">Join BodhGanga</h2>
-                    <p className="mt-2 text-gray-600">Start your learning journey today</p>
-                </div>
+        <div className="min-h-screen bg-ivory-light flex items-stretch">
+            {/* Left Side Branding - Matches Login Page */}
+            <div className="hidden lg:flex lg:w-1/3 bg-gradient-to-b from-emerald-dark to-emerald-950 relative overflow-hidden flex-col items-center justify-center p-16">
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(201,169,97,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(201,169,97,0.03)_1px,transparent_1px)] bg-[size:3.5rem_3.5rem]" />
+                <div className="absolute top-1/4 left-1/4 w-[300px] h-[300px] bg-gold/5 rounded-full blur-[80px] pointer-events-none" />
 
-                {/* Registration Form */}
-                <div className="bg-white rounded-2xl shadow-xl p-8">
+                <div className="relative text-center space-y-8 max-w-sm z-10">
+                    <Logo variant="primary" size="lg" showGlow={true} />
+                    <p className="text-white/60 text-sm leading-relaxed font-medium">
+                        Join our premier learning network. Map state exams and heritage courses perfectly with expert study tools.
+                    </p>
+                </div>
+            </div>
+
+            {/* Right Side Complex Form */}
+            <div className="flex-1 flex items-center justify-center p-6 sm:p-12 lg:p-16 bg-white/40 backdrop-blur-md">
+                <div className="w-full max-w-2xl space-y-8 card-premium bg-white p-8 sm:p-10 shadow-2xl border border-emerald/5">
+                    {/* Header */}
+                    <div>
+                        <div className="flex items-center gap-3.5 mb-6 lg:hidden">
+                            <Logo variant="navbar" size="sm" theme="light" showGlow={true} />
+                        </div>
+                        <h1 className="text-2xl font-bold text-emerald-dark font-serif tracking-tight">Create Free Account</h1>
+                        <p className="text-xs text-emerald-dark/60 font-semibold mt-1">Begin your elite academic journey with us today.</p>
+                    </div>
+
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Row 1: Name and Email */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Grid Row 1 */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                             {/* Name */}
-                            <div>
-                                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                                    Full Name *
-                                </label>
+                            <div className="space-y-1.5">
+                                <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Full Name *</label>
                                 <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <FiUser className="h-5 w-5 text-gray-400" />
-                                    </div>
+                                    <FiUser className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/60" />
                                     <input
-                                        id="name"
                                         name="name"
                                         type="text"
                                         value={formData.name}
                                         onChange={handleChange}
-                                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${errors.name ? 'border-red-500' : 'border-gray-300'
-                                            }`}
-                                        placeholder="Enter your full name"
+                                        placeholder="Arjun Sharma"
                                         disabled={isLoading}
+                                        className={`w-full py-3 pl-11 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
+                                            errors.name ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
+                                        }`}
                                     />
                                 </div>
-                                {errors.name && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-                                )}
+                                {errors.name && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.name}</p>}
                             </div>
 
                             {/* Email */}
-                            <div>
-                                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                                    Email Address *
-                                </label>
+                            <div className="space-y-1.5">
+                                <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Email Address *</label>
                                 <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <FiMail className="h-5 w-5 text-gray-400" />
-                                    </div>
+                                    <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/60" />
                                     <input
-                                        id="email"
                                         name="email"
                                         type="email"
                                         value={formData.email}
                                         onChange={handleChange}
-                                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${errors.email ? 'border-red-500' : 'border-gray-300'
-                                            }`}
-                                        placeholder="you@example.com"
+                                        placeholder="arjun@domain.com"
                                         disabled={isLoading}
+                                        className={`w-full py-3 pl-11 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
+                                            errors.email ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
+                                        }`}
                                     />
                                 </div>
-                                {errors.email && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-                                )}
+                                {errors.email && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.email}</p>}
                             </div>
                         </div>
 
-                        {/* Row 2: Phone and City */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Grid Row 2 */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                             {/* Phone */}
-                            <div>
-                                <label htmlFor="phoneNo" className="block text-sm font-medium text-gray-700 mb-2">
-                                    Phone Number *
-                                </label>
+                            <div className="space-y-1.5">
+                                <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Phone Number *</label>
                                 <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <FiPhone className="h-5 w-5 text-gray-400" />
-                                    </div>
+                                    <FiPhone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/60" />
                                     <input
-                                        id="phoneNo"
                                         name="phoneNo"
                                         type="tel"
                                         value={formData.phoneNo}
                                         onChange={handleChange}
-                                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${errors.phoneNo ? 'border-red-500' : 'border-gray-300'
-                                            }`}
                                         placeholder="9876543210"
                                         disabled={isLoading}
+                                        className={`w-full py-3 pl-11 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
+                                            errors.phoneNo ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
+                                        }`}
                                     />
                                 </div>
-                                {errors.phoneNo && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.phoneNo}</p>
-                                )}
+                                {errors.phoneNo && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.phoneNo}</p>}
                             </div>
 
                             {/* City */}
-                            <div>
-                                <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
-                                    City *
-                                </label>
+                            <div className="space-y-1.5">
+                                <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">City *</label>
                                 <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <FiMapPin className="h-5 w-5 text-gray-400" />
-                                    </div>
+                                    <FiMapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/60" />
                                     <input
-                                        id="city"
                                         name="city"
                                         type="text"
                                         value={formData.city}
                                         onChange={handleChange}
-                                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${errors.city ? 'border-red-500' : 'border-gray-300'
-                                            }`}
-                                        placeholder="Enter your city"
+                                        placeholder="Jaipur"
                                         disabled={isLoading}
+                                        className={`w-full py-3 pl-11 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
+                                            errors.city ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
+                                        }`}
                                     />
                                 </div>
-                                {errors.city && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.city}</p>
-                                )}
+                                {errors.city && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.city}</p>}
                             </div>
                         </div>
 
-                        {/* Row 3: State and Country */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Grid Row 3 */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                             {/* State */}
-                            <div>
-                                <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-2">
-                                    State *
-                                </label>
+                            <div className="space-y-1.5">
+                                <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">State *</label>
                                 <input
-                                    id="state"
                                     name="state"
                                     type="text"
                                     value={formData.state}
                                     onChange={handleChange}
-                                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${errors.state ? 'border-red-500' : 'border-gray-300'
-                                        }`}
-                                    placeholder="Enter your state"
+                                    placeholder="Rajasthan"
                                     disabled={isLoading}
+                                    className={`w-full py-3 px-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
+                                        errors.state ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
+                                    }`}
                                 />
-                                {errors.state && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.state}</p>
-                                )}
+                                {errors.state && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.state}</p>}
                             </div>
 
                             {/* Country */}
-                            <div>
-                                <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-2">
-                                    Country *
-                                </label>
+                            <div className="space-y-1.5">
+                                <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Country *</label>
                                 <input
-                                    id="country"
                                     name="country"
                                     type="text"
                                     value={formData.country}
                                     onChange={handleChange}
-                                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${errors.country ? 'border-red-500' : 'border-gray-300'
-                                        }`}
-                                    placeholder="Enter your country"
+                                    placeholder="India"
                                     disabled={isLoading}
+                                    className={`w-full py-3 px-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
+                                        errors.country ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
+                                    }`}
                                 />
-                                {errors.country && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.country}</p>
-                                )}
+                                {errors.country && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.country}</p>}
                             </div>
                         </div>
 
-                        {/* Row 4: Password and Confirm Password */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Grid Row 4 */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                             {/* Password */}
-                            <div>
-                                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                                    Password *
-                                </label>
+                            <div className="space-y-1.5">
+                                <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Password *</label>
                                 <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <FiLock className="h-5 w-5 text-gray-400" />
-                                    </div>
+                                    <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/60" />
                                     <input
-                                        id="password"
                                         name="password"
                                         type={showPassword ? 'text' : 'password'}
                                         value={formData.password}
                                         onChange={handleChange}
-                                        className={`w-full pl-10 pr-10 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${errors.password ? 'border-red-500' : 'border-gray-300'
-                                            }`}
-                                        placeholder="Create a strong password"
+                                        placeholder="••••••••"
                                         disabled={isLoading}
+                                        className={`w-full py-3 pl-11 pr-11 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
+                                            errors.password ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
+                                        }`}
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald/60 hover:text-emerald transition-colors"
                                         disabled={isLoading}
                                     >
-                                        {showPassword ? (
-                                            <FiEyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                                        ) : (
-                                            <FiEye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                                        )}
+                                        {showPassword ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
                                     </button>
                                 </div>
-                                {errors.password && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-                                )}
+                                {errors.password && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.password}</p>}
                             </div>
 
                             {/* Confirm Password */}
-                            <div>
-                                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                                    Confirm Password *
-                                </label>
+                            <div className="space-y-1.5">
+                                <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Confirm Password *</label>
                                 <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <FiLock className="h-5 w-5 text-gray-400" />
-                                    </div>
+                                    <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/60" />
                                     <input
-                                        id="confirmPassword"
                                         name="confirmPassword"
                                         type={showConfirmPassword ? 'text' : 'password'}
                                         value={formData.confirmPassword}
                                         onChange={handleChange}
-                                        className={`w-full pl-10 pr-10 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-                                            }`}
-                                        placeholder="Confirm your password"
+                                        placeholder="••••••••"
                                         disabled={isLoading}
+                                        className={`w-full py-3 pl-11 pr-11 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
+                                            errors.confirmPassword ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
+                                        }`}
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald/60 hover:text-emerald transition-colors"
                                         disabled={isLoading}
                                     >
-                                        {showConfirmPassword ? (
-                                            <FiEyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                                        ) : (
-                                            <FiEye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                                        )}
+                                        {showConfirmPassword ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
                                     </button>
                                 </div>
-                                {errors.confirmPassword && (
-                                    <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
-                                )}
+                                {errors.confirmPassword && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.confirmPassword}</p>}
                             </div>
                         </div>
 
@@ -382,31 +354,24 @@ const Register = () => {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold text-lg py-4 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2"
+                            className="w-full py-3.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-gold/10 hover:shadow-gold/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
                         >
                             {isLoading ? (
-                                <>
-                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                                    <span>Creating Account...</span>
-                                </>
+                                <><div className="animate-spin rounded-full h-4 w-4 border-2 border-emerald-dark border-t-transparent" /> Creating Account...</>
                             ) : (
                                 <span>Sign Up</span>
                             )}
                         </button>
                     </form>
-                </div>
 
-                {/* Footer Link */}
-                <div className="text-center">
-                    <p className="text-gray-600">
-                        Already have an account?{' '}
-                        <Link
-                            to="/login"
-                            className="font-medium text-purple-600 hover:text-purple-500"
-                        >
-                            Login
-                        </Link>
-                    </p>
+                    <div className="text-center pt-2">
+                        <p className="text-xs text-emerald-dark/60 font-semibold">
+                            Already have an account?{' '}
+                            <Link to="/login" className="font-bold text-gold hover:text-gold-dark transition-colors ml-1">
+                                Login
+                            </Link>
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>

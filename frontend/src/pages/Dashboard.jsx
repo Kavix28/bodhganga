@@ -1,562 +1,318 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { useQuery } from '@tanstack/react-query';
 import {
-    FiBookOpen, FiClock, FiTrendingUp, FiAward, FiPlay, FiTarget,
-    FiZap, FiCheckCircle, FiArrowRight, FiStar, FiBarChart2, FiMap
-} from 'react-icons/fi';
-import { MapPin, Globe, Book, HelpCircle, CheckSquare } from 'lucide-react';
+    BookOpen, MapPin, HelpCircle, CheckCircle, TrendingUp,
+    ArrowRight, Globe, Award, Clock, Target, Zap
+} from 'lucide-react';
 import api from '../services/api';
-import toast from 'react-hot-toast';
 import Loader from '../components/common/Loader';
-import SVGBasedIndiaMap from '../components/map/SVGBasedIndiaMap';
-import IndianFlag from '../components/common/IndianFlag';
 import { indianStates } from '../data/states';
 import { unionTerritories } from '../data/unionTerritories';
 
+// ── Greeting ──────────────────────────────────────────────────────
+const getGreeting = () => {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good Morning';
+    if (h < 17) return 'Good Afternoon';
+    return 'Good Evening';
+};
+
+// ── Stat Card ─────────────────────────────────────────────────────
+const StatCard = ({ icon: Icon, label, value, sub, color }) => (
+    <div className={`card-premium bg-white p-6 relative overflow-hidden flex flex-col justify-between border-t-4 ${color}`}>
+        <div>
+            <div className="flex items-center justify-between mb-4">
+                <p className="text-[10px] text-emerald-dark/50 uppercase tracking-widest font-bold">{label}</p>
+                <div className="w-8 h-8 rounded-xl bg-emerald/5 flex items-center justify-center border border-emerald/10">
+                    <Icon className="w-4 h-4 text-emerald" />
+                </div>
+            </div>
+            <div className="text-3xl font-extrabold text-emerald-dark font-serif tracking-tight">{value}</div>
+        </div>
+        {sub && <div className="text-xs text-emerald-dark/60 font-semibold mt-3 pt-2 border-t border-emerald/5">{sub}</div>}
+    </div>
+);
+
+// ── Quick Action ──────────────────────────────────────────────────
+const QuickAction = ({ icon: Icon, label, desc, to }) => (
+    <Link to={to}
+        className="group flex items-center gap-4 p-4 bg-white/70 backdrop-blur-md rounded-2xl border border-emerald/10 hover:border-gold/30 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+        <div className="w-10 h-10 bg-emerald/5 border border-emerald/10 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+            <Icon className="w-5 h-5 text-emerald" />
+        </div>
+        <div className="flex-1 min-w-0">
+            <div className="font-bold text-emerald-dark text-xs uppercase tracking-wider">{label}</div>
+            <div className="text-[11px] text-emerald-dark/60 font-semibold mt-0.5 truncate">{desc}</div>
+        </div>
+        <ArrowRight className="w-4 h-4 text-emerald-dark/40 group-hover:text-gold group-hover:translate-x-1 transition-all flex-shrink-0" />
+    </Link>
+);
+
+// ── Region Card ───────────────────────────────────────────────────
+const RegionCard = ({ region, isState }) => {
+    const navigate = useNavigate();
+    const path = isState ? `/states/${region.id}` : `/union-territories/${region.id}`;
+    return (
+        <button onClick={() => navigate(path)}
+            className="group text-left p-4.5 bg-white/80 rounded-2xl border border-emerald/10 hover:border-gold/30 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300">
+            <div className="flex items-center justify-between mb-3">
+                <span className="text-[9px] font-bold text-gold uppercase tracking-widest bg-emerald-dark px-2.5 py-0.5 rounded-full">{region.code}</span>
+                <MapPin className="w-3.5 h-3.5 text-gold opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+            <div className="font-bold text-emerald-dark text-sm font-serif truncate group-hover:text-emerald transition-colors">{region.name}</div>
+            <div className="text-[10px] text-emerald-dark/50 font-bold uppercase tracking-wider mt-0.5 truncate">{region.capital}</div>
+            <div className="flex items-center gap-4 mt-4 text-[10px] text-emerald-dark/60 font-bold tracking-wider pt-2 border-t border-emerald/5 uppercase">
+                <span className="flex items-center gap-1"><BookOpen className="w-3.5 h-3.5 text-emerald" />{region.notesCount} N</span>
+                <span className="flex items-center gap-1"><HelpCircle className="w-3.5 h-3.5 text-gold" />{region.questionsCount} Q</span>
+            </div>
+        </button>
+    );
+};
+
+// ── Main Dashboard ────────────────────────────────────────────────
 const Dashboard = () => {
     const { user } = useAuth();
-    const navigate = useNavigate();
-    const [myContents, setMyContents] = useState([]);
-    const [allContents, setAllContents] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [mapViewMode, setMapViewMode] = useState('states'); // 'states' or 'uts'
-    const [userProgress, setUserProgress] = useState({});
-    const [stats, setStats] = useState({
-        enrolled: 0,
-        completed: 0,
-        inProgress: 0,
-        totalHours: 0,
-        statesCovered: 0,
-        utsCovered: 0
+    const [activeTab, setActiveTab] = useState('states');
+
+    // Fetch real stats from backend
+    const { data: statsData, isLoading: statsLoading } = useQuery({
+        queryKey: ['dashboardStats'],
+        queryFn: () => api.get('/dashboard/stats').catch(() => ({ data: {} })),
+        staleTime: 2 * 60 * 1000,
     });
 
-    useEffect(() => {
-        fetchDashboardData();
-        calculateRegionalProgress();
-    }, []);
+    // Fetch enrolled courses
+    const { data: enrolledCourses = [] } = useQuery({
+        queryKey: ['myCourses'],
+        queryFn: () => api.get('/courses/my-courses')
+            .then(r => r?.data || r || [])
+            .catch(() => []),
+        staleTime: 5 * 60 * 1000,
+    });
 
-    const fetchDashboardData = async () => {
-        try {
-            setIsLoading(true);
+    const stats = statsData?.data || statsData || {};
+    const regions = activeTab === 'states' ? indianStates : unionTerritories;
 
-            // Fetch user's enrolled content
-            const myContentResponse = await api.get('/user/my-contents');
-            const enrolledContents = myContentResponse.data || [];
-            setMyContents(enrolledContents);
+    const statCards = [
+        { icon: BookOpen,    label: 'Enrolled Courses',  value: stats.enrolledCourses ?? enrolledCourses.length, sub: 'Active academic enrollments',  color: 'border-emerald', trend: null },
+        { icon: CheckCircle, label: 'Completed Modules',  value: stats.completedCourses ?? 0,                    sub: 'Curriculum completed',    color: 'border-gold',    trend: null },
+        { icon: TrendingUp,  label: 'Active Progress',        value: stats.inProgressCourses ?? 0,                   sub: 'Modules in progress',  color: 'border-emerald',    trend: null },
+        { icon: Target,      label: 'Mapped Regions',   value: 36,                                             sub: '28 States & 8 UTs total',        color: 'border-gold', trend: null },
+    ];
 
-            // Fetch all available content
-            const allContentResponse = await api.get('/content/list');
-            setAllContents(allContentResponse.data || []);
-
-            // Calculate stats
-            const completed = enrolledContents.filter(c => c.progress === 100).length;
-            const inProgress = enrolledContents.filter(c => c.progress > 0 && c.progress < 100).length;
-
-            setStats({
-                enrolled: enrolledContents.length,
-                completed: completed,
-                inProgress: inProgress,
-                totalHours: enrolledContents.length * 12,
-                statesCovered: 12,
-                utsCovered: 4
-            });
-
-        } catch (error) {
-            console.error('Error fetching dashboard data:', error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    // Calculate progress for each state/UT
-    const calculateRegionalProgress = () => {
-        const mockProgress = {};
-
-        [...indianStates, ...unionTerritories].forEach((region, index) => {
-            const random = Math.random();
-
-            // Generate realistic progress for different categories
-            let overall, notes, questions, solutions;
-
-            if (random > 0.7) {
-                // Fully covered (70%+)
-                overall = Math.floor(Math.random() * 30) + 70;
-                notes = Math.floor(Math.random() * 25) + 75;
-                questions = Math.floor(Math.random() * 20) + 70;
-                solutions = Math.floor(Math.random() * 25) + 65;
-            } else if (random > 0.4) {
-                // Partially covered (25-70%)
-                overall = Math.floor(Math.random() * 45) + 25;
-                notes = Math.floor(Math.random() * 40) + 30;
-                questions = Math.floor(Math.random() * 35) + 25;
-                solutions = Math.floor(Math.random() * 30) + 20;
-            } else {
-                // Not started (<25%)
-                overall = Math.floor(Math.random() * 25);
-                notes = Math.floor(Math.random() * 20);
-                questions = Math.floor(Math.random() * 15);
-                solutions = Math.floor(Math.random() * 10);
-            }
-
-            mockProgress[region.id] = {
-                overall,
-                notes,
-                questions,
-                solutions
-            };
-        });
-
-        setUserProgress(mockProgress);
-    };
-
-    const handleContentClick = (contentId) => {
-        navigate(`/courses/${contentId}`);
-    };
-
-    const handleContinueLearning = (contentId) => {
-        navigate(`/courses/${contentId}/learn`);
-    };
-
-    const handleRegionClick = (regionId, isState) => {
-        const path = isState ? `/states/${regionId}` : `/union-territories/${regionId}`;
-        navigate(path);
-    };
-
-    if (isLoading) {
-        return <Loader fullScreen />;
-    }
-
-    const greeting = () => {
-        const hour = new Date().getHours();
-        if (hour < 12) return 'Good Morning';
-        if (hour < 18) return 'Good Afternoon';
-        return 'Good Evening';
-    };
-
-    const getTotalRegionsCount = () => mapViewMode === 'states' ? indianStates.length : unionTerritories.length;
-    const getCoveredRegionsCount = () => {
-        const regions = mapViewMode === 'states' ? indianStates : unionTerritories;
-        return regions.filter(r => {
-            const progress = userProgress[r.id];
-            const overall = typeof progress === 'object' ? progress.overall : (progress || 0);
-            return overall >= 25;
-        }).length;
-    };
+    const quickActions = [
+        { icon: MapPin,      label: 'Browse States',       desc: 'Explore all 28 states',          to: '/states' },
+        { icon: Globe,       label: 'Union Territories',   desc: 'All 8 UTs mapped',              to: '/union-territories' },
+        { icon: HelpCircle,  label: 'Question Bank',       desc: 'Previous year question papers',  to: '/question-bank' },
+        { icon: BookOpen,    label: 'All Courses',         desc: 'Browse complete catalog',         to: '/courses' },
+        { icon: Award,       label: 'Subjects Core',            desc: 'History, Polity, Geography',    to: '/subjects' },
+        { icon: Zap,         label: 'Digital Store',       desc: 'Premium study bundles',          to: '/store' },
+    ];
 
     return (
-        <div className="min-h-screen bg-slate-50 pb-20">
-            {/* HERO SECTION with Indian Tricolor Theme */}
-            <section className="relative text-white overflow-hidden" style={{
-                background: 'linear-gradient(135deg, #FF9933 0%, #FFB366 15%, #FFF8F0 35%, #F0FDF4 65%, #16A30B 85%, #138808 100%)'
-            }}>
-                {/* Tricolor Top Border - Enhanced */}
-                <div className="absolute top-0 left-0 right-0 h-2 tricolor-accent" style={{ zIndex: 10 }}></div>
-
-                {/* Ashoka Chakra Watermark - Subtle */}
-                <div className="absolute inset-0 opacity-5 flex items-center justify-center">
-                    <div className="relative w-96 h-96">
-                        <div className="absolute inset-0 rounded-full border-4" style={{ borderColor: '#000080' }}></div>
-                        <div className="absolute inset-8 rounded-full border-2" style={{ borderColor: '#000080' }}></div>
-                        {[...Array(24)].map((_, i) => (
-                            <div
-                                key={i}
-                                className="absolute top-1/2 left-1/2 w-1 h-20 origin-bottom"
-                                style={{
-                                    background: '#000080',
-                                    transform: `translate(-50%, -100%) rotate(${i * 15}deg)`
-                                }}
-                            />
-                        ))}
-                    </div>
-                </div>
-
-                {/* Dotted Pattern */}
-                <div className="absolute inset-0 opacity-8">
-                    <div className="absolute inset-0" style={{
-                        backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(0,0,128,0.1) 1px, transparent 0)',
-                        backgroundSize: '40px 40px'
-                    }}></div>
-                </div>
-
-                <div className="relative container-custom py-16">
-                    <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
-                        {/* Welcome Message */}
-                        <div className="flex-1 slide-down">
-                            <div className="inline-flex items-center gap-2 backdrop-blur-md px-4 py-2 rounded-full mb-4" style={{
-                                background: 'rgba(0, 0, 128, 0.15)',
-                                border: '2px solid rgba(255, 255, 255, 0.3)'
-                            }}>
-                                <FiZap className="w-4 h-4" style={{ color: '#FFB366' }} />
-                                <span className="text-sm font-semibold" style={{ color: '#000080' }}>{greeting()}, Champion!</span>
-                            </div>
-                            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black mb-4" style={{ color: '#000080' }}>
-                                Welcome Back, <span style={{ color: '#FF9933' }}>{user?.name || 'Student'}!</span>
+        <div className="min-h-screen bg-ivory-light">
+            {/* ── Hero Banner ─────────────────────────────────── */}
+            <section className="bg-gradient-to-b from-emerald-dark to-emerald-950 text-white relative overflow-hidden px-4 border-b border-gold/10">
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(201,169,97,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(201,169,97,0.03)_1px,transparent_1px)] bg-[size:3.5rem_3.5rem]" />
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald via-gold to-emerald" />
+                <div className="relative max-w-7xl mx-auto py-12">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                        <div className="space-y-2">
+                            <p className="text-gold text-xs font-bold uppercase tracking-widest">{getGreeting()}, scholar</p>
+                            <h1 className="text-3xl md:text-4xl font-bold font-serif tracking-tight">
+                                {user?.name || 'Scholar'} <span className="text-gold">👋</span>
                             </h1>
-                            <p className="text-xl mb-6 flex items-center gap-3" style={{ color: '#0F6606' }}>
-                                <span>
-                                    Master government exams across <strong style={{ color: '#FF9933' }}>all 28 States & 8 UTs</strong>.
-                                    Your success journey for Bharat awaits!
-                                </span>
-                                <IndianFlag size="lg" />
+                            <p className="text-white/60 text-sm font-medium">
+                                Ready to continue your preparation? You have <strong className="text-gold">36 active regions</strong> to explore.
                             </p>
-
-                            {/* Quick Actions */}
-                            <div className="flex flex-wrap gap-4">
-                                <Link to="/states" className="btn-saffron">
-                                    <FiMap className="w-5 h-5" />
-                                    <span>Browse States</span>
-                                </Link>
-                                <Link to="/union-territories" className="btn-green">
-                                    <Globe className="w-5 h-5" />
-                                    <span>Union Territories</span>
-                                </Link>
-                            </div>
                         </div>
-
-                        {/* Stats Cards */}
-                        <div className="grid grid-cols-2 gap-4 lg:gap-6">
-                            <div className="card-glass text-center p-6 scale-in" style={{ animationDelay: '0.1s' }}>
-                                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, var(--saffron), var(--saffron-dark))' }}>
-                                    <FiMap className="w-8 h-8 text-white" />
-                                </div>
-                                <div className="text-4xl font-black text-white mb-2">{indianStates.length}</div>
-                                <div className="text-sm text-purple-100 font-semibold">States</div>
-                            </div>
-
-                            <div className="card-glass text-center p-6 scale-in" style={{ animationDelay: '0.2s' }}>
-                                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, var(--green), var(--green-dark))' }}>
-                                    <Globe className="w-8 h-8 text-white" />
-                                </div>
-                                <div className="text-4xl font-black text-white mb-2">{unionTerritories.length}</div>
-                                <div className="text-sm text-purple-100 font-semibold">Union Territories</div>
-                            </div>
-
-                            <div className="card-glass text-center p-6 scale-in" style={{ animationDelay: '0.3s' }}>
-                                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'linear-gradient(135deg, var(--navy), var(--navy-dark))' }}>
-                                    <FiTrendingUp className="w-8 h-8 text-white" />
-                                </div>
-                                <div className="text-4xl font-black text-white mb-2">{getCoveredRegionsCount()}</div>
-                                <div className="text-sm text-purple-100 font-semibold">Regions Covered</div>
-                            </div>
-
-                            <div className="card-glass text-center p-6 scale-in" style={{ animationDelay: '0.4s' }}>
-                                <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                                    <FiBookOpen className="w-8 h-8 text-white" />
-                                </div>
-                                <div className="text-4xl font-black text-white mb-2">10.4K+</div>
-                                <div className="text-sm text-purple-100 font-semibold">Study Notes</div>
-                            </div>
+                        <div className="flex gap-3">
+                            <Link to="/states" className="px-6 py-3 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest rounded-xl shadow-lg transition-all hover:-translate-y-0.5 active:scale-95">
+                                Start Studying
+                            </Link>
+                            <Link to="/profile" className="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/15 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all">
+                                My Profile
+                            </Link>
                         </div>
                     </div>
-                </div>
-
-                {/* Wave Divider */}
-                <div className="absolute bottom-0 left-0 right-0">
-                    <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full">
-                        <path d="M0 120L60 110C120 100 240 80 360 70C480 60 600 60 720 65C840 70 960 80 1080 85C1200 90 1320 90 1380 90L1440 90V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="rgb(248 250 252)" />
-                    </svg>
                 </div>
             </section>
 
-            {/* MAIN CONTENT */}
-            <div className="container-custom py-16 space-y-16">
-                {/* INTERACTIVE INDIA MAP SECTION */}
-                <section className="slide-up">
-                    <div className="mb-8 text-center">
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-4" style={{ background: 'linear-gradient(135deg, var(--saffron-light), var(--saffron))' }}>
-                            <FiMap className="w-4 h-4 text-white" />
-                            <span className="text-sm font-bold text-white">Interactive India Map</span>
+            <div className="max-w-7xl mx-auto px-4 py-12 space-y-10">
+
+                {/* ── Stats ───────────────────────────────────── */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {statCards.map((card, i) => <StatCard key={i} {...card} />)}
+                </div>
+
+                {/* ── Visual Preparation Analytics Widget ────── */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 bg-white/70 backdrop-blur-md rounded-3xl p-6 border border-emerald/10 shadow-sm">
+                    {/* Ring Progress Indicator */}
+                    <div className="flex items-center gap-6 p-4 bg-white rounded-2xl border border-emerald/5 shadow-sm">
+                        <div className="relative w-20 h-20 flex-shrink-0">
+                            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                                <path className="text-emerald-100" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                <path className="text-emerald animate-dash" strokeDasharray={`${stats.enrolledCourses ? Math.min(stats.enrolledCourses * 25, 100) : 35}, 100`} strokeWidth="3" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            </svg>
+                            <div className="absolute inset-0 flex items-center justify-center font-serif font-extrabold text-emerald text-base">
+                                {stats.enrolledCourses ? Math.min(stats.enrolledCourses * 25, 100) : 35}%
+                            </div>
                         </div>
-                        <h2 className="text-4xl md:text-5xl font-black mb-3" style={{ color: 'var(--navy)' }}>
-                            Your <span style={{ color: 'var(--saffron)' }}>Government Exam</span> Journey
-                        </h2>
-                        <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-                            Click any state or union territory to access comprehensive <strong>study notes</strong>, question banks, and solutions
-                        </p>
+                        <div>
+                            <h3 className="font-bold text-emerald-dark font-serif text-sm">Preparation Completeness</h3>
+                            <p className="text-xs text-emerald-dark/60 mt-1 font-medium">Global syllabus alignment metric calculated from your regional bookmarks.</p>
+                        </div>
                     </div>
 
-                    {/* Map Container with Tricolor Border */}
-                    <div className="card-hover p-8 tricolor-accent">
-                        {/* View Mode Toggle */}
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-                            <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg" style={{ background: 'linear-gradient(135deg, var(--saffron), var(--saffron-dark))' }}>
-                                    <MapPin className="w-6 h-6 text-white" />
+                    {/* Streak Calendar */}
+                    <div className="flex flex-col justify-between p-4 bg-white rounded-2xl border border-emerald/5 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-bold text-emerald-dark font-serif text-xs uppercase tracking-wider flex items-center gap-1.5">
+                                <Zap className="w-4 h-4 text-gold fill-gold" />
+                                7-Day Study Streak
+                            </h3>
+                            <span className="text-[10px] font-extrabold text-emerald bg-emerald/10 px-2 py-0.5 rounded-full">4 Days Active</span>
+                        </div>
+                        <div className="flex justify-between gap-1 mt-2">
+                            {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => (
+                                <div key={idx} className="flex flex-col items-center gap-1">
+                                    <span className="text-[9px] font-bold text-emerald-dark/40 uppercase">{day}</span>
+                                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs ${
+                                        idx < 4 ? 'bg-emerald text-white shadow-sm' : 'bg-slate-50 text-slate-400 border border-slate-100'
+                                    }`}>
+                                        {idx < 4 ? '✓' : idx + 19}
+                                    </div>
                                 </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Milestone Timeline */}
+                    <div className="flex items-center gap-4.5 p-4 bg-white rounded-2xl border border-emerald/5 shadow-sm">
+                        <div className="w-10 h-10 bg-gold/10 rounded-xl flex items-center justify-center flex-shrink-0 text-gold font-bold">
+                            🎯
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-emerald-dark font-serif text-sm truncate">Upcoming PSC Milestone</h3>
+                            <p className="text-[10px] text-gold uppercase tracking-widest font-bold mt-0.5">Mock Exam Series · Active</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* ── Main Grid ───────────────────────────────── */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+                    {/* Quick Actions */}
+                    <div className="lg:col-span-1">
+                        <div className="card-premium bg-white/80 overflow-hidden border border-emerald/5 p-6 space-y-6">
+                            <div className="border-b border-emerald/5 pb-4">
+                                <h2 className="font-bold text-emerald-dark font-serif text-lg tracking-tight">Quick Access</h2>
+                                <p className="text-[10px] text-emerald-dark/50 font-bold uppercase tracking-widest mt-0.5">Jump directly to modules</p>
+                            </div>
+                            <div className="space-y-3.5">
+                                {quickActions.map((a, i) => <QuickAction key={i} {...a} />)}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Enrolled Courses + Regions */}
+                    <div className="lg:col-span-2 space-y-8">
+
+                        {/* Enrolled Courses */}
+                        <div className="card-premium bg-white overflow-hidden border border-emerald/5 p-6">
+                            <div className="flex items-center justify-between border-b border-emerald/5 pb-4 mb-6">
                                 <div>
-                                    <h3 className="text-xl font-bold" style={{ color: 'var(--navy)' }}>Regional Coverage Map</h3>
-                                    <p className="text-sm text-gray-600">
-                                        {mapViewMode === 'states' ? `${indianStates.length} States` : `${unionTerritories.length} Union Territories`}
-                                    </p>
+                                    <h2 className="font-bold text-emerald-dark font-serif text-lg tracking-tight">Active Curriculum</h2>
+                                    <p className="text-[10px] text-emerald-dark/50 font-bold uppercase tracking-widest mt-0.5">{enrolledCourses.length} Enrolled Courses</p>
                                 </div>
+                                <Link to="/courses" className="text-xs font-bold text-gold hover:text-gold-dark flex items-center gap-1">
+                                    Browse All <ArrowRight className="w-3.5 h-3.5" />
+                                </Link>
                             </div>
-
-                            {/* Toggle Buttons using Tricolor Theme */}
-                            <div className="inline-flex bg-gray-100 rounded-xl p-1 border-2 border-gray-200">
-                                <button
-                                    onClick={() => setMapViewMode('states')}
-                                    className={`px-6 py-3 rounded-lg font-bold text-sm transition-all duration-300 ${mapViewMode === 'states'
-                                        ? 'text-white shadow-lg'
-                                        : 'text-gray-600 hover:text-gray-900'
-                                        }`}
-                                    style={mapViewMode === 'states' ? { background: 'linear-gradient(135deg, var(--saffron), var(--saffron-dark))' } : {}}
-                                >
-                                    <MapPin className="w-4 h-4 inline mr-2" />
-                                    States ({indianStates.length})
-                                </button>
-                                <button
-                                    onClick={() => setMapViewMode('uts')}
-                                    className={`px-6 py-3 rounded-lg font-bold text-sm transition-all duration-300 ${mapViewMode === 'uts'
-                                        ? 'text-white shadow-lg'
-                                        : 'text-gray-600 hover:text-gray-900'
-                                        }`}
-                                    style={mapViewMode === 'uts' ? { background: 'linear-gradient(135deg, var(--green), var(--green-dark))' } : {}}
-                                >
-                                    <Globe className="w-4 h-4 inline mr-2" />
-                                    Union Territories ({unionTerritories.length})
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Coverage Legend using Tricolor */}
-                        <div className="flex flex-wrap items-center justify-center gap-6 mb-8 p-4 bg-gray-50 rounded-xl border-2 border-gray-200">
-                            <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-full border-2 border-white shadow" style={{ background: 'var(--green)' }}></div>
-                                <span className="text-sm font-semibold text-gray-700">Fully Covered (70%+)</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-full border-2 border-white shadow" style={{ background: 'var(--saffron)' }}></div>
-                                <span className="text-sm font-semibold text-gray-700">Partially Covered (25-70%)</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-full bg-gray-400 border-2 border-white shadow"></div>
-                                <span className="text-sm font-semibold text-gray-700">Not Started (&lt;25%)</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-full bg-gray-200 border-2 border-white"></div>
-                                <span className="text-sm font-semibold text-gray-700">Not in View</span>
-                            </div>
-                        </div>
-
-                        <div className="bg-white rounded-2xl p-6 shadow-inner border-2" style={{ borderColor: 'var(--navy)' }}>
-                            <SVGBasedIndiaMap viewMode={mapViewMode} userProgress={userProgress} />
-                        </div>
-
-                        {/* Quick Stats Below Map using Tricolor */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
-                            <div className="rounded-xl p-6 border-2" style={{ background: 'linear-gradient(to br, #f0fdf4, #dcfce7)', borderColor: 'var(--green)' }}>
-                                <div className="text-3xl font-black mb-2" style={{ color: 'var(--green-dark)' }}>
-                                    {Object.values(userProgress).filter(p => {
-                                        const overall = typeof p === 'object' ? p.overall : p;
-                                        return overall >= 70;
-                                    }).length}
-                                </div>
-                                <div className="text-sm font-semibold" style={{ color: 'var(--green)' }}>Regions Mastered</div>
-                            </div>
-                            <div className="rounded-xl p-6 border-2" style={{ background: 'linear-gradient(to br, #fff7ed, #fed7aa)', borderColor: 'var(--saffron)' }}>
-                                <div className="text-3xl font-black mb-2" style={{ color: 'var(--saffron-dark)' }}>
-                                    {Object.values(userProgress).filter(p => {
-                                        const overall = typeof p === 'object' ? p.overall : p;
-                                        return overall >= 25 && overall < 70;
-                                    }).length}
-                                </div>
-                                <div className="text-sm font-semibold" style={{ color: 'var(--saffron)' }}>In Progress</div>
-                            </div>
-                            <div className="rounded-xl p-6 border-2" style={{ background: 'linear-gradient(to br, #eff6ff, #dbeafe)', borderColor: 'var(--navy)' }}>
-                                <div className="text-3xl font-black mb-2" style={{ color: 'var(--navy-dark)' }}>
-                                    {getTotalRegionsCount() - getCoveredRegionsCount()}
-                                </div>
-                                <div className="text-sm font-semibold" style={{ color: 'var(--navy)' }}>To Explore</div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                {/* COMPREHENSIVE SCROLLABLE MAP VIEW - ALL STATES & UTs */}
-                <section className="slide-up" style={{ animationDelay: '0.2s' }}>
-                    <div className="mb-8">
-                        <h2 className="text-4xl font-black mb-3" style={{ color: 'var(--navy)' }}>
-                            All <span style={{ color: mapViewMode === 'states' ? 'var(--saffron)' : 'var(--green)' }}>
-                                {mapViewMode === 'states' ? 'States' : 'Union Territories'}
-                            </span> at a Glance
-                        </h2>
-                        <p className="text-lg text-slate-600">
-                            Quick access to study materials for every region across India
-                        </p>
-                    </div>
-
-                    {/* All Regions Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {(mapViewMode === 'states' ? indianStates : unionTerritories).map((region, index) => {
-                            const progressData = userProgress[region.id] || 0;
-                            const progress = typeof progressData === 'object' ? progressData.overall : progressData;
-                            const coverageLevel = progress >= 70 ? 'full' : progress >= 25 ? 'partial' : 'none';
-
-                            return (
-                                <div
-                                    key={region.id}
-                                    className="state-card scale-in"
-                                    style={{ animationDelay: `${index * 0.05}s` }}
-                                    onClick={() => handleRegionClick(region.id, mapViewMode === 'states')}
-                                >
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{
-                                            background: coverageLevel === 'full' ? 'var(--green)' :
-                                                coverageLevel === 'partial' ? 'var(--saffron)' :
-                                                    '#9CA3AF'
-                                        }}>
-                                            <MapPin className="w-5 h-5 text-white" />
-                                        </div>
-                                        <span className="text-xs font-bold px-2 py-1 rounded-full bg-gray-100 text-gray-700">
-                                            {region.code}
-                                        </span>
-                                    </div>
-
-                                    <h3 className="state-card-title">{region.name}</h3>
-                                    <p className="text-sm text-gray-600 mb-3">{region.capital}</p>
-
-                                    {/* Stats */}
-                                    <div className="flex gap-3 text-xs mb-3">
-                                        <div className="flex items-center gap-1">
-                                            <Book className="w-3 h-3" style={{ color: 'var(--navy)' }} />
-                                            <span className="font-semibold">{region.notesCount}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            <HelpCircle className="w-3 h-3" style={{ color: 'var(--saffron)' }} />
-                                            <span className="font-semibold">{region.questionsCount}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            <CheckSquare className="w-3 h-3" style={{ color: 'var(--green)' }} />
-                                            <span className="font-semibold">{region.solutionsCount}</span>
-                                        </div>
-                                    </div>
-
-                                    {/* Progress Bar */}
-                                    <div className="space-y-1">
-                                        <div className="flex justify-between text-xs">
-                                            <span className="text-gray-600">Coverage</span>
-                                            <span className="font-bold" style={{ color: 'var(--navy)' }}>{progress}%</span>
-                                        </div>
-                                        <div className="w-full bg-gray-200 rounded-full h-2">
-                                            <div
-                                                className="h-full rounded-full transition-all duration-500"
-                                                style={{
-                                                    width: `${progress}%`,
-                                                    background: coverageLevel === 'full' ? 'var(--green)' :
-                                                        coverageLevel === 'partial' ? 'var(--saffron)' :
-                                                            '#9CA3AF'
-                                                }}
-                                            ></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </section>
-
-                {/* MY LEARNING - Continue Where You Left Off */}
-                {myContents.length > 0 && (
-                    <section className="slide-up" style={{ animationDelay: '0.3s' }}>
-                        <div className="flex items-center justify-between mb-8">
                             <div>
-                                <h2 className="text-4xl font-black text-slate-900 mb-2">
-                                    Continue Your Journey
-                                </h2>
-                                <p className="text-lg text-slate-600">
-                                    Pick up where you left off and keep crushing your goals! 💪
-                                </p>
-                            </div>
-                            <Link to="/courses" className="hidden md:flex btn-outline">
-                                View All
-                                <FiArrowRight className="ml-2 w-5 h-5" />
-                            </Link>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {myContents.slice(0, 3).map((content, index) => {
-                                const progress = content.progress || 0;
-                                return (
-                                    <div
-                                        key={content.id}
-                                        className="group card-hover cursor-pointer scale-in"
-                                        style={{ animationDelay: `${index * 0.1}s` }}
-                                        onClick={() => handleContinueLearning(content.id)}
-                                    >
-                                        <div className="relative w-full h-48 bg-gradient-to-br from-indigo-400 via-purple-400 to-pink-400 rounded-xl mb-4 overflow-hidden">
-                                            {content.youtubeThumbnailUrl ? (
-                                                <img
-                                                    src={content.youtubeThumbnailUrl}
-                                                    alt={content.title}
-                                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                                />
-                                            ) : (
-                                                <div className="flex items-center justify-center h-full">
-                                                    <FiPlay className="w-16 h-16 text-white opacity-80" />
-                                                </div>
-                                            )}
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-
-                                            <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full">
-                                                <span className="text-sm font-black text-indigo-600">{progress}%</span>
-                                            </div>
-
-                                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-2xl">
-                                                    <FiPlay className="w-8 h-8 text-indigo-600 ml-1" />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <h3 className="text-xl font-bold text-slate-900 mb-2 line-clamp-2">
-                                            {content.title}
-                                        </h3>
-                                        <p className="text-slate-600 text-sm mb-4 line-clamp-2">
-                                            {content.description}
-                                        </p>
-
-                                        <div className="space-y-2">
-                                            <div className="flex justify-between text-sm">
-                                                <span className="font-semibold text-slate-700">Progress</span>
-                                                <span className="font-black text-indigo-600">{progress}%</span>
-                                            </div>
-                                            <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
-                                                <div
-                                                    className="h-full bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full transition-all duration-500"
-                                                    style={{ width: `${progress}%` }}
-                                                ></div>
-                                            </div>
-                                        </div>
+                                {enrolledCourses.length === 0 ? (
+                                    <div className="text-center py-12">
+                                        <BookOpen className="w-12 h-12 text-emerald/10 mx-auto mb-3" />
+                                        <p className="text-emerald-dark/60 text-sm font-semibold">No active enrollments yet.</p>
+                                        <Link to="/courses" className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gold hover:text-gold-dark">
+                                            Browse Courses <ArrowRight className="w-4 h-4" />
+                                        </Link>
                                     </div>
-                                );
-                            })}
+                                ) : (
+                                    <div className="space-y-3.5">
+                                        {enrolledCourses.slice(0, 4).map(course => (
+                                            <div key={course.id} className="flex items-center gap-4 p-4 bg-white border border-emerald/5 rounded-2xl hover:border-gold/35 transition-colors duration-300 shadow-sm">
+                                                <div className="w-10 h-10 bg-emerald/5 rounded-xl flex items-center justify-center flex-shrink-0">
+                                                    <BookOpen className="w-5 h-5 text-emerald" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-bold text-emerald-dark text-sm truncate font-serif">{course.courseTitle || course.title}</p>
+                                                    <p className="text-xs text-emerald-dark/60 font-semibold mt-0.5">{course.instructorName || 'BodhGanga Faculty'}</p>
+                                                </div>
+                                                <Link to={`/courses/${course.id}`}
+                                                    className="text-xs font-bold text-gold hover:text-gold-dark flex-shrink-0">
+                                                    Resume →
+                                                </Link>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    </section>
-                )}
 
-                {/* EMPTY STATE */}
-                {myContents.length === 0 && allContents.length === 0 && (
-                    <div className="empty-state">
-                        <div className="w-32 h-32 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <FiTarget className="w-16 h-16 text-indigo-600" />
-                        </div>
-                        <h3 className="empty-state-title">Start Your Learning Journey!</h3>
-                        <p className="empty-state-description">
-                            Explore states and union territories to access comprehensive study materials.
-                        </p>
-                        <div className="flex gap-4 justify-center mt-6">
-                            <Link to="/states" className="btn-saffron">
-                                <FiMap className="w-5 h-5" />
-                                <span>Explore States</span>
-                            </Link>
-                            <Link to="/union-territories" className="btn-green">
-                                <Globe className="w-5 h-5" />
-                                <span>Explore UTs</span>
-                            </Link>
+                        {/* Regions Explorer */}
+                        <div className="card-premium bg-white overflow-hidden border border-emerald/5 p-6">
+                            <div className="border-b border-emerald/5 pb-4 mb-6">
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                    <div>
+                                        <h2 className="font-bold text-emerald-dark font-serif text-lg tracking-tight">Regional Curriculum</h2>
+                                        <p className="text-[10px] text-emerald-dark/50 font-bold uppercase tracking-widest mt-0.5">Explore syllabus by territory</p>
+                                    </div>
+                                    {/* Tabs */}
+                                    <div className="flex gap-2 bg-emerald/5 p-1 rounded-xl self-start">
+                                        {[
+                                            { id: 'states', label: `States (${indianStates.length})` },
+                                            { id: 'uts',    label: `UTs (${unionTerritories.length})` },
+                                        ].map(tab => (
+                                            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+                                                className={`px-4.5 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all ${
+                                                    activeTab === tab.id
+                                                        ? 'bg-emerald-dark text-white shadow-sm'
+                                                        : 'text-emerald-dark/60 hover:text-emerald'
+                                                }`}>
+                                                {tab.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[350px] overflow-y-auto scrollbar-thin pr-1">
+                                {regions.map(region => (
+                                    <RegionCard key={region.id} region={region} isState={activeTab === 'states'} />
+                                ))}
+                            </div>
                         </div>
                     </div>
-                )}
+                </div>
+
+                {/* ── Progress Banner ──────────────────────────── */}
+                <div className="bg-gradient-to-r from-emerald-dark to-emerald-950 border border-gold/15 rounded-3xl p-8 text-white flex flex-col sm:flex-row items-center justify-between gap-6 relative overflow-hidden shadow-xl">
+                    <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(201,169,97,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(201,169,97,0.03)_1px,transparent_1px)] bg-[size:3rem_3rem]" />
+                    <div className="relative space-y-1.5 z-10 text-left">
+                        <h3 className="text-xl font-bold font-serif text-white">Scale your competitive edge.</h3>
+                        <p className="text-white/60 text-xs font-semibold">
+                            You've mapped <strong className="text-gold">{enrolledCourses.length}</strong> modules. Ready to test your memory?
+                        </p>
+                    </div>
+                    <div className="relative flex gap-3 flex-shrink-0 z-10">
+                        <Link to="/question-bank"
+                            className="px-6 py-3.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest rounded-xl shadow-lg transition-all hover:-translate-y-0.5 active:scale-95">
+                            Practice Question Bank
+                        </Link>
+                    </div>
+                </div>
             </div>
         </div>
     );

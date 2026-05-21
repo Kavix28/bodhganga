@@ -16,7 +16,7 @@ const AdminLogin = () => {
     }, [navigate]);
 
     const [formData, setFormData] = useState({
-        username: '',
+        emailOrPhone: '',
         password: '',
     });
 
@@ -45,12 +45,10 @@ const AdminLogin = () => {
     const validateForm = () => {
         const newErrors = {};
 
-        // Username validation
-        if (!formData.username.trim()) {
-            newErrors.username = 'Username is required';
+        if (!formData.emailOrPhone.trim()) {
+            newErrors.emailOrPhone = 'Email or phone is required';
         }
 
-        // Password validation
         if (!formData.password.trim()) {
             newErrors.password = 'Password is required';
         }
@@ -59,7 +57,7 @@ const AdminLogin = () => {
         return Object.keys(newErrors).length === 0;
     };
 
-    // Handle form submission
+    // Handle form submission — calls backend JWT auth
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -70,23 +68,17 @@ const AdminLogin = () => {
         setIsLoading(true);
 
         try {
-            // Use frontend-only authentication
-            const isAuthenticated = authenticateAdmin(formData.username, formData.password);
+            const result = await authenticateAdmin(formData.emailOrPhone, formData.password);
 
-            if (isAuthenticated) {
+            if (result.success) {
                 toast.success('Welcome to Admin Dashboard!');
-                
-                // Redirect to admin dashboard
                 const redirectTo = location.state?.from?.pathname || '/admin/dashboard';
                 navigate(redirectTo, { replace: true });
             } else {
-                setErrors({
-                    username: 'Invalid credentials',
-                    password: 'Invalid credentials'
-                });
-                toast.error('Invalid username or password. Please try again.');
+                const msg = result.message || 'Invalid credentials';
+                setErrors({ emailOrPhone: msg });
+                toast.error(msg);
             }
-
         } catch (error) {
             console.error('Admin login error:', error);
             toast.error('Login failed. Please try again.');
@@ -96,7 +88,7 @@ const AdminLogin = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center py-[24px] px-4 sm:px-6 lg:px-8">
             <div className="max-w-md w-full space-y-8">
                 {/* Header */}
                 <div className="text-center">
@@ -108,7 +100,7 @@ const AdminLogin = () => {
                 </div>
 
                 {/* Security Warning */}
-                <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4">
+                <div className="bg-red-900/20 border border-red-500/30 rounded-[2px] p-4">
                     <div className="flex items-center">
                         <FiShield className="h-5 w-5 text-red-400 mr-2" />
                         <p className="text-red-300 text-sm">
@@ -118,33 +110,33 @@ const AdminLogin = () => {
                 </div>
 
                 {/* Login Form */}
-                <div className="bg-gray-800 rounded-lg shadow-xl p-8 border border-gray-700">
+                <div className="bg-gray-800 rounded-[2px] shadow-xl p-8 border border-gray-700">
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Username Input */}
+                        {/* Email/Phone Input */}
                         <div>
-                            <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-2">
-                                Username
+                            <label htmlFor="emailOrPhone" className="block text-sm font-medium text-gray-300 mb-2">
+                                Email or Phone
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <FiUser className="h-5 w-5 text-gray-500" />
                                 </div>
                                 <input
-                                    id="username"
-                                    name="username"
+                                    id="emailOrPhone"
+                                    name="emailOrPhone"
                                     type="text"
-                                    value={formData.username}
+                                    value={formData.emailOrPhone}
                                     onChange={handleChange}
-                                    className={`w-full pl-10 pr-4 py-3 bg-gray-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 text-white placeholder-gray-400 ${
-                                        errors.username ? 'border-red-500' : 'border-gray-600'
+                                    className={`w-full pl-10 pr-4 py-3 bg-gray-700 border rounded-[2px] focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 text-white placeholder-gray-400 ${
+                                        errors.emailOrPhone ? 'border-red-500' : 'border-gray-600'
                                     }`}
-                                    placeholder="Enter admin username"
+                                    placeholder="Enter admin email or phone"
                                     disabled={isLoading}
-                                    autoComplete="username"
+                                    autoComplete="email"
                                 />
                             </div>
-                            {errors.username && (
-                                <p className="mt-1 text-sm text-red-400">{errors.username}</p>
+                            {errors.emailOrPhone && (
+                                <p className="mt-1 text-sm text-red-400">{errors.emailOrPhone}</p>
                             )}
                         </div>
 
@@ -163,7 +155,7 @@ const AdminLogin = () => {
                                     type={showPassword ? 'text' : 'password'}
                                     value={formData.password}
                                     onChange={handleChange}
-                                    className={`w-full pl-10 pr-12 py-3 bg-gray-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 text-white placeholder-gray-400 ${
+                                    className={`w-full pl-10 pr-12 py-3 bg-gray-700 border rounded-[2px] focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 text-white placeholder-gray-400 ${
                                         errors.password ? 'border-red-500' : 'border-gray-600'
                                     }`}
                                     placeholder="Enter admin password"
@@ -192,7 +184,7 @@ const AdminLogin = () => {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full bg-red-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2"
+                            className="w-full bg-red-600 text-white py-3 px-4 rounded-[2px] font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center space-x-2"
                         >
                             {isLoading ? (
                                 <>

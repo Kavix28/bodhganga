@@ -95,7 +95,7 @@ const AdminDashboardNew = () => {
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div className="card-grid">
                     <div className="stat-card saffron">
                         <div className="flex items-center justify-between">
                             <div>
@@ -151,11 +151,11 @@ const AdminDashboardNew = () => {
                 </div>
 
                 {/* Quick Actions */}
-                <div className="mb-8">
+                <div className="mb-[16px]">
                     <h2 className="text-2xl font-bold mb-4" style={{ color: 'var(--navy)' }}>
                         Quick Actions
                     </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="card-grid">
                         {quickActions.map((action, index) => {
                             const Icon = action.icon;
                             return (
@@ -174,7 +174,7 @@ const AdminDashboardNew = () => {
                 </div>
 
                 {/* Recent Activity */}
-                <div className="bg-white rounded-xl shadow-md border-2 border-gray-200 p-6">
+                <div className="bg-white rounded-[2px] shadow-none border-2 border-gray-200 p-6">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-2xl font-bold" style={{ color: 'var(--navy)' }}>
                             Recent Activity
@@ -186,7 +186,7 @@ const AdminDashboardNew = () => {
 
                     <div className="space-y-4">
                         {recentActivity.map((activity, index) => (
-                            <div key={index} className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                            <div key={index} className="flex items-start gap-[14px] p-4 bg-gray-50 rounded-[2px] hover:bg-gray-100 transition-colors">
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${activity.action.includes('Uploaded') ? 'bg-green-100 text-green-600' :
                                         activity.action.includes('Updated') ? 'bg-blue-100 text-blue-600' :
                                             'bg-red-100 text-red-600'

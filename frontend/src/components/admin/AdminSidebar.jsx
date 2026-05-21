@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import Logo from '../common/Logo';
 import {
     LayoutDashboard,
     Map,
@@ -62,14 +63,8 @@ const AdminSidebar = () => {
         <aside className="admin-sidebar">
             {/* Logo Section */}
             <div className="p-6 border-b border-gray-700">
-                <Link to="/" className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-[var(--saffron)] to-[var(--saffron-dark)] rounded-xl flex items-center justify-center">
-                        <Map className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                        <h2 className="text-lg font-bold text-white">BodhGanga</h2>
-                        <p className="text-xs text-gray-400">Admin Panel</p>
-                    </div>
+                <Link to="/" className="flex items-center group transition-all duration-300">
+                    <Logo variant="navbar" size="sm" subText="ADMIN PANEL" />
                 </Link>
             </div>
 

@@ -14,10 +14,13 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/profile")
 @CrossOrigin(origins = "http://localhost:5173")
-@RequiredArgsConstructor
 public class ProfileController {
 
     private final UserRepo userRepo;
+
+    public ProfileController(UserRepo userRepo) {
+        this.userRepo = userRepo;
+    }
 
     /**
      * GET /api/profile

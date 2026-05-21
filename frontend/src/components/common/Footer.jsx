@@ -1,75 +1,103 @@
 import { Link } from 'react-router-dom';
+import { Mail, Phone, ArrowRight } from 'lucide-react';
+import Logo from './Logo';
 
 const Footer = () => {
-    const currentYear = new Date().getFullYear();
+    const year = new Date().getFullYear();
+
+    const links = {
+        Platform: [
+            { label: 'States & UTs',    to: '/states' },
+            { label: 'Courses',         to: '/courses' },
+            { label: 'Question Bank',   to: '/question-bank' },
+            { label: 'Subjects',        to: '/subjects' },
+            { label: 'Digital Store',   to: '/store' },
+            { label: 'Blog',            to: '/blog' },
+        ],
+        Exams: [
+            { label: 'UPSC Preparation',       to: '/subjects' },
+            { label: 'SSC CGL Portal',    to: '/subjects' },
+            { label: 'State PSC Exams',  to: '/states' },
+            { label: 'Railway Exams',    to: '/subjects' },
+            { label: 'Banking Special',    to: '/subjects' },
+            { label: 'Police recruitment',     to: '/subjects' },
+        ],
+        Company: [
+            { label: 'About India',     to: '/about-india' },
+            { label: 'Privacy Policy',  to: '/' },
+            { label: 'Terms of Use',    to: '/' },
+            { label: 'Contact Us',      to: '/' },
+            { label: 'Careers',         to: '/' },
+        ],
+    };
 
     return (
-        <footer className="bg-gray-900 text-gray-300 mt-auto">
-            <div className="container-custom py-8">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {/* Brand Section */}
-                    <div>
-                        <div className="flex items-center space-x-2 mb-4">
-                            <div className="w-8 h-8 bg-gradient-to-br from-primary-600 to-secondary-600 rounded-lg flex items-center justify-center">
-                                <span className="text-white font-bold text-lg">G</span>
-                            </div>
-                            <span className="text-xl font-bold text-white">BodhGanga</span>
-                        </div>
-                        <p className="text-sm text-gray-400">
-                            Free, quality education for everyone. Learn, grow, and succeed with expert-curated courses.
+        <footer className="bg-emerald-dark text-white border-t border-gold/15">
+            {/* Heritage subtle top border line */}
+            <div className="h-1 bg-gradient-to-r from-emerald via-gold to-emerald" />
+
+            {/* Main footer */}
+            <div className="container-custom py-20">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
+
+                    {/* Brand column */}
+                    <div className="lg:col-span-2 space-y-6">
+                        <Link to="/" className="flex items-center group transition-all duration-300 hover:opacity-95">
+                            <Logo variant="horizontal" size="md" showGlow={true} />
+                        </Link>
+                        <p className="text-white/60 text-sm leading-relaxed max-w-sm">
+                            India's premier premium digital academy for competitive and heritage exam preparation. Curating elite study resources for all 36 States and Union Territories.
                         </p>
+                        <div className="space-y-3">
+                            <a href="mailto:support@bodhganga.in" className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-wider text-gold hover:text-gold-light transition-colors">
+                                <Mail className="w-4 h-4 text-white/50" /> support@bodhganga.in
+                            </a>
+                            <a href="tel:+911800000000" className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-wider text-gold hover:text-gold-light transition-colors">
+                                <Phone className="w-4 h-4 text-white/50" /> 1800-000-0000 (Toll Free)
+                            </a>
+                        </div>
+                        {/* Social */}
+                        <div className="flex gap-2">
+                            {['𝕏', 'f', 'in', '▶'].map((s, i) => (
+                                <a key={i} href="#"
+                                    className="w-10 h-10 bg-white/5 hover:bg-gold border border-gold/15 hover:border-gold rounded-xl flex items-center justify-center text-xs font-bold text-white/80 hover:text-emerald-dark transition-all duration-300">
+                                    {s}
+                                </a>
+                             ))}
+                        </div>
                     </div>
 
-                    {/* Quick Links */}
-                    <div>
-                        <h3 className="text-white font-semibold mb-4">Quick Links</h3>
-                        <ul className="space-y-2">
-                            <li>
-                                <Link to="/" className="text-sm hover:text-primary-400 transition-colors">
-                                    Home
-                                </Link>
-                            </li>
-                            <li>
-                                <Link to="/courses" className="text-sm hover:text-primary-400 transition-colors">
-                                    Courses
-                                </Link>
-                            </li>
-                            <li>
-                                <Link to="/dashboard" className="text-sm hover:text-primary-400 transition-colors">
-                                    Dashboard
-                                </Link>
-                            </li>
-                        </ul>
-                    </div>
-
-                    {/* Legal */}
-                    <div>
-                        <h3 className="text-white font-semibold mb-4">Legal</h3>
-                        <ul className="space-y-2">
-                            <li>
-                                <a href="#" className="text-sm hover:text-primary-400 transition-colors">
-                                    Privacy Policy
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#" className="text-sm hover:text-primary-400 transition-colors">
-                                    Terms of Service
-                                </a>
-                            </li>
-                            <li>
-                                <a href="#" className="text-sm hover:text-primary-400 transition-colors">
-                                    Contact Us
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
+                    {/* Link columns */}
+                    {Object.entries(links).map(([title, items]) => (
+                        <div key={title} className="space-y-6">
+                            <h4 className="text-[11px] font-bold text-gold uppercase tracking-widest">{title}</h4>
+                            <ul className="space-y-3.5">
+                                {items.map(item => (
+                                    <li key={item.label}>
+                                        <Link to={item.to}
+                                            className="text-xs font-bold uppercase tracking-wider text-white/60 hover:text-gold flex items-center gap-1 group transition-colors duration-300">
+                                            <span className="w-0 group-hover:w-1.5 h-0.5 bg-gold transition-all duration-300" />
+                                            {item.label}
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    ))}
                 </div>
+            </div>
 
-                {/* Copyright */}
-                <div className="border-t border-gray-800 mt-8 pt-8 text-center">
-                    <p className="text-sm text-gray-400">
-                        © {currentYear} BodhGanga. All rights reserved.
+            {/* Bottom bar */}
+            <div className="border-t border-gold/10 bg-emerald-darker/60 backdrop-blur-md">
+                <div className="container-custom py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <p className="text-xs text-white/40 font-medium">
+                        © {year} BodhGanga Academy. All rights reserved. Built with pride for Bharat.
                     </p>
+                    <div className="flex items-center gap-6 text-xs text-white/40 font-semibold uppercase tracking-wider">
+                        <Link to="/" className="hover:text-gold transition-colors">Privacy Policy</Link>
+                        <Link to="/" className="hover:text-gold transition-colors">Terms of Service</Link>
+                        <Link to="/" className="hover:text-gold transition-colors">Sitemap</Link>
+                    </div>
                 </div>
             </div>
         </footer>

@@ -23,13 +23,13 @@ export const DarkModeProvider = ({ children }) => {
         return saved === 'dark';
     });
 
-    // Apply or remove dark-mode class on body
+    // Apply or remove dark class on body
     useEffect(() => {
         if (darkMode) {
-            document.documentElement.classList.add('dark-mode');
+            document.documentElement.classList.add('dark');
             localStorage.setItem('bodhganga-theme', 'dark');
         } else {
-            document.documentElement.classList.remove('dark-mode');
+            document.documentElement.classList.remove('dark');
             localStorage.setItem('bodhganga-theme', 'light');
         }
     }, [darkMode]);
