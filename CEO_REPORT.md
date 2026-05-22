@@ -6,6 +6,15 @@
 
 ---
 
+## 🌐 Live Production Deployments
+
+* **Premium Frontend Portal (Vercel):** [https://frontend-zeta-black-52.vercel.app](https://frontend-zeta-black-52.vercel.app)
+* **Alternative Demo Access (Vercel):** [https://bodhganga26.vercel.app](https://bodhganga26.vercel.app)
+* **Production Backend API Gateway (Railway):** [https://api.bodhganga.in/api](https://api.bodhganga.in/api)
+* **MongoDB Atlas Cloud Cluster:** Operational, Seeded & Healthy
+
+---
+
 ## 🚀 Final Platform Capabilities
 
 | Capability | Status | Description |
