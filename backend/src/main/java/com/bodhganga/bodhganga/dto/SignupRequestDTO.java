@@ -14,6 +14,7 @@ public class SignupRequestDTO {
 
     @NotBlank(message = "Phone number is required")
     @Pattern(regexp = "^[0-9]{10}$", message = "Phone must be 10 digits")
+    @com.fasterxml.jackson.annotation.JsonAlias({"phone", "phoneNo"})
     private String phoneNo;
 
     @NotBlank(message = "Password is required")
@@ -23,14 +24,11 @@ public class SignupRequestDTO {
     private String gender; // Optional
     private Date dateOfBirth; // Optional
 
-    @NotBlank(message = "City is required")
-    private String city;
+    private String city; // Optional on backend
 
-    @NotBlank(message = "State is required")
-    private String state;
+    private String state; // Optional on backend
 
-    @NotBlank(message = "Country is required")
-    private String country;
+    private String country; // Optional on backend
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
@@ -59,3 +57,4 @@ public class SignupRequestDTO {
     public String getCountry() { return country; }
     public void setCountry(String country) { this.country = country; }
 }
+

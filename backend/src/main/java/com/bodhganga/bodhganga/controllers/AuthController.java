@@ -41,12 +41,14 @@ public class AuthController {
         this.purchaseRepo = purchaseRepo;
     }
 
-    @PostMapping("/register")
+    @PostMapping({"/signup", "/register"})
     public ResponseEntity<ApiResponseDTO> signup(@Valid @RequestBody SignupRequestDTO dto) {
+        System.out.println("Signup endpoint hit with email: " + dto.getEmail() + ", phone: " + dto.getPhoneNo());
         ApiResponseDTO response = authService.signup(dto);
         HttpStatus status = response.isSuccess() ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST;
         return new ResponseEntity<>(response, status);
     }
+
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponseDTO> login(@Valid @RequestBody LoginRequestDTO dto) {

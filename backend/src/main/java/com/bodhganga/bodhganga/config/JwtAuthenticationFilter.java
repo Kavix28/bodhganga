@@ -33,6 +33,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String jwt;
         final String userEmail;
 
+        String servletPath = request.getServletPath();
+        String requestUri = request.getRequestURI();
+        if ((servletPath != null && (servletPath.startsWith("/api/auth/") || servletPath.startsWith("/error") || servletPath.startsWith("/actuator"))) ||
+            (requestUri != null && (requestUri.contains("/api/auth/") || requestUri.contains("/error") || requestUri.contains("/actuator")))) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+
         // Check if Authorization header exists and starts with "Bearer "
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);

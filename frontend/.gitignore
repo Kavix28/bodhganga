@@ -108,3 +108,4 @@ ssl/
 application-local.yml
 application-local.properties
 .vercel
+.env*.local

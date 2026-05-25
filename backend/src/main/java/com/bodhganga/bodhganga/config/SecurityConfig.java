@@ -40,10 +40,17 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Public auth endpoints
-                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/health",
-                                "/api/auth/admin/login", "/api/auth/otp/**", "/api/auth/**",
-                                "/actuator/health", "/actuator/**", "/error")
-                        .permitAll()
+                        .requestMatchers(
+                                "/api/auth/signup",
+                                "/api/auth/register",
+                                "/api/auth/login",
+                                "/api/auth/health",
+                                "/api/auth/admin/login",
+                                "/api/auth/otp/**",
+                                "/api/auth/**",
+                                "/error",
+                                "/actuator/**"
+                        ).permitAll()
                         // Public course reads
                         .requestMatchers("/api/courses/list", "/api/courses/category/**").permitAll()
                         // Public blog reads
@@ -88,22 +95,29 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Read allowed origins from environment — supports localhost dev + production domain
-        String allowedOrigins = System.getenv("ALLOWED_ORIGINS");
-        if (allowedOrigins != null && !allowedOrigins.isBlank()) {
-            configuration.setAllowedOriginPatterns(java.util.Arrays.asList(allowedOrigins.split(",")));
-        } else {
-            configuration.setAllowedOriginPatterns(java.util.List.of(
-                "http://localhost:5173",
-                "http://localhost:3000",
-                "http://127.0.0.1:*",
-                "https://bodhganga.in",
-                "https://www.bodhganga.in",
-                "https://*.vercel.app"
-            ));
+        
+        java.util.List<String> origins = new java.util.ArrayList<>(java.util.List.of(
+            "http://localhost:5173",
+            "http://localhost:3000",
+            "http://127.0.0.1:*",
+            "https://bodhganga.in",
+            "https://www.bodhganga.in",
+            "https://*.vercel.app"
+        ));
+        
+        String envOrigins = System.getenv("ALLOWED_ORIGINS");
+        if (envOrigins != null && !envOrigins.isBlank()) {
+            for (String origin : envOrigins.split(",")) {
+                String trimmed = origin.trim();
+                if (!trimmed.isEmpty() && !origins.contains(trimmed)) {
+                    origins.add(trimmed);
+                }
+            }
         }
+        
+        configuration.setAllowedOriginPatterns(origins);
         configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(java.util.List.of("Authorization", "Content-Type", "Accept", "Origin"));
+        configuration.setAllowedHeaders(java.util.List.of("*")); // Allow all headers to prevent preflight 403s
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
@@ -112,3 +126,4 @@ public class SecurityConfig {
         return source;
     }
 }
+
