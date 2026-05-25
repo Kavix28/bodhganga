@@ -1037,7 +1037,7 @@ When a user registers, their email is **not immediately verified**. They must en
 ```
 Step 1: User registers
         ↓
-POST /api/auth/signup
+POST /api/auth/register
   → Creates user with isVerified = false
   → Returns JWT token (limited access)
         ↓
@@ -1225,7 +1225,7 @@ Error responses:
 
 | Endpoint | Method | Auth | Request Body | Purpose |
 |---|---|---|---|---|
-| `/api/auth/signup` | POST | Public | `{name, email, phoneNo, password, city, state, country}` | Register new user |
+| `/api/auth/register` | POST | Public | `{name, email, phoneNo, password, city, state, country}` | Register new user |
 | `/api/auth/login` | POST | Public | `{emailOrPhone, password}` | Login (email or phone) |
 | `/api/auth/admin/login` | POST | Public | `{emailOrPhone, password}` | Admin login (validates ADMIN role) |
 | `/api/auth/health` | GET | Public | — | Backend health check |
@@ -1330,7 +1330,7 @@ Payload contains:
 │                  REGISTRATION FLOW                               │
 │                                                                  │
 │  1. User fills registration form                                │
-│  2. POST /api/auth/signup                                       │
+│  2. POST /api/auth/register                                     │
 │  3. Backend: hash password, save user (isVerified=false)        │
 │  4. Backend: generate JWT token                                 │
 │  5. Frontend: store token in localStorage                       │

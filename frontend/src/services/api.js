@@ -17,6 +17,10 @@ console.log('🌐 API Base URL:', API_BASE_URL);
 // Request interceptor - Add JWT token to headers
 api.interceptors.request.use(
     (config) => {
+        // Prevent duplicate /api/api pathing when baseURL also ends with /api
+        if (config.url && config.url.startsWith('/api/') && config.baseURL && config.baseURL.endsWith('/api')) {
+            config.url = config.url.substring(4);
+        }
         // Fallback: Check standard auth token first, then admin token
         const token = getAuthToken() || sessionStorage.getItem('admin_jwt');
         if (token) {

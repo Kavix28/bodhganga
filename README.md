@@ -130,7 +130,7 @@ Services:
 ### Authentication
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| POST | `/api/auth/signup` | Public | Register new user |
+| POST | `/api/auth/register` | Public | Register new user |
 | POST | `/api/auth/login` | Public | Login (email or phone) |
 | POST | `/api/auth/admin/login` | Public | Admin login |
 | POST | `/api/auth/otp/send` | Public | Send email OTP |

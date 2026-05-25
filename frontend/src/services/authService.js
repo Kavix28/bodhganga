@@ -6,7 +6,7 @@ import api from './api';
  * @returns {Promise}
  */
 export const signup = async (signupData) => {
-    return api.post('/auth/signup', signupData);
+    return api.post('/api/auth/register', signupData);
 };
 
 /**
@@ -16,7 +16,7 @@ export const signup = async (signupData) => {
  * @returns {Promise}
  */
 export const login = async (emailOrPhone, password) => {
-    return api.post('/auth/login', { emailOrPhone, password });
+    return api.post('/api/auth/login', { emailOrPhone, password });
 };
 
 /**

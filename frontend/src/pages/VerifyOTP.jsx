@@ -73,7 +73,7 @@ const VerifyOTP = () => {
         setIsLoading(true);
         setError('');
         try {
-            const res = await api.post('/auth/otp/verify', { email, otp: otpValue });
+            const res = await api.post('/api/auth/otp/verify', { email, otp: otpValue });
             if (res.success) {
                 setVerified(true);
                 toast.success('Email verified successfully!');
@@ -97,7 +97,7 @@ const VerifyOTP = () => {
         setIsResending(true);
         setError('');
         try {
-            const res = await api.post('/auth/otp/send', { email });
+            const res = await api.post('/api/auth/otp/send', { email });
             if (res.success) {
                 toast.success('New OTP sent to your email');
                 setTimeLeft(OTP_CONFIG.EXPIRY_MINUTES * 60);

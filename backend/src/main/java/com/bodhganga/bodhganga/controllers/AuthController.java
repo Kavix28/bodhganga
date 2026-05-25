@@ -41,7 +41,7 @@ public class AuthController {
         this.purchaseRepo = purchaseRepo;
     }
 
-    @PostMapping({"/signup", "/register"})
+    @PostMapping("/register")
     public ResponseEntity<ApiResponseDTO> signup(@Valid @RequestBody SignupRequestDTO dto) {
         System.out.println("Signup endpoint hit with email: " + dto.getEmail() + ", phone: " + dto.getPhoneNo());
         ApiResponseDTO response = authService.signup(dto);

@@ -20,7 +20,7 @@ const ForgotPassword = () => {
         setError('');
         try {
             // Uses the OTP send endpoint — same flow
-            await api.post('/auth/otp/send', { email });
+            await api.post('/api/auth/otp/send', { email });
             setSent(true);
             toast.success('Reset code sent to your email');
         } catch (err) {
