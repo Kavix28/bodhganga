@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -53,7 +54,7 @@ public class OtpService {
 
         String otp = generateOtp();
         otpStore.put(email, new OtpEntry(otp, Instant.now().toEpochMilli()));
-        sendOtpEmail(email, otp);
+        CompletableFuture.runAsync(() -> sendOtpEmail(email, otp));
         log.info("OTP sent to {}", email);
         return null; // success
     }

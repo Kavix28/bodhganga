@@ -33,3 +33,4 @@ logs/
 
 # ── Docker ───────────────────────────────────────────────────────
 # (docker-compose.yml is committed, .env is not)
+.env*.local
