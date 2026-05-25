@@ -80,18 +80,44 @@ public class AuthController {
     public ResponseEntity<Map<String, Object>> debugDb() {
         Map<String, Object> debugInfo = new HashMap<>();
         try {
+            // 1. Get environment variables
             String rawUri = System.getenv("MONGO_URI");
             String maskedUri = "null";
             if (rawUri != null) {
-                // Mask the password in connection string for security
                 maskedUri = rawUri.replaceAll("(?<=://)[^@]+", "******");
             }
             debugInfo.put("envMongoUriMasked", maskedUri);
-            debugInfo.put("envSpringDataMongoUri", System.getenv("SPRING_DATA_MONGODB_URI"));
+            debugInfo.put("envSpringDataMongoUri", System.getenv("SPRING_DATA_MONGODB_URI") != null ? 
+                System.getenv("SPRING_DATA_MONGODB_URI").replaceAll("(?<=://)[^@]+", "******") : "null");
             
+            // 2. Count users
             long userCount = userRepo.count();
             debugInfo.put("dbConnection", "SUCCESS");
             debugInfo.put("userCount", userCount);
+
+            // 3. Try a dry-run authService.signup
+            try {
+                SignupRequestDTO testDto = new SignupRequestDTO();
+                testDto.setName("Ping Test");
+                testDto.setEmail("ping-" + System.currentTimeMillis() + "@test.com");
+                testDto.setPhoneNo("9999999" + String.format("%03d", new java.util.Random().nextInt(1000)));
+                testDto.setPassword("Test@123");
+                testDto.setCity("Delhi");
+                testDto.setState("Delhi");
+                testDto.setCountry("India");
+                
+                ApiResponseDTO res = authService.signup(testDto);
+                debugInfo.put("authSignupStatus", res.isSuccess() ? "SUCCESS" : "FAILED: " + res.getMessage());
+            } catch (Exception authEx) {
+                debugInfo.put("authSignupStatus", "EXCEPTION");
+                debugInfo.put("authSignupError", authEx.getMessage());
+                debugInfo.put("authSignupErrorType", authEx.getClass().getName());
+                // Get stack trace
+                java.io.StringWriter sw = new java.io.StringWriter();
+                authEx.printStackTrace(new java.io.PrintWriter(sw));
+                debugInfo.put("authSignupStackTrace", sw.toString().substring(0, Math.min(sw.toString().length(), 1000)));
+            }
+
         } catch (Exception e) {
             debugInfo.put("dbConnection", "FAILED");
             debugInfo.put("errorMessage", e.getMessage());
