@@ -76,6 +76,30 @@ public class AuthController {
         return ResponseEntity.ok("Auth service is running");
     }
 
+    @GetMapping("/debug-db")
+    public ResponseEntity<Map<String, Object>> debugDb() {
+        Map<String, Object> debugInfo = new HashMap<>();
+        try {
+            String rawUri = System.getenv("MONGO_URI");
+            String maskedUri = "null";
+            if (rawUri != null) {
+                // Mask the password in connection string for security
+                maskedUri = rawUri.replaceAll("(?<=://)[^@]+", "******");
+            }
+            debugInfo.put("envMongoUriMasked", maskedUri);
+            debugInfo.put("envSpringDataMongoUri", System.getenv("SPRING_DATA_MONGODB_URI"));
+            
+            long userCount = userRepo.count();
+            debugInfo.put("dbConnection", "SUCCESS");
+            debugInfo.put("userCount", userCount);
+        } catch (Exception e) {
+            debugInfo.put("dbConnection", "FAILED");
+            debugInfo.put("errorMessage", e.getMessage());
+            debugInfo.put("errorType", e.getClass().getName());
+        }
+        return ResponseEntity.ok(debugInfo);
+    }
+
     /**
      * GET /api/auth/public-stats
      * Unauthenticated public API to feed landing page dynamically with actual database metrics.
