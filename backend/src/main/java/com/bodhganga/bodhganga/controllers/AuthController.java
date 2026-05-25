@@ -26,10 +26,12 @@ public class AuthController {
     private final ContentRepo contentRepo;
     private final ProductRepo productRepo;
     private final PurchaseRepo purchaseRepo;
+    private final org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
 
     public AuthController(AuthService authService, UserRepo userRepo, CourseRepo courseRepo,
                           EnrollmentRepo enrollmentRepo, BlogPostRepo blogPostRepo, StateRepo stateRepo,
-                          ContentRepo contentRepo, ProductRepo productRepo, PurchaseRepo purchaseRepo) {
+                          ContentRepo contentRepo, ProductRepo productRepo, PurchaseRepo purchaseRepo,
+                          org.springframework.data.mongodb.core.MongoTemplate mongoTemplate) {
         this.authService = authService;
         this.userRepo = userRepo;
         this.courseRepo = courseRepo;
@@ -39,6 +41,7 @@ public class AuthController {
         this.contentRepo = contentRepo;
         this.productRepo = productRepo;
         this.purchaseRepo = purchaseRepo;
+        this.mongoTemplate = mongoTemplate;
     }
 
     @PostMapping("/register")
@@ -73,7 +76,8 @@ public class AuthController {
 
     @GetMapping("/health")
     public ResponseEntity<String> health() {
-        return ResponseEntity.ok("Auth service is running");
+        String dbName = mongoTemplate.getDb().getName();
+        return ResponseEntity.ok("Auth service is running. Connected to DB: " + dbName);
     }
 
 
