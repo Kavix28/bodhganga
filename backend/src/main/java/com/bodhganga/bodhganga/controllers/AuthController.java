@@ -98,9 +98,9 @@ public class AuthController {
             // 3. Try a dry-run authService.signup
             try {
                 SignupRequestDTO testDto = new SignupRequestDTO();
-                testDto.setName("Ping Test");
-                testDto.setEmail("ping-" + System.currentTimeMillis() + "@test.com");
-                testDto.setPhoneNo("9999999" + String.format("%03d", new java.util.Random().nextInt(1000)));
+                testDto.setName("Test User");
+                testDto.setEmail("testuser@example.com");
+                testDto.setPhoneNo("9999999999");
                 testDto.setPassword("Test@123");
                 testDto.setCity("Delhi");
                 testDto.setState("Delhi");
