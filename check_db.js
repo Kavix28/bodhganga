@@ -1,7 +1,7 @@
 const { MongoClient } = require('mongodb');
 
 const MONGO_URI = 'mongodb://localhost:27017/bodhganga';
-const ATLAS_URI = 'mongodb+srv://bod:ganga@test-bodhganga.30wadid.mongodb.net/bodhganga';
+const ATLAS_URI = 'mongodb+srv://bodh:ganga@test-bodhganga.30wadid.mongodb.net/bodhganga';
 
 async function checkDb(uri, label) {
     console.log(`Checking ${label}...`);
