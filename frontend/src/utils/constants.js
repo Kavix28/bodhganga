@@ -12,8 +12,12 @@ if (!envApiUrl) {
     console.warn('⚠️ Using fallback URL: http://localhost:9090/api');
 }
 
-// Validate URL format
-const API_BASE_URL_RAW = envApiUrl || 'http://localhost:9090/api';
+const isDev = import.meta.env.DEV;
+const API_BASE_URL_RAW = envApiUrl || (isDev ? 'http://localhost:9090/api' : '');
+
+if (!API_BASE_URL_RAW) {
+    console.error('❌ CRITICAL: VITE_API_BASE_URL is not defined in production environment variables!');
+}
 
 // Prevent double /api paths (e.g., http://localhost:9090/api/api)
 if (API_BASE_URL_RAW.endsWith('/api/api')) {

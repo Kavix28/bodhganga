@@ -41,7 +41,7 @@ public class AuthController {
         this.purchaseRepo = purchaseRepo;
     }
 
-    @PostMapping("/signup")
+    @PostMapping("/register")
     public ResponseEntity<ApiResponseDTO> signup(@Valid @RequestBody SignupRequestDTO dto) {
         ApiResponseDTO response = authService.signup(dto);
         HttpStatus status = response.isSuccess() ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST;

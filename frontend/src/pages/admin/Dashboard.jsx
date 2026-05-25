@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import { getAdminSession } from '../../utils/adminAuth';
+import { API_BASE_URL } from '../../utils/constants';
 
 // ── Stat Card ─────────────────────────────────────────────────────
 const StatCard = ({ icon: Icon, label, value, color, sub, to }) => {
@@ -100,8 +101,7 @@ const AdminDashboard = () => {
 
     // Health check
     useEffect(() => {
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9090/api';
-        fetch(`${baseUrl}/auth/health`)
+        fetch(`${API_BASE_URL}/auth/health`)
             .then(r => setApiHealthy(r.ok))
             .catch(() => setApiHealthy(false));
     }, []);
@@ -263,7 +263,7 @@ const AdminDashboard = () => {
                             </div>
 
                             <div className="mt-5 pt-4 border-t border-emerald-950/60 text-center">
-                                <a href={`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:9090/api'}/auth/health`}
+                                <a href={`${API_BASE_URL}/auth/health`}
                                     target="_blank" rel="noreferrer"
                                     className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-gold hover:text-gold-glow tracking-wider">
                                     Raw Endpoint Health Diagnostic <ArrowRight className="w-3.5 h-3.5" />

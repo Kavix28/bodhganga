@@ -9,6 +9,7 @@ import {
 import Logo from '../components/common/Logo';
 import { indianStates } from '../data/states';
 import { unionTerritories } from '../data/unionTerritories';
+import { API_BASE_URL } from '../utils/constants';
 
 // ── Animated Counter Component ─────────────────────────────────────
 const Counter = ({ target, suffix = '', duration = 1500 }) => {
@@ -68,8 +69,7 @@ const Landing = () => {
         window.addEventListener('scroll', handleScroll, { passive: true });
         
         // Fetch real-time statistics if available
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9090/api';
-        fetch(`${baseUrl}/auth/public-stats`)
+        fetch(`${API_BASE_URL}/auth/public-stats`)
             .then(r => r.json())
             .then(res => {
                 if (res.success && res.data) {

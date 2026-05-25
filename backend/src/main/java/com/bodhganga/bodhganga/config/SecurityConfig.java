@@ -40,8 +40,9 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Public auth endpoints
-                        .requestMatchers("/api/auth/signup", "/api/auth/login", "/api/auth/health",
-                                "/api/auth/admin/login", "/api/auth/otp/**", "/api/auth/**")
+                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/health",
+                                "/api/auth/admin/login", "/api/auth/otp/**", "/api/auth/**",
+                                "/actuator/health", "/actuator/**", "/error")
                         .permitAll()
                         // Public course reads
                         .requestMatchers("/api/courses/list", "/api/courses/category/**").permitAll()
@@ -92,10 +93,17 @@ public class SecurityConfig {
         if (allowedOrigins != null && !allowedOrigins.isBlank()) {
             configuration.setAllowedOriginPatterns(java.util.Arrays.asList(allowedOrigins.split(",")));
         } else {
-            configuration.setAllowedOriginPatterns(java.util.List.of("http://localhost:*", "http://127.0.0.1:*"));
+            configuration.setAllowedOriginPatterns(java.util.List.of(
+                "http://localhost:5173",
+                "http://localhost:3000",
+                "http://127.0.0.1:*",
+                "https://bodhganga.in",
+                "https://www.bodhganga.in",
+                "https://*.vercel.app"
+            ));
         }
-        configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(java.util.List.of("Authorization", "Content-Type", "Accept"));
+        configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(java.util.List.of("Authorization", "Content-Type", "Accept", "Origin"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 

@@ -84,7 +84,7 @@ api.interceptors.response.use(
             // Check if it's a network/connection error (backend down, wrong port, CORS)
             if (error.message.includes('Network Error') || error.code === 'ERR_NETWORK') {
                 return Promise.reject({
-                    message: 'Unable to connect to server. Please ensure the backend is running on http://localhost:9090',
+                    message: 'Unable to connect to server. Please check your connection or try again later.',
                     code: ERROR_CODES.BACKEND_UNAVAILABLE,
                     networkError: true,
                 });
