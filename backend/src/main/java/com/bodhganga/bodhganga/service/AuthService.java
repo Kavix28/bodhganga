@@ -82,7 +82,7 @@ public class AuthService {
                                 .role("USER")
                                 .isVerified(true) // Set to verified since OTP succeeded
                                 .emailVerified(true)
-                                .phoneVerified(phoneVerified)
+                                .phoneVerified(true)
                                 .isActive(true)
                                 .createdAt(new Date())
                                 .build();
@@ -363,7 +363,7 @@ public class AuthService {
                                 if (signupData.getEmail() == null || signupData.getEmail().isBlank()) {
                                         signupData.setEmail(normalizedPhone + "@bodhganga.in");
                                 }
-                                return completeSignup(signupData, false, true);
+                                 return completeSignup(signupData, true, true);
                         } else {
                                 // Mobile Login Flow
                                 User user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);

@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 
 const ForgotPassword = () => {
     // Tabs & Steps
-    const [resetMethod, setResetMethod] = useState('email'); // 'email' or 'mobile'
+    const [resetMethod, setResetMethod] = useState('mobile'); // only mobile reset exists
     const [otpStep, setOtpStep] = useState('INPUT_PHONE'); // 'INPUT_PHONE', 'RESET_PASSWORD', 'SUCCESS'
 
     // Form Inputs
@@ -210,30 +210,6 @@ const ForgotPassword = () => {
         );
     }
 
-    // Rendering Email Reset Success Screen
-    if (resetMethod === 'email' && sent) {
-        return (
-            <div className="min-h-screen bg-ivory-light flex items-center justify-center px-4">
-                <div className="max-w-md w-full text-center space-y-6 card-premium bg-white p-8 sm:p-10 shadow-2xl border border-emerald/5">
-                    <div className="w-20 h-20 bg-emerald/10 rounded-full flex items-center justify-center mx-auto">
-                        <FiCheckCircle className="w-10 h-10 text-emerald" />
-                    </div>
-                    <h2 className="text-2xl font-bold text-emerald font-serif tracking-tight">Check Your Email</h2>
-                    <p className="text-xs text-emerald-dark/60 leading-relaxed font-semibold">
-                        If <strong>{email}</strong> is registered, you'll receive a secure verification code shortly.
-                    </p>
-                    <Link to="/verify-otp" state={{ email }}
-                        className="inline-flex items-center justify-center gap-2 w-full py-3.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest rounded-xl shadow-lg transition-all hover:-translate-y-0.5 active:scale-95">
-                        Enter Verification Code
-                    </Link>
-                    <Link to="/login" className="flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-dark/60 hover:text-emerald transition-colors">
-                        <FiArrowLeft className="w-4 h-4" /> Back to Login
-                    </Link>
-                </div>
-            </div>
-        );
-    }
-
     return (
         <div className="min-h-screen bg-ivory-light flex items-center justify-center px-4">
             <div className="max-w-md w-full space-y-8 card-premium bg-white p-8 sm:p-10 shadow-2xl border border-emerald/5">
@@ -245,77 +221,12 @@ const ForgotPassword = () => {
                     </Link>
                     <h1 className="text-2xl font-bold text-emerald-dark font-serif tracking-tight">Forgot Password?</h1>
                     <p className="text-xs text-emerald-dark/60 font-semibold mt-1">
-                        {resetMethod === 'email' 
-                            ? "Enter your registered email and we'll dispatch a verification code."
-                            : "Enter your registered mobile number to reset your password via secure OTP."}
+                        Enter your registered mobile number to reset your password via secure OTP.
                     </p>
                 </div>
 
-                {/* Tab Switcher */}
-                {otpStep === 'INPUT_PHONE' && (
-                    <div className="flex border-b border-emerald/10 mb-6">
-                        <button
-                            type="button"
-                            onClick={() => { setResetMethod('email'); setErrors({}); }}
-                            className={`flex-1 pb-3 text-xs font-bold uppercase tracking-widest transition-all duration-300 border-b-2 ${
-                                resetMethod === 'email'
-                                    ? 'border-gold text-emerald-dark'
-                                    : 'border-transparent text-emerald-dark/40 hover:text-emerald-dark/70'
-                            }`}
-                        >
-                            Email Reset
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => { setResetMethod('mobile'); setErrors({}); }}
-                            className={`flex-1 pb-3 text-xs font-bold uppercase tracking-widest transition-all duration-300 border-b-2 ${
-                                resetMethod === 'mobile'
-                                    ? 'border-gold text-emerald-dark'
-                                    : 'border-transparent text-emerald-dark/40 hover:text-emerald-dark/70'
-                            }`}
-                        >
-                            Mobile OTP Reset
-                        </button>
-                    </div>
-                )}
-
-                {/* Condition-based forms */}
-                {resetMethod === 'email' ? (
-                    /* Email Forgot Form */
-                    <form onSubmit={handleEmailSubmit} className="space-y-6">
-                        <div className="space-y-1.5">
-                            <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Email Address</label>
-                            <div className="relative">
-                                <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/60" />
-                                <input 
-                                    type="email" 
-                                    value={email} 
-                                    onChange={e => { setEmail(e.target.value); if (errors.email) setErrors({}); }}
-                                    placeholder="you@domain.com"
-                                    className={`w-full py-3 pl-11 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
-                                        errors.email ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
-                                    }`}
-                                    disabled={loading} 
-                                />
-                            </div>
-                            {errors.email && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.email}</p>}
-                        </div>
-
-                        <button 
-                            type="submit" 
-                            disabled={loading}
-                            className="w-full py-3.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest rounded-xl shadow-lg disabled:opacity-60 disabled:pointer-events-none transition-all duration-300 hover:-translate-y-0.5 active:scale-95 flex items-center justify-center gap-2"
-                        >
-                            {loading ? (
-                                <><div className="w-4 h-4 border-2 border-emerald-dark border-t-transparent rounded-full animate-spin" /> Dispatching...</>
-                            ) : (
-                                <><FiMail className="w-4 h-4" /> Send Reset Code</>
-                            )}
-                        </button>
-                    </form>
-                ) : (
-                    /* Mobile OTP Password Reset Flow */
-                    <div className="space-y-6">
+                {/* Mobile OTP Password Reset Flow */}
+                <div className="space-y-6">
                         {otpStep === 'INPUT_PHONE' && (
                             <form onSubmit={handleSendOtp} className="space-y-6">
                                 <div className="space-y-1.5">
@@ -425,7 +336,6 @@ const ForgotPassword = () => {
                             </form>
                         )}
                     </div>
-                )}
             </div>
         </div>
     );

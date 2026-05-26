@@ -17,7 +17,6 @@ import './utils/healthCheck';
 // Lazy loaded Pages
 const Landing = lazy(() => import('./pages/Landing'));
 const Register = lazy(() => import('./pages/Register'));
-const VerifyOTP = lazy(() => import('./pages/VerifyOTP'));
 const Login = lazy(() => import('./pages/Login'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -87,7 +86,6 @@ function App() {
                                             <Route path="/blog" element={<Blog />} />
                                             <Route path="/blog/:slug" element={<BlogPost />} />
                                             <Route path="/register" element={<Register />} />
-                                            <Route path="/verify-otp" element={<VerifyOTP />} />
                                             <Route path="/login" element={<Login />} />
                                             <Route path="/forgot-password" element={<ForgotPassword />} />
                                             <Route path="/error" element={<ErrorPage />} />

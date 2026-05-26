@@ -45,7 +45,6 @@ export const OTP_CONFIG = {
 export const ROUTES = {
     HOME: '/',
     REGISTER: '/register',
-    VERIFY_OTP: '/verify-otp',
     LOGIN: '/login',
     DASHBOARD: '/dashboard',
     COURSES: '/courses',
