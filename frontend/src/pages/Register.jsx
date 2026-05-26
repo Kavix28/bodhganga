@@ -364,11 +364,15 @@ const Register = () => {
                         </button>
                     </form>
 
-                    <div className="text-center pt-2">
+                    <div className="text-center pt-2 space-y-2">
                         <p className="text-xs text-emerald-dark/60 font-semibold">
                             Already have an account?{' '}
                             <Link to="/login" className="font-bold text-gold hover:text-gold-dark transition-colors ml-1">
-                                Login
+                                Login with Password
+                            </Link>
+                            <span className="mx-2 text-emerald-dark/30">|</span>
+                            <Link to="/login?method=otp" className="font-bold text-gold hover:text-gold-dark transition-colors">
+                                Login with OTP
                             </Link>
                         </p>
                     </div>

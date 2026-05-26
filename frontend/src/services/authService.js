@@ -20,6 +20,15 @@ export const login = async (emailOrPhone, password) => {
 };
 
 /**
+ * Verify MSG91 Access Token
+ * @param {string} accessToken
+ * @returns {Promise}
+ */
+export const verifyMsg91 = async (accessToken) => {
+    return api.post('/api/auth/msg91/verify', { accessToken });
+};
+
+/**
  * Logout user (frontend-only, clears local storage)
  * Note: If backend provides logout endpoint, uncomment the API call
  */

@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiMail, FiLock, FiEye, FiEyeOff, FiPhone } from 'react-icons/fi';
 import { BookOpen } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { login as loginService } from '../services/authService';
+import { login as loginService, verifyMsg91 } from '../services/authService';
 import toast from 'react-hot-toast';
 import Logo from '../components/common/Logo';
 
@@ -12,18 +12,94 @@ const Login = () => {
     const location = useLocation();
     const { login } = useAuth();
 
-    const [form, setForm] = useState({ emailOrPhone: '', password: '' });
+    // Common Auth States
+    const [loginMethod, setLoginMethod] = useState('password'); // 'password' or 'otp'
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
+
+    // Password Login States
+    const [form, setForm] = useState({ emailOrPhone: '', password: '' });
     const [showPw, setShowPw] = useState(false);
 
+    // OTP Login States
+    const [otpStep, setOtpStep] = useState('INPUT_PHONE'); // 'INPUT_PHONE' or 'INPUT_OTP'
+    const [phone, setPhone] = useState('');
+    const [otp, setOtp] = useState('');
+    const [timer, setTimer] = useState(0);
+    const [scriptLoaded, setScriptLoaded] = useState(false);
+    const [otpLoading, setOtpLoading] = useState(false);
+    const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+    // Handle password login inputs
     const handleChange = e => {
         const { name, value } = e.target;
         setForm(p => ({ ...p, [name]: value }));
         if (errors[name]) setErrors(p => ({ ...p, [name]: '' }));
     };
 
-    const validate = () => {
+    // Toggle to OTP method if redirected with query param
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const method = params.get('method');
+        if (method === 'otp') {
+            setLoginMethod('otp');
+        }
+    }, [location.search]);
+
+    // Resend OTP countdown timer
+    useEffect(() => {
+        let interval = null;
+        if (timer > 0) {
+            interval = setInterval(() => {
+                setTimer(prev => prev - 1);
+            }, 1000);
+        } else {
+            clearInterval(interval);
+        }
+        return () => clearInterval(interval);
+    }, [timer]);
+
+    // Dynamically load MSG91 Widget script on demand
+    useEffect(() => {
+        if (loginMethod === 'otp') {
+            // Initialize configuration before script loads/executes
+            window.configuration = {
+                widgetId: "3657a734e31333338323730",
+                exposeMethods: true,
+                success: (response) => {
+                    console.log("MSG91 global success callback:", response);
+                    const token = typeof response === 'string' ? response : (response?.message || response?.['access-token'] || response?.token);
+                    if (token) {
+                        handleVerifyToken(token);
+                    }
+                },
+                failure: (error) => {
+                    console.error("MSG91 global failure callback:", error);
+                    const errMsg = typeof error === 'string' ? error : (error?.message || "OTP process failed.");
+                    toast.error(errMsg);
+                    setOtpLoading(false);
+                }
+            };
+
+            if (!document.getElementById('msg91-otp-script')) {
+                const script = document.createElement('script');
+                script.id = 'msg91-otp-script';
+                script.src = 'https://verify.msg91.com/otp-provider.js';
+                script.async = true;
+                script.onload = () => {
+                    setScriptLoaded(true);
+                };
+                script.onerror = () => {
+                    toast.error("Failed to load OTP verification service. Please try again.");
+                };
+                document.body.appendChild(script);
+            } else {
+                setScriptLoaded(true);
+            }
+        }
+    }, [loginMethod]);
+
+    const validatePasswordForm = () => {
         const e = {};
         if (!form.emailOrPhone.trim()) e.emailOrPhone = 'Email or phone number is required';
         if (!form.password) e.password = 'Password is required';
@@ -31,9 +107,17 @@ const Login = () => {
         return !Object.keys(e).length;
     };
 
+    const validatePhone = (num) => {
+        const cleaned = num.trim().replace(/\D/g, '');
+        if (!cleaned) return 'Phone number is required';
+        if (cleaned.length < 10) return 'Phone number must be 10 digits';
+        return '';
+    };
+
+    // Password login submit
     const handleSubmit = async e => {
         e.preventDefault();
-        if (!validate()) return;
+        if (!validatePasswordForm()) return;
         setLoading(true);
         try {
             const res = await loginService(form.emailOrPhone, form.password);
@@ -50,6 +134,148 @@ const Login = () => {
             toast.error(msg);
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Send OTP handler
+    const handleSendOtp = (e) => {
+        if (e) e.preventDefault();
+        const phoneError = validatePhone(phone);
+        if (phoneError) {
+            setErrors({ phone: phoneError });
+            return;
+        }
+        setErrors({});
+        setOtpLoading(true);
+
+        let formattedPhone = phone.trim().replace(/\D/g, '');
+        if (formattedPhone.length === 10) {
+            formattedPhone = '91' + formattedPhone;
+        }
+
+        if (!window.sendOtp) {
+            toast.error("OTP service is initializing. Please wait a moment.");
+            setOtpLoading(false);
+            return;
+        }
+
+        window.sendOtp(
+            formattedPhone,
+            (response) => {
+                setOtpLoading(false);
+                setOtpStep('INPUT_OTP');
+                setTimer(30);
+                toast.success("OTP sent successfully!");
+            },
+            (error) => {
+                console.error("OTP send error:", error);
+                setOtpLoading(false);
+                const errMsg = typeof error === 'string' ? error : (error?.message || "Failed to send OTP. Please check your number.");
+                setErrors({ phone: errMsg });
+                toast.error(errMsg);
+            }
+        );
+    };
+
+    // Resend OTP handler
+    const handleResendOtp = () => {
+        if (timer > 0) return;
+        setOtpLoading(true);
+
+        const triggerSend = () => {
+            let formattedPhone = phone.trim().replace(/\D/g, '');
+            if (formattedPhone.length === 10) {
+                formattedPhone = '91' + formattedPhone;
+            }
+            window.sendOtp(
+                formattedPhone,
+                () => {
+                    setOtpLoading(false);
+                    setTimer(30);
+                    toast.success("OTP resent successfully!");
+                },
+                (err) => {
+                    setOtpLoading(false);
+                    const errMsg = typeof err === 'string' ? err : (err?.message || "Failed to resend OTP.");
+                    toast.error(errMsg);
+                }
+            );
+        };
+
+        if (window.retryOtp) {
+            window.retryOtp(
+                null, // Use default configuration channel
+                (response) => {
+                    setOtpLoading(false);
+                    setTimer(30);
+                    toast.success("OTP resent successfully!");
+                },
+                (error) => {
+                    console.warn("retryOtp failed, falling back to sendOtp:", error);
+                    triggerSend();
+                }
+            );
+        } else {
+            triggerSend();
+        }
+    };
+
+    // Verify OTP handler
+    const handleVerifyOtp = (e) => {
+        if (e) e.preventDefault();
+        if (!otp || otp.length < 4) {
+            setErrors({ otp: "Please enter a valid OTP" });
+            return;
+        }
+        setErrors({});
+        setOtpLoading(true);
+
+        if (!window.verifyOtp) {
+            toast.error("OTP engine is not ready. Please try again.");
+            setOtpLoading(false);
+            return;
+        }
+
+        window.verifyOtp(
+            otp,
+            (response) => {
+                console.log("verifyOtp callback success:", response);
+                const token = typeof response === 'string' ? response : (response?.message || response?.['access-token'] || response?.token);
+                if (token) {
+                    handleVerifyToken(token);
+                }
+            },
+            (error) => {
+                console.error("verifyOtp callback failure:", error);
+                setOtpLoading(false);
+                const errMsg = typeof error === 'string' ? error : (error?.message || "Incorrect OTP. Please try again.");
+                setErrors({ otp: errMsg });
+                toast.error(errMsg);
+            }
+        );
+    };
+
+    // Verify token with backend to login / signup
+    const handleVerifyToken = async (accessToken) => {
+        if (isLoggingIn) return;
+        setIsLoggingIn(true);
+        setOtpLoading(true);
+        try {
+            const res = await verifyMsg91(accessToken);
+            if (res?.success && res.data?.token) {
+                login(res.data.token, res.data.user);
+                toast.success(`Welcome back, ${res.data.user?.name?.split(' ')[0] || 'Scholar'}!`);
+                navigate(location.state?.from?.pathname || '/dashboard', { replace: true });
+            } else {
+                throw new Error(res?.message || 'Authentication failed');
+            }
+        } catch (err) {
+            console.error("Backend token verification error:", err);
+            const msg = err?.message || 'Verification failed. Please try again.';
+            toast.error(msg);
+        } finally {
+            setOtpLoading(false);
+            setIsLoggingIn(false);
         }
     };
 
@@ -88,71 +314,209 @@ const Login = () => {
                         <p className="text-xs text-emerald-dark/60 font-semibold mt-1">Sign in to resume your curriculum.</p>
                     </div>
 
-                    {/* Form */}
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Email/Phone */}
-                        <div className="space-y-1.5">
-                            <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Email or Phone</label>
-                            <div className="relative">
-                                <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/60" />
-                                <input 
-                                    name="emailOrPhone" 
-                                    type="text" 
-                                    value={form.emailOrPhone} 
-                                    onChange={handleChange}
-                                    placeholder="you@example.com or 9876543210"
-                                    disabled={loading}
-                                    className={`w-full py-3 pl-11 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
-                                        errors.emailOrPhone ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
-                                    }`} 
-                                />
-                            </div>
-                            {errors.emailOrPhone && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.emailOrPhone}</p>}
-                        </div>
-
-                        {/* Password */}
-                        <div className="space-y-1.5">
-                            <div className="flex items-center justify-between">
-                                <label className="text-xs font-bold uppercase tracking-wider text-emerald-dark">Password</label>
-                                <Link to="/forgot-password" className="text-xs font-bold text-gold hover:text-gold-dark transition-colors">Forgot password?</Link>
-                            </div>
-                            <div className="relative">
-                                <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/60" />
-                                <input 
-                                    name="password" 
-                                    type={showPw ? 'text' : 'password'} 
-                                    value={form.password} 
-                                    onChange={handleChange}
-                                    placeholder="••••••••"
-                                    disabled={loading}
-                                    className={`w-full py-3 pl-11 pr-11 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
-                                        errors.password ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
-                                    }`} 
-                                />
-                                <button 
-                                    type="button" 
-                                    onClick={() => setShowPw(!showPw)}
-                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald/60 hover:text-emerald transition-colors"
-                                >
-                                    {showPw ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
-                                </button>
-                            </div>
-                            {errors.password && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.password}</p>}
-                        </div>
-
-                        {/* Submit Button */}
-                        <button 
-                            type="submit" 
-                            disabled={loading}
-                            className="w-full py-3.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-gold/10 hover:shadow-gold/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-2"
+                    {/* Premium Method Switcher Tabs */}
+                    <div className="flex border-b border-emerald/10 mb-6">
+                        <button
+                            type="button"
+                            onClick={() => setLoginMethod('password')}
+                            className={`flex-1 pb-3 text-xs font-bold uppercase tracking-widest transition-all duration-300 border-b-2 ${
+                                loginMethod === 'password'
+                                    ? 'border-gold text-emerald-dark'
+                                    : 'border-transparent text-emerald-dark/40 hover:text-emerald-dark/70'
+                            }`}
                         >
-                            {loading ? (
-                                <><div className="w-4 h-4 border-2 border-emerald-dark border-t-transparent rounded-full animate-spin" /> Signing in...</>
-                            ) : (
-                                <><FiLock className="w-4 h-4" /> Sign In</>
-                            )}
+                            Password
                         </button>
-                    </form>
+                        <button
+                            type="button"
+                            onClick={() => setLoginMethod('otp')}
+                            className={`flex-1 pb-3 text-xs font-bold uppercase tracking-widest transition-all duration-300 border-b-2 ${
+                                loginMethod === 'otp'
+                                    ? 'border-gold text-emerald-dark'
+                                    : 'border-transparent text-emerald-dark/40 hover:text-emerald-dark/70'
+                            }`}
+                        >
+                            Mobile OTP
+                        </button>
+                    </div>
+
+                    {/* Conditional Rendering of Login Form */}
+                    {loginMethod === 'password' ? (
+                        /* Password Form */
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            {/* Email/Phone */}
+                            <div className="space-y-1.5">
+                                <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Email or Phone</label>
+                                <div className="relative">
+                                    <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/60" />
+                                    <input 
+                                        name="emailOrPhone" 
+                                        type="text" 
+                                        value={form.emailOrPhone} 
+                                        onChange={handleChange}
+                                        placeholder="you@example.com or 9876543210"
+                                        disabled={loading}
+                                        className={`w-full py-3 pl-11 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
+                                            errors.emailOrPhone ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
+                                        }`} 
+                                    />
+                                </div>
+                                {errors.emailOrPhone && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.emailOrPhone}</p>}
+                            </div>
+
+                            {/* Password */}
+                            <div className="space-y-1.5">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-xs font-bold uppercase tracking-wider text-emerald-dark">Password</label>
+                                    <Link to="/forgot-password" className="text-xs font-bold text-gold hover:text-gold-dark transition-colors">Forgot password?</Link>
+                                </div>
+                                <div className="relative">
+                                    <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/60" />
+                                    <input 
+                                        name="password" 
+                                        type={showPw ? 'text' : 'password'} 
+                                        value={form.password} 
+                                        onChange={handleChange}
+                                        placeholder="••••••••"
+                                        disabled={loading}
+                                        className={`w-full py-3 pl-11 pr-11 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
+                                            errors.password ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
+                                        }`} 
+                                    />
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setShowPw(!showPw)}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald/60 hover:text-emerald transition-colors"
+                                    >
+                                        {showPw ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
+                                    </button>
+                                </div>
+                                {errors.password && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.password}</p>}
+                            </div>
+
+                            {/* Submit Button */}
+                            <button 
+                                type="submit" 
+                                disabled={loading}
+                                className="w-full py-3.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-gold/10 hover:shadow-gold/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-2"
+                            >
+                                {loading ? (
+                                    <><div className="w-4 h-4 border-2 border-emerald-dark border-t-transparent rounded-full animate-spin" /> Signing in...</>
+                                ) : (
+                                    <><FiLock className="w-4 h-4" /> Sign In</>
+                                )}
+                            </button>
+                        </form>
+                    ) : (
+                        /* MSG91 OTP Form */
+                        <div className="space-y-6">
+                            {otpStep === 'INPUT_PHONE' ? (
+                                <form onSubmit={handleSendOtp} className="space-y-6">
+                                    <div className="space-y-1.5">
+                                        <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Mobile Number</label>
+                                        <div className="relative">
+                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-emerald/60">+91</span>
+                                            <input 
+                                                type="tel" 
+                                                value={phone} 
+                                                onChange={(e) => {
+                                                    const val = e.target.value.replace(/\D/g, '').substring(0, 10);
+                                                    setPhone(val);
+                                                    if (errors.phone) setErrors(prev => ({ ...prev, phone: '' }));
+                                                }}
+                                                placeholder="9876543210"
+                                                disabled={otpLoading || !scriptLoaded}
+                                                className={`w-full py-3 pl-14 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
+                                                    errors.phone ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
+                                                }`} 
+                                            />
+                                            <FiPhone className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/40" />
+                                        </div>
+                                        {errors.phone && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.phone}</p>}
+                                        <p className="text-[10px] text-emerald-dark/50 font-medium">OTP will be sent to this number via SMS / WhatsApp.</p>
+                                    </div>
+
+                                    <button 
+                                        type="submit" 
+                                        disabled={otpLoading || !scriptLoaded}
+                                        className="w-full py-3.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-gold/10 hover:shadow-gold/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-2"
+                                    >
+                                        {otpLoading ? (
+                                            <><div className="w-4 h-4 border-2 border-emerald-dark border-t-transparent rounded-full animate-spin" /> Sending...</>
+                                        ) : (
+                                            <><FiPhone className="w-4 h-4" /> Send OTP</>
+                                        )}
+                                    </button>
+                                </form>
+                            ) : (
+                                <form onSubmit={handleVerifyOtp} className="space-y-6">
+                                    <div className="space-y-1.5">
+                                        <div className="flex items-center justify-between">
+                                            <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Enter OTP</label>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => {
+                                                    setOtpStep('INPUT_PHONE');
+                                                    setOtp('');
+                                                    setErrors({});
+                                                }}
+                                                className="text-xs font-bold text-gold hover:text-gold-dark transition-colors"
+                                            >
+                                                Change Number
+                                            </button>
+                                        </div>
+                                        <div className="relative">
+                                            <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/60" />
+                                            <input 
+                                                type="text" 
+                                                pattern="[0-9]*"
+                                                maxLength={6}
+                                                value={otp} 
+                                                onChange={(e) => {
+                                                    const val = e.target.value.replace(/\D/g, '').substring(0, 6);
+                                                    setOtp(val);
+                                                    if (errors.otp) setErrors(prev => ({ ...prev, otp: '' }));
+                                                }}
+                                                placeholder="••••••"
+                                                disabled={otpLoading}
+                                                className={`w-full py-3 pl-11 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none text-center tracking-[0.5em] ${
+                                                    errors.otp ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
+                                                }`} 
+                                            />
+                                        </div>
+                                        {errors.otp && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.otp}</p>}
+                                        <div className="flex items-center justify-between pt-1">
+                                            <span className="text-[10px] text-emerald-dark/50 font-medium">Sent to +91 {phone}</span>
+                                            {timer > 0 ? (
+                                                <span className="text-[10px] text-emerald-dark/50 font-bold">Resend in {timer}s</span>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={handleResendOtp}
+                                                    disabled={otpLoading}
+                                                    className="text-[10px] text-gold hover:text-gold-dark font-extrabold uppercase tracking-wider"
+                                                >
+                                                    Resend OTP
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <button 
+                                        type="submit" 
+                                        disabled={otpLoading}
+                                        className="w-full py-3.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-gold/10 hover:shadow-gold/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-2"
+                                    >
+                                        {otpLoading ? (
+                                            <><div className="w-4 h-4 border-2 border-emerald-dark border-t-transparent rounded-full animate-spin" /> Verifying...</>
+                                        ) : (
+                                            <><FiLock className="w-4 h-4" /> Verify & Login</>
+                                        )}
+                                    </button>
+                                </form>
+                            )}
+                        </div>
+                    )}
 
                     {/* Divider */}
                     <div className="relative my-6">

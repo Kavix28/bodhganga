@@ -192,6 +192,117 @@ public class AuthService {
         }
 
         /**
+         * Verify MSG91 Access Token and log in / register user
+         */
+        public ApiResponseDTO verifyMsg91Token(String accessToken) {
+                try {
+                        String authKey = System.getenv("MSG91_AUTH_KEY");
+                        if (authKey == null || authKey.isBlank()) {
+                                authKey = "520206A2KLoox4x6a15faa9P1"; // Fallback to provided key
+                        }
+
+                        String url = "https://control.msg91.com/api/v5/widget/verifyAccessToken";
+                        
+                        org.json.JSONObject payload = new org.json.JSONObject();
+                        payload.put("authkey", authKey);
+                        payload.put("access-token", accessToken);
+
+                        java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+                        java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                                        .uri(java.net.URI.create(url))
+                                        .header("Content-Type", "application/json")
+                                        .header("authkey", authKey)
+                                        .POST(java.net.http.HttpRequest.BodyPublishers.ofString(payload.toString()))
+                                        .build();
+
+                        java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+                        
+                        if (response.statusCode() != 200) {
+                                System.err.println("MSG91 Token Verification failed. Status: " + response.statusCode() + ", Body: " + response.body());
+                                return ApiResponseDTO.builder()
+                                                .success(false)
+                                                .message("MSG91 token verification failed with status: " + response.statusCode())
+                                                .build();
+                        }
+
+                        org.json.JSONObject jsonResponse = new org.json.JSONObject(response.body());
+                        String mobile = null;
+                        if (jsonResponse.has("data")) {
+                                org.json.JSONObject dataObj = jsonResponse.optJSONObject("data");
+                                if (dataObj != null) {
+                                        mobile = dataObj.optString("mobile");
+                                }
+                        }
+                        if (mobile == null || mobile.isBlank()) {
+                                mobile = jsonResponse.optString("mobile");
+                        }
+
+                        if (mobile == null || mobile.isBlank()) {
+                                return ApiResponseDTO.builder()
+                                                .success(false)
+                                                .message("Failed to extract verified phone number from MSG91 response")
+                                                .build();
+                        }
+
+                        // Normalize phone (remove non-digits, remove leading 91 if it's 12 digits total)
+                        String normalizedPhone = mobile.replaceAll("[^0-9]", "");
+                        if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
+                                normalizedPhone = normalizedPhone.substring(2);
+                        }
+
+                        User user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);
+                        boolean isNewUser = false;
+
+                        if (user == null) {
+                                isNewUser = true;
+                                user = User.builder()
+                                                .name("Scholar_" + normalizedPhone.substring(Math.max(0, normalizedPhone.length() - 4)))
+                                                .email(normalizedPhone + "@bodhganga.in")
+                                                .phoneNo(normalizedPhone)
+                                                .hashedPassword(passwordEncoder.encode(java.util.UUID.randomUUID().toString()))
+                                                .role("USER")
+                                                .isVerified(true)
+                                                .isActive(true)
+                                                .createdAt(new Date())
+                                                .build();
+                                
+                                System.out.println("Creating new user via MSG91 OTP: " + user.getPhoneNo());
+                                user = userRepo.save(user);
+
+                                try {
+                                        emailService.sendWelcomeEmail(user.getEmail(), user.getName());
+                                } catch (Exception e) {
+                                        System.err.println("Failed to trigger welcome email: " + e.getMessage());
+                                }
+                        } else {
+                                user.setVerified(true);
+                                user = userRepo.save(user);
+                        }
+
+                        String token = jwtUtil.generateToken(user.getEmail(), user.getId(), user.getRole());
+                        UserResponseDTO userResponse = mapToUserResponse(user);
+
+                        Map<String, Object> responseData = new HashMap<>();
+                        responseData.put("token", token);
+                        responseData.put("user", userResponse);
+                        responseData.put("isNewUser", isNewUser);
+
+                        return ApiResponseDTO.builder()
+                                        .success(true)
+                                        .message(isNewUser ? "User registered and logged in successfully" : "Login successful")
+                                        .data(responseData)
+                                        .build();
+
+                } catch (Exception e) {
+                        System.err.println("Error during MSG91 token verification: " + e.getMessage());
+                        return ApiResponseDTO.builder()
+                                        .success(false)
+                                        .message("Internal server error during MSG91 verification")
+                                        .build();
+                }
+        }
+
+        /**
          * Helper method to convert User entity to UserResponseDTO
          * Excludes sensitive information like hashedPassword
          */

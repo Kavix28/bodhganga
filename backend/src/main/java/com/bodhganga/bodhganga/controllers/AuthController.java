@@ -57,6 +57,20 @@ public class AuthController {
         return new ResponseEntity<>(response, status);
     }
 
+    @PostMapping("/msg91/verify")
+    public ResponseEntity<ApiResponseDTO> verifyMsg91(@RequestBody Map<String, String> body) {
+        String accessToken = body.get("accessToken");
+        if (accessToken == null || accessToken.isBlank()) {
+            return new ResponseEntity<>(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("accessToken is required")
+                    .build(), HttpStatus.BAD_REQUEST);
+        }
+        ApiResponseDTO response = authService.verifyMsg91Token(accessToken);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.UNAUTHORIZED;
+        return new ResponseEntity<>(response, status);
+    }
+
     @PostMapping("/admin/login")
     public ResponseEntity<ApiResponseDTO> adminLogin(@Valid @RequestBody LoginRequestDTO dto) {
         ApiResponseDTO response = authService.adminLogin(dto);
