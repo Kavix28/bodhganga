@@ -8,12 +8,11 @@ import toast from 'react-hot-toast';
 const ForgotPassword = () => {
     // Tabs & Steps
     const [resetMethod, setResetMethod] = useState('email'); // 'email' or 'mobile'
-    const [otpStep, setOtpStep] = useState('INPUT_PHONE'); // 'INPUT_PHONE', 'INPUT_OTP', 'RESET_PASSWORD', 'SUCCESS'
+    const [otpStep, setOtpStep] = useState('INPUT_PHONE'); // 'INPUT_PHONE', 'RESET_PASSWORD', 'SUCCESS'
 
     // Form Inputs
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
-    const [otp, setOtp] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -26,43 +25,11 @@ const ForgotPassword = () => {
 
     // MSG91 states
     const [scriptLoaded, setScriptLoaded] = useState(false);
-    const [timer, setTimer] = useState(0);
     const [verifiedToken, setVerifiedToken] = useState('');
-
-    // Resend OTP countdown timer
-    useEffect(() => {
-        let interval = null;
-        if (timer > 0) {
-            interval = setInterval(() => {
-                setTimer(prev => prev - 1);
-            }, 1000);
-        } else {
-            clearInterval(interval);
-        }
-        return () => clearInterval(interval);
-    }, [timer]);
 
     // Dynamically load MSG91 Widget script on demand for mobile reset
     useEffect(() => {
         if (resetMethod === 'mobile') {
-            window.configuration = {
-                widgetId: "3657a734e31333338323730",
-                exposeMethods: true,
-                success: (response) => {
-                    console.log("ForgotPassword MSG91 success callback:", response);
-                    const token = typeof response === 'string' ? response : (response?.message || response?.['access-token'] || response?.token);
-                    if (token) {
-                        handleVerifyOtpToken(token);
-                    }
-                },
-                failure: (error) => {
-                    console.error("ForgotPassword MSG91 failure callback:", error);
-                    const errMsg = typeof error === 'string' ? error : (error?.message || "OTP process failed.");
-                    toast.error(errMsg);
-                    setLoading(false);
-                }
-            };
-
             if (!document.getElementById('msg91-otp-script')) {
                 const script = document.createElement('script');
                 script.id = 'msg91-otp-script';
@@ -133,112 +100,40 @@ const ForgotPassword = () => {
                 formattedPhone = '91' + formattedPhone;
             }
 
-            if (!window.sendOtp) {
+            if (!window.initSendOTP) {
                 toast.error("OTP service is initializing. Please wait a moment.");
                 setLoading(false);
                 return;
             }
 
-            window.sendOtp(
-                formattedPhone,
-                () => {
-                    setLoading(false);
-                    setOtpStep('INPUT_OTP');
-                    setTimer(30);
-                    toast.success("OTP sent successfully!");
+            // Configure MSG91 widget configuration dynamically
+            window.configuration = {
+                widgetId: "3657a734e31333338323730",
+                identifier: formattedPhone,
+                success: (response) => {
+                    console.log("ForgotPassword MSG91 success callback:", response);
+                    const token = typeof response === 'string' ? response : (response?.message || response?.['access-token'] || response?.token);
+                    if (token) {
+                        handleVerifyOtpToken(token);
+                    }
                 },
-                (error) => {
-                    console.error("Forgot pwd OTP send error:", error);
-                    setLoading(false);
-                    const errMsg = typeof error === 'string' ? error : (error?.message || "Failed to send OTP.");
-                    setErrors({ phone: errMsg });
+                failure: (error) => {
+                    console.error("ForgotPassword MSG91 failure callback:", error);
+                    const errMsg = typeof error === 'string' ? error : (error?.message || "OTP process failed.");
                     toast.error(errMsg);
+                    setLoading(false);
                 }
-            );
+            };
+
+            // Open the MSG91 widget popup
+            window.initSendOTP(window.configuration);
+            setLoading(false);
         } catch (err) {
             setLoading(false);
             const msg = err?.message || 'No account found with this mobile number';
             setErrors({ phone: msg });
             toast.error(msg);
         }
-    };
-
-    // Resend Mobile OTP handler
-    const handleResendOtp = () => {
-        if (timer > 0) return;
-        setLoading(true);
-
-        const triggerSend = () => {
-            let formattedPhone = phone.trim().replace(/\D/g, '');
-            if (formattedPhone.length === 10) {
-                formattedPhone = '91' + formattedPhone;
-            }
-            window.sendOtp(
-                formattedPhone,
-                () => {
-                    setLoading(false);
-                    setTimer(30);
-                    toast.success("OTP resent successfully!");
-                },
-                (err) => {
-                    setLoading(false);
-                    const errMsg = typeof err === 'string' ? err : (err?.message || "Failed to resend OTP.");
-                    toast.error(errMsg);
-                }
-            );
-        };
-
-        if (window.retryOtp) {
-            window.retryOtp(
-                null,
-                () => {
-                    setLoading(false);
-                    setTimer(30);
-                    toast.success("OTP resent successfully!");
-                },
-                (error) => {
-                    console.warn("retryOtp failed, falling back to sendOtp:", error);
-                    triggerSend();
-                }
-            );
-        } else {
-            triggerSend();
-        }
-    };
-
-    // Mobile Reset Step 2: Verify OTP
-    const handleVerifyOtp = (e) => {
-        if (e) e.preventDefault();
-        if (!otp || otp.length < 4) {
-            setErrors({ otp: "Please enter a valid OTP" });
-            return;
-        }
-        setErrors({});
-        setLoading(true);
-
-        if (!window.verifyOtp) {
-            toast.error("OTP engine is not ready. Please try again.");
-            setLoading(false);
-            return;
-        }
-
-        window.verifyOtp(
-            otp,
-            (response) => {
-                console.log("verifyOtp success response:", response);
-                const token = typeof response === 'string' ? response : (response?.message || response?.['access-token'] || response?.token);
-                if (token) {
-                    handleVerifyOtpToken(token);
-                }
-            },
-            (error) => {
-                console.error("verifyOtp error:", error);
-                setLoading(false);
-                const errMsg = typeof error === 'string' ? error : (error?.message || "Incorrect OTP. Please try again.");
-                setErrors({ otp: errMsg });
-                toast.error(errMsg);
-            }
-        );
     };
 
     // Mobile Reset Step 2.5: Verify access token on backend
@@ -459,69 +354,7 @@ const ForgotPassword = () => {
                             </form>
                         )}
 
-                        {otpStep === 'INPUT_OTP' && (
-                            <form onSubmit={handleVerifyOtp} className="space-y-6">
-                                <div className="space-y-1.5">
-                                    <div className="flex items-center justify-between">
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Enter OTP</label>
-                                        <button 
-                                            type="button" 
-                                            onClick={() => { setOtpStep('INPUT_PHONE'); setOtp(''); setErrors({}); }}
-                                            className="text-xs font-bold text-gold hover:text-gold-dark transition-colors"
-                                        >
-                                            Change Number
-                                        </button>
-                                    </div>
-                                    <div className="relative">
-                                        <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/60" />
-                                        <input 
-                                            type="text" 
-                                            pattern="[0-9]*"
-                                            maxLength={6}
-                                            value={otp} 
-                                            onChange={(e) => {
-                                                const val = e.target.value.replace(/\D/g, '').substring(0, 6);
-                                                setOtp(val);
-                                                if (errors.otp) setErrors({});
-                                            }}
-                                            placeholder="••••••"
-                                            disabled={loading}
-                                            className={`w-full py-3 pl-11 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none text-center tracking-[0.5em] ${
-                                                errors.otp ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
-                                            }`} 
-                                        />
-                                    </div>
-                                    {errors.otp && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.otp}</p>}
-                                    <div className="flex items-center justify-between pt-1">
-                                        <span className="text-[10px] text-emerald-dark/50 font-medium">Sent to +91 {phone}</span>
-                                        {timer > 0 ? (
-                                            <span className="text-[10px] text-emerald-dark/50 font-bold">Resend in {timer}s</span>
-                                        ) : (
-                                            <button
-                                                type="button"
-                                                onClick={handleResendOtp}
-                                                disabled={loading}
-                                                className="text-[10px] text-gold hover:text-gold-dark font-extrabold uppercase tracking-wider"
-                                            >
-                                                Resend OTP
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
 
-                                <button 
-                                    type="submit" 
-                                    disabled={loading}
-                                    className="w-full py-3.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest rounded-xl shadow-lg disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-2 hover:-translate-y-0.5 active:scale-95 transition-all duration-300"
-                                >
-                                    {loading ? (
-                                        <><div className="w-4 h-4 border-2 border-emerald-dark border-t-transparent rounded-full animate-spin" /> Verifying...</>
-                                    ) : (
-                                        <><FiLock className="w-4 h-4" /> Verify & Continue</>
-                                    )}
-                                </button>
-                            </form>
-                        )}
 
                         {otpStep === 'RESET_PASSWORD' && (
                             <form onSubmit={handleResetPassword} className="space-y-6">

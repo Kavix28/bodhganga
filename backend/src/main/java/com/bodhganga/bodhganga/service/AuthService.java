@@ -20,18 +20,23 @@ public class AuthService {
         private final PasswordEncoder passwordEncoder;
         private final JwtUtil jwtUtil;
         private final EmailService emailService;
+        private final OtpService otpService;
 
-        public AuthService(UserRepo userRepo, PasswordEncoder passwordEncoder, JwtUtil jwtUtil, EmailService emailService) {
+        public AuthService(UserRepo userRepo, PasswordEncoder passwordEncoder, JwtUtil jwtUtil, EmailService emailService, OtpService otpService) {
                 this.userRepo = userRepo;
                 this.passwordEncoder = passwordEncoder;
                 this.jwtUtil = jwtUtil;
                 this.emailService = emailService;
+                this.otpService = otpService;
         }
 
         /**
          * User Signup - Register new user
          */
-        public ApiResponseDTO signup(SignupRequestDTO dto) {
+        /**
+         * Initiate Email Signup - validates details and sends email OTP
+         */
+        public ApiResponseDTO registerEmailRequest(SignupRequestDTO dto) {
                 // Check if email already exists
                 if (userRepo.existsByEmail(dto.getEmail())) {
                         return ApiResponseDTO.builder()
@@ -41,7 +46,53 @@ public class AuthService {
                 }
 
                 // Check if phone already exists
-                if (userRepo.existsByPhoneNo(dto.getPhoneNo())) {
+                if (dto.getPhoneNo() != null && !dto.getPhoneNo().isBlank()) {
+                        String normalizedPhone = dto.getPhoneNo().replaceAll("[^0-9]", "");
+                        if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
+                                normalizedPhone = normalizedPhone.substring(2);
+                        }
+                        if (userRepo.existsByPhoneNo(normalizedPhone)) {
+                                return ApiResponseDTO.builder()
+                                                .success(false)
+                                                .message("Phone number already registered")
+                                                .build();
+                        }
+                }
+
+                // Send email OTP
+                String error = this.otpService.sendOtp(dto.getEmail());
+                if (error != null) {
+                        return ApiResponseDTO.builder()
+                                        .success(false)
+                                        .message(error)
+                                        .build();
+                }
+
+                return ApiResponseDTO.builder()
+                                .success(true)
+                                .message("OTP sent to your email. Please verify.")
+                                .build();
+        }
+
+        /**
+         * Complete Signup - saves user to DB and generates session (only called after OTP success)
+         */
+        public ApiResponseDTO completeSignup(SignupRequestDTO dto, boolean emailVerified, boolean phoneVerified) {
+                // Double check if email already exists
+                if (userRepo.existsByEmail(dto.getEmail())) {
+                        return ApiResponseDTO.builder()
+                                        .success(false)
+                                        .message("Email already registered")
+                                        .build();
+                }
+
+                String normalizedPhone = dto.getPhoneNo() != null ? dto.getPhoneNo().replaceAll("[^0-9]", "") : "";
+                if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
+                        normalizedPhone = normalizedPhone.substring(2);
+                }
+
+                // Double check if phone already exists
+                if (!normalizedPhone.isBlank() && userRepo.existsByPhoneNo(normalizedPhone)) {
                         return ApiResponseDTO.builder()
                                         .success(false)
                                         .message("Phone number already registered")
@@ -52,7 +103,7 @@ public class AuthService {
                 User user = User.builder()
                                 .name(dto.getName())
                                 .email(dto.getEmail())
-                                .phoneNo(dto.getPhoneNo())
+                                .phoneNo(normalizedPhone.isBlank() ? null : normalizedPhone)
                                 .hashedPassword(passwordEncoder.encode(dto.getPassword()))
                                 .gender(dto.getGender())
                                 .dateOfBirth(dto.getDateOfBirth())
@@ -60,15 +111,15 @@ public class AuthService {
                                 .state(dto.getState())
                                 .country(dto.getCountry())
                                 .role("USER")
-                                .isVerified(false) // Requires email OTP verification
+                                .isVerified(emailVerified || phoneVerified) // Set to verified since OTP succeeded
+                                .emailVerified(emailVerified)
+                                .phoneVerified(phoneVerified)
                                 .isActive(true)
                                 .createdAt(new Date())
                                 .build();
 
-                System.out.println("Attempting to save user: " + user.getEmail());
-                // Save user to database
+                System.out.println("Saving verified user: " + user.getEmail());
                 User savedUser = userRepo.save(user);
-                System.out.println("User saved successfully with ID: " + savedUser.getId());
 
                 // Trigger welcome email asynchronously
                 try {
@@ -80,10 +131,9 @@ public class AuthService {
                 // Generate JWT token for auto-login
                 String token = jwtUtil.generateToken(savedUser.getEmail(), savedUser.getId(), savedUser.getRole());
 
-                // Convert to response DTO (without sensitive data)
+                // Convert to response DTO
                 UserResponseDTO userResponse = mapToUserResponse(savedUser);
 
-                // Create response with token and user data
                 Map<String, Object> responseData = new HashMap<>();
                 responseData.put("token", token);
                 responseData.put("user", userResponse);
@@ -93,6 +143,71 @@ public class AuthService {
                                 .message("User registered successfully")
                                 .data(responseData)
                                 .build();
+        }
+
+        /**
+         * Verify Email OTP and Complete Signup
+         */
+        public ApiResponseDTO verifyAndCompleteSignup(String email, String otp, SignupRequestDTO dto) {
+                String error = otpService.verifyOtp(email, otp);
+                if (error != null) {
+                        return ApiResponseDTO.builder()
+                                        .success(false)
+                                        .message(error)
+                                        .build();
+                }
+                return completeSignup(dto, true, false);
+        }
+
+        /**
+         * Register mobile user request
+         */
+        public ApiResponseDTO registerMobileCheck(String phoneNo) {
+                String normalizedPhone = phoneNo.replaceAll("[^0-9]", "");
+                if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
+                        normalizedPhone = normalizedPhone.substring(2);
+                }
+                if (userRepo.existsByPhoneNo(normalizedPhone)) {
+                        return ApiResponseDTO.builder()
+                                        .success(false)
+                                        .message("Phone number already registered")
+                                        .build();
+                }
+                return ApiResponseDTO.builder()
+                                        .success(true)
+                                        .message("Phone number is available")
+                                        .build();
+        }
+
+        /**
+         * Complete Mobile Signup after successful MSG91 verification
+         */
+        public ApiResponseDTO registerMobileVerify(String accessToken, SignupRequestDTO dto) {
+                try {
+                        String normalizedPhone = getMobileFromMsg91(accessToken);
+                        if (normalizedPhone == null || normalizedPhone.isBlank()) {
+                                return ApiResponseDTO.builder()
+                                                .success(false)
+                                                .message("MSG91 token verification failed")
+                                                .build();
+                        }
+
+                        // Override phone number with verified phone
+                        dto.setPhoneNo(normalizedPhone);
+                        
+                        // If email is empty, generate default one
+                        if (dto.getEmail() == null || dto.getEmail().isBlank()) {
+                                dto.setEmail(normalizedPhone + "@bodhganga.in");
+                        }
+
+                        // Save the user using completeSignup
+                        return completeSignup(dto, false, true);
+                } catch (Exception e) {
+                        return ApiResponseDTO.builder()
+                                        .success(false)
+                                        .message("Internal server error during mobile registration: " + e.getMessage())
+                                        .build();
+                }
         }
 
         /**
@@ -267,6 +382,8 @@ public class AuthService {
                                                 .hashedPassword(passwordEncoder.encode(java.util.UUID.randomUUID().toString()))
                                                 .role("USER")
                                                 .isVerified(true)
+                                                .emailVerified(false)
+                                                .phoneVerified(true)
                                                 .isActive(true)
                                                 .createdAt(new Date())
                                                 .build();
@@ -281,6 +398,7 @@ public class AuthService {
                                 }
                         } else {
                                 user.setVerified(true);
+                                user.setPhoneVerified(true);
                                 user = userRepo.save(user);
                         }
 

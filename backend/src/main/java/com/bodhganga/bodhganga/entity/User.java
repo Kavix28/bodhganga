@@ -31,6 +31,8 @@ public class User {
     private String hashedPassword;
     private String role = "USER"; // USER, ADMIN
     private Boolean isVerified = false;
+    private Boolean emailVerified = false;
+    private Boolean phoneVerified = false;
     private Boolean isActive = true;
     private Boolean forcePasswordReset = false;
 
@@ -85,6 +87,12 @@ public class User {
     public Boolean isVerified() { return isVerified; }
     public void setVerified(Boolean verified) { isVerified = verified; }
 
+    public Boolean getEmailVerified() { return emailVerified; }
+    public void setEmailVerified(Boolean emailVerified) { this.emailVerified = emailVerified; }
+
+    public Boolean getPhoneVerified() { return phoneVerified; }
+    public void setPhoneVerified(Boolean phoneVerified) { this.phoneVerified = phoneVerified; }
+
     public Boolean isActive() { return isActive; }
     public void setActive(Boolean active) { isActive = active; }
 
@@ -127,6 +135,8 @@ public class User {
         public UserBuilder country(String country) { user.setCountry(country); return this; }
         public UserBuilder role(String role) { user.setRole(role); return this; }
         public UserBuilder isVerified(Boolean isVerified) { user.setVerified(isVerified); return this; }
+        public UserBuilder emailVerified(Boolean emailVerified) { user.setEmailVerified(emailVerified); return this; }
+        public UserBuilder phoneVerified(Boolean phoneVerified) { user.setPhoneVerified(phoneVerified); return this; }
         public UserBuilder isActive(Boolean isActive) { user.setActive(isActive); return this; }
         public UserBuilder forcePasswordReset(Boolean forcePasswordReset) { user.setForcePasswordReset(forcePasswordReset); return this; }
         public UserBuilder createdAt(Date createdAt) { user.setCreatedAt(createdAt); return this; }

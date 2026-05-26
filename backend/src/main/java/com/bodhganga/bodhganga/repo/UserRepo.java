@@ -16,4 +16,8 @@ public interface UserRepo extends MongoRepository<User, String> {
     Boolean existsByEmail(String email);
 
     Boolean existsByPhoneNo(String phoneNo);
+
+    long deleteByIsVerified(Boolean isVerified);
+
+    long deleteByEmailVerifiedFalseAndPhoneVerifiedFalse();
 }

@@ -43,8 +43,75 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponseDTO> signup(@Valid @RequestBody SignupRequestDTO dto) {
-        System.out.println("Signup endpoint hit with email: " + dto.getEmail() + ", phone: " + dto.getPhoneNo());
-        ApiResponseDTO response = authService.signup(dto);
+        System.out.println("Signup email request hit with email: " + dto.getEmail());
+        ApiResponseDTO response = authService.registerEmailRequest(dto);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return new ResponseEntity<>(response, status);
+    }
+
+    @PostMapping("/register/verify")
+    public ResponseEntity<ApiResponseDTO> verifyAndRegister(@RequestBody Map<String, Object> body) {
+        String email = (String) body.get("email");
+        String otp = (String) body.get("otp");
+        Map<String, Object> signupDataMap = (Map<String, Object>) body.get("signupData");
+        
+        if (email == null || otp == null || signupDataMap == null) {
+            return new ResponseEntity<>(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("email, otp, and signupData are required")
+                    .build(), HttpStatus.BAD_REQUEST);
+        }
+        
+        SignupRequestDTO dto = new SignupRequestDTO();
+        dto.setName((String) signupDataMap.get("name"));
+        dto.setEmail((String) signupDataMap.get("email"));
+        dto.setPhoneNo((String) signupDataMap.get("phoneNo"));
+        dto.setPassword((String) signupDataMap.get("password"));
+        dto.setCity((String) signupDataMap.get("city"));
+        dto.setState((String) signupDataMap.get("state"));
+        dto.setCountry((String) signupDataMap.get("country"));
+        
+        ApiResponseDTO response = authService.verifyAndCompleteSignup(email, otp, dto);
+        HttpStatus status = response.isSuccess() ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST;
+        return new ResponseEntity<>(response, status);
+    }
+
+    @PostMapping("/register/mobile/check")
+    public ResponseEntity<ApiResponseDTO> registerMobileCheck(@RequestBody Map<String, String> body) {
+        String phoneNo = body.get("phoneNo");
+        if (phoneNo == null || phoneNo.isBlank()) {
+            return new ResponseEntity<>(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("phoneNo is required")
+                    .build(), HttpStatus.BAD_REQUEST);
+        }
+        ApiResponseDTO response = authService.registerMobileCheck(phoneNo);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return new ResponseEntity<>(response, status);
+    }
+
+    @PostMapping("/register/mobile/verify")
+    public ResponseEntity<ApiResponseDTO> registerMobileVerify(@RequestBody Map<String, Object> body) {
+        String accessToken = (String) body.get("accessToken");
+        Map<String, Object> signupDataMap = (Map<String, Object>) body.get("signupData");
+        
+        if (accessToken == null || signupDataMap == null) {
+            return new ResponseEntity<>(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("accessToken and signupData are required")
+                    .build(), HttpStatus.BAD_REQUEST);
+        }
+        
+        SignupRequestDTO dto = new SignupRequestDTO();
+        dto.setName((String) signupDataMap.get("name"));
+        dto.setEmail((String) signupDataMap.get("email"));
+        dto.setPhoneNo((String) signupDataMap.get("phoneNo"));
+        dto.setPassword((String) signupDataMap.get("password"));
+        dto.setCity((String) signupDataMap.get("city"));
+        dto.setState((String) signupDataMap.get("state"));
+        dto.setCountry((String) signupDataMap.get("country"));
+        
+        ApiResponseDTO response = authService.registerMobileVerify(accessToken, dto);
         HttpStatus status = response.isSuccess() ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST;
         return new ResponseEntity<>(response, status);
     }

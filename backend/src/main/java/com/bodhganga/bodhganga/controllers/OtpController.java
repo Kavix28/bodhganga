@@ -65,6 +65,7 @@ public class OtpController {
         // Mark user as verified
         userRepo.findByEmail(req.email()).ifPresent(user -> {
             user.setVerified(true);
+            user.setEmailVerified(true);
             userRepo.save(user);
         });
 

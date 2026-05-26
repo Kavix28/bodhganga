@@ -45,6 +45,11 @@ public class DataLoader implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        // Cleanup unverified temporary users on startup
+        long deletedCount1 = userRepo.deleteByIsVerified(false);
+        long deletedCount2 = userRepo.deleteByEmailVerifiedFalseAndPhoneVerifiedFalse();
+        log.info("Cleaned up {} unverified and {} incomplete temporary users from database.", deletedCount1, deletedCount2);
+
         // Seed courses
         if (courseRepo.count() == 0) {
             log.info("Loading sample course data...");

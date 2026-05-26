@@ -2,13 +2,16 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { FiArrowLeft, FiRefreshCw, FiCheckCircle } from 'react-icons/fi';
 import { OTP_CONFIG } from '../utils/constants';
+import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 
 const VerifyOTP = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { login } = useAuth();
     const email = location.state?.email;
+    const signupData = location.state?.signupData;
 
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
     const [isLoading, setIsLoading] = useState(false);
@@ -73,15 +76,33 @@ const VerifyOTP = () => {
         setIsLoading(true);
         setError('');
         try {
-            const res = await api.post('/api/auth/otp/verify', { email, otp: otpValue });
-            if (res.success) {
-                setVerified(true);
-                toast.success('Email verified successfully!');
-                setTimeout(() => navigate('/login', { state: { verified: true } }), 2000);
+            if (signupData) {
+                const res = await api.post('/api/auth/register/verify', { 
+                    email, 
+                    otp: otpValue,
+                    signupData
+                });
+                if (res.success && res.data?.token) {
+                    setVerified(true);
+                    toast.success('Registration successful!');
+                    login(res.data.token, res.data.user);
+                    setTimeout(() => navigate('/dashboard', { replace: true }), 2000);
+                } else {
+                    setError(res.message || 'Verification failed');
+                    setOtp(['', '', '', '', '', '']);
+                    inputRefs.current[0]?.focus();
+                }
             } else {
-                setError(res.message || 'Verification failed');
-                setOtp(['', '', '', '', '', '']);
-                inputRefs.current[0]?.focus();
+                const res = await api.post('/api/auth/otp/verify', { email, otp: otpValue });
+                if (res.success) {
+                    setVerified(true);
+                    toast.success('Email verified successfully!');
+                    setTimeout(() => navigate('/login', { state: { verified: true } }), 2000);
+                } else {
+                    setError(res.message || 'Verification failed');
+                    setOtp(['', '', '', '', '', '']);
+                    inputRefs.current[0]?.focus();
+                }
             }
         } catch (err) {
             setError(err.message || 'Verification failed');

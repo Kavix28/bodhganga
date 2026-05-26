@@ -62,25 +62,6 @@ const Login = () => {
     // Dynamically load MSG91 Widget script on demand
     useEffect(() => {
         if (loginMethod === 'otp') {
-            // Initialize configuration before script loads/executes
-            window.configuration = {
-                widgetId: "3657a734e31333338323730",
-                exposeMethods: true,
-                success: (response) => {
-                    console.log("MSG91 global success callback:", response);
-                    const token = typeof response === 'string' ? response : (response?.message || response?.['access-token'] || response?.token);
-                    if (token) {
-                        handleVerifyToken(token);
-                    }
-                },
-                failure: (error) => {
-                    console.error("MSG91 global failure callback:", error);
-                    const errMsg = typeof error === 'string' ? error : (error?.message || "OTP process failed.");
-                    toast.error(errMsg);
-                    setOtpLoading(false);
-                }
-            };
-
             if (!document.getElementById('msg91-otp-script')) {
                 const script = document.createElement('script');
                 script.id = 'msg91-otp-script';
@@ -137,7 +118,7 @@ const Login = () => {
         }
     };
 
-    // Send OTP handler
+    // Send OTP handler - triggers MSG91 widget popup directly
     const handleSendOtp = (e) => {
         if (e) e.preventDefault();
         const phoneError = validatePhone(phone);
@@ -153,106 +134,34 @@ const Login = () => {
             formattedPhone = '91' + formattedPhone;
         }
 
-        if (!window.sendOtp) {
+        if (!window.initSendOTP) {
             toast.error("OTP service is initializing. Please wait a moment.");
             setOtpLoading(false);
             return;
         }
 
-        window.sendOtp(
-            formattedPhone,
-            (response) => {
-                setOtpLoading(false);
-                setOtpStep('INPUT_OTP');
-                setTimer(30);
-                toast.success("OTP sent successfully!");
-            },
-            (error) => {
-                console.error("OTP send error:", error);
-                setOtpLoading(false);
-                const errMsg = typeof error === 'string' ? error : (error?.message || "Failed to send OTP. Please check your number.");
-                setErrors({ phone: errMsg });
-                toast.error(errMsg);
-            }
-        );
-    };
-
-    // Resend OTP handler
-    const handleResendOtp = () => {
-        if (timer > 0) return;
-        setOtpLoading(true);
-
-        const triggerSend = () => {
-            let formattedPhone = phone.trim().replace(/\D/g, '');
-            if (formattedPhone.length === 10) {
-                formattedPhone = '91' + formattedPhone;
-            }
-            window.sendOtp(
-                formattedPhone,
-                () => {
-                    setOtpLoading(false);
-                    setTimer(30);
-                    toast.success("OTP resent successfully!");
-                },
-                (err) => {
-                    setOtpLoading(false);
-                    const errMsg = typeof err === 'string' ? err : (err?.message || "Failed to resend OTP.");
-                    toast.error(errMsg);
-                }
-            );
-        };
-
-        if (window.retryOtp) {
-            window.retryOtp(
-                null, // Use default configuration channel
-                (response) => {
-                    setOtpLoading(false);
-                    setTimer(30);
-                    toast.success("OTP resent successfully!");
-                },
-                (error) => {
-                    console.warn("retryOtp failed, falling back to sendOtp:", error);
-                    triggerSend();
-                }
-            );
-        } else {
-            triggerSend();
-        }
-    };
-
-    // Verify OTP handler
-    const handleVerifyOtp = (e) => {
-        if (e) e.preventDefault();
-        if (!otp || otp.length < 4) {
-            setErrors({ otp: "Please enter a valid OTP" });
-            return;
-        }
-        setErrors({});
-        setOtpLoading(true);
-
-        if (!window.verifyOtp) {
-            toast.error("OTP engine is not ready. Please try again.");
-            setOtpLoading(false);
-            return;
-        }
-
-        window.verifyOtp(
-            otp,
-            (response) => {
-                console.log("verifyOtp callback success:", response);
+        // Configure MSG91 widget configuration dynamically
+        window.configuration = {
+            widgetId: "3657a734e31333338323730",
+            identifier: formattedPhone,
+            success: (response) => {
+                console.log("MSG91 global success callback:", response);
                 const token = typeof response === 'string' ? response : (response?.message || response?.['access-token'] || response?.token);
                 if (token) {
                     handleVerifyToken(token);
                 }
             },
-            (error) => {
-                console.error("verifyOtp callback failure:", error);
-                setOtpLoading(false);
-                const errMsg = typeof error === 'string' ? error : (error?.message || "Incorrect OTP. Please try again.");
-                setErrors({ otp: errMsg });
+            failure: (error) => {
+                console.error("MSG91 global failure callback:", error);
+                const errMsg = typeof error === 'string' ? error : (error?.message || "OTP process failed.");
                 toast.error(errMsg);
+                setOtpLoading(false);
             }
-        );
+        };
+
+        // Open the MSG91 widget popup
+        window.initSendOTP(window.configuration);
+        setOtpLoading(false);
     };
 
     // Verify token with backend to login / signup
@@ -410,111 +319,43 @@ const Login = () => {
                     ) : (
                         /* MSG91 OTP Form */
                         <div className="space-y-6">
-                            {otpStep === 'INPUT_PHONE' ? (
-                                <form onSubmit={handleSendOtp} className="space-y-6">
-                                    <div className="space-y-1.5">
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Mobile Number</label>
-                                        <div className="relative">
-                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-emerald/60">+91</span>
-                                            <input 
-                                                type="tel" 
-                                                value={phone} 
-                                                onChange={(e) => {
-                                                    const val = e.target.value.replace(/\D/g, '').substring(0, 10);
-                                                    setPhone(val);
-                                                    if (errors.phone) setErrors(prev => ({ ...prev, phone: '' }));
-                                                }}
-                                                placeholder="9876543210"
-                                                disabled={otpLoading || !scriptLoaded}
-                                                className={`w-full py-3 pl-14 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
-                                                    errors.phone ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
-                                                }`} 
-                                            />
-                                            <FiPhone className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/40" />
-                                        </div>
-                                        {errors.phone && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.phone}</p>}
-                                        <p className="text-[10px] text-emerald-dark/50 font-medium">OTP will be sent to this number via SMS / WhatsApp.</p>
+                            <form onSubmit={handleSendOtp} className="space-y-6">
+                                <div className="space-y-1.5">
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Mobile Number</label>
+                                    <div className="relative">
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-emerald/60">+91</span>
+                                        <input 
+                                            type="tel" 
+                                            value={phone} 
+                                            onChange={(e) => {
+                                                const val = e.target.value.replace(/\D/g, '').substring(0, 10);
+                                                setPhone(val);
+                                                if (errors.phone) setErrors(prev => ({ ...prev, phone: '' }));
+                                            }}
+                                            placeholder="9876543210"
+                                            disabled={otpLoading || !scriptLoaded}
+                                            className={`w-full py-3 pl-14 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
+                                                errors.phone ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
+                                            }`} 
+                                        />
+                                        <FiPhone className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/40" />
                                     </div>
+                                    {errors.phone && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.phone}</p>}
+                                    <p className="text-[10px] text-emerald-dark/50 font-medium">OTP will be sent to this number via SMS / WhatsApp.</p>
+                                </div>
 
-                                    <button 
-                                        type="submit" 
-                                        disabled={otpLoading || !scriptLoaded}
-                                        className="w-full py-3.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-gold/10 hover:shadow-gold/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-2"
-                                    >
-                                        {otpLoading ? (
-                                            <><div className="w-4 h-4 border-2 border-emerald-dark border-t-transparent rounded-full animate-spin" /> Sending...</>
-                                        ) : (
-                                            <><FiPhone className="w-4 h-4" /> Send OTP</>
-                                        )}
-                                    </button>
-                                </form>
-                            ) : (
-                                <form onSubmit={handleVerifyOtp} className="space-y-6">
-                                    <div className="space-y-1.5">
-                                        <div className="flex items-center justify-between">
-                                            <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Enter OTP</label>
-                                            <button 
-                                                type="button" 
-                                                onClick={() => {
-                                                    setOtpStep('INPUT_PHONE');
-                                                    setOtp('');
-                                                    setErrors({});
-                                                }}
-                                                className="text-xs font-bold text-gold hover:text-gold-dark transition-colors"
-                                            >
-                                                Change Number
-                                            </button>
-                                        </div>
-                                        <div className="relative">
-                                            <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/60" />
-                                            <input 
-                                                type="text" 
-                                                pattern="[0-9]*"
-                                                maxLength={6}
-                                                value={otp} 
-                                                onChange={(e) => {
-                                                    const val = e.target.value.replace(/\D/g, '').substring(0, 6);
-                                                    setOtp(val);
-                                                    if (errors.otp) setErrors(prev => ({ ...prev, otp: '' }));
-                                                }}
-                                                placeholder="••••••"
-                                                disabled={otpLoading}
-                                                className={`w-full py-3 pl-11 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none text-center tracking-[0.5em] ${
-                                                    errors.otp ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
-                                                }`} 
-                                            />
-                                        </div>
-                                        {errors.otp && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.otp}</p>}
-                                        <div className="flex items-center justify-between pt-1">
-                                            <span className="text-[10px] text-emerald-dark/50 font-medium">Sent to +91 {phone}</span>
-                                            {timer > 0 ? (
-                                                <span className="text-[10px] text-emerald-dark/50 font-bold">Resend in {timer}s</span>
-                                            ) : (
-                                                <button
-                                                    type="button"
-                                                    onClick={handleResendOtp}
-                                                    disabled={otpLoading}
-                                                    className="text-[10px] text-gold hover:text-gold-dark font-extrabold uppercase tracking-wider"
-                                                >
-                                                    Resend OTP
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <button 
-                                        type="submit" 
-                                        disabled={otpLoading}
-                                        className="w-full py-3.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-gold/10 hover:shadow-gold/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-2"
-                                    >
-                                        {otpLoading ? (
-                                            <><div className="w-4 h-4 border-2 border-emerald-dark border-t-transparent rounded-full animate-spin" /> Verifying...</>
-                                        ) : (
-                                            <><FiLock className="w-4 h-4" /> Verify & Login</>
-                                        )}
-                                    </button>
-                                </form>
-                            )}
+                                <button 
+                                    type="submit" 
+                                    disabled={otpLoading || !scriptLoaded}
+                                    className="w-full py-3.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-gold/10 hover:shadow-gold/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-2"
+                                >
+                                    {otpLoading ? (
+                                        <><div className="w-4 h-4 border-2 border-emerald-dark border-t-transparent rounded-full animate-spin" /> Sending...</>
+                                    ) : (
+                                        <><FiPhone className="w-4 h-4" /> Continue</>
+                                    )}
+                                </button>
+                            </form>
                         </div>
                     )}
 
