@@ -37,40 +37,9 @@ public class AuthService {
          * Initiate Email Signup - validates details and sends email OTP
          */
         public ApiResponseDTO registerEmailRequest(SignupRequestDTO dto) {
-                // Check if email already exists
-                if (userRepo.existsByEmail(dto.getEmail())) {
-                        return ApiResponseDTO.builder()
-                                        .success(false)
-                                        .message("Email already registered")
-                                        .build();
-                }
-
-                // Check if phone already exists
-                if (dto.getPhoneNo() != null && !dto.getPhoneNo().isBlank()) {
-                        String normalizedPhone = dto.getPhoneNo().replaceAll("[^0-9]", "");
-                        if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
-                                normalizedPhone = normalizedPhone.substring(2);
-                        }
-                        if (userRepo.existsByPhoneNo(normalizedPhone)) {
-                                return ApiResponseDTO.builder()
-                                                .success(false)
-                                                .message("Phone number already registered")
-                                                .build();
-                        }
-                }
-
-                // Send email OTP
-                String error = this.otpService.sendOtp(dto.getEmail());
-                if (error != null) {
-                        return ApiResponseDTO.builder()
-                                        .success(false)
-                                        .message(error)
-                                        .build();
-                }
-
                 return ApiResponseDTO.builder()
-                                .success(true)
-                                .message("OTP sent to your email. Please verify.")
+                                .success(false)
+                                .message("Email signup is disabled. Please register using Mobile OTP signup.")
                                 .build();
         }
 
@@ -111,8 +80,8 @@ public class AuthService {
                                 .state(dto.getState())
                                 .country(dto.getCountry())
                                 .role("USER")
-                                .isVerified(emailVerified || phoneVerified) // Set to verified since OTP succeeded
-                                .emailVerified(emailVerified)
+                                .isVerified(true) // Set to verified since OTP succeeded
+                                .emailVerified(true)
                                 .phoneVerified(phoneVerified)
                                 .isActive(true)
                                 .createdAt(new Date())
@@ -149,14 +118,10 @@ public class AuthService {
          * Verify Email OTP and Complete Signup
          */
         public ApiResponseDTO verifyAndCompleteSignup(String email, String otp, SignupRequestDTO dto) {
-                String error = otpService.verifyOtp(email, otp);
-                if (error != null) {
-                        return ApiResponseDTO.builder()
-                                        .success(false)
-                                        .message(error)
-                                        .build();
-                }
-                return completeSignup(dto, true, false);
+                return ApiResponseDTO.builder()
+                                .success(false)
+                                .message("Email signup is disabled. Please register using Mobile OTP signup.")
+                                .build();
         }
 
         /**
@@ -413,7 +378,7 @@ public class AuthService {
                                                         .hashedPassword(passwordEncoder.encode(java.util.UUID.randomUUID().toString()))
                                                         .role("USER")
                                                         .isVerified(true)
-                                                        .emailVerified(false)
+                                                        .emailVerified(true)
                                                         .phoneVerified(true)
                                                         .isActive(true)
                                                         .createdAt(new Date())

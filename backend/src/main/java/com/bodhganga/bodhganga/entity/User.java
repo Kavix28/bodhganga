@@ -30,8 +30,8 @@ public class User {
     @JsonIgnore
     private String hashedPassword;
     private String role = "USER"; // USER, ADMIN
-    private Boolean isVerified = false;
-    private Boolean emailVerified = false;
+    private Boolean isVerified = true;
+    private Boolean emailVerified = true;
     private Boolean phoneVerified = false;
     private Boolean isActive = true;
     private Boolean forcePasswordReset = false;

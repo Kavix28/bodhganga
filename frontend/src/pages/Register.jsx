@@ -18,7 +18,7 @@ const Register = () => {
     }
 
     // Common States
-    const [signupMethod, setSignupMethod] = useState('email'); // 'email' or 'mobile'
+    const [signupMethod, setSignupMethod] = useState('mobile'); // only 'mobile' signup exists
     const [errors, setErrors] = useState({});
     const [isLoading, setIsLoading] = useState(false);
 
@@ -96,27 +96,23 @@ const Register = () => {
     }, [signupMethod]);
 
     // Validate form
-    const validateForm = (isMobile = false) => {
+    const validateForm = () => {
         const newErrors = {};
 
         if (!formData.name.trim()) {
             newErrors.name = 'Name is required';
         }
 
-        if (!isMobile) {
-            if (!formData.email.trim()) {
-                newErrors.email = 'Email is required';
-            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        if (formData.email && formData.email.trim()) {
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
                 newErrors.email = 'Please enter a valid email';
             }
         }
 
-        if (isMobile || formData.phoneNo.trim()) {
-            if (!formData.phoneNo.trim()) {
-                newErrors.phoneNo = 'Phone number is required';
-            } else if (!/^[0-9]{10}$/.test(formData.phoneNo.replace(/\D/g, ''))) {
-                newErrors.phoneNo = 'Phone number must be 10 digits';
-            }
+        if (!formData.phoneNo.trim()) {
+            newErrors.phoneNo = 'Phone number is required';
+        } else if (!/^[0-9]{10}$/.test(formData.phoneNo.replace(/\D/g, ''))) {
+            newErrors.phoneNo = 'Phone number must be 10 digits';
         }
 
         if (!formData.password) {
@@ -143,39 +139,6 @@ const Register = () => {
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
-    };
-
-    // Handle Form Submission (Email Signup Request)
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
-        if (!validateForm(false)) {
-            return;
-        }
-
-        setIsLoading(true);
-
-        try {
-            const { confirmPassword, ...signupData } = formData;
-
-            // Calls registerEmailRequest on backend - validates uniqueness and sends OTP
-            const response = await signup(signupData);
-
-            if (response.success) {
-                toast.success('Validation successful! Verification OTP sent.');
-                
-                // Navigate to OTP verification with signupData to complete registration ONLY after OTP success
-                navigate('/verify-otp', { state: { email: formData.email, signupData } });
-            } else {
-                toast.error(response.message || 'Registration failed');
-            }
-
-        } catch (error) {
-            console.error('Registration error:', error);
-            toast.error(error.message || 'Registration failed. Please try again.');
-        } finally {
-            setIsLoading(false);
-        }
     };
 
     // Mobile Signup Step 1: Check availability and send OTP via MSG91 widget popup
@@ -294,38 +257,9 @@ const Register = () => {
                         <p className="text-xs text-emerald-dark/60 font-semibold mt-1">Begin your elite academic journey with us today.</p>
                     </div>
 
-                    {/* Tab Switcher */}
-                    {otpStep === 'INPUT_PHONE' && (
-                        <div className="flex border-b border-emerald/10 mb-6">
-                            <button
-                                type="button"
-                                onClick={() => { setSignupMethod('email'); setErrors({}); }}
-                                className={`flex-1 pb-3 text-xs font-bold uppercase tracking-widest transition-all duration-300 border-b-2 ${
-                                    signupMethod === 'email'
-                                        ? 'border-gold text-emerald-dark'
-                                        : 'border-transparent text-emerald-dark/40 hover:text-emerald-dark/70'
-                                }`}
-                            >
-                                Email Sign Up
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => { setSignupMethod('mobile'); setErrors({}); }}
-                                className={`flex-1 pb-3 text-xs font-bold uppercase tracking-widest transition-all duration-300 border-b-2 ${
-                                    signupMethod === 'mobile'
-                                        ? 'border-gold text-emerald-dark'
-                                        : 'border-transparent text-emerald-dark/40 hover:text-emerald-dark/70'
-                                }`}
-                            >
-                                Mobile OTP Sign Up
-                            </button>
-                        </div>
-                    )}
-
-                    {/* Signup Forms */}
-                    {signupMethod === 'email' ? (
-                        /* Email Registration Form */
-                        <form onSubmit={handleSubmit} className="space-y-6">
+                    {/* Mobile OTP Registration Flow */}
+                    <div className="space-y-6">
+                        <form onSubmit={handleMobileSubmit} className="space-y-6">
                             {/* Grid Row 1 */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 {/* Name */}
@@ -348,9 +282,36 @@ const Register = () => {
                                     {errors.name && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.name}</p>}
                                 </div>
 
+                                {/* Phone */}
+                                <div className="space-y-1.5">
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Phone Number *</label>
+                                    <div className="relative">
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-emerald/60">+91</span>
+                                        <input
+                                            name="phoneNo"
+                                            type="tel"
+                                            value={formData.phoneNo}
+                                            onChange={(e) => {
+                                                const val = e.target.value.replace(/\D/g, '').substring(0, 10);
+                                                setFormData(p => ({ ...p, phoneNo: val }));
+                                                if (errors.phoneNo) setErrors(p => ({ ...p, phoneNo: '' }));
+                                            }}
+                                            placeholder="9876543210"
+                                            disabled={isLoading || !scriptLoaded}
+                                            className={`w-full py-3 pl-14 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
+                                                errors.phoneNo ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
+                                            }`}
+                                        />
+                                    </div>
+                                    {errors.phoneNo && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.phoneNo}</p>}
+                                </div>
+                            </div>
+
+                            {/* Grid Row 2 */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 {/* Email */}
                                 <div className="space-y-1.5">
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Email Address *</label>
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Email Address (Optional)</label>
                                     <div className="relative">
                                         <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/60" />
                                         <input
@@ -366,29 +327,6 @@ const Register = () => {
                                         />
                                     </div>
                                     {errors.email && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.email}</p>}
-                                </div>
-                            </div>
-
-                            {/* Grid Row 2 */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                {/* Phone */}
-                                <div className="space-y-1.5">
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Phone Number (Optional)</label>
-                                    <div className="relative">
-                                        <FiPhone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/60" />
-                                        <input
-                                            name="phoneNo"
-                                            type="tel"
-                                            value={formData.phoneNo}
-                                            onChange={handleChange}
-                                            placeholder="9876543210"
-                                            disabled={isLoading}
-                                            className={`w-full py-3 pl-11 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
-                                                errors.phoneNo ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
-                                            }`}
-                                        />
-                                    </div>
-                                    {errors.phoneNo && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.phoneNo}</p>}
                                 </div>
 
                                 {/* City */}
@@ -431,22 +369,11 @@ const Register = () => {
                                     {errors.state && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.state}</p>}
                                 </div>
 
-                                {/* Country */}
-                                <div className="space-y-1.5">
-                                    <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Country *</label>
-                                    <input
-                                        name="country"
-                                        type="text"
-                                        value={formData.country}
-                                        onChange={handleChange}
-                                        placeholder="India"
-                                        disabled={isLoading}
-                                        className={`w-full py-3 px-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
-                                            errors.country ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
-                                        }`}
-                                    />
-                                    {errors.country && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.country}</p>}
-                                </div>
+                                {/* Country (hidden default to India, editable if needed) */}
+                                <input type="hidden" name="country" value={formData.country} />
+
+                                {/* Empty block for alignment */}
+                                <div className="hidden md:block" />
                             </div>
 
                             {/* Grid Row 4 */}
@@ -508,10 +435,9 @@ const Register = () => {
                                 </div>
                             </div>
 
-                            {/* Submit Button */}
                             <button
                                 type="submit"
-                                disabled={isLoading}
+                                disabled={isLoading || !scriptLoaded}
                                 className="w-full py-3.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-gold/10 hover:shadow-gold/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
                             >
                                 {isLoading ? (
@@ -521,173 +447,7 @@ const Register = () => {
                                 )}
                             </button>
                         </form>
-                    ) : (
-                        /* Mobile OTP Registration Flow */
-                        <div className="space-y-6">
-                            <form onSubmit={handleMobileSubmit} className="space-y-6">
-                                {/* Grid Row 1 */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                    {/* Name */}
-                                    <div className="space-y-1.5">
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Full Name *</label>
-                                        <div className="relative">
-                                            <FiUser className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/60" />
-                                            <input
-                                                name="name"
-                                                type="text"
-                                                value={formData.name}
-                                                onChange={handleChange}
-                                                placeholder="Arjun Sharma"
-                                                disabled={isLoading}
-                                                className={`w-full py-3 pl-11 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
-                                                    errors.name ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
-                                                }`}
-                                            />
-                                        </div>
-                                        {errors.name && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.name}</p>}
-                                    </div>
-
-                                    {/* Phone */}
-                                    <div className="space-y-1.5">
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Phone Number *</label>
-                                        <div className="relative">
-                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-emerald/60">+91</span>
-                                            <input
-                                                name="phoneNo"
-                                                type="tel"
-                                                value={formData.phoneNo}
-                                                onChange={(e) => {
-                                                    const val = e.target.value.replace(/\D/g, '').substring(0, 10);
-                                                    setFormData(p => ({ ...p, phoneNo: val }));
-                                                    if (errors.phoneNo) setErrors(p => ({ ...p, phoneNo: '' }));
-                                                }}
-                                                placeholder="9876543210"
-                                                disabled={isLoading || !scriptLoaded}
-                                                className={`w-full py-3 pl-14 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
-                                                    errors.phoneNo ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
-                                                }`}
-                                            />
-                                        </div>
-                                        {errors.phoneNo && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.phoneNo}</p>}
-                                    </div>
-                                </div>
-
-                                {/* Grid Row 2 */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                    {/* City */}
-                                    <div className="space-y-1.5">
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">City *</label>
-                                        <div className="relative">
-                                            <FiMapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/60" />
-                                            <input
-                                                name="city"
-                                                type="text"
-                                                value={formData.city}
-                                                onChange={handleChange}
-                                                placeholder="Jaipur"
-                                                disabled={isLoading}
-                                                className={`w-full py-3 pl-11 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
-                                                    errors.city ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
-                                                }`}
-                                            />
-                                        </div>
-                                        {errors.city && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.city}</p>}
-                                    </div>
-
-                                    {/* State */}
-                                    <div className="space-y-1.5">
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">State *</label>
-                                        <input
-                                            name="state"
-                                            type="text"
-                                            value={formData.state}
-                                            onChange={handleChange}
-                                            placeholder="Rajasthan"
-                                            disabled={isLoading}
-                                            className={`w-full py-3 px-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
-                                                errors.state ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
-                                            }`}
-                                        />
-                                        {errors.state && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.state}</p>}
-                                    </div>
-                                </div>
-
-                                {/* Grid Row 3 */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                    {/* Password */}
-                                    <div className="space-y-1.5">
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Password *</label>
-                                        <div className="relative">
-                                            <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/60" />
-                                            <input
-                                                name="password"
-                                                type={showPassword ? 'text' : 'password'}
-                                                value={formData.password}
-                                                onChange={handleChange}
-                                                placeholder="••••••••"
-                                                disabled={isLoading}
-                                                className={`w-full py-3 pl-11 pr-11 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
-                                                    errors.password ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
-                                                }`}
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowPassword(!showPassword)}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald/60 hover:text-emerald transition-colors"
-                                                disabled={isLoading}
-                                            >
-                                                {showPassword ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
-                                            </button>
-                                        </div>
-                                        {errors.password && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.password}</p>}
-                                    </div>
-
-                                    {/* Confirm Password */}
-                                    <div className="space-y-1.5">
-                                        <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Confirm Password *</label>
-                                        <div className="relative">
-                                            <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/60" />
-                                            <input
-                                                name="confirmPassword"
-                                                type={showConfirmPassword ? 'text' : 'password'}
-                                                value={formData.confirmPassword}
-                                                onChange={handleChange}
-                                                placeholder="••••••••"
-                                                disabled={isLoading}
-                                                className={`w-full py-3 pl-11 pr-11 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
-                                                    errors.confirmPassword ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
-                                                }`}
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                                className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald/60 hover:text-emerald transition-colors"
-                                                disabled={isLoading}
-                                            >
-                                                {showConfirmPassword ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
-                                            </button>
-                                        </div>
-                                        {errors.confirmPassword && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.confirmPassword}</p>}
-                                    </div>
-                                </div>
-
-                                {/* Country (hidden default to India, editable if needed) */}
-                                <input type="hidden" name="country" value={formData.country} />
-
-                                <button
-                                    type="submit"
-                                    disabled={isLoading || !scriptLoaded}
-                                    className="w-full py-3.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-gold/10 hover:shadow-gold/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
-                                >
-                                    {isLoading ? (
-                                        <><div className="animate-spin rounded-full h-4 w-4 border-2 border-emerald-dark border-t-transparent" /> Processing...</>
-                                    ) : (
-                                        <span>Continue</span>
-                                    )}
-                                </button>
-                            </form>
-                        </div>
-                    )}
+                    </div>
 
                     <div className="text-center pt-2 space-y-2">
                         <p className="text-xs text-emerald-dark/60 font-semibold">
