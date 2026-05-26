@@ -14,7 +14,7 @@
 | **Payment Integration** | 100/100 | ✅ **PASS** | Razorpay flow maps to `/create-order` & `/verify`. Webhook captures `payment.captured`. |
 | **Email & OTP Readiness** | 100/100 | ✅ **PASS** | Asynchronous welcome/order emails via `CompletableFuture.runAsync`. |
 | **File Storage Readiness** | 100/100 | ✅ **PASS** | `S3Service` generates 15-minute secure presigned URLs on user check-purchase. |
-| **SEO & Analytics Prep** | 100/100 | ✅ **PASS** | Full Open Graph/Twitter support, canonical links, indexation metadata, and Organization/WebSite JSON-LD structured data. |
+| **SEO & Analytics Prep** | 100/100 | ✅ **PASS** | Full Open Graph/Twitter support, canonical links, indexation metadata, and Organization/WebSite/EducationalOrganization JSON-LD structured data. |
 | **Database Readiness** | 100/100 | ✅ **PASS** | MongoDB backup ready via `backup.sh`. Unique index constraints for email/phone. |
 
 ---
@@ -28,7 +28,7 @@
 - **Admin Password Hardening**: Modified `DataLoader.java` to read the initial admin password from the `ADMIN_INITIAL_PASSWORD` environment variable (falling back to a development-only key if unset), preventing code-level password exposure.
 - **Local Verification**: Verified complete project builds:
   - Backend: `mvn clean compile` -> **BUILD SUCCESS**
-  - Frontend: `npm run build` -> **Vite Build Success (dist/ compiled in 21.65s)**
+  - Frontend: `npm run build` -> **Vite Build Success (dist/ compiled in 23.05s)**
 
 ### Phase 2 — Payment Integration
 - **Verification Flow**: Integrated Razorpay API backend logic in `PaymentController.java` to process `/create-order` and signature verification `/verify`.
@@ -46,11 +46,11 @@
 
 ### Phase 5 — SEO & Analytics
 - **Favicon & Icons**: Added `logo.png` (matching `logo.jpeg`) to the static directory `public/`.
-- **Meta & Titles**: Updated homepage `<title>` to `Bodhganga Academy – UPSC, State PSC & Civil Services Preparation Platform` and `<meta name="description">` to: `Bodhganga Academy is India's premium UPSC and State PSC preparation platform offering structured courses, district-wise learning, curated notes, and exam preparation resources.`
+- **Meta & Titles**: Updated homepage `<title>` to `Bodhganga Academy – UPSC, State PSC & Civil Services Preparation Platform` and `<meta name="description">` to the exact specified text: `Bodhganga Academy is India's premium UPSC and State PSC preparation platform offering structured courses, district-wise learning, curated notes, exam preparation resources, and educational content for aspirants across India.`
 - **Indexing & Canonical**: Added `<meta name="robots" content="index, follow" />` and updated the canonical link to `https://bodhganga.in/`.
 - **Sitemap & Robots**: Added standard `sitemap.xml` mapping crucial page URLs. Confirmed `robots.txt` properly points crawlers to the sitemap.
 - **Social Metadata**: Added complete Open Graph (`og:title`, `og:description`, `og:image`, `og:url`, `og:type`) and Twitter Cards (`twitter:card`, `twitter:title`, `twitter:description`, `twitter:image`).
-- **Structured Data**: Wired up Schema.org Organization JSON-LD linking the site and its logo to the Google Play Store App package, and WebSite JSON-LD with Sitelinks Search Box support.
+- **Structured Data**: Wired up Schema.org Organization JSON-LD, WebSite JSON-LD with Sitelinks Search Box support, and EducationalOrganization JSON-LD schema referencing Bodhganga Academy.
 
 ### Phase 8 — Database Backup Readiness
 - **Structure**: Verified document annotations (`@Document(collection = "users")`).
