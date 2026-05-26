@@ -61,8 +61,8 @@ public class SecurityConfig {
                         // Public products (Digital Marketplace)
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/products/**").permitAll()
 
-                        // Payment — webhook is public (Razorpay calls it), order/verify require auth
-                        .requestMatchers("/api/payment/webhook").permitAll()
+                        // Payment — webhook and check-purchase are public, order/verify require auth
+                        .requestMatchers("/api/payment/webhook", "/api/payment/check-purchase/**").permitAll()
                         .requestMatchers("/api/payment/**").authenticated()
 
                         // Protected user endpoints

@@ -86,11 +86,15 @@ public class DataLoader implements CommandLineRunner {
                 }
             },
             () -> {
+                String adminPassword = System.getenv("ADMIN_INITIAL_PASSWORD");
+                if (adminPassword == null || adminPassword.isBlank()) {
+                    adminPassword = "Admin@123"; // Development fallback
+                }
                 User admin = User.builder()
                     .name("Admin")
                     .email(adminEmail)
                     .phoneNo("9000000001")
-                    .hashedPassword(passwordEncoder.encode("Admin@123"))
+                    .hashedPassword(passwordEncoder.encode(adminPassword))
                     .role("ADMIN")
                     .isVerified(true)
                     .isActive(true)
@@ -98,7 +102,7 @@ public class DataLoader implements CommandLineRunner {
                     .createdAt(new Date())
                     .build();
                 userRepo.save(admin);
-                log.info("Created admin user: {} with password: Admin@123", adminEmail);
+                log.info("Created admin user: {}", adminEmail);
             }
         );
     }

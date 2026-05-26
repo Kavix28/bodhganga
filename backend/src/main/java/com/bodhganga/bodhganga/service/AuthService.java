@@ -4,6 +4,7 @@ import com.bodhganga.bodhganga.dto.*;
 import com.bodhganga.bodhganga.entity.User;
 import com.bodhganga.bodhganga.repo.UserRepo;
 import com.bodhganga.bodhganga.util.JwtUtil;
+import com.bodhganga.bodhganga.services.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -18,11 +19,13 @@ public class AuthService {
         private final UserRepo userRepo;
         private final PasswordEncoder passwordEncoder;
         private final JwtUtil jwtUtil;
+        private final EmailService emailService;
 
-        public AuthService(UserRepo userRepo, PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
+        public AuthService(UserRepo userRepo, PasswordEncoder passwordEncoder, JwtUtil jwtUtil, EmailService emailService) {
                 this.userRepo = userRepo;
                 this.passwordEncoder = passwordEncoder;
                 this.jwtUtil = jwtUtil;
+                this.emailService = emailService;
         }
 
         /**
@@ -66,6 +69,13 @@ public class AuthService {
                 // Save user to database
                 User savedUser = userRepo.save(user);
                 System.out.println("User saved successfully with ID: " + savedUser.getId());
+
+                // Trigger welcome email asynchronously
+                try {
+                        emailService.sendWelcomeEmail(savedUser.getEmail(), savedUser.getName());
+                } catch (Exception e) {
+                        System.err.println("Failed to trigger welcome email: " + e.getMessage());
+                }
 
                 // Generate JWT token for auto-login
                 String token = jwtUtil.generateToken(savedUser.getEmail(), savedUser.getId(), savedUser.getRole());

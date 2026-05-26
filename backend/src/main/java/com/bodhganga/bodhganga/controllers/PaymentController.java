@@ -5,6 +5,9 @@ import com.bodhganga.bodhganga.entity.Purchase;
 import com.bodhganga.bodhganga.entity.User;
 import com.bodhganga.bodhganga.repo.PurchaseRepo;
 import com.bodhganga.bodhganga.repo.UserRepo;
+import com.bodhganga.bodhganga.repo.ProductRepo;
+import com.bodhganga.bodhganga.services.EmailService;
+import com.bodhganga.bodhganga.entity.Product;
 import com.razorpay.Order;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
@@ -41,10 +44,14 @@ public class PaymentController {
 
     private final UserRepo userRepo;
     private final PurchaseRepo purchaseRepo;
+    private final ProductRepo productRepo;
+    private final EmailService emailService;
 
-    public PaymentController(UserRepo userRepo, PurchaseRepo purchaseRepo) {
+    public PaymentController(UserRepo userRepo, PurchaseRepo purchaseRepo, ProductRepo productRepo, EmailService emailService) {
         this.userRepo = userRepo;
         this.purchaseRepo = purchaseRepo;
+        this.productRepo = productRepo;
+        this.emailService = emailService;
     }
 
     /**
@@ -143,7 +150,12 @@ public class PaymentController {
             }
 
             // Save purchase record to DB
+            String resolvedProductName = "Digital Study Notes";
             if (productId != null && !productId.isBlank()) {
+                Optional<Product> prodOpt = productRepo.findById(productId);
+                if (prodOpt.isPresent()) {
+                    resolvedProductName = prodOpt.get().getTitle();
+                }
                 Optional<Purchase> existing = purchaseRepo.findByUserIdAndProductId(user.getId(), productId);
                 if (existing.isEmpty()) {
                     Purchase purchase = new Purchase();
@@ -161,6 +173,13 @@ public class PaymentController {
                 log.warn("Unable to resolve productId for purchase record. OrderId: {}", req.razorpayOrderId());
             }
 
+            // Send confirmation email
+            try {
+                emailService.sendOrderConfirmation(user.getEmail(), req.razorpayOrderId(), resolvedProductName);
+            } catch (Exception ex) {
+                log.error("Failed to send order confirmation email: {}", ex.getMessage());
+            }
+
             Map<String, Object> data = new HashMap<>();
             data.put("paymentId", req.razorpayPaymentId());
             data.put("orderId", req.razorpayOrderId());
@@ -173,6 +192,35 @@ public class PaymentController {
             log.error("Payment verification error: {}", e.getMessage());
             return ResponseEntity.status(500).body(ApiResponseDTO.builder()
                     .success(false).message("Payment verification error.").build());
+        }
+    }
+
+    /**
+     * GET /api/payment/check-purchase/{productId}
+     * Checks if the currently authenticated user has purchased the product.
+     */
+    @GetMapping("/check-purchase/{productId}")
+    public ResponseEntity<ApiResponseDTO> checkPurchase(
+            @PathVariable String productId,
+            Authentication authentication) {
+        try {
+            if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getName())) {
+                return ResponseEntity.ok(ApiResponseDTO.builder().success(true).data(false).build());
+            }
+            User user = userRepo.findByEmail(authentication.getName()).orElse(null);
+            if (user == null) {
+                return ResponseEntity.ok(ApiResponseDTO.builder().success(true).data(false).build());
+            }
+            boolean hasPurchased = purchaseRepo.findByUserIdAndProductId(user.getId(), productId).isPresent();
+            return ResponseEntity.ok(ApiResponseDTO.builder()
+                    .success(true)
+                    .message("Purchase status retrieved successfully")
+                    .data(hasPurchased)
+                    .build());
+        } catch (Exception e) {
+            log.error("Error checking purchase status: {}", e.getMessage());
+            return ResponseEntity.status(500).body(ApiResponseDTO.builder()
+                    .success(false).message("Error checking purchase status").build());
         }
     }
 
@@ -225,16 +273,28 @@ public class PaymentController {
                     }
                     if (productId != null && userEmail != null) {
                         final String finalProdId = productId;
+                        final String finalOrderId = orderId;
                         userRepo.findByEmail(userEmail).ifPresent(user -> {
+                            String resolvedProductName = "Digital Study Notes";
+                            Optional<Product> prodOpt = productRepo.findById(finalProdId);
+                            if (prodOpt.isPresent()) {
+                                resolvedProductName = prodOpt.get().getTitle();
+                            }
                             if (purchaseRepo.findByUserIdAndProductId(user.getId(), finalProdId).isEmpty()) {
                                 Purchase purchase = new Purchase();
                                 purchase.setUserId(user.getId());
                                 purchase.setProductId(finalProdId);
-                                purchase.setOrderId(orderId);
+                                purchase.setOrderId(finalOrderId);
                                 purchase.setPurchaseDate(new java.util.Date());
                                 purchase.setDownloadCount(0);
                                 purchaseRepo.save(purchase);
                                 log.info("Webhook saved purchase successfully for user: {}, product: {}", user.getEmail(), finalProdId);
+                            }
+                            // Send order confirmation email from webhook
+                            try {
+                                emailService.sendOrderConfirmation(user.getEmail(), finalOrderId, resolvedProductName);
+                            } catch (Exception ex) {
+                                log.error("Failed to send webhook order confirmation email: {}", ex.getMessage());
                             }
                         });
                     }

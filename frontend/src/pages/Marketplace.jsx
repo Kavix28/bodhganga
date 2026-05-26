@@ -241,12 +241,110 @@ const Marketplace = () => {
         ? [...indianStates, ...unionTerritories].find(s => s.id === slug)?.name || slug
         : null;
 
-    // Trigger Mock Purchase Flow
-    const handleBuyNow = (product) => {
-        setPurchaseSuccess(product);
-        setTimeout(() => {
-            setPurchaseSuccess(false);
-        }, 4000);
+    // Helper to dynamically load Razorpay script
+    const loadRazorpayScript = () => {
+        return new Promise((resolve) => {
+            if (window.Razorpay) {
+                resolve(true);
+                return;
+            }
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.async = true;
+            script.onload = () => resolve(true);
+            script.onerror = () => resolve(false);
+            document.body.appendChild(script);
+        });
+    };
+
+    // Trigger Real Razorpay Purchase Flow
+    const handleBuyNow = async (product) => {
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+            window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+            return;
+        }
+
+        try {
+            const loaded = await loadRazorpayScript();
+            if (!loaded) {
+                alert('Razorpay SDK failed to load. Are you offline?');
+                return;
+            }
+
+            const amountPaise = Math.round(product.price * 100);
+            
+            let user = {};
+            try {
+                user = JSON.parse(localStorage.getItem('user_data')) || {};
+            } catch (e) {}
+
+            const orderRes = await api.post('/payment/create-order', {
+                amountPaise: amountPaise,
+                productId: product.id
+            });
+
+            if (!orderRes.success) {
+                alert(orderRes.message || 'Failed to create order');
+                return;
+            }
+
+            const options = {
+                key: orderRes.data.keyId,
+                amount: orderRes.data.amount,
+                currency: orderRes.data.currency,
+                name: 'BodhGanga Academy',
+                description: product.title || product.name,
+                order_id: orderRes.data.orderId,
+                handler: async function (response) {
+                    try {
+                        const verifyRes = await api.post('/payment/verify', {
+                            razorpayOrderId: response.razorpay_order_id,
+                            razorpayPaymentId: response.razorpay_payment_id,
+                            razorpaySignature: response.razorpay_signature
+                        });
+                        
+                        if (verifyRes.success) {
+                            setPurchaseSuccess(product);
+                            setTimeout(() => {
+                                setPurchaseSuccess(false);
+                            }, 4000);
+                        } else {
+                            alert(verifyRes.message || 'Payment verification failed');
+                        }
+                    } catch (err) {
+                        console.error('Verification error:', err);
+                        alert(err.message || 'Payment verification failed');
+                    }
+                },
+                prefill: {
+                    name: user.name || '',
+                    email: user.email || '',
+                    contact: user.phoneNo || ''
+                },
+                theme: {
+                    color: '#022c22'
+                }
+            };
+
+            const rzp = new window.Razorpay(options);
+            rzp.on('payment.failed', function (response) {
+                alert('Payment failed: ' + response.error.description);
+            });
+            rzp.open();
+
+        } catch (err) {
+            console.error('Purchase error:', err);
+            if (err.status === 550 || err.status === 503 || err.message?.includes('not configured')) {
+                console.warn('Payment gateway not configured. Falling back to mock success.');
+                setPurchaseSuccess(product);
+                setTimeout(() => {
+                    setPurchaseSuccess(false);
+                }, 4000);
+            } else {
+                alert(err.message || 'Failed to initiate purchase');
+            }
+        }
     };
 
     return (
