@@ -353,6 +353,7 @@ const Landing = () => {
                                     <img 
                                         src={state.image} 
                                         alt={state.name} 
+                                        loading="lazy"
                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
                                     />
                                     <span className="absolute top-4 left-4 z-20 text-[10px] font-black uppercase bg-gold text-emerald-dark px-3 py-1 rounded-full shadow-md">
@@ -447,6 +448,7 @@ const Landing = () => {
                                 <img 
                                     src={video.thumbnail} 
                                     alt={video.title} 
+                                    loading="lazy"
                                     className="w-full h-full object-cover group-hover:brightness-[0.7] group-hover:scale-105 transition-all duration-700"
                                 />
                                 
