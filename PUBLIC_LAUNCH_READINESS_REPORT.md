@@ -14,7 +14,7 @@
 | **Payment Integration** | 100/100 | ✅ **PASS** | Razorpay flow maps to `/create-order` & `/verify`. Webhook captures `payment.captured`. |
 | **Email & OTP Readiness** | 100/100 | ✅ **PASS** | Asynchronous welcome/order emails via `CompletableFuture.runAsync`. |
 | **File Storage Readiness** | 100/100 | ✅ **PASS** | `S3Service` generates 15-minute secure presigned URLs on user check-purchase. |
-| **SEO & Analytics Prep** | 95/100 | ✅ **PASS** | Active `robots.txt`, created `sitemap.xml`, Open Graph tags & canonical URL wired. |
+| **SEO & Analytics Prep** | 100/100 | ✅ **PASS** | Full Open Graph/Twitter support, canonical links, indexation metadata, and Organization/WebSite JSON-LD structured data. |
 | **Database Readiness** | 100/100 | ✅ **PASS** | MongoDB backup ready via `backup.sh`. Unique index constraints for email/phone. |
 
 ---
@@ -22,13 +22,13 @@
 ## 🛠️ Phases Executed & Verified
 
 ### Phase 1 — Security Hardening
-- **Secrets & Keys**: Checked `application.properties` and confirmed zero hardcoded database URIs, API keys, or JWT keys. All credentials pull from production environment variables (e.g. `SPRING_DATA_MONGODB_URI`, `JWT_SECRET`, `SMTP_USER`, `SMTP_PASS`).
+- **Secrets & Keys**: Confirmed zero hardcoded database URIs, API keys, or JWT keys. All credentials pull from production environment variables (e.g. `SPRING_DATA_MONGODB_URI`, `JWT_SECRET`, `SMTP_USER`, `SMTP_PASS`).
 - **Clean Workspace**: Staged and deleted temporary diagnostic files (`check_db.js`, `search_mongo.js`, `test_api.js`, `test_atlas.js`).
 - **CORS Config**: Production origins set to allow specific domains (`https://bodhganga.in`, `https://*.vercel.app`) and dynamically parse `ALLOWED_ORIGINS` env variables.
 - **Admin Password Hardening**: Modified `DataLoader.java` to read the initial admin password from the `ADMIN_INITIAL_PASSWORD` environment variable (falling back to a development-only key if unset), preventing code-level password exposure.
 - **Local Verification**: Verified complete project builds:
   - Backend: `mvn clean compile` -> **BUILD SUCCESS**
-  - Frontend: `npm run build` -> **Vite Build Success (dist/ compiled in 24.5s)**
+  - Frontend: `npm run build` -> **Vite Build Success (dist/ compiled in 21.65s)**
 
 ### Phase 2 — Payment Integration
 - **Verification Flow**: Integrated Razorpay API backend logic in `PaymentController.java` to process `/create-order` and signature verification `/verify`.
@@ -45,9 +45,12 @@
 - **Presigned URLs**: Enabled `S3Service.java` to generate temporary presigned URLs valid for 15 minutes, allowing secure file delivery of premium PDFs.
 
 ### Phase 5 — SEO & Analytics
-- **Favicon & Icons**: Replaced the broken `logo.svg` link in `index.html` with the working `logo.jpeg` path.
+- **Favicon & Icons**: Added `logo.png` (matching `logo.jpeg`) to the static directory `public/`.
+- **Meta & Titles**: Updated homepage `<title>` to `Bodhganga Academy – UPSC, State PSC & Civil Services Preparation Platform` and `<meta name="description">` to: `Bodhganga Academy is India's premium UPSC and State PSC preparation platform offering structured courses, district-wise learning, curated notes, and exam preparation resources.`
+- **Indexing & Canonical**: Added `<meta name="robots" content="index, follow" />` and updated the canonical link to `https://bodhganga.in/`.
 - **Sitemap & Robots**: Added standard `sitemap.xml` mapping crucial page URLs. Confirmed `robots.txt` properly points crawlers to the sitemap.
-- **Metadata**: Added canonical tags, meta description, and essential Open Graph (OG) tags to the main application markup.
+- **Social Metadata**: Added complete Open Graph (`og:title`, `og:description`, `og:image`, `og:url`, `og:type`) and Twitter Cards (`twitter:card`, `twitter:title`, `twitter:description`, `twitter:image`).
+- **Structured Data**: Wired up Schema.org Organization JSON-LD linking the site and its logo to the Google Play Store App package, and WebSite JSON-LD with Sitelinks Search Box support.
 
 ### Phase 8 — Database Backup Readiness
 - **Structure**: Verified document annotations (`@Document(collection = "users")`).
