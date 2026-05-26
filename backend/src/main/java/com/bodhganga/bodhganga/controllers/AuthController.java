@@ -71,6 +71,74 @@ public class AuthController {
         return new ResponseEntity<>(response, status);
     }
 
+    @PostMapping("/forgot-password/mobile/request")
+    public ResponseEntity<ApiResponseDTO> forgotPasswordRequest(@RequestBody Map<String, String> body) {
+        String phoneNo = body.get("phoneNo");
+        if (phoneNo == null || phoneNo.isBlank()) {
+            return new ResponseEntity<>(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("Mobile number is required")
+                    .build(), HttpStatus.BAD_REQUEST);
+        }
+        
+        // Normalize phone number (remove non-digits, remove leading 91 if it's 12 digits total)
+        String normalizedPhone = phoneNo.replaceAll("[^0-9]", "");
+        if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
+            normalizedPhone = normalizedPhone.substring(2);
+        }
+        
+        boolean exists = userRepo.existsByPhoneNo(normalizedPhone);
+        if (!exists) {
+            return new ResponseEntity<>(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("No account found with this mobile number")
+                    .build(), HttpStatus.NOT_FOUND);
+        }
+        
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+                .success(true)
+                .message("Mobile number verified, proceed to send OTP")
+                .build());
+    }
+
+    @PostMapping("/forgot-password/mobile/verify")
+    public ResponseEntity<ApiResponseDTO> forgotPasswordVerify(@RequestBody Map<String, String> body) {
+        String accessToken = body.get("accessToken");
+        if (accessToken == null || accessToken.isBlank()) {
+            return new ResponseEntity<>(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("accessToken is required")
+                    .build(), HttpStatus.BAD_REQUEST);
+        }
+        
+        ApiResponseDTO response = authService.verifyMsg91TokenOnly(accessToken);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.UNAUTHORIZED;
+        return new ResponseEntity<>(response, status);
+    }
+
+    @PostMapping("/reset-password/mobile")
+    public ResponseEntity<ApiResponseDTO> resetPasswordMobile(@RequestBody Map<String, String> body) {
+        String accessToken = body.get("accessToken");
+        String password = body.get("password");
+        
+        if (accessToken == null || accessToken.isBlank()) {
+            return new ResponseEntity<>(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("accessToken is required")
+                    .build(), HttpStatus.BAD_REQUEST);
+        }
+        if (password == null || password.isBlank()) {
+            return new ResponseEntity<>(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("password is required")
+                    .build(), HttpStatus.BAD_REQUEST);
+        }
+        
+        ApiResponseDTO response = authService.resetPasswordWithMsg91(accessToken, password);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.UNAUTHORIZED;
+        return new ResponseEntity<>(response, status);
+    }
+
     @PostMapping("/admin/login")
     public ResponseEntity<ApiResponseDTO> adminLogin(@Valid @RequestBody LoginRequestDTO dto) {
         ApiResponseDTO response = authService.adminLogin(dto);

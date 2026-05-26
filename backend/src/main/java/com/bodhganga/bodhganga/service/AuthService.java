@@ -191,63 +191,68 @@ public class AuthService {
                 return loginResult;
         }
 
+        private String getMobileFromMsg91(String accessToken) throws Exception {
+                String authKey = System.getenv("MSG91_AUTH_KEY");
+                if (authKey == null || authKey.isBlank()) {
+                        authKey = "520206A2KLoox4x6a15faa9P1"; // Fallback to provided key
+                }
+
+                String url = "https://control.msg91.com/api/v5/widget/verifyAccessToken";
+                
+                org.json.JSONObject payload = new org.json.JSONObject();
+                payload.put("authkey", authKey);
+                payload.put("access-token", accessToken);
+
+                java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+                java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                                 .uri(java.net.URI.create(url))
+                                 .header("Content-Type", "application/json")
+                                 .header("authkey", authKey)
+                                 .POST(java.net.http.HttpRequest.BodyPublishers.ofString(payload.toString()))
+                                 .build();
+
+                java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+                
+                if (response.statusCode() != 200) {
+                        System.err.println("MSG91 Token Verification failed. Status: " + response.statusCode() + ", Body: " + response.body());
+                        return null;
+                }
+
+                org.json.JSONObject jsonResponse = new org.json.JSONObject(response.body());
+                String mobile = null;
+                if (jsonResponse.has("data")) {
+                        org.json.JSONObject dataObj = jsonResponse.optJSONObject("data");
+                        if (dataObj != null) {
+                                mobile = dataObj.optString("mobile");
+                        }
+                }
+                if (mobile == null || mobile.isBlank()) {
+                        mobile = jsonResponse.optString("mobile");
+                }
+
+                if (mobile == null || mobile.isBlank()) {
+                        return null;
+                }
+
+                // Normalize phone (remove non-digits, remove leading 91 if it's 12 digits total)
+                String normalizedPhone = mobile.replaceAll("[^0-9]", "");
+                if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
+                        normalizedPhone = normalizedPhone.substring(2);
+                }
+                return normalizedPhone;
+        }
+
         /**
          * Verify MSG91 Access Token and log in / register user
          */
         public ApiResponseDTO verifyMsg91Token(String accessToken) {
                 try {
-                        String authKey = System.getenv("MSG91_AUTH_KEY");
-                        if (authKey == null || authKey.isBlank()) {
-                                authKey = "520206A2KLoox4x6a15faa9P1"; // Fallback to provided key
-                        }
-
-                        String url = "https://control.msg91.com/api/v5/widget/verifyAccessToken";
-                        
-                        org.json.JSONObject payload = new org.json.JSONObject();
-                        payload.put("authkey", authKey);
-                        payload.put("access-token", accessToken);
-
-                        java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
-                        java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
-                                        .uri(java.net.URI.create(url))
-                                        .header("Content-Type", "application/json")
-                                        .header("authkey", authKey)
-                                        .POST(java.net.http.HttpRequest.BodyPublishers.ofString(payload.toString()))
-                                        .build();
-
-                        java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
-                        
-                        if (response.statusCode() != 200) {
-                                System.err.println("MSG91 Token Verification failed. Status: " + response.statusCode() + ", Body: " + response.body());
+                        String normalizedPhone = getMobileFromMsg91(accessToken);
+                        if (normalizedPhone == null || normalizedPhone.isBlank()) {
                                 return ApiResponseDTO.builder()
                                                 .success(false)
-                                                .message("MSG91 token verification failed with status: " + response.statusCode())
+                                                .message("MSG91 token verification failed or mobile number not retrieved")
                                                 .build();
-                        }
-
-                        org.json.JSONObject jsonResponse = new org.json.JSONObject(response.body());
-                        String mobile = null;
-                        if (jsonResponse.has("data")) {
-                                org.json.JSONObject dataObj = jsonResponse.optJSONObject("data");
-                                if (dataObj != null) {
-                                        mobile = dataObj.optString("mobile");
-                                }
-                        }
-                        if (mobile == null || mobile.isBlank()) {
-                                mobile = jsonResponse.optString("mobile");
-                        }
-
-                        if (mobile == null || mobile.isBlank()) {
-                                return ApiResponseDTO.builder()
-                                                .success(false)
-                                                .message("Failed to extract verified phone number from MSG91 response")
-                                                .build();
-                        }
-
-                        // Normalize phone (remove non-digits, remove leading 91 if it's 12 digits total)
-                        String normalizedPhone = mobile.replaceAll("[^0-9]", "");
-                        if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
-                                normalizedPhone = normalizedPhone.substring(2);
                         }
 
                         User user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);
@@ -298,6 +303,70 @@ public class AuthService {
                         return ApiResponseDTO.builder()
                                         .success(false)
                                         .message("Internal server error during MSG91 verification")
+                                        .build();
+                }
+        }
+
+        /**
+         * Reset password with MSG91 OTP token verification
+         */
+        public ApiResponseDTO resetPasswordWithMsg91(String accessToken, String newPassword) {
+                try {
+                        String normalizedPhone = getMobileFromMsg91(accessToken);
+                        if (normalizedPhone == null || normalizedPhone.isBlank()) {
+                                return ApiResponseDTO.builder()
+                                                .success(false)
+                                                .message("MSG91 OTP token verification failed")
+                                                .build();
+                        }
+
+                        User user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);
+                        if (user == null) {
+                                return ApiResponseDTO.builder()
+                                                .success(false)
+                                                .message("No account found with this mobile number")
+                                                .build();
+                        }
+
+                        // Update password in database with standard BCrypt password encoder
+                        user.setHashedPassword(passwordEncoder.encode(newPassword));
+                        user.setVerified(true); // Ensure marked verified
+                        userRepo.save(user);
+
+                        return ApiResponseDTO.builder()
+                                        .success(true)
+                                        .message("Password reset successful")
+                                        .build();
+
+                } catch (Exception e) {
+                        System.err.println("Error during MSG91 password reset: " + e.getMessage());
+                        return ApiResponseDTO.builder()
+                                        .success(false)
+                                        .message("Internal server error during password reset")
+                                        .build();
+                }
+        }
+
+        /**
+         * Verify MSG91 Access Token only (without creating a user)
+         */
+        public ApiResponseDTO verifyMsg91TokenOnly(String accessToken) {
+                try {
+                        String normalizedPhone = getMobileFromMsg91(accessToken);
+                        if (normalizedPhone == null || normalizedPhone.isBlank()) {
+                                return ApiResponseDTO.builder()
+                                                .success(false)
+                                                .message("MSG91 OTP token verification failed")
+                                                .build();
+                        }
+                        return ApiResponseDTO.builder()
+                                        .success(true)
+                                        .message("OTP verified successfully")
+                                        .build();
+                } catch (Exception e) {
+                        return ApiResponseDTO.builder()
+                                        .success(false)
+                                        .message("Internal server error during verification: " + e.getMessage())
                                         .build();
                 }
         }

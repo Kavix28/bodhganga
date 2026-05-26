@@ -29,6 +29,34 @@ export const verifyMsg91 = async (accessToken) => {
 };
 
 /**
+ * Request password reset verification code via Mobile Number
+ * @param {string} phoneNo
+ * @returns {Promise}
+ */
+export const forgotPasswordMobileRequest = async (phoneNo) => {
+    return api.post('/api/auth/forgot-password/mobile/request', { phoneNo });
+};
+
+/**
+ * Verify MSG91 OTP token for Forgot Password flow
+ * @param {string} accessToken
+ * @returns {Promise}
+ */
+export const forgotPasswordMobileVerify = async (accessToken) => {
+    return api.post('/api/auth/forgot-password/mobile/verify', { accessToken });
+};
+
+/**
+ * Reset password using verified MSG91 token and new password
+ * @param {string} accessToken
+ * @param {string} password
+ * @returns {Promise}
+ */
+export const resetPasswordMobile = async (accessToken, password) => {
+    return api.post('/api/auth/reset-password/mobile', { accessToken, password });
+};
+
+/**
  * Logout user (frontend-only, clears local storage)
  * Note: If backend provides logout endpoint, uncomment the API call
  */
