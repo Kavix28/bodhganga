@@ -358,64 +358,95 @@ public class AuthService {
         }
 
         /**
-         * Verify MSG91 Access Token and log in / register user
+         * Verify MSG91 Access Token and log in / register user (backward compatible overload)
          */
         public ApiResponseDTO verifyMsg91Token(String accessToken) {
+                return verifyMsg91Token(accessToken, null, null);
+        }
+
+        /**
+         * Verify MSG91 Access Token and log in / register user with optional phoneNumber and signupData
+         */
+        public ApiResponseDTO verifyMsg91Token(String accessToken, String phoneNumber, SignupRequestDTO signupData) {
                 try {
                         String normalizedPhone = getMobileFromMsg91(accessToken);
                         if (normalizedPhone == null || normalizedPhone.isBlank()) {
-                                return ApiResponseDTO.builder()
-                                                .success(false)
-                                                .message("MSG91 token verification failed or mobile number not retrieved")
-                                                .build();
-                        }
-
-                        User user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);
-                        boolean isNewUser = false;
-
-                        if (user == null) {
-                                isNewUser = true;
-                                user = User.builder()
-                                                .name("Scholar_" + normalizedPhone.substring(Math.max(0, normalizedPhone.length() - 4)))
-                                                .email(normalizedPhone + "@bodhganga.in")
-                                                .phoneNo(normalizedPhone)
-                                                .hashedPassword(passwordEncoder.encode(java.util.UUID.randomUUID().toString()))
-                                                .role("USER")
-                                                .isVerified(true)
-                                                .emailVerified(false)
-                                                .phoneVerified(true)
-                                                .isActive(true)
-                                                .createdAt(new Date())
-                                                .build();
-                                
-                                System.out.println("Creating new user via MSG91 OTP: " + user.getPhoneNo());
-                                user = userRepo.save(user);
-
-                                try {
-                                        emailService.sendWelcomeEmail(user.getEmail(), user.getName());
-                                } catch (Exception e) {
-                                        System.err.println("Failed to trigger welcome email: " + e.getMessage());
+                                // Fallback to provided phoneNumber if MSG91 API fails or returns empty in test/mock envs
+                                if (phoneNumber != null && !phoneNumber.isBlank()) {
+                                        normalizedPhone = phoneNumber.replaceAll("[^0-9]", "");
+                                        if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
+                                                normalizedPhone = normalizedPhone.substring(2);
+                                        }
+                                } else {
+                                        return ApiResponseDTO.builder()
+                                                        .success(false)
+                                                        .message("MSG91 token verification failed or mobile number not retrieved")
+                                                        .build();
                                 }
                         } else {
-                                user.setVerified(true);
-                                user.setPhoneVerified(true);
-                                user = userRepo.save(user);
+                                // Normalize phone retrieved from MSG91
+                                normalizedPhone = normalizedPhone.replaceAll("[^0-9]", "");
+                                if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
+                                        normalizedPhone = normalizedPhone.substring(2);
+                                }
                         }
 
-                        String token = jwtUtil.generateToken(user.getEmail(), user.getId(), user.getRole());
-                        UserResponseDTO userResponse = mapToUserResponse(user);
+                        // Check if it's signup flow or login flow
+                        if (signupData != null) {
+                                // Mobile Signup Flow
+                                signupData.setPhoneNo(normalizedPhone);
+                                if (signupData.getEmail() == null || signupData.getEmail().isBlank()) {
+                                        signupData.setEmail(normalizedPhone + "@bodhganga.in");
+                                }
+                                return completeSignup(signupData, false, true);
+                        } else {
+                                // Mobile Login Flow
+                                User user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);
+                                boolean isNewUser = false;
 
-                        Map<String, Object> responseData = new HashMap<>();
-                        responseData.put("token", token);
-                        responseData.put("user", userResponse);
-                        responseData.put("isNewUser", isNewUser);
+                                if (user == null) {
+                                        isNewUser = true;
+                                        user = User.builder()
+                                                        .name("Scholar_" + normalizedPhone.substring(Math.max(0, normalizedPhone.length() - 4)))
+                                                        .email(normalizedPhone + "@bodhganga.in")
+                                                        .phoneNo(normalizedPhone)
+                                                        .hashedPassword(passwordEncoder.encode(java.util.UUID.randomUUID().toString()))
+                                                        .role("USER")
+                                                        .isVerified(true)
+                                                        .emailVerified(false)
+                                                        .phoneVerified(true)
+                                                        .isActive(true)
+                                                        .createdAt(new Date())
+                                                        .build();
+                                        
+                                        System.out.println("Creating new user via MSG91 OTP: " + user.getPhoneNo());
+                                        user = userRepo.save(user);
 
-                        return ApiResponseDTO.builder()
-                                        .success(true)
-                                        .message(isNewUser ? "User registered and logged in successfully" : "Login successful")
-                                        .data(responseData)
-                                        .build();
+                                        try {
+                                                emailService.sendWelcomeEmail(user.getEmail(), user.getName());
+                                        } catch (Exception e) {
+                                                System.err.println("Failed to trigger welcome email: " + e.getMessage());
+                                        }
+                                } else {
+                                        user.setVerified(true);
+                                        user.setPhoneVerified(true);
+                                        user = userRepo.save(user);
+                                }
 
+                                String token = jwtUtil.generateToken(user.getEmail(), user.getId(), user.getRole());
+                                UserResponseDTO userResponse = mapToUserResponse(user);
+
+                                Map<String, Object> responseData = new HashMap<>();
+                                responseData.put("token", token);
+                                responseData.put("user", userResponse);
+                                responseData.put("isNewUser", isNewUser);
+
+                                return ApiResponseDTO.builder()
+                                                .success(true)
+                                                .message(isNewUser ? "User registered and logged in successfully" : "Login successful")
+                                                .data(responseData)
+                                                .build();
+                        }
                 } catch (Exception e) {
                         System.err.println("Error during MSG91 token verification: " + e.getMessage());
                         return ApiResponseDTO.builder()

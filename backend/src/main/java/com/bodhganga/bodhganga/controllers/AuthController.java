@@ -125,15 +125,42 @@ public class AuthController {
     }
 
     @PostMapping("/msg91/verify")
-    public ResponseEntity<ApiResponseDTO> verifyMsg91(@RequestBody Map<String, String> body) {
-        String accessToken = body.get("accessToken");
+    public ResponseEntity<ApiResponseDTO> verifyMsg91(@RequestBody Map<String, Object> body) {
+        String accessToken = (String) body.get("accessToken");
+        String phoneNumber = (String) body.get("phoneNumber");
+        
         if (accessToken == null || accessToken.isBlank()) {
             return new ResponseEntity<>(ApiResponseDTO.builder()
                     .success(false)
                     .message("accessToken is required")
                     .build(), HttpStatus.BAD_REQUEST);
         }
-        ApiResponseDTO response = authService.verifyMsg91Token(accessToken);
+        
+        // Extract optional signupData if present
+        SignupRequestDTO signupData = null;
+        if (body.containsKey("name") || body.containsKey("signupData")) {
+            signupData = new SignupRequestDTO();
+            if (body.containsKey("signupData")) {
+                Map<String, Object> signupMap = (Map<String, Object>) body.get("signupData");
+                signupData.setName((String) signupMap.get("name"));
+                signupData.setEmail((String) signupMap.get("email"));
+                signupData.setPhoneNo((String) signupMap.get("phoneNo"));
+                signupData.setPassword((String) signupMap.get("password"));
+                signupData.setCity((String) signupMap.get("city"));
+                signupData.setState((String) signupMap.get("state"));
+                signupData.setCountry((String) signupMap.get("country"));
+            } else {
+                signupData.setName((String) body.get("name"));
+                signupData.setEmail((String) body.get("email"));
+                signupData.setPhoneNo((String) body.get("phoneNo"));
+                signupData.setPassword((String) body.get("password"));
+                signupData.setCity((String) body.get("city"));
+                signupData.setState((String) body.get("state"));
+                signupData.setCountry((String) body.get("country"));
+            }
+        }
+        
+        ApiResponseDTO response = authService.verifyMsg91Token(accessToken, phoneNumber, signupData);
         HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.UNAUTHORIZED;
         return new ResponseEntity<>(response, status);
     }

@@ -22,10 +22,11 @@ export const login = async (emailOrPhone, password) => {
 /**
  * Verify MSG91 Access Token
  * @param {string} accessToken
+ * @param {string} phoneNumber
  * @returns {Promise}
  */
-export const verifyMsg91 = async (accessToken) => {
-    return api.post('/api/auth/msg91/verify', { accessToken });
+export const verifyMsg91 = async (accessToken, phoneNumber) => {
+    return api.post('/api/auth/msg91/verify', { accessToken, phoneNumber });
 };
 
 /**

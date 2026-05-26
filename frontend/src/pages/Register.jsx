@@ -209,6 +209,7 @@ const Register = () => {
             // Configure global MSG91 configuration for the popup
             window.configuration = {
                 widgetId: "3657a734e31333338323730",
+                tokenAuth: true,
                 identifier: formattedPhone,
                 success: (response) => {
                     console.log("Register MSG91 success callback:", response);
@@ -243,7 +244,12 @@ const Register = () => {
         setIsLoading(true);
         try {
             const { confirmPassword, ...signupData } = formData;
-            const res = await api.post('/api/auth/register/mobile/verify', { accessToken, signupData });
+            // Calls verifyMsg91 endpoint on backend with verified accessToken, phoneNumber, and signupData
+            const res = await api.post('/api/auth/msg91/verify', { 
+                accessToken, 
+                phoneNumber: formData.phoneNo,
+                signupData 
+            });
             
             if (res?.success && res.data?.token) {
                 toast.success("Registration successful!");

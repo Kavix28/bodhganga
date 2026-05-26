@@ -109,6 +109,7 @@ const ForgotPassword = () => {
             // Configure MSG91 widget configuration dynamically
             window.configuration = {
                 widgetId: "3657a734e31333338323730",
+                tokenAuth: true,
                 identifier: formattedPhone,
                 success: (response) => {
                     console.log("ForgotPassword MSG91 success callback:", response);

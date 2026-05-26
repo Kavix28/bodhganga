@@ -143,6 +143,7 @@ const Login = () => {
         // Configure MSG91 widget configuration dynamically
         window.configuration = {
             widgetId: "3657a734e31333338323730",
+            tokenAuth: true,
             identifier: formattedPhone,
             success: (response) => {
                 console.log("MSG91 global success callback:", response);
@@ -170,7 +171,7 @@ const Login = () => {
         setIsLoggingIn(true);
         setOtpLoading(true);
         try {
-            const res = await verifyMsg91(accessToken);
+            const res = await verifyMsg91(accessToken, phone);
             if (res?.success && res.data?.token) {
                 login(res.data.token, res.data.user);
                 toast.success(`Welcome back, ${res.data.user?.name?.split(' ')[0] || 'Scholar'}!`);
