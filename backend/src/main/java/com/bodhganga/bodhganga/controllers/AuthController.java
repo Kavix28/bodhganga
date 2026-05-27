@@ -63,9 +63,9 @@ public class AuthController {
         }
         
         SignupRequestDTO dto = new SignupRequestDTO();
-        dto.setName((String) signupDataMap.get("name"));
+        dto.setName(signupDataMap.containsKey("fullName") ? (String) signupDataMap.get("fullName") : (String) signupDataMap.get("name"));
         dto.setEmail((String) signupDataMap.get("email"));
-        dto.setPhoneNo((String) signupDataMap.get("phoneNo"));
+        dto.setPhoneNo(signupDataMap.containsKey("phoneNumber") ? (String) signupDataMap.get("phoneNumber") : (String) signupDataMap.get("phoneNo"));
         dto.setPassword((String) signupDataMap.get("password"));
         dto.setCity((String) signupDataMap.get("city"));
         dto.setState((String) signupDataMap.get("state"));
@@ -103,9 +103,9 @@ public class AuthController {
         }
         
         SignupRequestDTO dto = new SignupRequestDTO();
-        dto.setName((String) signupDataMap.get("name"));
+        dto.setName(signupDataMap.containsKey("fullName") ? (String) signupDataMap.get("fullName") : (String) signupDataMap.get("name"));
         dto.setEmail((String) signupDataMap.get("email"));
-        dto.setPhoneNo((String) signupDataMap.get("phoneNo"));
+        dto.setPhoneNo(signupDataMap.containsKey("phoneNumber") ? (String) signupDataMap.get("phoneNumber") : (String) signupDataMap.get("phoneNo"));
         dto.setPassword((String) signupDataMap.get("password"));
         dto.setCity((String) signupDataMap.get("city"));
         dto.setState((String) signupDataMap.get("state"));
@@ -138,21 +138,21 @@ public class AuthController {
         
         // Extract optional signupData if present
         SignupRequestDTO signupData = null;
-        if (body.containsKey("name") || body.containsKey("signupData")) {
+        if (body.containsKey("name") || body.containsKey("fullName") || body.containsKey("signupData")) {
             signupData = new SignupRequestDTO();
             if (body.containsKey("signupData")) {
                 Map<String, Object> signupMap = (Map<String, Object>) body.get("signupData");
-                signupData.setName((String) signupMap.get("name"));
+                signupData.setName(signupMap.containsKey("fullName") ? (String) signupMap.get("fullName") : (String) signupMap.get("name"));
                 signupData.setEmail((String) signupMap.get("email"));
-                signupData.setPhoneNo((String) signupMap.get("phoneNo"));
+                signupData.setPhoneNo(signupMap.containsKey("phoneNumber") ? (String) signupMap.get("phoneNumber") : (String) signupMap.get("phoneNo"));
                 signupData.setPassword((String) signupMap.get("password"));
                 signupData.setCity((String) signupMap.get("city"));
                 signupData.setState((String) signupMap.get("state"));
                 signupData.setCountry((String) signupMap.get("country"));
             } else {
-                signupData.setName((String) body.get("name"));
+                signupData.setName(body.containsKey("fullName") ? (String) body.get("fullName") : (String) body.get("name"));
                 signupData.setEmail((String) body.get("email"));
-                signupData.setPhoneNo((String) body.get("phoneNo"));
+                signupData.setPhoneNo(body.containsKey("phoneNumber") ? (String) body.get("phoneNumber") : (String) body.get("phoneNo"));
                 signupData.setPassword((String) body.get("password"));
                 signupData.setCity((String) body.get("city"));
                 signupData.setState((String) body.get("state"));

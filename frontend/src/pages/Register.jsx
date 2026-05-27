@@ -23,9 +23,9 @@ const Register = () => {
 
     // Form Data
     const [formData, setFormData] = useState({
-        name: '',
+        fullName: '',
         email: '',
-        phoneNo: '',
+        phoneNumber: '',
         password: '',
         confirmPassword: '',
         city: '',
@@ -98,8 +98,8 @@ const Register = () => {
     const validateForm = () => {
         const newErrors = {};
 
-        if (!formData.name.trim()) {
-            newErrors.name = 'Name is required';
+        if (!formData.fullName.trim()) {
+            newErrors.fullName = 'Name is required';
         }
 
         if (formData.email && formData.email.trim()) {
@@ -108,10 +108,10 @@ const Register = () => {
             }
         }
 
-        if (!formData.phoneNo.trim()) {
-            newErrors.phoneNo = 'Phone number is required';
-        } else if (!/^[0-9]{10}$/.test(formData.phoneNo.replace(/\D/g, ''))) {
-            newErrors.phoneNo = 'Phone number must be 10 digits';
+        if (!formData.phoneNumber.trim()) {
+            newErrors.phoneNumber = 'Phone number is required';
+        } else if (!/^[0-9]{10}$/.test(formData.phoneNumber.replace(/\D/g, ''))) {
+            newErrors.phoneNumber = 'Phone number must be 10 digits';
         }
 
         if (!formData.password) {
@@ -141,7 +141,7 @@ const Register = () => {
     };
 
     // Mobile Signup Step 1: Trigger MSG91 OTP and redirect
-    const handleMobileSubmit = (e) => {
+    const handleMobileSubmit = async (e) => {
         e.preventDefault();
 
         if (!validateForm()) {
@@ -150,43 +150,58 @@ const Register = () => {
 
         setIsLoading(true);
 
-        const phoneNumber = formData.phoneNo;
-        let formattedPhone = phoneNumber.trim().replace(/\D/g, '');
-        if (formattedPhone.length === 10) {
-            formattedPhone = '91' + formattedPhone;
-        }
-
-        if (!window.initSendOTP) {
-            toast.error("OTP service is initializing. Please wait a moment.");
-            setIsLoading(false);
-            return;
-        }
-
-        // Store signup data
-        localStorage.setItem(
-            "signupData",
-            JSON.stringify({
-                name: formData.name,
+        try {
+            const signupData = {
+                fullName: formData.fullName,
                 email: formData.email,
-                phoneNumber: phoneNumber,
-                phoneNo: phoneNumber, // keep phoneNo for compatibility with VerifyMobileOtp.jsx
+                phoneNumber: formData.phoneNumber,
                 city: formData.city,
                 state: formData.state,
                 country: formData.country,
                 password: formData.password
-            })
-        );
+            };
 
-        // Trigger MSG91 OTP
-        window.initSendOTP({
-            widgetId: import.meta.env.VITE_MSG91_WIDGET_ID || "3657a734e31333338323730",
-            tokenAuth: true,
-            identifier: formattedPhone
-        });
+            localStorage.setItem(
+                "signupData",
+                JSON.stringify(signupData)
+            );
 
-        setIsLoading(false);
-        navigate("/verify-mobile-otp", { state: { phone: phoneNumber } });
+            if (!window.initSendOTP) {
+                toast.error("MSG91 not loaded");
+                setIsLoading(false);
+                return;
+            }
+
+            let formattedPhone = signupData.phoneNumber.trim().replace(/\D/g, '');
+            if (formattedPhone.length === 10) {
+                formattedPhone = '91' + formattedPhone;
+            }
+
+            window.initSendOTP({
+                widgetId: import.meta.env.VITE_MSG91_WIDGET_ID || "3657a734e31333338323730",
+                tokenAuth: true,
+                identifier: formattedPhone,
+
+                success: function () {
+                    setIsLoading(false);
+                    navigate("/verify-mobile-otp");
+                },
+
+                failure: function (error) {
+                    console.error("OTP failed:", error);
+                    toast.error("OTP failed to send");
+                    setIsLoading(false);
+                }
+            });
+
+        } catch (err) {
+            console.error(err);
+            toast.error("Signup failed");
+            setIsLoading(false);
+        }
     };
+
+    const handleSubmit = handleMobileSubmit;
 
     return (
         <div className="min-h-screen bg-ivory-light flex items-stretch">
@@ -226,18 +241,18 @@ const Register = () => {
                                     <div className="relative">
                                         <FiUser className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/60" />
                                         <input
-                                            name="name"
+                                            name="fullName"
                                             type="text"
-                                            value={formData.name}
+                                            value={formData.fullName}
                                             onChange={handleChange}
                                             placeholder="Arjun Sharma"
                                             disabled={isLoading}
                                             className={`w-full py-3 pl-11 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
-                                                errors.name ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
+                                                errors.fullName ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
                                             }`}
                                         />
                                     </div>
-                                    {errors.name && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.name}</p>}
+                                    {errors.fullName && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.fullName}</p>}
                                 </div>
 
                                 {/* Phone */}
@@ -246,22 +261,22 @@ const Register = () => {
                                     <div className="relative">
                                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-emerald/60">+91</span>
                                         <input
-                                            name="phoneNo"
+                                            name="phoneNumber"
                                             type="tel"
-                                            value={formData.phoneNo}
+                                            value={formData.phoneNumber}
                                             onChange={(e) => {
                                                 const val = e.target.value.replace(/\D/g, '').substring(0, 10);
-                                                setFormData(p => ({ ...p, phoneNo: val }));
-                                                if (errors.phoneNo) setErrors(p => ({ ...p, phoneNo: '' }));
+                                                setFormData(p => ({ ...p, phoneNumber: val }));
+                                                if (errors.phoneNumber) setErrors(p => ({ ...p, phoneNumber: '' }));
                                             }}
                                             placeholder="9876543210"
                                             disabled={isLoading || !scriptLoaded}
                                             className={`w-full py-3 pl-14 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
-                                                errors.phoneNo ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
+                                                errors.phoneNumber ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
                                             }`}
                                         />
                                     </div>
-                                    {errors.phoneNo && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.phoneNo}</p>}
+                                    {errors.phoneNumber && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.phoneNumber}</p>}
                                 </div>
                             </div>
 

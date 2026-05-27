@@ -1,13 +1,6 @@
 import api from './api';
 
-/**
- * Register a new user
- * @param {object} signupData - { name, email, phoneNo, password, city, state, country }
- * @returns {Promise}
- */
-export const signup = async (signupData) => {
-    return api.post('/api/auth/register', signupData);
-};
+
 
 /**
  * Login user
