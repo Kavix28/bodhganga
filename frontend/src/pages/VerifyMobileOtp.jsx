@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { FiPhone, FiArrowLeft, FiCheckCircle, FiShield } from 'react-icons/fi';
+import { FiArrowLeft, FiShield } from 'react-icons/fi';
 import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
 import toast from 'react-hot-toast';
-import Logo from '../components/common/Logo';
 
 const VerifyMobileOtp = () => {
     const navigate = useNavigate();
@@ -15,19 +14,6 @@ const VerifyMobileOtp = () => {
     const [scriptLoaded, setScriptLoaded] = useState(!!window.initSendOTP);
     const [phone, setPhone] = useState('');
     const [signupData, setSignupData] = useState(null);
-    const [otpOpened, setOtpOpened] = useState(false);
-
-    // Log state updates for debugging
-    useEffect(() => {
-        console.log("VerifyMobileOtp State Update:", { phone, scriptLoaded, isLoading });
-    }, [phone, scriptLoaded, isLoading]);
-
-    // Log #captcha element mounting
-    useEffect(() => {
-        if (document.querySelector("#captcha")) {
-            console.log("#captcha mounted");
-        }
-    }, []);
 
     // Load data from state or localStorage
     useEffect(() => {
@@ -46,38 +32,30 @@ const VerifyMobileOtp = () => {
         }
     }, [location.state, navigate]);
 
-    // Check script loaded and dynamically load MSG91 SDK only once
+    // Load MSG91 SDK only once
     useEffect(() => {
-        console.log("VerifyMobileOtp mounted. Initial window.initSendOTP:", typeof window.initSendOTP);
-        
+        console.log("VerifyMobileOtp mounted. initSendOTP:", typeof window.initSendOTP);
+
         if (window.initSendOTP) {
-            console.log("SDK loaded: initSendOTP available immediately");
             setScriptLoaded(true);
             return;
         }
 
-        // Avoid duplicate script tag injection
         let script = document.getElementById('msg91-otp-script');
         if (!script) {
-            console.log("Injecting MSG91 script...");
             script = document.createElement('script');
             script.id = 'msg91-otp-script';
             script.src = 'https://verify.msg91.com/otp-provider.js';
             script.async = true;
-            script.onload = () => {
-                console.log("MSG91 SDK script onload fired");
-            };
             script.onerror = () => {
-                console.error("MSG91 SDK script failed to load");
                 toast.error("Failed to load OTP verification service. Please try again.");
             };
             document.body.appendChild(script);
         }
 
-        // Wait for SDK readiness
         const interval = setInterval(() => {
             if (window.initSendOTP) {
-                console.log("SDK loaded");
+                console.log("MSG91 SDK ready");
                 setScriptLoaded(true);
                 clearInterval(interval);
             }
@@ -85,6 +63,8 @@ const VerifyMobileOtp = () => {
 
         return () => clearInterval(interval);
     }, []);
+
+
 
     const handleOtpSuccess = (data) => {
         const token = typeof data === 'string' ? data : (data?.message || data?.['access-token'] || data?.token);
@@ -98,59 +78,43 @@ const VerifyMobileOtp = () => {
 
         if (!window.initSendOTP) {
             console.error("MSG91 SDK not loaded");
+            toast.error("Verification service not ready. Please wait.");
             return;
         }
 
-        const captchaContainer = document.getElementById("captcha");
-        if (!captchaContainer) {
-            console.error("#captcha container missing");
-            return;
+        let mobileNumber = phone.trim().replace(/\D/g, '');
+        if (mobileNumber.length === 10) {
+            mobileNumber = '91' + mobileNumber;
         }
-
-        console.log("initSendOTP available");
-
-        if (otpOpened) {
-            console.log("Duplicate initSendOTP call blocked. Popup already open/opening.");
-            return;
-        }
-
-        console.log("widget render started");
-        captchaContainer.innerHTML = "";
-
-        let formattedPhone = phone.trim().replace(/\D/g, '');
-        if (formattedPhone.length === 10) {
-            formattedPhone = '91' + formattedPhone;
-        }
-        const phoneNumber = formattedPhone;
 
         const configuration = {
-            widgetId: import.meta.env.VITE_MSG91_WIDGET_ID || "36657a734e31333338323730",
+            widgetId: import.meta.env.VITE_MSG91_WIDGET_ID,
             tokenAuth: import.meta.env.VITE_MSG91_AUTH_TOKEN,
-            identifier: phoneNumber,
-            container: "captcha",
+            identifier: mobileNumber,
             exposeMethods: true,
 
             success: (data) => {
                 console.log("MSG91 OTP verified:", data);
-                console.log("OTP verified");
-
-                if (data) {
+                if (data?.token) {
+                    handleOtpSuccess(data);
+                } else if (data) {
+                    // handle alternate token shapes
                     handleOtpSuccess(data);
                 }
-                setOtpOpened(false);
             },
 
             failure: (error) => {
                 console.error("MSG91 failure:", error);
-                console.log("OTP failed");
-                setOtpOpened(false);
-            }
+                toast.error("OTP verification failed. Please try again.");
+            },
         };
 
-        console.log("OTP request initiated");
-        setOtpOpened(true);
         window.initSendOTP(configuration);
-        console.log("widget render completed");
+        console.log("initSendOTP called");
+
+        setTimeout(() => {
+            console.log("widget check:", document.querySelector("msg91-otp-provider"));
+        }, 1000);
     };
 
     // Verify token with backend to login / signup
@@ -219,20 +183,8 @@ const VerifyMobileOtp = () => {
                     {/* Action Card */}
                     <div className="bg-emerald-50/30 border border-emerald/10 rounded-xl p-5 text-center space-y-3">
                         <p className="text-xs font-medium text-emerald-dark/80">
-                            Please complete verification in the secure MSG91 popup widget.
+                            Click the button below to open the secure MSG91 verification popup.
                         </p>
-                        <div
-                            id="captcha"
-                            style={{
-                                minHeight: "120px",
-                                width: "100%",
-                                display: "block",
-                                position: "relative",
-                                zIndex: 9999,
-                                overflow: "visible",
-                                marginBottom: "16px"
-                            }}
-                        ></div>
                         <button
                             type="button"
                             onClick={handleOpenPopup}
