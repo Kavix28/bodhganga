@@ -101,12 +101,21 @@ const VerifyMobileOtp = () => {
             return;
         }
 
+        const captchaContainer = document.getElementById("captcha");
+        if (!captchaContainer) {
+            console.error("#captcha container missing");
+            return;
+        }
+
         console.log("initSendOTP available");
 
         if (otpOpened) {
             console.log("Duplicate initSendOTP call blocked. Popup already open/opening.");
             return;
         }
+
+        console.log("widget render started");
+        captchaContainer.innerHTML = "";
 
         let formattedPhone = phone.trim().replace(/\D/g, '');
         if (formattedPhone.length === 10) {
@@ -118,10 +127,12 @@ const VerifyMobileOtp = () => {
             widgetId: import.meta.env.VITE_MSG91_WIDGET_ID || "36657a734e31333338323730",
             tokenAuth: import.meta.env.VITE_MSG91_AUTH_TOKEN,
             identifier: phoneNumber,
+            container: "captcha",
             exposeMethods: true,
 
-            success: function (data) {
+            success: (data) => {
                 console.log("MSG91 OTP verified:", data);
+                console.log("OTP verified");
 
                 if (data) {
                     handleOtpSuccess(data);
@@ -129,8 +140,9 @@ const VerifyMobileOtp = () => {
                 setOtpOpened(false);
             },
 
-            failure: function (error) {
+            failure: (error) => {
                 console.error("MSG91 failure:", error);
+                console.log("OTP failed");
                 setOtpOpened(false);
             }
         };
@@ -138,6 +150,7 @@ const VerifyMobileOtp = () => {
         console.log("OTP request initiated");
         setOtpOpened(true);
         window.initSendOTP(configuration);
+        console.log("widget render completed");
     };
 
     // Verify token with backend to login / signup
@@ -211,10 +224,13 @@ const VerifyMobileOtp = () => {
                         <div
                             id="captcha"
                             style={{
-                                minHeight: "80px",
+                                minHeight: "120px",
                                 width: "100%",
                                 display: "block",
-                                marginBottom: "16px",
+                                position: "relative",
+                                zIndex: 9999,
+                                overflow: "visible",
+                                marginBottom: "16px"
                             }}
                         ></div>
                         <button
