@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { FiMail, FiLock, FiEye, FiEyeOff, FiUser, FiPhone, FiMapPin } from 'react-icons/fi';
-import { signup } from '../services/authService';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import Logo from '../components/common/Logo';
@@ -169,29 +168,19 @@ const Register = () => {
                 return;
             }
 
-            // Configure global MSG91 configuration for the popup
-            window.configuration = {
+            // Save signup data to localStorage (removing confirmPassword)
+            const { confirmPassword, ...signupData } = formData;
+            localStorage.setItem('signupData', JSON.stringify(signupData));
+
+            // Trigger standard MSG91 popup widget directly
+            window.initSendOTP({
                 widgetId: "3657a734e31333338323730",
                 tokenAuth: true,
                 identifier: formattedPhone,
-                success: (response) => {
-                    console.log("Register MSG91 success callback:", response);
-                    const token = typeof response === 'string' ? response : (response?.message || response?.['access-token'] || response?.token);
-                    if (token) {
-                        handleCompleteMobileSignup(token);
-                    }
-                },
-                failure: (error) => {
-                    console.error("Register MSG91 failure callback:", error);
-                    const errMsg = typeof error === 'string' ? error : (error?.message || "OTP process failed.");
-                    toast.error(errMsg);
-                    setIsLoading(false);
-                }
-            };
+            });
 
-            // Trigger standard MSG91 popup widget directly!
-            window.initSendOTP(window.configuration);
             setIsLoading(false);
+            navigate('/verify-mobile-otp', { state: { phone: formData.phoneNo } });
 
         } catch (error) {
             console.error('Mobile signup check error:', error);
@@ -199,34 +188,6 @@ const Register = () => {
             const msg = error?.message || 'Registration failed. Please check details.';
             setErrors({ phoneNo: msg });
             toast.error(msg);
-        }
-    };
-
-    // Mobile Signup Step 3: Complete registration on backend
-    const handleCompleteMobileSignup = async (accessToken) => {
-        setIsLoading(true);
-        try {
-            const { confirmPassword, ...signupData } = formData;
-            // Calls verifyMsg91 endpoint on backend with verified accessToken, phoneNumber, and signupData
-            const res = await api.post('/api/auth/msg91/verify', { 
-                accessToken, 
-                phoneNumber: formData.phoneNo,
-                signupData 
-            });
-            
-            if (res?.success && res.data?.token) {
-                toast.success("Registration successful!");
-                login(res.data.token, res.data.user);
-                navigate('/dashboard', { replace: true });
-            } else {
-                throw new Error(res?.message || 'Registration failed');
-            }
-        } catch (err) {
-            console.error("Mobile registration completion error:", err);
-            const msg = err?.message || 'Verification failed. Please try again.';
-            toast.error(msg);
-        } finally {
-            setIsLoading(false);
         }
     };
 
