@@ -15,13 +15,18 @@ const VerifyMobileOtp = () => {
     const [phone, setPhone] = useState('');
     const [signupData, setSignupData] = useState(null);
 
-    // Load data from state or localStorage
+    // ── Load phone + signup data from navigation state or localStorage ──────────
     useEffect(() => {
         const storedSignupData = localStorage.getItem('signupData');
-        const phoneFromState = location.state?.phone || (storedSignupData ? (JSON.parse(storedSignupData).phoneNo || JSON.parse(storedSignupData).phoneNumber) : '');
+        const phoneFromState =
+            location.state?.phone ||
+            (storedSignupData
+                ? JSON.parse(storedSignupData).phoneNo ||
+                  JSON.parse(storedSignupData).phoneNumber
+                : '');
 
         if (!phoneFromState) {
-            toast.error("Invalid session. Redirecting to registration.");
+            toast.error('Invalid session. Redirecting to registration.');
             navigate('/register');
             return;
         }
@@ -32,30 +37,26 @@ const VerifyMobileOtp = () => {
         }
     }, [location.state, navigate]);
 
-    // Load MSG91 SDK only once
+    // ── Load MSG91 SDK once — do NOT remove on unmount ──────────────────────────
     useEffect(() => {
-        console.log("VerifyMobileOtp mounted. initSendOTP:", typeof window.initSendOTP);
-
         if (window.initSendOTP) {
             setScriptLoaded(true);
             return;
         }
 
-        let script = document.getElementById('msg91-otp-script');
-        if (!script) {
-            script = document.createElement('script');
+        if (!document.getElementById('msg91-otp-script')) {
+            const script = document.createElement('script');
             script.id = 'msg91-otp-script';
             script.src = 'https://verify.msg91.com/otp-provider.js';
             script.async = true;
-            script.onerror = () => {
-                toast.error("Failed to load OTP verification service. Please try again.");
-            };
+            script.onerror = () =>
+                toast.error('Failed to load OTP verification service. Please try again.');
             document.body.appendChild(script);
         }
 
         const interval = setInterval(() => {
             if (window.initSendOTP) {
-                console.log("MSG91 SDK ready");
+                console.log('MSG91 SDK ready');
                 setScriptLoaded(true);
                 clearInterval(interval);
             }
@@ -64,21 +65,25 @@ const VerifyMobileOtp = () => {
         return () => clearInterval(interval);
     }, []);
 
-
-
+    // ── OTP success → verify token with backend ──────────────────────────────────
     const handleOtpSuccess = (data) => {
-        const token = typeof data === 'string' ? data : (data?.message || data?.['access-token'] || data?.token);
+        const token =
+            typeof data === 'string'
+                ? data
+                : data?.token || data?.['access-token'] || data?.message;
         if (token) {
             handleVerifyToken(token);
+        } else {
+            console.error('MSG91 success but no recognisable token in payload:', data);
+            toast.error('Verification response unexpected. Please try again.');
         }
     };
 
+    // ── Button handler — call initSendOTP directly, nothing else ────────────────
     const handleOpenPopup = () => {
-        console.log("OPEN VERIFICATION POPUP clicked");
-
         if (!window.initSendOTP) {
-            console.error("MSG91 SDK not loaded");
-            toast.error("Verification service not ready. Please wait.");
+            console.error('MSG91 SDK not loaded');
+            toast.error('Verification service not ready. Please wait.');
             return;
         }
 
@@ -94,59 +99,50 @@ const VerifyMobileOtp = () => {
             exposeMethods: true,
 
             success: (data) => {
-                console.log("MSG91 OTP verified:", data);
+                console.log('MSG91 OTP verified:', data);
                 if (data?.token) {
                     handleOtpSuccess(data);
                 } else if (data) {
-                    // handle alternate token shapes
                     handleOtpSuccess(data);
                 }
             },
 
             failure: (error) => {
-                console.error("MSG91 failure:", error);
-                toast.error("OTP verification failed. Please try again.");
+                console.error('MSG91 failure:', error);
+                toast.error('OTP verification failed. Please try again.');
             },
         };
 
         window.initSendOTP(configuration);
-        console.log("initSendOTP called");
-
-        setTimeout(() => {
-            console.log("widget check:", document.querySelector("msg91-otp-provider"));
-        }, 1000);
     };
 
-    // Verify token with backend to login / signup
+    // ── Verify MSG91 token with backend ──────────────────────────────────────────
     const handleVerifyToken = async (accessToken) => {
         setIsLoading(true);
         try {
             const res = await api.post('/api/auth/msg91/verify', {
                 accessToken,
                 phoneNumber: phone,
-                signupData: signupData
+                signupData,
             });
 
             if (res?.success && res.data?.token) {
-                // Clear temporary signup data
                 localStorage.removeItem('signupData');
-                
-                toast.success("Mobile number verified & registered successfully!");
+                toast.success('Mobile number verified & registered successfully!');
                 login(res.data.token, res.data.user);
                 navigate('/dashboard', { replace: true });
             } else {
                 throw new Error(res?.message || 'Authentication failed');
             }
         } catch (err) {
-            console.error("Backend token verification error:", err);
-            const msg = err?.message || 'Verification failed. Please try again.';
-            toast.error(msg);
+            console.error('Backend token verification error:', err);
+            toast.error(err?.message || 'Verification failed. Please try again.');
         } finally {
             setIsLoading(false);
         }
     };
 
-    // Format phone for display (+91 XXXXX XXXXX)
+    // ── Display helper ───────────────────────────────────────────────────────────
     const formatPhoneDisplay = (num) => {
         if (!num) return '';
         const cleaned = num.replace(/\D/g, '');
@@ -156,18 +152,24 @@ const VerifyMobileOtp = () => {
         return `+${cleaned}`;
     };
 
+    // ── Render ───────────────────────────────────────────────────────────────────
     return (
         <div className="min-h-screen bg-ivory-light flex items-center justify-center py-16 px-4">
             <div className="max-w-md w-full space-y-8 card-premium bg-white p-8 sm:p-10 shadow-2xl border border-emerald/5">
+
                 {/* Header */}
                 <div className="text-center space-y-3">
                     <div className="w-16 h-16 bg-emerald/5 border border-gold/25 rounded-2xl flex items-center justify-center mx-auto mb-2">
                         <FiShield className="w-8 h-8 text-emerald" />
                     </div>
-                    <h2 className="text-2xl font-bold text-emerald-dark font-serif tracking-tight">Verify Mobile OTP</h2>
+                    <h2 className="text-2xl font-bold text-emerald-dark font-serif tracking-tight">
+                        Verify Mobile OTP
+                    </h2>
                     <p className="text-xs text-emerald-dark/60 leading-relaxed font-semibold">
-                        A verification code is being sent to your mobile number
-                        <span className="font-bold text-emerald block mt-1">{formatPhoneDisplay(phone)}</span>
+                        A verification code will be sent to your mobile number
+                        <span className="font-bold text-emerald block mt-1">
+                            {formatPhoneDisplay(phone)}
+                        </span>
                     </p>
                     <button
                         onClick={() => navigate('/register')}
@@ -179,19 +181,20 @@ const VerifyMobileOtp = () => {
                     </button>
                 </div>
 
+                {/* Action */}
                 <div className="space-y-6">
-                    {/* Action Card */}
                     <div className="bg-emerald-50/30 border border-emerald/10 rounded-xl p-5 text-center space-y-3">
                         <p className="text-xs font-medium text-emerald-dark/80">
-                            Click the button below to open the secure MSG91 verification popup.
+                            Click the button below — a secure MSG91 popup will open to verify your number.
                         </p>
                         <button
                             type="button"
+                            id="open-otp-popup"
                             onClick={handleOpenPopup}
                             disabled={isLoading || !scriptLoaded}
                             className="w-full py-2.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest rounded-lg shadow hover:-translate-y-0.5 active:scale-95 transition-all duration-300 disabled:opacity-50 disabled:pointer-events-none"
                         >
-                            {isLoading ? "Processing..." : "Open Verification Popup"}
+                            {isLoading ? 'Processing…' : 'Open Verification Popup'}
                         </button>
                     </div>
 
@@ -201,6 +204,7 @@ const VerifyMobileOtp = () => {
                         </p>
                     </div>
                 </div>
+
             </div>
         </div>
     );
