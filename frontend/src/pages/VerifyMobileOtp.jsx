@@ -71,9 +71,8 @@ const VerifyMobileOtp = () => {
         }
 
         // Configure global MSG91 configuration for the popup
-        window.configuration = {
-            widgetId: "3657a734e31333338323730",
-            tokenAuth: true,
+        const config = {
+            widgetId: import.meta.env.VITE_MSG91_WIDGET_ID || "3657a734e31333338323730",
             identifier: formattedPhone,
             success: (response) => {
                 console.log("VerifyMobileOtp MSG91 success callback:", response);
@@ -88,6 +87,13 @@ const VerifyMobileOtp = () => {
                 toast.error(errMsg);
             }
         };
+
+        const authToken = import.meta.env.VITE_MSG91_AUTH_TOKEN;
+        if (authToken) {
+            config.tokenAuth = authToken;
+        }
+
+        window.configuration = config;
 
         // Open the MSG91 widget popup
         window.initSendOTP(window.configuration);

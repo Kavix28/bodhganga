@@ -40,7 +40,6 @@ const Register = () => {
     const [otpStep, setOtpStep] = useState('INPUT_PHONE'); // 'INPUT_PHONE' or 'INPUT_OTP'
     const [otp, setOtp] = useState('');
     const [timer, setTimer] = useState(0);
-    const [scriptLoaded, setScriptLoaded] = useState(false);
     const [verifiedToken, setVerifiedToken] = useState('');
 
     // Handle input changes
@@ -73,26 +72,7 @@ const Register = () => {
         return () => clearInterval(interval);
     }, [timer]);
 
-    // Dynamically load MSG91 Widget script on demand for Mobile Signup
-    useEffect(() => {
-        if (signupMethod === 'mobile') {
-            if (!document.getElementById('msg91-otp-script')) {
-                const script = document.createElement('script');
-                script.id = 'msg91-otp-script';
-                script.src = 'https://verify.msg91.com/otp-provider.js';
-                script.async = true;
-                script.onload = () => {
-                    setScriptLoaded(true);
-                };
-                script.onerror = () => {
-                    toast.error("Failed to load OTP verification service. Please try again.");
-                };
-                document.body.appendChild(script);
-            } else {
-                setScriptLoaded(true);
-            }
-        }
-    }, [signupMethod]);
+    // No script loading needed on Register page anymore, since it navigates to VerifyMobileOtp directly
 
     // Validate form
     const validateForm = () => {
@@ -166,33 +146,8 @@ const Register = () => {
                 JSON.stringify(signupData)
             );
 
-            if (!window.initSendOTP) {
-                toast.error("MSG91 not loaded");
-                setIsLoading(false);
-                return;
-            }
-
-            let formattedPhone = signupData.phoneNumber.trim().replace(/\D/g, '');
-            if (formattedPhone.length === 10) {
-                formattedPhone = '91' + formattedPhone;
-            }
-
-            window.initSendOTP({
-                widgetId: import.meta.env.VITE_MSG91_WIDGET_ID || "3657a734e31333338323730",
-                tokenAuth: true,
-                identifier: formattedPhone,
-
-                success: function () {
-                    setIsLoading(false);
-                    navigate("/verify-mobile-otp");
-                },
-
-                failure: function (error) {
-                    console.error("OTP failed:", error);
-                    toast.error("OTP failed to send");
-                    setIsLoading(false);
-                }
-            });
+            setIsLoading(false);
+            navigate("/verify-mobile-otp", { state: { phone: signupData.phoneNumber } });
 
         } catch (err) {
             console.error(err);
@@ -270,7 +225,7 @@ const Register = () => {
                                                 if (errors.phoneNumber) setErrors(p => ({ ...p, phoneNumber: '' }));
                                             }}
                                             placeholder="9876543210"
-                                            disabled={isLoading || !scriptLoaded}
+                                            disabled={isLoading}
                                             className={`w-full py-3 pl-14 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
                                                 errors.phoneNumber ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
                                             }`}
@@ -411,7 +366,7 @@ const Register = () => {
                             <button
                                 type="button"
                                 onClick={handleMobileSubmit}
-                                disabled={isLoading || !scriptLoaded}
+                                disabled={isLoading}
                                 className="w-full py-3.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-gold/10 hover:shadow-gold/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
                             >
                                 {isLoading ? (
