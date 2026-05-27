@@ -142,7 +142,7 @@ const Register = () => {
 
     // Mobile Signup Step 1: Trigger MSG91 OTP and redirect
     const handleMobileSubmit = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
 
         if (!validateForm()) {
             return;
@@ -232,7 +232,7 @@ const Register = () => {
 
                     {/* Mobile OTP Registration Flow */}
                     <div className="space-y-6">
-                        <form onSubmit={handleMobileSubmit} className="space-y-6">
+                        <form onSubmit={handleMobileSubmit} noValidate className="space-y-6">
                             {/* Grid Row 1 */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 {/* Name */}
@@ -409,7 +409,8 @@ const Register = () => {
                             </div>
 
                             <button
-                                type="submit"
+                                type="button"
+                                onClick={handleMobileSubmit}
                                 disabled={isLoading || !scriptLoaded}
                                 className="w-full py-3.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-gold/10 hover:shadow-gold/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
                             >
