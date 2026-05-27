@@ -82,7 +82,12 @@ const Login = () => {
 
     const validatePasswordForm = () => {
         const e = {};
-        if (!form.emailOrPhone.trim()) e.emailOrPhone = 'Email or phone number is required';
+        const cleaned = form.emailOrPhone.trim().replace(/\D/g, '');
+        if (!cleaned) {
+            e.emailOrPhone = 'Mobile number is required';
+        } else if (cleaned.length < 10) {
+            e.emailOrPhone = 'Mobile number must be 10 digits';
+        }
         if (!form.password) e.password = 'Password is required';
         setErrors(e);
         return !Object.keys(e).length;
@@ -254,22 +259,27 @@ const Login = () => {
                     {loginMethod === 'password' ? (
                         /* Password Form */
                         <form onSubmit={handleSubmit} className="space-y-6">
-                            {/* Email/Phone */}
+                            {/* Mobile Number */}
                             <div className="space-y-1.5">
-                                <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Email or Phone</label>
+                                <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Mobile Number</label>
                                 <div className="relative">
-                                    <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/60" />
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-emerald/60">+91</span>
                                     <input 
                                         name="emailOrPhone" 
-                                        type="text" 
+                                        type="tel" 
                                         value={form.emailOrPhone} 
-                                        onChange={handleChange}
-                                        placeholder="you@example.com or 9876543210"
+                                        onChange={e => {
+                                            const val = e.target.value.replace(/\D/g, '').substring(0, 10);
+                                            setForm(p => ({ ...p, emailOrPhone: val }));
+                                            if (errors.emailOrPhone) setErrors(p => ({ ...p, emailOrPhone: '' }));
+                                        }}
+                                        placeholder="9876543210"
                                         disabled={loading}
-                                        className={`w-full py-3 pl-11 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
+                                        className={`w-full py-3 pl-14 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
                                             errors.emailOrPhone ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
                                         }`} 
                                     />
+                                    <FiPhone className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/40" />
                                 </div>
                                 {errors.emailOrPhone && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.emailOrPhone}</p>}
                             </div>

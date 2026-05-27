@@ -41,11 +41,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public auth endpoints
                         .requestMatchers(
-                                "/api/auth/register",
                                 "/api/auth/login",
                                 "/api/auth/health",
                                 "/api/auth/admin/login",
-                                "/api/auth/otp/**",
                                 "/api/auth/**",
                                 "/error",
                                 "/actuator/**"

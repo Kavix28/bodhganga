@@ -20,14 +20,12 @@ public class AuthService {
         private final PasswordEncoder passwordEncoder;
         private final JwtUtil jwtUtil;
         private final EmailService emailService;
-        private final OtpService otpService;
 
-        public AuthService(UserRepo userRepo, PasswordEncoder passwordEncoder, JwtUtil jwtUtil, EmailService emailService, OtpService otpService) {
+        public AuthService(UserRepo userRepo, PasswordEncoder passwordEncoder, JwtUtil jwtUtil, EmailService emailService) {
                 this.userRepo = userRepo;
                 this.passwordEncoder = passwordEncoder;
                 this.jwtUtil = jwtUtil;
                 this.emailService = emailService;
-                this.otpService = otpService;
         }
 
         /**
@@ -47,14 +45,6 @@ public class AuthService {
          * Complete Signup - saves user to DB and generates session (only called after OTP success)
          */
         public ApiResponseDTO completeSignup(SignupRequestDTO dto, boolean emailVerified, boolean phoneVerified) {
-                // Double check if email already exists
-                if (userRepo.existsByEmail(dto.getEmail())) {
-                        return ApiResponseDTO.builder()
-                                        .success(false)
-                                        .message("Email already registered")
-                                        .build();
-                }
-
                 String normalizedPhone = dto.getPhoneNo() != null ? dto.getPhoneNo().replaceAll("[^0-9]", "") : "";
                 if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
                         normalizedPhone = normalizedPhone.substring(2);
@@ -66,6 +56,16 @@ public class AuthService {
                                         .success(false)
                                         .message("Phone number already registered")
                                         .build();
+                }
+
+                // Double check if email already exists (only if a custom email is provided)
+                if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
+                        if (userRepo.existsByEmail(dto.getEmail())) {
+                                return ApiResponseDTO.builder()
+                                                .success(false)
+                                                .message("Email already registered")
+                                                .build();
+                        }
                 }
 
                 // Create new user with hashed password
@@ -87,22 +87,26 @@ public class AuthService {
                                 .createdAt(new Date())
                                 .build();
 
-                System.out.println("Saving verified user: " + user.getEmail());
+                System.out.println("Saving verified user: " + user.getPhoneNo());
                 User savedUser = userRepo.save(user);
 
-                // Trigger welcome email asynchronously
-                try {
-                        emailService.sendWelcomeEmail(savedUser.getEmail(), savedUser.getName());
-                } catch (Exception e) {
-                        System.err.println("Failed to trigger welcome email: " + e.getMessage());
+                // Trigger welcome email asynchronously if a real email is used
+                if (savedUser.getEmail() != null && !savedUser.getEmail().endsWith("@bodhganga.in")) {
+                        try {
+                                emailService.sendWelcomeEmail(savedUser.getEmail(), savedUser.getName());
+                        } catch (Exception e) {
+                                System.err.println("Failed to trigger welcome email: " + e.getMessage());
+                        }
                 }
 
-                // Generate JWT token for auto-login
-                String token = jwtUtil.generateToken(savedUser.getEmail(), savedUser.getId(), savedUser.getRole());
+                // Generate JWT token for auto-login (use email or dummy email)
+                String jwtSubject = savedUser.getEmail() != null ? savedUser.getEmail() : savedUser.getPhoneNo();
+                String token = jwtUtil.generateToken(jwtSubject, savedUser.getId(), savedUser.getRole());
 
                 // Convert to response DTO
                 UserResponseDTO userResponse = mapToUserResponse(savedUser);
 
+                // Create response with token and user data
                 Map<String, Object> responseData = new HashMap<>();
                 responseData.put("token", token);
                 responseData.put("user", userResponse);
@@ -176,26 +180,30 @@ public class AuthService {
         }
 
         /**
-         * User Login - Authenticate user
+         * User Login - Authenticate user via mobile number only
          */
         public ApiResponseDTO login(LoginRequestDTO dto) {
-                // Determine if input is email or phone
                 String emailOrPhone = dto.getEmailOrPhone();
-                User user = null;
 
                 if (emailOrPhone.contains("@")) {
-                        // It's an email
-                        user = userRepo.findByEmail(emailOrPhone).orElse(null);
-                } else {
-                        // It's a phone number - normalize it (remove non-digits)
-                        String normalizedPhone = emailOrPhone.replaceAll("[^0-9]", "");
-                        user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);
+                        return ApiResponseDTO.builder()
+                                        .success(false)
+                                        .message("Email login is disabled. Please log in using your Mobile Number.")
+                                        .build();
                 }
+
+                // Normalize phone number (remove non-digits)
+                String normalizedPhone = emailOrPhone.replaceAll("[^0-9]", "");
+                if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
+                        normalizedPhone = normalizedPhone.substring(2);
+                }
+
+                User user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);
 
                 if (user == null) {
                         return ApiResponseDTO.builder()
                                         .success(false)
-                                        .message("Invalid email/phone or password")
+                                        .message("Invalid mobile number or password")
                                         .build();
                 }
 
@@ -211,7 +219,7 @@ public class AuthService {
                 if (!passwordEncoder.matches(dto.getPassword(), user.getHashedPassword())) {
                         return ApiResponseDTO.builder()
                                         .success(false)
-                                        .message("Invalid email or password")
+                                        .message("Invalid mobile number or password")
                                         .build();
                 }
 
@@ -220,7 +228,8 @@ public class AuthService {
                 userRepo.save(user);
 
                 // Generate JWT token
-                String token = jwtUtil.generateToken(user.getEmail(), user.getId(), user.getRole());
+                String jwtSubject = user.getEmail() != null ? user.getEmail() : user.getPhoneNo();
+                String token = jwtUtil.generateToken(jwtSubject, user.getId(), user.getRole());
 
                 // Convert to response DTO
                 UserResponseDTO userResponse = mapToUserResponse(user);
@@ -249,15 +258,13 @@ public class AuthService {
                         return loginResult;
                 }
 
-                // Determine user from email or phone
                 String emailOrPhone = dto.getEmailOrPhone();
-                User user = null;
-                if (emailOrPhone.contains("@")) {
-                        user = userRepo.findByEmail(emailOrPhone).orElse(null);
-                } else {
-                        String normalizedPhone = emailOrPhone.replaceAll("[^0-9]", "");
-                        user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);
+                String normalizedPhone = emailOrPhone.replaceAll("[^0-9]", "");
+                if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
+                        normalizedPhone = normalizedPhone.substring(2);
                 }
+
+                User user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);
 
                 // Validate ADMIN role
                 if (user == null || !"ADMIN".equals(user.getRole())) {
@@ -387,10 +394,12 @@ public class AuthService {
                                         System.out.println("Creating new user via MSG91 OTP: " + user.getPhoneNo());
                                         user = userRepo.save(user);
 
-                                        try {
-                                                emailService.sendWelcomeEmail(user.getEmail(), user.getName());
-                                        } catch (Exception e) {
-                                                System.err.println("Failed to trigger welcome email: " + e.getMessage());
+                                        if (user.getEmail() != null && !user.getEmail().endsWith("@bodhganga.in")) {
+                                                try {
+                                                        emailService.sendWelcomeEmail(user.getEmail(), user.getName());
+                                                } catch (Exception e) {
+                                                        System.err.println("Failed to trigger welcome email: " + e.getMessage());
+                                                }
                                         }
                                 } else {
                                         user.setVerified(true);

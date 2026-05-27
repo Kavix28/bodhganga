@@ -8,8 +8,6 @@ public class SignupRequestDTO {
     @NotBlank(message = "Name is Required")
     private String name;
 
-    @NotBlank(message = "Email is Required")
-    @Email(message = "Invalid Email Format")
     private String email;
 
     @NotBlank(message = "Phone number is required")
@@ -24,11 +22,14 @@ public class SignupRequestDTO {
     private String gender; // Optional
     private Date dateOfBirth; // Optional
 
-    private String city; // Optional on backend
+    @NotBlank(message = "City is required")
+    private String city;
 
-    private String state; // Optional on backend
+    @NotBlank(message = "State is required")
+    private String state;
 
-    private String country; // Optional on backend
+    @NotBlank(message = "Country is required")
+    private String country;
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }

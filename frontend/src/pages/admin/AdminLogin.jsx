@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { FiLock, FiUser, FiEye, FiEyeOff, FiShield } from 'react-icons/fi';
+import { FiLock, FiUser, FiEye, FiEyeOff, FiShield, FiPhone } from 'react-icons/fi';
 import { authenticateAdmin, isAdminAuthenticated } from '../../utils/adminAuth';
 import toast from 'react-hot-toast';
 
@@ -44,9 +44,12 @@ const AdminLogin = () => {
     // Validate form
     const validateForm = () => {
         const newErrors = {};
+        const cleaned = formData.emailOrPhone.trim().replace(/\D/g, '');
 
-        if (!formData.emailOrPhone.trim()) {
-            newErrors.emailOrPhone = 'Email or phone is required';
+        if (!cleaned) {
+            newErrors.emailOrPhone = 'Mobile number is required';
+        } else if (cleaned.length < 10) {
+            newErrors.emailOrPhone = 'Mobile number must be 10 digits';
         }
 
         if (!formData.password.trim()) {
@@ -112,27 +115,31 @@ const AdminLogin = () => {
                 {/* Login Form */}
                 <div className="bg-gray-800 rounded-[2px] shadow-xl p-8 border border-gray-700">
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Email/Phone Input */}
+                        {/* Mobile Number Input */}
                         <div>
                             <label htmlFor="emailOrPhone" className="block text-sm font-medium text-gray-300 mb-2">
-                                Email or Phone
+                                Mobile Number
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <FiUser className="h-5 w-5 text-gray-500" />
+                                    <FiPhone className="h-5 w-5 text-gray-500" />
                                 </div>
                                 <input
                                     id="emailOrPhone"
                                     name="emailOrPhone"
-                                    type="text"
+                                    type="tel"
                                     value={formData.emailOrPhone}
-                                    onChange={handleChange}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/\D/g, '').substring(0, 10);
+                                        setFormData(prev => ({ ...prev, emailOrPhone: val }));
+                                        if (errors.emailOrPhone) setErrors(prev => ({ ...prev, emailOrPhone: '' }));
+                                    }}
                                     className={`w-full pl-10 pr-4 py-3 bg-gray-700 border rounded-[2px] focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all duration-200 text-white placeholder-gray-400 ${
                                         errors.emailOrPhone ? 'border-red-500' : 'border-gray-600'
                                     }`}
-                                    placeholder="Enter admin email or phone"
+                                    placeholder="Enter admin mobile number"
                                     disabled={isLoading}
-                                    autoComplete="email"
+                                    autoComplete="tel"
                                 />
                             </div>
                             {errors.emailOrPhone && (

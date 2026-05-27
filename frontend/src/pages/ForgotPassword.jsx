@@ -11,64 +11,37 @@ const ForgotPassword = () => {
     const [otpStep, setOtpStep] = useState('INPUT_PHONE'); // 'INPUT_PHONE', 'RESET_PASSWORD', 'SUCCESS'
 
     // Form Inputs
-    const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
     // UI/UX States
     const [loading, setLoading] = useState(false);
-    const [sent, setSent] = useState(false); // for email reset success
     const [errors, setErrors] = useState({});
     const [showPw, setShowPw] = useState(false);
     const [showConfirmPw, setShowConfirmPw] = useState(false);
-
     // MSG91 states
     const [scriptLoaded, setScriptLoaded] = useState(false);
     const [verifiedToken, setVerifiedToken] = useState('');
 
-    // Dynamically load MSG91 Widget script on demand for mobile reset
+    // Dynamically load MSG91 Widget script on mount for mobile reset
     useEffect(() => {
-        if (resetMethod === 'mobile') {
-            if (!document.getElementById('msg91-otp-script')) {
-                const script = document.createElement('script');
-                script.id = 'msg91-otp-script';
-                script.src = 'https://verify.msg91.com/otp-provider.js';
-                script.async = true;
-                script.onload = () => {
-                    setScriptLoaded(true);
-                };
-                script.onerror = () => {
-                    toast.error("Failed to load OTP verification service. Please try again.");
-                };
-                document.body.appendChild(script);
-            } else {
+        if (!document.getElementById('msg91-otp-script')) {
+            const script = document.createElement('script');
+            script.id = 'msg91-otp-script';
+            script.src = 'https://verify.msg91.com/otp-provider.js';
+            script.async = true;
+            script.onload = () => {
                 setScriptLoaded(true);
-            }
+            };
+            script.onerror = () => {
+                toast.error("Failed to load OTP verification service. Please try again.");
+            };
+            document.body.appendChild(script);
+        } else {
+            setScriptLoaded(true);
         }
-    }, [resetMethod]);
-
-    // Email Reset Submit
-    const handleEmailSubmit = async e => {
-        e.preventDefault();
-        if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            setErrors({ email: 'Please enter a valid email address' });
-            return;
-        }
-        setLoading(true);
-        setErrors({});
-        try {
-            await api.post('/api/auth/otp/send', { email });
-            setSent(true);
-            toast.success('Reset code sent to your email');
-        } catch (err) {
-            // Always show success to prevent user enumeration
-            setSent(true);
-        } finally {
-            setLoading(false);
-        }
-    };
-
+    }, []);
     const validatePhone = (num) => {
         const cleaned = num.trim().replace(/\D/g, '');
         if (!cleaned) return 'Phone number is required';
