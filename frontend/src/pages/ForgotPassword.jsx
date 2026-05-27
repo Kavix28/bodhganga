@@ -81,29 +81,25 @@ const ForgotPassword = () => {
 
             // Configure MSG91 widget configuration dynamically
             const config = {
-                widgetId: import.meta.env.VITE_MSG91_WIDGET_ID || "3657a734e31333338323730",
+                widgetId: import.meta.env.VITE_MSG91_WIDGET_ID || "36657a734e31333338323730",
                 identifier: formattedPhone,
+                exposeMethods: true,
                 success: (response) => {
-                    console.log("ForgotPassword MSG91 success callback:", response);
+                    console.log("MSG91 success", response);
                     const token = typeof response === 'string' ? response : (response?.message || response?.['access-token'] || response?.token);
                     if (token) {
                         handleVerifyOtpToken(token);
                     }
                 },
                 failure: (error) => {
-                    console.error("ForgotPassword MSG91 failure callback:", error);
+                    console.log("MSG91 failure", error);
                     const errMsg = typeof error === 'string' ? error : (error?.message || "OTP process failed.");
                     toast.error(errMsg);
                     setLoading(false);
                 }
             };
 
-            const authToken = import.meta.env.VITE_MSG91_AUTH_TOKEN;
-            if (authToken) {
-                config.tokenAuth = authToken;
-            } else {
-                config.tokenAuth = true;
-            }
+            config.tokenAuth = import.meta.env.VITE_MSG91_AUTH_TOKEN;
 
             window.configuration = config;
 
