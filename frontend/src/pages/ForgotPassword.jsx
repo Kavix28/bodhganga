@@ -101,6 +101,8 @@ const ForgotPassword = () => {
             const authToken = import.meta.env.VITE_MSG91_AUTH_TOKEN;
             if (authToken) {
                 config.tokenAuth = authToken;
+            } else {
+                config.tokenAuth = true;
             }
 
             window.configuration = config;
