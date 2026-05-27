@@ -35,6 +35,7 @@ const VerifyMobileOtp = () => {
 
     // Dynamically load MSG91 Widget script on mount
     useEffect(() => {
+        console.log("VerifyMobileOtp mounted");
         if (!document.getElementById('msg91-otp-script')) {
             const script = document.createElement('script');
             script.id = 'msg91-otp-script';
@@ -60,7 +61,9 @@ const VerifyMobileOtp = () => {
     }, [scriptLoaded, phone]);
 
     const triggerMsg91Widget = () => {
+        console.log("Calling initSendOTP");
         if (!window.initSendOTP) {
+            console.error("initSendOTP not found on window object!");
             toast.error("OTP service is initializing. Please wait a moment.");
             return;
         }
@@ -96,6 +99,7 @@ const VerifyMobileOtp = () => {
         window.configuration = config;
 
         // Open the MSG91 widget popup
+        console.log("OTP request initiated");
         window.initSendOTP(window.configuration);
     };
 
