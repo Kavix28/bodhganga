@@ -22,6 +22,13 @@ const VerifyMobileOtp = () => {
         console.log("VerifyMobileOtp State Update:", { phone, scriptLoaded, isLoading });
     }, [phone, scriptLoaded, isLoading]);
 
+    // Log #captcha element mounting
+    useEffect(() => {
+        if (document.querySelector("#captcha")) {
+            console.log("#captcha mounted");
+        }
+    }, []);
+
     // Load data from state or localStorage
     useEffect(() => {
         const storedSignupData = localStorage.getItem('signupData');
@@ -86,12 +93,11 @@ const VerifyMobileOtp = () => {
         }
     };
 
-    const triggerMsg91Widget = () => {
-        console.log("button clicked");
+    const handleOpenPopup = () => {
+        console.log("OPEN VERIFICATION POPUP clicked");
 
         if (!window.initSendOTP) {
-            console.error("initSendOTP not found on window object!");
-            toast.error("OTP service is initializing. Please wait a moment.");
+            console.error("MSG91 SDK not loaded");
             return;
         }
 
@@ -114,30 +120,24 @@ const VerifyMobileOtp = () => {
             identifier: phoneNumber,
             exposeMethods: true,
 
-            success: (data) => {
-                console.log("MSG91 success:", data);
+            success: function (data) {
+                console.log("MSG91 OTP verified:", data);
 
-                // if token returned, continue OTP verified flow
                 if (data) {
                     handleOtpSuccess(data);
                 }
                 setOtpOpened(false);
             },
 
-            failure: (error) => {
+            failure: function (error) {
                 console.error("MSG91 failure:", error);
-                toast.error(
-                    error?.message || "OTP verification failed. Please try again."
-                );
                 setOtpOpened(false);
-            },
+            }
         };
 
-        window.configuration = configuration;
-
-        console.log("popup opened");
+        console.log("OTP request initiated");
         setOtpOpened(true);
-        window.initSendOTP(window.configuration);
+        window.initSendOTP(configuration);
     };
 
     // Verify token with backend to login / signup
@@ -208,10 +208,18 @@ const VerifyMobileOtp = () => {
                         <p className="text-xs font-medium text-emerald-dark/80">
                             Please complete verification in the secure MSG91 popup widget.
                         </p>
-                        <div id="captcha"></div>
+                        <div
+                            id="captcha"
+                            style={{
+                                minHeight: "80px",
+                                width: "100%",
+                                display: "block",
+                                marginBottom: "16px",
+                            }}
+                        ></div>
                         <button
                             type="button"
-                            onClick={triggerMsg91Widget}
+                            onClick={handleOpenPopup}
                             disabled={isLoading || !scriptLoaded}
                             className="w-full py-2.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest rounded-lg shadow hover:-translate-y-0.5 active:scale-95 transition-all duration-300 disabled:opacity-50 disabled:pointer-events-none"
                         >
