@@ -19,7 +19,7 @@ const VerifyMobileOtp = () => {
     // Load data from state or localStorage
     useEffect(() => {
         const storedSignupData = localStorage.getItem('signupData');
-        const phoneFromState = location.state?.phone || (storedSignupData ? JSON.parse(storedSignupData).phoneNo : '');
+        const phoneFromState = location.state?.phone || (storedSignupData ? (JSON.parse(storedSignupData).phoneNo || JSON.parse(storedSignupData).phoneNumber) : '');
 
         if (!phoneFromState) {
             toast.error("Invalid session. Redirecting to registration.");

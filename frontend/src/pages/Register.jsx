@@ -140,55 +140,52 @@ const Register = () => {
         return Object.keys(newErrors).length === 0;
     };
 
-    // Mobile Signup Step 1: Check availability and send OTP via MSG91 widget popup
-    const handleMobileSubmit = async (e) => {
+    // Mobile Signup Step 1: Trigger MSG91 OTP and redirect
+    const handleMobileSubmit = (e) => {
         e.preventDefault();
 
-        if (!validateForm(true)) {
+        if (!validateForm()) {
             return;
         }
 
         setIsLoading(true);
 
-        try {
-            // Check if phone number is already registered in DB
-            const checkRes = await api.post('/api/auth/register/mobile/check', { phoneNo: formData.phoneNo });
-            if (!checkRes?.success) {
-                throw new Error(checkRes?.message || 'Phone number already registered');
-            }
-
-            let formattedPhone = formData.phoneNo.trim().replace(/\D/g, '');
-            if (formattedPhone.length === 10) {
-                formattedPhone = '91' + formattedPhone;
-            }
-
-            if (!window.initSendOTP) {
-                toast.error("OTP service is initializing. Please wait a moment.");
-                setIsLoading(false);
-                return;
-            }
-
-            // Save signup data to localStorage (removing confirmPassword)
-            const { confirmPassword, ...signupData } = formData;
-            localStorage.setItem('signupData', JSON.stringify(signupData));
-
-            // Trigger standard MSG91 popup widget directly
-            window.initSendOTP({
-                widgetId: "3657a734e31333338323730",
-                tokenAuth: true,
-                identifier: formattedPhone,
-            });
-
-            setIsLoading(false);
-            navigate('/verify-mobile-otp', { state: { phone: formData.phoneNo } });
-
-        } catch (error) {
-            console.error('Mobile signup check error:', error);
-            setIsLoading(false);
-            const msg = error?.message || 'Registration failed. Please check details.';
-            setErrors({ phoneNo: msg });
-            toast.error(msg);
+        const phoneNumber = formData.phoneNo;
+        let formattedPhone = phoneNumber.trim().replace(/\D/g, '');
+        if (formattedPhone.length === 10) {
+            formattedPhone = '91' + formattedPhone;
         }
+
+        if (!window.initSendOTP) {
+            toast.error("OTP service is initializing. Please wait a moment.");
+            setIsLoading(false);
+            return;
+        }
+
+        // Store signup data
+        localStorage.setItem(
+            "signupData",
+            JSON.stringify({
+                name: formData.name,
+                email: formData.email,
+                phoneNumber: phoneNumber,
+                phoneNo: phoneNumber, // keep phoneNo for compatibility with VerifyMobileOtp.jsx
+                city: formData.city,
+                state: formData.state,
+                country: formData.country,
+                password: formData.password
+            })
+        );
+
+        // Trigger MSG91 OTP
+        window.initSendOTP({
+            widgetId: import.meta.env.VITE_MSG91_WIDGET_ID || "3657a734e31333338323730",
+            tokenAuth: true,
+            identifier: formattedPhone
+        });
+
+        setIsLoading(false);
+        navigate("/verify-mobile-otp", { state: { phone: phoneNumber } });
     };
 
     return (
