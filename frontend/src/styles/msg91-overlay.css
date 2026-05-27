@@ -1,0 +1,43 @@
+/* ─── MSG91 OTP overlay force-visibility ─────────────────────────────────────
+   The MSG91 Web SDK renders msg91-otp-provider directly into <body> as a
+   position:fixed full-screen overlay. Any ancestor with backdrop-filter,
+   transform, filter, or overflow:hidden creates a stacking context that
+   clips/hides position:fixed descendants.
+
+   These rules ensure the widget is always on top regardless of app layout.
+   They are intentionally !important and outside @layer.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+msg91-otp-provider {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 2147483647 !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+msg91-otp-provider iframe {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  border: none !important;
+}
+
+/* Catch iframe by src in case the custom element wrapping differs */
+body iframe[src*="msg91"],
+body iframe[src*="verify.msg91"] {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 2147483647 !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}

@@ -4,6 +4,7 @@ import App from './App.jsx'
 import ErrorBoundary from './components/common/ErrorBoundary.jsx'
 import './styles/index.css'
 import './styles/gov-clone.css'
+import './styles/msg91-overlay.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>

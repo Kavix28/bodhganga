@@ -42,13 +42,24 @@
 /* ── Modern Premium Cards ──────────────────────────────────── */
 .card-premium {
   background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  /* NOTE: backdrop-filter moved to ::before so this element does NOT form
+     a stacking context — which would trap position:fixed children (MSG91 popup) */
   border: 1px solid rgba(15, 81, 50, 0.08);
   border-radius: var(--radius-premium);
   box-shadow: var(--shadow-premium);
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  overflow: hidden;
+  /* overflow: hidden removed — was clipping position:fixed overlays */
+  position: relative;
+}
+.card-premium::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: inherit;
+  z-index: -1;
+  pointer-events: none;
 }
 .card-premium:hover {
   transform: translateY(-4px);
@@ -362,10 +373,17 @@
   right: 0;
   z-index: 40;
   background: rgba(6, 32, 20, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   border-top: 1px solid rgba(201, 169, 97, 0.2);
   padding: 0.875rem 1.5rem;
   box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
+}
+.sticky-cta-bar::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: -1;
+  pointer-events: none;
 }
 
