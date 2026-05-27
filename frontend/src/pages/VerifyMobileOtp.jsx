@@ -15,6 +15,7 @@ const VerifyMobileOtp = () => {
     const [scriptLoaded, setScriptLoaded] = useState(!!window.initSendOTP);
     const [phone, setPhone] = useState('');
     const [signupData, setSignupData] = useState(null);
+    const [otpOpened, setOtpOpened] = useState(false);
 
     // Log state updates for debugging
     useEffect(() => {
@@ -38,59 +39,55 @@ const VerifyMobileOtp = () => {
         }
     }, [location.state, navigate]);
 
-    // Check script loaded and fallback to dynamic loading on mount
+    // Check script loaded and dynamically load MSG91 SDK only once
     useEffect(() => {
         console.log("VerifyMobileOtp mounted. Initial window.initSendOTP:", typeof window.initSendOTP);
         
         if (window.initSendOTP) {
+            console.log("SDK loaded: initSendOTP available immediately");
             setScriptLoaded(true);
             return;
         }
 
-        let checks = 0;
+        // Avoid duplicate script tag injection
+        let script = document.getElementById('msg91-otp-script');
+        if (!script) {
+            console.log("Injecting MSG91 script...");
+            script = document.createElement('script');
+            script.id = 'msg91-otp-script';
+            script.src = 'https://verify.msg91.com/otp-provider.js';
+            script.async = true;
+            script.onload = () => {
+                console.log("MSG91 SDK script onload fired");
+            };
+            script.onerror = () => {
+                console.error("MSG91 SDK script failed to load");
+                toast.error("Failed to load OTP verification service. Please try again.");
+            };
+            document.body.appendChild(script);
+        }
+
+        // Wait for SDK readiness
         const interval = setInterval(() => {
-            checks++;
             if (window.initSendOTP) {
-                console.log("MSG91 script resolved via index.html after", checks * 100, "ms");
+                console.log("SDK loaded");
                 setScriptLoaded(true);
                 clearInterval(interval);
-            } else if (checks >= 30) { // 3 seconds fallback
-                clearInterval(interval);
-                console.log("MSG91 not found after 3s. Triggering dynamic injection fallback...");
-                if (!document.getElementById('msg91-otp-script')) {
-                    const script = document.createElement('script');
-                    script.id = 'msg91-otp-script';
-                    script.src = 'https://verify.msg91.com/otp-provider.js';
-                    script.async = true;
-                    script.onload = () => {
-                        console.log("MSG91 dynamic script onload fired");
-                        setScriptLoaded(true);
-                    };
-                    script.onerror = () => {
-                        console.error("MSG91 dynamic script failed to load");
-                        toast.error("Failed to load OTP verification service. Please try again.");
-                    };
-                    document.body.appendChild(script);
-                } else {
-                    setScriptLoaded(true);
-                }
             }
-        }, 100);
+        }, 50);
 
         return () => clearInterval(interval);
     }, []);
 
-    // Trigger OTP popup automatically once script is loaded and phone is set
-    useEffect(() => {
-        if (scriptLoaded && phone) {
-            triggerMsg91Widget();
+    const handleOtpSuccess = (data) => {
+        const token = typeof data === 'string' ? data : (data?.message || data?.['access-token'] || data?.token);
+        if (token) {
+            handleVerifyToken(token);
         }
-    }, [scriptLoaded, phone]);
+    };
 
     const triggerMsg91Widget = () => {
-        console.log("OPEN VERIFICATION POPUP clicked");
-        console.log("window.initSendOTP =", window.initSendOTP);
-        console.log("typeof window.initSendOTP =", typeof window.initSendOTP);
+        console.log("button clicked");
 
         if (!window.initSendOTP) {
             console.error("initSendOTP not found on window object!");
@@ -98,37 +95,48 @@ const VerifyMobileOtp = () => {
             return;
         }
 
+        console.log("initSendOTP available");
+
+        if (otpOpened) {
+            console.log("Duplicate initSendOTP call blocked. Popup already open/opening.");
+            return;
+        }
+
         let formattedPhone = phone.trim().replace(/\D/g, '');
         if (formattedPhone.length === 10) {
             formattedPhone = '91' + formattedPhone;
         }
+        const phoneNumber = formattedPhone;
 
-        // Configure global MSG91 configuration for the popup
-        const config = {
+        const configuration = {
             widgetId: import.meta.env.VITE_MSG91_WIDGET_ID || "36657a734e31333338323730",
-            identifier: formattedPhone,
+            tokenAuth: import.meta.env.VITE_MSG91_AUTH_TOKEN,
+            identifier: phoneNumber,
             exposeMethods: true,
-            success: (response) => {
-                console.log("MSG91 success", response);
-                const token = typeof response === 'string' ? response : (response?.message || response?.['access-token'] || response?.token);
-                if (token) {
-                    handleVerifyToken(token);
+
+            success: (data) => {
+                console.log("MSG91 success:", data);
+
+                // if token returned, continue OTP verified flow
+                if (data) {
+                    handleOtpSuccess(data);
                 }
+                setOtpOpened(false);
             },
+
             failure: (error) => {
-                console.log("MSG91 failure", error);
-                const errMsg = typeof error === 'string' ? error : (error?.message || "OTP process failed.");
-                toast.error(errMsg);
-            }
+                console.error("MSG91 failure:", error);
+                toast.error(
+                    error?.message || "OTP verification failed. Please try again."
+                );
+                setOtpOpened(false);
+            },
         };
 
-        config.tokenAuth = import.meta.env.VITE_MSG91_AUTH_TOKEN;
+        window.configuration = configuration;
 
-        window.configuration = config;
-
-        // Open the MSG91 widget popup
-        console.log("Calling initSendOTP");
-        console.log("OTP request initiated");
+        console.log("popup opened");
+        setOtpOpened(true);
         window.initSendOTP(window.configuration);
     };
 
@@ -200,6 +208,7 @@ const VerifyMobileOtp = () => {
                         <p className="text-xs font-medium text-emerald-dark/80">
                             Please complete verification in the secure MSG91 popup widget.
                         </p>
+                        <div id="captcha"></div>
                         <button
                             type="button"
                             onClick={triggerMsg91Widget}
