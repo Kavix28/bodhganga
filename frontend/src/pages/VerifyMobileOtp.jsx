@@ -86,6 +86,35 @@ const VerifyMobileOtp = () => {
         }
     }, [location.state, navigate]);
 
+    // ── Force MSG91 widget visible above all app layers ───────────────────────
+    useEffect(() => {
+        const style = document.createElement('style');
+        style.innerHTML = `
+            msg91-otp-provider,
+            msg91-otp-provider *,
+            iframe[src*="msg91"],
+            iframe[src*="phone91"] {
+                position: fixed !important;
+                inset: 0 !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                z-index: 2147483647 !important;
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+            }
+
+            body {
+                overflow: auto !important;
+            }
+        `;
+        document.head.appendChild(style);
+        return () => {
+            document.head.removeChild(style);
+        };
+    }, []);
+
     // ── Global postMessage spy — catches ALL messages ─────────────────────────
     useEffect(() => {
         const spy = (event) => {
