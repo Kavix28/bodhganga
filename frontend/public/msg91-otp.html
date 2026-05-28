@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>OTP Verification</title>
+  <meta charset="UTF-8" />
+</head>
+<body>
+  <script>
+    const configuration = {
+      widgetId: "36657a734e31333338323730",
+      tokenAuth: "520206TzveVH8e6a17f07cP1",
+      identifier: localStorage.getItem("otp_mobile"),
+      exposeMethods: true,
+
+      success: function (data) {
+        console.log("SUCCESS", data);
+
+        if (window.opener) {
+          window.opener.postMessage(
+            {
+              type: "MSG91_OTP_SUCCESS",
+              data,
+            },
+            "*"
+          );
+        }
+
+        window.close();
+      },
+
+      failure: function (error) {
+        console.error("FAILURE", error);
+      },
+    };
+
+    (function () {
+      const s = document.createElement("script");
+      s.src = "https://verify.msg91.com/otp-provider.js";
+      s.onload = function () {
+        window.initSendOTP(configuration);
+      };
+      document.body.appendChild(s);
+    })();
+  </script>
+</body>
+</html>

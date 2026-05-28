@@ -7,6 +7,7 @@
     "dev": "npm --prefix frontend run dev"
   },
   "dependencies": {
-    "mongodb": "^7.2.0"
+    "mongodb": "^7.2.0",
+    "playwright": "^1.60.0"
   }
 }
