@@ -107,21 +107,21 @@ const VerifyMobileOtp = () => {
         }
 
         const configuration = {
-            widgetId: import.meta.env.VITE_MSG91_WIDGET_ID,
-            tokenAuth: import.meta.env.VITE_MSG91_AUTH_TOKEN,
+            widgetId: '36657a734e31333338323730',
+            tokenAuth: '520206TzveVH8e6a17f07cP1',
             identifier: mobileNumber,
             exposeMethods: true,
 
             success: (data) => {
-                console.log('MSG91 success', data);
+                console.log('MSG91 SUCCESS:', data);
                 setOpeningOtp(false);
                 handleOtpSuccess(data);
             },
 
-            failure: (err) => {
-                console.error('MSG91 failure', err);
+            failure: (error) => {
+                console.error('MSG91 FAILURE:', error);
                 setOpeningOtp(false);
-                toast.error('OTP verification failed. Please try again.');
+                toast.error(error?.message || 'OTP verification failed');
             },
         };
 
