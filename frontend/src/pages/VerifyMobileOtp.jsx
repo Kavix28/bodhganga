@@ -149,39 +149,55 @@ const VerifyMobileOtp = () => {
         }
     };
 
-    // ── Button handler — open standalone MSG91 popup window ─────────────────────
-    const handleOpenPopup = () => {
+    // ── Button handler — wait for MSG91 custom element, then initSendOTP ────────
+    const handleOpenPopup = async () => {
         DBG('OTP CLICKED');
         DBG('window.initSendOTP =', typeof window.initSendOTP);
+        DBG('msg91-send-otp-center registered:',
+            !!customElements.get('msg91-send-otp-center'));
         DBG('msg91 provider elements:',
             document.querySelectorAll('msg91-otp-provider'));
         DBG('iframes:', document.querySelectorAll('iframe'));
-        DBG('popupOpened flag (msg91OtpOpen):', window.msg91OtpOpen);
-        DBG('otp_mobile in localStorage:', localStorage.getItem('otp_mobile'));
 
-        let mobileNumber = phone.trim().replace(/\D/g, '');
-        if (mobileNumber.length === 10) {
-            mobileNumber = '91' + mobileNumber;
-        }
-        DBG('mobileNumber to be stored:', mobileNumber);
+        const mobile = `91${phone.trim().replace(/\D/g, '')}`;
+        DBG('mobile:', mobile);
+        localStorage.setItem('otp_mobile', mobile);
 
-        localStorage.setItem('otp_mobile', mobileNumber);
-        DBG('otp_mobile set in localStorage:', localStorage.getItem('otp_mobile'));
+        const waitForMSG91 = setInterval(() => {
+            const sdkReady      = typeof window.initSendOTP === 'function';
+            const elementReady  = !!customElements.get('msg91-send-otp-center');
+            DBG('readiness poll — sdk:', sdkReady, '| customElement:', elementReady);
 
-        DBG('calling window.open("/msg91-otp.html") ...');
-        const popupRef = window.open(
-            '/msg91-otp.html',
-            'msg91OtpWindow',
-            'width=500,height=700'
-        );
+            if (sdkReady && elementReady) {
+                clearInterval(waitForMSG91);
+                DBG('✅ Both ready — calling initSendOTP');
 
-        if (!popupRef) {
-            DBG('❌ POPUP BLOCKED — window.open() returned null');
-            toast.error('Popup was blocked by browser. Please allow popups for this site.');
-        } else {
-            DBG('✅ POPUP OPENED — window reference:', popupRef);
-            DBG('popup.location:', popupRef.location?.href);
-        }
+                window.initSendOTP({
+                    widgetId:      import.meta.env.VITE_MSG91_WIDGET_ID,
+                    tokenAuth:     import.meta.env.VITE_MSG91_AUTH_TOKEN,
+                    identifier:    mobile,
+                    exposeMethods: true,
+
+                    success: (data) => {
+                        console.log('[MSG91 SUCCESS]', data);
+                        DBG('handleOtpSuccess ← success payload:', data);
+                        handleOtpSuccess(data);
+                    },
+
+                    failure: (err) => {
+                        console.error('[MSG91 FAILURE]', err);
+                        DBG('failure payload:', err);
+                        toast.error(err?.message || 'OTP verification failed. Please try again.');
+                    },
+                });
+            }
+        }, 200);
+
+        // Safety timeout — give up after 10 s
+        setTimeout(() => {
+            clearInterval(waitForMSG91);
+            DBG('⏱ MSG91 readiness timeout after 10 s');
+        }, 10000);
     };
 
     // ── Verify MSG91 token with backend ──────────────────────────────────────────
