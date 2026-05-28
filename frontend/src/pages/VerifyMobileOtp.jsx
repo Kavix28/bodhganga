@@ -8,46 +8,34 @@ import toast from 'react-hot-toast';
 // ── DEBUG BUILD — remove after diagnosis ─────────────────────────────────────
 const DBG = (...args) => console.log('%c[DBG]', 'color:#f59e0b;font-weight:bold', ...args);
 
-const loadMsg91Script = () =>
-  new Promise((resolve, reject) => {
-    const oldScript = document.querySelector(
-      'script[src*="otp-provider"]'
-    );
+const loadMsg91Fresh = async () => {
+  document
+    .querySelectorAll(
+      'script[src*="verify.msg91.com"], msg91-otp-provider'
+    )
+    .forEach(el => el.remove());
 
-    if (oldScript) {
-      oldScript.remove();
-    }
+  delete window.initSendOTP;
 
-    const script = document.createElement("script");
+  await new Promise(r => setTimeout(r, 500));
 
-    script.src =
-      "https://verify.msg91.com/otp-provider.js?v=" +
-      Date.now();
+  const script = document.createElement("script");
+  script.src =
+    "https://verify.msg91.com/otp-provider.js?v=" +
+    Date.now();
+  script.async = true;
 
-    script.async = true;
+  document.body.appendChild(script);
 
-    script.onload = async () => {
-      console.log("[DBG] MSG91 script loaded fresh");
-
-      try {
-        await customElements.whenDefined(
-          "msg91-otp-provider"
-        );
-
-        console.log(
-          "[DBG] msg91-otp-provider defined"
-        );
-
-        resolve();
-      } catch (err) {
-        reject(err);
-      }
-    };
-
+  await new Promise((resolve, reject) => {
+    script.onload = resolve;
     script.onerror = reject;
-
-    document.body.appendChild(script);
   });
+
+  await customElements.whenDefined("msg91-otp-provider");
+
+  await new Promise(r => setTimeout(r, 1500));
+};
 
 // ── Network monkey-patch — logs every fetch/XHR ──────────────────────────────
 (function installNetworkSpy() {
@@ -99,6 +87,7 @@ const VerifyMobileOtp = () => {
     const { login } = useAuth();
 
     const [isLoading, setIsLoading] = useState(false);
+    const [openingOtp, setOpeningOtp] = useState(false);
     const [phone, setPhone] = useState('');
     const [signupData, setSignupData] = useState(null);
 
@@ -205,62 +194,35 @@ const VerifyMobileOtp = () => {
 
     const handleOpenPopup = async () => {
       try {
-        console.log("[DBG] OTP CLICKED");
+        setOpeningOtp(true);
 
-        const mobile = `91${phone}`;
+        const phoneNumber = `91${phone.trim().replace(/\D/g, '')}`;
+        localStorage.setItem("otp_mobile", phoneNumber);
 
-        localStorage.setItem("otp_mobile", mobile);
+        await loadMsg91Fresh();
 
-        resetMsg91();
+        if (typeof window.initSendOTP !== "function") {
+          throw new Error("MSG91 SDK failed to load");
+        }
 
-        await loadMsg91Script();
-
-        setTimeout(() => {
-          console.log(
-            "[DBG] initSendOTP:",
-            typeof window.initSendOTP
-          );
-
-          console.log(
-            "[DBG] msg91-send-otp-center:",
-            !!customElements.get(
-              "msg91-send-otp-center"
-            )
-          );
-
-          window.initSendOTP({
-            widgetId:
-              import.meta.env.VITE_MSG91_WIDGET_ID,
-
-            tokenAuth:
-              import.meta.env.VITE_MSG91_AUTH_TOKEN,
-
-            identifier: mobile,
-
-            exposeMethods: true,
-
-            success: (data) => {
-              console.log(
-                "[MSG91 SUCCESS]",
-                data
-              );
-
-              handleOtpSuccess(data);
-            },
-
-            failure: (err) => {
-              console.error(
-                "[MSG91 FAILURE]",
-                err
-              );
-            },
-          });
-        }, 2000);
+        window.initSendOTP({
+          widgetId: import.meta.env.VITE_MSG91_WIDGET_ID,
+          tokenAuth: import.meta.env.VITE_MSG91_AUTH_TOKEN,
+          identifier: phoneNumber,
+          exposeMethods: true,
+          success: data => {
+            console.log("MSG91 SUCCESS", data);
+            handleOtpSuccess(data);
+            setOpeningOtp(false);
+          },
+          failure: err => {
+            console.error("MSG91 FAILURE", err);
+            setOpeningOtp(false);
+          }
+        });
       } catch (err) {
-        console.error(
-          "[DBG] MSG91 init failed:",
-          err
-        );
+        console.error("MSG91 INIT ERROR:", err);
+        setOpeningOtp(false);
       }
     };
 
@@ -345,10 +307,10 @@ const VerifyMobileOtp = () => {
                             type="button"
                             id="open-otp-popup"
                             onClick={handleOpenPopup}
-                            disabled={isLoading}
+                            disabled={isLoading || openingOtp}
                             className="w-full py-2.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest rounded-lg shadow hover:-translate-y-0.5 active:scale-95 transition-all duration-300 disabled:opacity-50 disabled:pointer-events-none"
                         >
-                            {isLoading ? 'Processing…' : 'Open Verification Popup'}
+                            {isLoading ? 'Processing…' : openingOtp ? 'Opening…' : 'Open Verification Popup'}
                         </button>
                     </div>
 
