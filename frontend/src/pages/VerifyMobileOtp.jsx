@@ -8,37 +8,46 @@ import toast from 'react-hot-toast';
 // ── DEBUG BUILD — remove after diagnosis ─────────────────────────────────────
 const DBG = (...args) => console.log('%c[DBG]', 'color:#f59e0b;font-weight:bold', ...args);
 
-// ── Load MSG91 script from control.msg91.com and resolve when ready ───────────
 const loadMsg91Script = () =>
-    new Promise((resolve, reject) => {
-        if (window.initSendOTP) {
-            DBG('loadMsg91Script: initSendOTP already present — skipping load');
-            resolve();
-            return;
-        }
+  new Promise((resolve, reject) => {
+    const oldScript = document.querySelector(
+      'script[src*="otp-provider"]'
+    );
 
-        const existing = document.querySelector('script[src*="otp-provider"]');
-        if (existing) {
-            DBG('loadMsg91Script: script tag already in DOM — awaiting load event');
-            existing.addEventListener('load', resolve);
-            return;
-        }
+    if (oldScript) {
+      oldScript.remove();
+    }
 
-        const script = document.createElement('script');
-        script.src = 'https://control.msg91.com/app/assets/otp-provider/otp-provider.js';
-        script.async = true;
-        script.onload = () => {
-            DBG('loadMsg91Script: ✅ MSG91 script loaded from control.msg91.com');
-            console.log('MSG91 script loaded');
-            resolve();
-        };
-        script.onerror = (e) => {
-            DBG('loadMsg91Script: ❌ script load failed', e);
-            reject(e);
-        };
-        document.body.appendChild(script);
-        DBG('loadMsg91Script: injecting script tag →', script.src);
-    });
+    const script = document.createElement("script");
+
+    script.src =
+      "https://verify.msg91.com/otp-provider.js?v=" +
+      Date.now();
+
+    script.async = true;
+
+    script.onload = async () => {
+      console.log("[DBG] MSG91 script loaded fresh");
+
+      try {
+        await customElements.whenDefined(
+          "msg91-otp-provider"
+        );
+
+        console.log(
+          "[DBG] msg91-otp-provider defined"
+        );
+
+        resolve();
+      } catch (err) {
+        reject(err);
+      }
+    };
+
+    script.onerror = reject;
+
+    document.body.appendChild(script);
+  });
 
 // ── Network monkey-patch — logs every fetch/XHR ──────────────────────────────
 (function installNetworkSpy() {
@@ -174,63 +183,85 @@ const VerifyMobileOtp = () => {
         }
     };
 
-    // ── Reset MSG91 elements and global handlers ─────────────────────────────────
     const resetMsg91 = () => {
-        document
-            .querySelectorAll('script[src*="otp-provider"], msg91-otp-provider')
-            .forEach((el) => el.remove());
+      document
+        .querySelectorAll(
+          'script[src*="otp-provider"], msg91-otp-provider'
+        )
+        .forEach((el) => el.remove());
 
-        if (window.initSendOTP) {
-            delete window.initSendOTP;
-        }
+      try {
+        delete window.initSendOTP;
+      } catch {}
+
+      try {
+        delete window.msg91OtpOpen;
+      } catch {}
+
+      try {
+        delete window.msg91OtpLoading;
+      } catch {}
     };
 
-    // ── Button handler — load script, wait 1.5 s, then initSendOTP ─────────────
     const handleOpenPopup = async () => {
-        DBG('OTP CLICKED');
+      try {
+        console.log("[DBG] OTP CLICKED");
+
+        const mobile = `91${phone}`;
+
+        localStorage.setItem("otp_mobile", mobile);
+
         resetMsg91();
-        DBG('window.initSendOTP (before load):', typeof window.initSendOTP);
-        DBG('msg91-send-otp-center (before load):',
-            !!customElements.get('msg91-send-otp-center'));
 
-        const mobile = `91${phone.trim().replace(/\D/g, '')}`;
-        DBG('mobile:', mobile);
-        localStorage.setItem('otp_mobile', mobile);
+        await loadMsg91Script();
 
-        try {
-            await loadMsg91Script();
-        } catch (e) {
-            DBG('❌ Failed to load MSG91 script:', e);
-            toast.error('Failed to load OTP service. Check your connection and try again.');
-            return;
-        }
-
-        // Give the web component 1.5 s to self-register after script load
         setTimeout(() => {
-            DBG('post-load check — initSendOTP:', typeof window.initSendOTP);
-            DBG('post-load check — msg91-send-otp-center registered:',
-                !!customElements.get('msg91-send-otp-center'));
-            console.log('registered:', !!customElements.get('msg91-send-otp-center'));
+          console.log(
+            "[DBG] initSendOTP:",
+            typeof window.initSendOTP
+          );
 
-            window.initSendOTP({
-                widgetId:      import.meta.env.VITE_MSG91_WIDGET_ID,
-                tokenAuth:     import.meta.env.VITE_MSG91_AUTH_TOKEN,
-                identifier:    mobile,
-                exposeMethods: true,
+          console.log(
+            "[DBG] msg91-send-otp-center:",
+            !!customElements.get(
+              "msg91-send-otp-center"
+            )
+          );
 
-                success: (data) => {
-                    console.log('[MSG91 SUCCESS]', data);
-                    DBG('success payload:', data);
-                    handleOtpSuccess(data);
-                },
+          window.initSendOTP({
+            widgetId:
+              import.meta.env.VITE_MSG91_WIDGET_ID,
 
-                failure: (err) => {
-                    console.error('[MSG91 FAILURE]', err);
-                    DBG('failure payload:', err);
-                    toast.error(err?.message || 'OTP verification failed. Please try again.');
-                },
-            });
-        }, 1500);
+            tokenAuth:
+              import.meta.env.VITE_MSG91_AUTH_TOKEN,
+
+            identifier: mobile,
+
+            exposeMethods: true,
+
+            success: (data) => {
+              console.log(
+                "[MSG91 SUCCESS]",
+                data
+              );
+
+              handleOtpSuccess(data);
+            },
+
+            failure: (err) => {
+              console.error(
+                "[MSG91 FAILURE]",
+                err
+              );
+            },
+          });
+        }, 2000);
+      } catch (err) {
+        console.error(
+          "[DBG] MSG91 init failed:",
+          err
+        );
+      }
     };
 
     // ── Verify MSG91 token with backend ──────────────────────────────────────────
