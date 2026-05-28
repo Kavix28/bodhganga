@@ -63,26 +63,34 @@ const VerifyMobileOtp = () => {
     };
 
     // ── Button handler ──────────────────────────────────────────────────────────
-    const handleOpenPopup = () => {
+    const handleOpenPopup = async () => {
+      try {
         if (!window.initSendOTP) {
-            console.error("MSG91 SDK not loaded");
-            return;
+          console.error("MSG91 initSendOTP not loaded");
+          return;
         }
 
+        const mobile = `91${phone.replace(/\D/g, "")}`;
+
         window.initSendOTP({
-            widgetId: "36657a734e31333338323730",
-            tokenAuth: "520206TzveVH8e6a17f07cP1",
-            identifier: `91${phone.trim().replace(/\D/g, "")}`,
-            exposeMethods: true,
-            containerId: "msg91-widget-container",
-            success: (data) => {
-                console.log("MSG91 SUCCESS", data);
-                handleOtpSuccess(data);
-            },
-            failure: (err) => {
-                console.error("MSG91 FAILURE", err);
-            }
+          widgetId: "36657a734e31333338323730",
+          tokenAuth: "520206TzveVH8e6a17f07cP1",
+          identifier: mobile,
+          exposeMethods: true,
+
+          success: function (data) {
+            console.log("MSG91 SUCCESS:", data);
+            handleOtpSuccess(data);
+          },
+
+          failure: function (error) {
+            console.error("MSG91 FAILURE:", error);
+          }
         });
+
+      } catch (err) {
+        console.error("OTP OPEN ERROR:", err);
+      }
     };
 
     // ── Verify MSG91 token with backend ──────────────────────────────────────────
@@ -156,7 +164,6 @@ const VerifyMobileOtp = () => {
                         <p className="text-xs font-medium text-emerald-dark/80">
                             Click the button below — a secure MSG91 popup will open to verify your number.
                         </p>
-                        <div id="msg91-widget-container"></div>
                         <msg91-otp-provider></msg91-otp-provider>
                         <button
                             type="button"
