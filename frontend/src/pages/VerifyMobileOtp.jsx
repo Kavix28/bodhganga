@@ -8,6 +8,38 @@ import toast from 'react-hot-toast';
 // ── DEBUG BUILD — remove after diagnosis ─────────────────────────────────────
 const DBG = (...args) => console.log('%c[DBG]', 'color:#f59e0b;font-weight:bold', ...args);
 
+// ── Load MSG91 script from control.msg91.com and resolve when ready ───────────
+const loadMsg91Script = () =>
+    new Promise((resolve, reject) => {
+        if (window.initSendOTP) {
+            DBG('loadMsg91Script: initSendOTP already present — skipping load');
+            resolve();
+            return;
+        }
+
+        const existing = document.querySelector('script[src*="otp-provider"]');
+        if (existing) {
+            DBG('loadMsg91Script: script tag already in DOM — awaiting load event');
+            existing.addEventListener('load', resolve);
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://control.msg91.com/app/assets/otp-provider/otp-provider.js';
+        script.async = true;
+        script.onload = () => {
+            DBG('loadMsg91Script: ✅ MSG91 script loaded from control.msg91.com');
+            console.log('MSG91 script loaded');
+            resolve();
+        };
+        script.onerror = (e) => {
+            DBG('loadMsg91Script: ❌ script load failed', e);
+            reject(e);
+        };
+        document.body.appendChild(script);
+        DBG('loadMsg91Script: injecting script tag →', script.src);
+    });
+
 // ── Network monkey-patch — logs every fetch/XHR ──────────────────────────────
 (function installNetworkSpy() {
     if (window.__networkSpyInstalled) return;
@@ -115,22 +147,15 @@ const VerifyMobileOtp = () => {
         };
     }, []);
 
-    // ── Global postMessage spy — catches ALL messages ─────────────────────────
+    // ── postMessage listener (kept for any SDK cross-frame messaging) ──────────
     useEffect(() => {
         const spy = (event) => {
-            DBG('POSTMESSAGE RECEIVED:', {
-                origin: event.origin,
-                data: event.data,
-            });
-            if (event.data?.type === 'MSG91_OTP_SUCCESS') {
-                DBG('MSG91_OTP_SUCCESS matched → calling handleOtpSuccess');
-                handleOtpSuccess(event.data.data);
+            if (event.data?.type) {
+                DBG('POSTMESSAGE:', { origin: event.origin, data: event.data });
             }
         };
         window.addEventListener('message', spy);
-        DBG('postMessage listener registered on main window');
         return () => window.removeEventListener('message', spy);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // ── OTP success → verify token with backend ──────────────────────────────────
@@ -149,55 +174,51 @@ const VerifyMobileOtp = () => {
         }
     };
 
-    // ── Button handler — wait for MSG91 custom element, then initSendOTP ────────
+    // ── Button handler — load script, wait 1.5 s, then initSendOTP ─────────────
     const handleOpenPopup = async () => {
         DBG('OTP CLICKED');
-        DBG('window.initSendOTP =', typeof window.initSendOTP);
-        DBG('msg91-send-otp-center registered:',
+        DBG('window.initSendOTP (before load):', typeof window.initSendOTP);
+        DBG('msg91-send-otp-center (before load):',
             !!customElements.get('msg91-send-otp-center'));
-        DBG('msg91 provider elements:',
-            document.querySelectorAll('msg91-otp-provider'));
-        DBG('iframes:', document.querySelectorAll('iframe'));
 
         const mobile = `91${phone.trim().replace(/\D/g, '')}`;
         DBG('mobile:', mobile);
         localStorage.setItem('otp_mobile', mobile);
 
-        const waitForMSG91 = setInterval(() => {
-            const sdkReady      = typeof window.initSendOTP === 'function';
-            const elementReady  = !!customElements.get('msg91-send-otp-center');
-            DBG('readiness poll — sdk:', sdkReady, '| customElement:', elementReady);
+        try {
+            await loadMsg91Script();
+        } catch (e) {
+            DBG('❌ Failed to load MSG91 script:', e);
+            toast.error('Failed to load OTP service. Check your connection and try again.');
+            return;
+        }
 
-            if (sdkReady && elementReady) {
-                clearInterval(waitForMSG91);
-                DBG('✅ Both ready — calling initSendOTP');
-
-                window.initSendOTP({
-                    widgetId:      import.meta.env.VITE_MSG91_WIDGET_ID,
-                    tokenAuth:     import.meta.env.VITE_MSG91_AUTH_TOKEN,
-                    identifier:    mobile,
-                    exposeMethods: true,
-
-                    success: (data) => {
-                        console.log('[MSG91 SUCCESS]', data);
-                        DBG('handleOtpSuccess ← success payload:', data);
-                        handleOtpSuccess(data);
-                    },
-
-                    failure: (err) => {
-                        console.error('[MSG91 FAILURE]', err);
-                        DBG('failure payload:', err);
-                        toast.error(err?.message || 'OTP verification failed. Please try again.');
-                    },
-                });
-            }
-        }, 200);
-
-        // Safety timeout — give up after 10 s
+        // Give the web component 1.5 s to self-register after script load
         setTimeout(() => {
-            clearInterval(waitForMSG91);
-            DBG('⏱ MSG91 readiness timeout after 10 s');
-        }, 10000);
+            DBG('post-load check — initSendOTP:', typeof window.initSendOTP);
+            DBG('post-load check — msg91-send-otp-center registered:',
+                !!customElements.get('msg91-send-otp-center'));
+            console.log('registered:', !!customElements.get('msg91-send-otp-center'));
+
+            window.initSendOTP({
+                widgetId:      import.meta.env.VITE_MSG91_WIDGET_ID,
+                tokenAuth:     import.meta.env.VITE_MSG91_AUTH_TOKEN,
+                identifier:    mobile,
+                exposeMethods: true,
+
+                success: (data) => {
+                    console.log('[MSG91 SUCCESS]', data);
+                    DBG('success payload:', data);
+                    handleOtpSuccess(data);
+                },
+
+                failure: (err) => {
+                    console.error('[MSG91 FAILURE]', err);
+                    DBG('failure payload:', err);
+                    toast.error(err?.message || 'OTP verification failed. Please try again.');
+                },
+            });
+        }, 1500);
     };
 
     // ── Verify MSG91 token with backend ──────────────────────────────────────────
