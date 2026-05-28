@@ -5,6 +5,53 @@ import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 
+// ── DEBUG BUILD — remove after diagnosis ─────────────────────────────────────
+const DBG = (...args) => console.log('%c[DBG]', 'color:#f59e0b;font-weight:bold', ...args);
+
+// ── Network monkey-patch — logs every fetch/XHR ──────────────────────────────
+(function installNetworkSpy() {
+    if (window.__networkSpyInstalled) return;
+    window.__networkSpyInstalled = true;
+
+    // Patch fetch
+    const origFetch = window.fetch;
+    window.fetch = async function (input, init) {
+        const url = typeof input === 'string' ? input : input?.url;
+        DBG('FETCH →', url, init);
+        try {
+            const res = await origFetch.apply(this, arguments);
+            const clone = res.clone();
+            clone.text().then((body) =>
+                DBG('FETCH ←', url, res.status, body.slice(0, 400))
+            );
+            return res;
+        } catch (e) {
+            DBG('FETCH ERROR', url, e);
+            throw e;
+        }
+    };
+
+    // Patch XHR
+    const origOpen = XMLHttpRequest.prototype.open;
+    const origSend = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.open = function (method, url) {
+        this.__dbgUrl = url;
+        this.__dbgMethod = method;
+        return origOpen.apply(this, arguments);
+    };
+    XMLHttpRequest.prototype.send = function () {
+        this.addEventListener('load', function () {
+            DBG('XHR ←', this.__dbgMethod, this.__dbgUrl, this.status,
+                String(this.responseText).slice(0, 400));
+        });
+        this.addEventListener('error', function () {
+            DBG('XHR ERROR', this.__dbgMethod, this.__dbgUrl);
+        });
+        DBG('XHR →', this.__dbgMethod, this.__dbgUrl);
+        return origSend.apply(this, arguments);
+    };
+})();
+
 const VerifyMobileOtp = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -24,6 +71,9 @@ const VerifyMobileOtp = () => {
                   JSON.parse(storedSignupData).phoneNumber
                 : '');
 
+        DBG('PAGE MOUNT — phoneFromState:', phoneFromState,
+            '| signupData in localStorage:', !!storedSignupData);
+
         if (!phoneFromState) {
             toast.error('Invalid session. Redirecting to registration.');
             navigate('/register');
@@ -36,59 +86,91 @@ const VerifyMobileOtp = () => {
         }
     }, [location.state, navigate]);
 
-    // ── Listen for OTP success posted back from standalone popup ────────────────
+    // ── Global postMessage spy — catches ALL messages ─────────────────────────
     useEffect(() => {
-        const handleMessage = (event) => {
+        const spy = (event) => {
+            DBG('POSTMESSAGE RECEIVED:', {
+                origin: event.origin,
+                data: event.data,
+            });
             if (event.data?.type === 'MSG91_OTP_SUCCESS') {
+                DBG('MSG91_OTP_SUCCESS matched → calling handleOtpSuccess');
                 handleOtpSuccess(event.data.data);
             }
         };
-        window.addEventListener('message', handleMessage);
-        return () => window.removeEventListener('message', handleMessage);
+        window.addEventListener('message', spy);
+        DBG('postMessage listener registered on main window');
+        return () => window.removeEventListener('message', spy);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // ── OTP success → verify token with backend ──────────────────────────────────
     const handleOtpSuccess = (data) => {
+        DBG('handleOtpSuccess called with:', data);
         const token =
             typeof data === 'string'
                 ? data
                 : data?.token || data?.['access-token'] || data?.message;
+        DBG('extracted token:', token);
         if (token) {
             handleVerifyToken(token);
         } else {
-            console.error('MSG91 success but no recognisable token in payload:', data);
+            console.error('[DBG] MSG91 success but no recognisable token in payload:', data);
             toast.error('Verification response unexpected. Please try again.');
         }
     };
 
     // ── Button handler — open standalone MSG91 popup window ─────────────────────
     const handleOpenPopup = () => {
+        DBG('OTP CLICKED');
+        DBG('window.initSendOTP =', typeof window.initSendOTP);
+        DBG('msg91 provider elements:',
+            document.querySelectorAll('msg91-otp-provider'));
+        DBG('iframes:', document.querySelectorAll('iframe'));
+        DBG('popupOpened flag (msg91OtpOpen):', window.msg91OtpOpen);
+        DBG('otp_mobile in localStorage:', localStorage.getItem('otp_mobile'));
+
         let mobileNumber = phone.trim().replace(/\D/g, '');
         if (mobileNumber.length === 10) {
             mobileNumber = '91' + mobileNumber;
         }
+        DBG('mobileNumber to be stored:', mobileNumber);
 
         localStorage.setItem('otp_mobile', mobileNumber);
+        DBG('otp_mobile set in localStorage:', localStorage.getItem('otp_mobile'));
 
-        window.open(
+        DBG('calling window.open("/msg91-otp.html") ...');
+        const popupRef = window.open(
             '/msg91-otp.html',
             'msg91OtpWindow',
             'width=500,height=700'
         );
+
+        if (!popupRef) {
+            DBG('❌ POPUP BLOCKED — window.open() returned null');
+            toast.error('Popup was blocked by browser. Please allow popups for this site.');
+        } else {
+            DBG('✅ POPUP OPENED — window reference:', popupRef);
+            DBG('popup.location:', popupRef.location?.href);
+        }
     };
 
     // ── Verify MSG91 token with backend ──────────────────────────────────────────
     const handleVerifyToken = async (accessToken) => {
+        DBG('handleVerifyToken called — accessToken:', accessToken,
+            '| phone:', phone);
         setIsLoading(true);
         try {
+            DBG('POST /api/auth/msg91/verify ...');
             const res = await api.post('/api/auth/msg91/verify', {
                 accessToken,
                 phoneNumber: phone,
                 signupData,
             });
+            DBG('backend response:', res);
 
             if (res?.success && res.data?.token) {
+                DBG('✅ Backend verified — navigating to /dashboard');
                 localStorage.removeItem('signupData');
                 toast.success('Mobile number verified & registered successfully!');
                 login(res.data.token, res.data.user);
@@ -97,6 +179,7 @@ const VerifyMobileOtp = () => {
                 throw new Error(res?.message || 'Authentication failed');
             }
         } catch (err) {
+            DBG('❌ backend verify error:', err);
             console.error('Backend token verification error:', err);
             toast.error(err?.message || 'Verification failed. Please try again.');
         } finally {
