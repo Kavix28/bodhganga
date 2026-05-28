@@ -64,9 +64,8 @@ const VerifyMobileOtp = () => {
 
     // ── Button handler ──────────────────────────────────────────────────────────
     const handleOpenPopup = () => {
-        if (typeof window.initSendOTP !== "function") {
+        if (!window.initSendOTP) {
             console.error("MSG91 SDK not loaded");
-            toast.error("OTP service not ready. Please try again.");
             return;
         }
 
@@ -75,6 +74,7 @@ const VerifyMobileOtp = () => {
             tokenAuth: "520206TzveVH8e6a17f07cP1",
             identifier: `91${phone.trim().replace(/\D/g, "")}`,
             exposeMethods: true,
+            containerId: "msg91-widget-container",
             success: (data) => {
                 console.log("MSG91 SUCCESS", data);
                 handleOtpSuccess(data);
@@ -156,6 +156,8 @@ const VerifyMobileOtp = () => {
                         <p className="text-xs font-medium text-emerald-dark/80">
                             Click the button below — a secure MSG91 popup will open to verify your number.
                         </p>
+                        <div id="msg91-widget-container"></div>
+                        <msg91-otp-provider></msg91-otp-provider>
                         <button
                             type="button"
                             id="open-otp-popup"
