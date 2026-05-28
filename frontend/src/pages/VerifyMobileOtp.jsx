@@ -63,7 +63,7 @@ const VerifyMobileOtp = () => {
     };
 
     // ── Button handler ──────────────────────────────────────────────────────────
-    const handleOpenPopup = async () => {
+    const handleOpenPopup = () => {
       try {
         if (!window.initSendOTP) {
           console.error("MSG91 SDK not loaded");
@@ -76,15 +76,14 @@ const VerifyMobileOtp = () => {
           widgetId: "36657a734e31333338323730",
           tokenAuth: "520206TzveVH8e6a17f07cP1",
           identifier: mobile,
-          exposeMethods: true,
 
-          success: function (data) {
-            console.log("MSG91 SUCCESS", data);
+          success: (data) => {
+            console.log("MSG91 SUCCESS:", data);
             handleOtpSuccess(data);
           },
 
-          failure: function (err) {
-            console.error("MSG91 FAILURE", err);
+          failure: (error) => {
+            console.error("MSG91 FAILURE:", error);
           }
         });
 
