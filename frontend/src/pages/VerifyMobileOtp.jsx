@@ -174,9 +174,21 @@ const VerifyMobileOtp = () => {
         }
     };
 
+    // ── Reset MSG91 elements and global handlers ─────────────────────────────────
+    const resetMsg91 = () => {
+        document
+            .querySelectorAll('script[src*="otp-provider"], msg91-otp-provider')
+            .forEach((el) => el.remove());
+
+        if (window.initSendOTP) {
+            delete window.initSendOTP;
+        }
+    };
+
     // ── Button handler — load script, wait 1.5 s, then initSendOTP ─────────────
     const handleOpenPopup = async () => {
         DBG('OTP CLICKED');
+        resetMsg91();
         DBG('window.initSendOTP (before load):', typeof window.initSendOTP);
         DBG('msg91-send-otp-center (before load):',
             !!customElements.get('msg91-send-otp-center'));
