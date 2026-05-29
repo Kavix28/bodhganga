@@ -207,3 +207,71 @@
     box-shadow: 0 4px 12px rgba(201, 169, 97, 0.25);
   }
 }
+
+@keyframes goldDotMove {
+  0% {
+    left: 0%;
+    transform: translateX(0);
+  }
+  100% {
+    left: 100%;
+    transform: translateX(-100%);
+  }
+}
+
+.animate-gold-dot-move {
+  animation: goldDotMove 7s ease-in-out infinite alternate;
+}
+
+/* Horizontal Marquee Ticker (Left to Right) */
+@keyframes marquee-l2r {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0%);
+  }
+}
+
+.animate-marquee-l2r {
+  display: flex;
+  width: max-content;
+  animation: marquee-l2r 22s linear infinite;
+}
+
+.text-gold-glow-soft {
+  color: #E1CFA5;
+  text-shadow: 0 0 6px rgba(212, 175, 55, 0.6);
+}
+
+/* Gold Shimmer Hover Effect on USP Badge */
+.shimmer-badge {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.shimmer-badge::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    transparent 0%,
+    rgba(212, 175, 55, 0.12) 30%,
+    rgba(212, 175, 55, 0.28) 50%,
+    rgba(212, 175, 55, 0.12) 70%,
+    transparent 100%
+  );
+  transform: translateX(-120%);
+  transition: none;
+  pointer-events: none;
+}
+
+.shimmer-badge:hover::before {
+  transform: translateX(120%);
+  transition: transform 1.8s ease-out;
+}

@@ -11,6 +11,7 @@ const navLinks = [
     { path: '/courses',           label: 'Courses',        icon: BookOpen,      public: true },
     { path: '/store',             label: 'Store',          icon: ShoppingBag,   public: true },
     { path: '/blog',              label: 'Blog',           icon: null,          public: true },
+    { path: '/#about',            label: 'About Us',       icon: null,          public: true, isScroll: true },
 ];
 
 const Navbar = () => {
@@ -30,7 +31,24 @@ const Navbar = () => {
     // Close mobile menu on route change
     useEffect(() => { setMobileOpen(false); setUserMenuOpen(false); }, [location.pathname]);
 
-    const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
+    const isActive = (path) => {
+        if (path.includes('#')) {
+            return location.pathname === '/' && location.hash === path.substring(path.indexOf('#'));
+        }
+        return location.pathname === path || (path !== '/' && location.pathname.startsWith(path + '/'));
+    };
+
+    const handleScrollClick = (e, path) => {
+        if (location.pathname === '/') {
+            e.preventDefault();
+            const targetId = path.split('#')[1];
+            const element = document.getElementById(targetId);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth' });
+            }
+            window.history.pushState(null, '', path);
+        }
+    };
 
     const handleLogout = () => { logout(); navigate('/'); };
 
@@ -60,6 +78,7 @@ const Navbar = () => {
                     <div className="hidden md:flex items-center gap-2">
                         {navLinks.map(link => (
                             <Link key={link.path} to={link.path}
+                                onClick={(e) => link.isScroll && handleScrollClick(e, link.path)}
                                 className={`relative px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-300 rounded-xl ${
                                     isActive(link.path)
                                         ? 'text-gold bg-white/5 border border-gold/20'
@@ -154,6 +173,12 @@ const Navbar = () => {
                     <div className="container-custom py-5 space-y-2">
                         {navLinks.map(link => (
                             <Link key={link.path} to={link.path}
+                                onClick={(e) => {
+                                    if (link.isScroll) {
+                                        handleScrollClick(e, link.path);
+                                    }
+                                    setMobileOpen(false);
+                                }}
                                 className={`flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 ${
                                     isActive(link.path) ? 'bg-white/5 text-gold border border-gold/10' : 'text-white/80 hover:bg-white/5 border border-transparent'
                                 }`}>

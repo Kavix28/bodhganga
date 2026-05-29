@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { 
     ArrowRight, BookOpen, HelpCircle, CheckCircle, MapPin, 
@@ -7,6 +7,7 @@ import {
     Sparkles, ShieldCheck, Flame, Users, BookOpenCheck 
 } from 'lucide-react';
 import Logo from '../components/common/Logo';
+import indiaMap from '../assets/images/india-map.webp';
 import { indianStates } from '../data/states';
 import { unionTerritories } from '../data/unionTerritories';
 import { API_BASE_URL } from '../utils/constants';
@@ -48,6 +49,84 @@ const Counter = ({ target, suffix = '', duration = 1500 }) => {
 const Landing = () => {
     const { isAuthenticated } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
+
+    const [currentSlide, setCurrentSlide] = useState(0);
+    const aboutSectionRef = useRef(null);
+    const [aboutVisible, setAboutVisible] = useState(false);
+
+    // Eagerly resolve and load all images inside c:\PROJECTS\bodhganga\frontend\Slide_show
+    const imageModules = import.meta.glob('../../Slide_show/*.{png,jpg,jpeg,webp}', { eager: true });
+    const slideshowImages = Object.values(imageModules).map(module => module.default || module);
+
+    const slideMetadata = [
+        { title: "National Digital District Encyclopedia", label: "India's First Digital District Encyclopedia" },
+        { title: "Horizontal Integration Framework", label: "Connecting History, Geography, and Economy" },
+        { title: "Comprehensive District Mapping", label: "Unlocking Local & Regional Knowledge" },
+        { title: "High-Yield Study Notes & Guides", label: "Bilingual Premium Content" },
+        { title: "Structured Academic Archive", label: "Designed for UPSC, State PSC & Serious Aspirants" },
+        { title: "Interactive Mock MCQs", label: "Practice-Oriented Revision Tools" },
+        { title: "Cultural & Geographical Studies", label: "Preserving India's Heritage District by District" },
+        { title: "Empowering Grassroots Learners", label: "BodhGanga Academic Excellence" }
+    ];
+
+    // Fallback images if Slide_show is empty
+    const fallbackImages = [
+        "https://images.unsplash.com/photo-1596422846543-75c6fc18a523?auto=format&fit=crop&w=800&q=80",
+        "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=800&q=80",
+        "https://images.unsplash.com/photo-1532375811450-42fe120c9f4d?auto=format&fit=crop&w=800&q=80",
+        "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80",
+        "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=800&q=80"
+    ];
+
+    const displayImages = slideshowImages.length > 0 ? slideshowImages : fallbackImages;
+
+    const slides = displayImages.map((image, index) => {
+        const metadata = slideMetadata[index % slideMetadata.length] || { title: "Decoding India", label: "District by District" };
+        return {
+            image,
+            title: metadata.title,
+            label: metadata.label
+        };
+    });
+
+    useEffect(() => {
+        if (displayImages.length === 0) return;
+        const slideTimer = setInterval(() => {
+            setCurrentSlide((prev) => (prev + 1) % displayImages.length);
+        }, 4000);
+        return () => clearInterval(slideTimer);
+    }, [displayImages.length]);
+
+    // Handle hash scrolling on page load/hash change
+    useEffect(() => {
+        if (location.hash === '#about') {
+            const element = document.getElementById('about');
+            if (element) {
+                const timer = setTimeout(() => {
+                    element.scrollIntoView({ behavior: 'smooth' });
+                }, 300);
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [location.hash]);
+
+    // Observer for About Section Fade-In Animation
+    useEffect(() => {
+        const observer = new IntersectionObserver(([entry]) => {
+            if (entry.isIntersecting) {
+                setAboutVisible(true);
+                observer.disconnect();
+            }
+        }, { threshold: 0.2 });
+
+        if (aboutSectionRef.current) {
+            observer.observe(aboutSectionRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, []);
+
     const [stats, setStats] = useState({
         totalUsers: 5420,
         totalCourses: 18,
@@ -133,17 +212,30 @@ const Landing = () => {
     return (
         <div className="min-h-screen bg-ivory-light overflow-x-hidden text-emerald-dark select-none relative font-sans">
             
-            {/* ── LIVE SCARCITY TICKER ───────────────────────────────── */}
-            <div className="bg-emerald-950 text-gold-glow border-b border-gold/15 py-2.5 px-4 overflow-hidden relative z-40 text-center">
-                <div className="max-w-7xl mx-auto flex items-center justify-center gap-3">
-                    <span className="flex h-2 w-2 relative">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gold opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-gold"></span>
-                    </span>
-                    <div className="h-5 overflow-hidden inline-block relative text-xs font-bold uppercase tracking-widest text-gold">
-                        <div className="ticker-activity flex flex-col space-y-1">
-                            {livePurchases.map((purchase, i) => (
-                                <span key={i} className="h-5 block">{purchase}</span>
+            {/* ── HORIZONTAL SCROLLING BRAND TICKER ──────────────────── */}
+            <div className="bg-emerald-950 border-b border-gold/15 py-2.5 overflow-hidden relative z-40 flex items-center">
+                <div className="w-full flex items-center relative">
+                    {/* Glowing indicator dot on the left */}
+                    <div className="absolute left-4 z-50 flex items-center bg-emerald-950/90 pr-3 pl-1 backdrop-blur-sm">
+                        <span className="flex h-2.5 w-2.5 relative">
+                            <span 
+                                className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
+                                style={{ backgroundColor: 'rgba(212,175,55,0.6)' }}
+                            />
+                            <span 
+                                className="relative inline-flex rounded-full h-2.5 w-2.5 shadow-[0_0_8px_rgba(212,175,55,0.6)]" 
+                                style={{ backgroundColor: 'rgba(212,175,55,0.6)' }}
+                            />
+                        </span>
+                    </div>
+
+                    {/* Scrolling Marquee text */}
+                    <div className="w-full overflow-hidden flex select-none">
+                        <div className="animate-marquee-l2r flex whitespace-nowrap text-xs font-bold uppercase tracking-widest text-gold-glow-soft gap-16">
+                            {[...Array(8)].map((_, idx) => (
+                                <span key={idx} className="flex items-center gap-2">
+                                    India Unlocked 🇮🇳 — Decoding India, District by District
+                                </span>
                             ))}
                         </div>
                     </div>
@@ -152,6 +244,17 @@ const Landing = () => {
 
             {/* ── HERO BANNER SECTION ────────────────────────────────── */}
             <section className="relative min-h-[92vh] flex items-center justify-center overflow-hidden bg-gradient-to-b from-emerald-dark via-emerald-dark to-emerald-950 px-6 border-b border-gold/15">
+                {/* Premium Top Gold Accent Line & Moving Dot */}
+                <div className="absolute top-0 left-0 right-0 h-[1px] bg-[rgba(212,175,55,0.25)] flex items-center pointer-events-none z-20">
+                    <div 
+                        className="w-2 h-2 rounded-full bg-[#D4AF37] shadow-[0_0_8px_rgba(212,175,55,0.8),0_0_16px_rgba(212,175,55,0.5)] animate-gold-dot-move"
+                        style={{
+                            position: 'absolute',
+                            top: '-3.5px'
+                        }}
+                    />
+                </div>
+                
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(201,169,97,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(201,169,97,0.03)_1px,transparent_1px)] bg-[size:4.5rem_4.5rem]" />
                 <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-emerald-light/10 rounded-full blur-[140px] pointer-events-none" />
                 <div className="absolute bottom-1/4 right-1/3 w-[500px] h-[500px] bg-gold/5 rounded-full blur-[120px] pointer-events-none" />
@@ -161,21 +264,59 @@ const Landing = () => {
                         
                         {/* Hero Text */}
                         <div className="lg:col-span-7 text-left space-y-8 animate-fade-in">
-                            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-gold/20 backdrop-blur-md">
-                                <Award className="w-4 h-4 text-gold" />
-                                <span className="text-[10px] font-bold tracking-widest text-gold uppercase flex items-center gap-1.5">
-                                    <Sparkles className="w-3 h-3 text-gold" /> India's Premium PSC & UPSC Ecosystem
-                                </span>
+                            <div className="space-y-4">
+                                <div className="inline-block">
+                                    <div className="inline-flex items-center gap-3 px-7 py-3.5 md:px-9 md:py-4.5 rounded-full bg-emerald-950/40 border border-gold/35 backdrop-blur-md shadow-[0_0_15px_rgba(201,169,97,0.1)] shimmer-badge">
+                                        <span className="text-lg md:text-xl">🇮🇳</span>
+                                        <span className="text-sm sm:text-base md:text-xl lg:text-2xl font-bold tracking-wide text-gradient-gold uppercase leading-normal">
+                                            India’s First Digital District Encyclopedia
+                                        </span>
+                                    </div>
+                                    <div className="mt-3.5 pl-6 md:pl-8 text-xs md:text-sm font-bold tracking-widest text-gold/80 uppercase font-sans">
+                                        NDDE — National Digital District Encyclopedia
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="space-y-6">
                                 <h1 className="text-4xl sm:text-6xl xl:text-7xl font-serif text-white font-bold leading-[1.1] tracking-tight">
-                                    Where Knowledge <br />
-                                    <span className="text-gradient-gold">Takes Root.</span>
+                                    We Are Uncovering India.<br />
+                                    <span className="text-gradient-gold">District by District.</span>
                                 </h1>
-                                <p className="text-base sm:text-lg text-white/70 leading-relaxed max-w-2xl font-medium">
-                                    Empowering civil servants and administrative leaders with structured syllabi, hand-crafted PDF notes, and curated YouTube video playlists for all <strong className="text-gold">36 States and Union Territories</strong>.
+                                <p className="text-lg text-gold font-serif leading-relaxed max-w-3xl">
+                                    BodhGanga Academy presents NDDE (National Digital District Encyclopedia) — a research-backed educational initiative designed to decode India district by district through the unique concept of Horizontal Integration.
                                 </p>
+                                <div className="space-y-4 text-white/75 text-sm sm:text-base leading-relaxed max-w-3xl font-medium">
+                                    <p>
+                                        NDDE connects Geography, History, Economy, Environment, Culture, Governance, Agriculture, Current Affairs, and Strategic Importance into one structured learning framework.
+                                    </p>
+                                    <p>
+                                        Our mission is to help learners understand the real India beyond isolated subjects by building the most comprehensive district-wise knowledge platform for UPSC, State PSC, SSC, CUET, Defence, School Education, and other competitive examinations.
+                                    </p>
+                                    <p>
+                                        Every district lecture, infographic, MCQ set, revision module, and analytical framework is created through deep research and integrated learning methods to provide conceptual clarity along with exam-oriented preparation.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Highlight Points & Brand Line */}
+                            <div className="space-y-4 pt-2">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-white/95 text-xs sm:text-sm font-bold tracking-wider">
+                                    <div className="flex items-center gap-2.5 bg-white/5 px-4 py-3 rounded-xl border border-white/5">
+                                        <span className="text-gold">📌</span> Structured & Research-Backed Content
+                                    </div>
+                                    <div className="flex items-center gap-2.5 bg-white/5 px-4 py-3 rounded-xl border border-white/5">
+                                        <span className="text-gold">📌</span> District-Wise Integrated Learning
+                                    </div>
+                                    <div className="flex items-center gap-2.5 bg-white/5 px-4 py-3 rounded-xl border border-white/5 sm:col-span-2">
+                                        <span className="text-gold">📌</span> India Unlocked — District by District
+                                    </div>
+                                </div>
+                                <div className="pt-3">
+                                    <p className="text-gradient-gold text-2xl font-serif italic tracking-wider font-extrabold">
+                                        Mission of Vision
+                                    </p>
+                                </div>
                             </div>
 
                             <div className="flex flex-col sm:flex-row gap-4 pt-4">
@@ -210,45 +351,48 @@ const Landing = () => {
                             </div>
                         </div>
 
-                        {/* Interactive UI Mockup */}
-                        <div className="lg:col-span-5 hidden lg:block relative">
-                            <div className="relative mx-auto w-[420px] bg-emerald-950/80 backdrop-blur-xl border border-gold/20 rounded-3xl p-8 shadow-2xl shadow-black/40 glow-emerald-card">
-                                <div className="absolute -top-3.5 -right-3.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-[9px] uppercase tracking-widest px-3 py-1 rounded-full border border-white/20">
-                                    LIVE PORTAL
+                        {/* Premium Interactive Slideshow */}
+                        <div className="lg:col-span-5 w-full relative">
+                            <div className="relative mx-auto w-full max-w-[460px] h-[340px] sm:h-[450px] rounded-[24px] overflow-hidden shadow-2xl border border-gold/25 glow-emerald-card group">
+                                {/* Slides */}
+                                {slides.map((slide, idx) => (
+                                    <div
+                                        key={idx}
+                                        className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+                                            currentSlide === idx ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                                        }`}
+                                    >
+                                        <div className="absolute inset-0 bg-gradient-to-t from-emerald-950 via-emerald-950/40 to-transparent z-10" />
+                                        <img
+                                            src={slide.image}
+                                            alt={slide.label}
+                                            className={`w-full h-full object-cover transition-transform duration-[4000ms] ease-out ${
+                                                currentSlide === idx ? 'scale-105' : 'scale-100'
+                                            }`}
+                                        />
+                                    </div>
+                                ))}
+                                
+                                {/* Overlay Card */}
+                                <div className="absolute bottom-6 left-6 right-6 p-5 bg-emerald-950/85 backdrop-blur-md border border-gold/20 rounded-2xl z-20 text-left">
+                                    <div className="text-[10px] font-extrabold uppercase tracking-widest text-gold mb-1">India Unlocked 🇮🇳</div>
+                                    <div className="text-xs text-white/50 font-bold uppercase tracking-wider mb-1">Decoding India, District by District</div>
+                                    <h3 className="text-base sm:text-lg font-serif font-bold text-white tracking-tight">{slides[currentSlide].title}</h3>
+                                    <p className="text-[11px] text-white/70 mt-1 font-semibold uppercase tracking-wider">{slides[currentSlide].label}</p>
                                 </div>
-                                <div className="flex items-center gap-3.5 mb-6 pb-6 border-b border-white/10">
-                                    <Logo />
-                                </div>
-
-                                <div className="space-y-4">
-                                    <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-xl">📚</span>
-                                            <div className="text-left">
-                                                <p className="text-[9px] text-white/50 uppercase tracking-widest font-bold">Premium Materials</p>
-                                                <p className="text-xs font-serif font-bold text-white">UPPSC, BPSC, RAS, MPPSC Mapped</p>
-                                            </div>
-                                        </div>
-                                        <ShieldCheck className="w-4 h-4 text-gold" />
-                                    </div>
-
-                                    <div className="p-3.5 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-xl">📹</span>
-                                            <div className="text-left">
-                                                <p className="text-[9px] text-white/50 uppercase tracking-widest font-bold">Netflix-Style Player</p>
-                                                <p className="text-xs font-serif font-bold text-white">Interactive State GK Playlists</p>
-                                            </div>
-                                        </div>
-                                        <Play className="w-3.5 h-3.5 text-gold fill-gold" />
-                                    </div>
-
-                                    <div className="p-4 rounded-2xl bg-gold/10 border border-gold/20 text-center">
-                                        <div className="flex justify-center gap-1 mb-2">
-                                            {[...Array(5)].map((_, i) => <Star key={i} className="w-3.5 h-3.5 text-gold fill-gold" />)}
-                                        </div>
-                                        <p className="text-[9px] text-white/70 font-bold uppercase tracking-wider">Trusted by 5,000+ aspirants nationwide</p>
-                                    </div>
+                                
+                                {/* Navigation dots in gold */}
+                                <div className="absolute top-6 right-6 z-20 flex gap-2">
+                                    {slides.map((_, idx) => (
+                                        <button
+                                            key={idx}
+                                            onClick={() => setCurrentSlide(idx)}
+                                            className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                                                currentSlide === idx ? 'bg-gold w-5' : 'bg-white/40 hover:bg-white/70'
+                                            }`}
+                                            aria-label={`Go to slide ${idx + 1}`}
+                                        />
+                                    ))}
                                 </div>
                             </div>
                         </div>
@@ -289,6 +433,210 @@ const Landing = () => {
                     </div>
                 </div>
             </div>
+
+            {/* ── ABOUT BODHGANGA ACADEMY ──────────────────────────────── */}
+            <section 
+                id="about" 
+                ref={aboutSectionRef}
+                className={`py-24 bg-white px-6 border-b border-emerald/5 relative z-20 transition-all duration-[1000ms] ease-out ${
+                    aboutVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-[30px]'
+                }`}
+            >
+                {/* Faint India Map Watermark Texture */}
+                <div 
+                    className="absolute inset-0 pointer-events-none select-none bg-contain bg-no-repeat z-0" 
+                    style={{
+                        backgroundImage: `url(${indiaMap})`,
+                        backgroundPosition: 'right 5% center',
+                        opacity: 0.05,
+                        mixBlendMode: 'multiply'
+                    }}
+                />
+                
+                <div className="max-w-4xl mx-auto text-center relative z-10">
+                    <div className="space-y-8">
+                        {/* Logo Centered */}
+                        <div className="flex justify-center opacity-90 select-none">
+                            <img 
+                                src="/logo.png" 
+                                alt="BodhGanga Academy Logo" 
+                                className="w-[72px] md:w-[105px] h-auto object-contain rounded-full border-2 border-gold/20 shadow-md"
+                                style={{
+                                    filter: 'brightness(1.05) contrast(1.05)'
+                                }}
+                            />
+                        </div>
+
+                        {/* Title block */}
+                        <div className="space-y-4">
+                            <span className="inline-block text-[10px] font-bold text-gold uppercase tracking-widest leading-none">Our Genesis</span>
+                            <h2 className="text-3xl sm:text-5xl font-bold font-serif text-emerald-dark tracking-tight">
+                                About BodhGanga Academy
+                            </h2>
+                            <div className="w-16 h-1 bg-gold rounded-full mx-auto" />
+                        </div>
+
+                        {/* Body text aligned left/center for premium look */}
+                        <div className="space-y-6 text-emerald-dark/85 text-sm sm:text-base leading-relaxed font-medium text-left max-w-3xl mx-auto">
+                            <p className="text-lg sm:text-xl text-emerald font-serif font-semibold leading-relaxed text-center">
+                                BodhGanga Academy is a research-driven educational platform built to help learners understand India in its truest grassroots form.
+                            </p>
+                            <p className="font-bold text-emerald-dark text-center text-base sm:text-lg">
+                                India is not just a nation of states—it is a nation of districts.
+                            </p>
+                            <div className="space-y-4 pt-2">
+                                <p>
+                                    Every district carries its own geography, history, culture, economy, ecology, governance structure, and historical identity.
+                                </p>
+                                <p>
+                                    Traditional education often explains India only at the national or state level. BodhGanga Academy bridges this gap through NDDE — National Digital District Encyclopedia — a pioneering long-term initiative dedicated to documenting every district of India in a structured, multi-dimensional, and digitally accessible format.
+                                </p>
+                                <p>
+                                    Through district-wise lectures, infographics, revision modules, analytical frameworks, and integrated knowledge systems, BodhGanga is building India’s most comprehensive district-based learning ecosystem.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ── ABOUT THE FOUNDER ────────────────────────────────────── */}
+            <section className="py-24 bg-ivory-light px-6 border-b border-emerald/5 relative z-20">
+                <div className="max-w-7xl mx-auto">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
+                        {/* LEFT: Text content */}
+                        <div className="lg:col-span-7 space-y-8 order-2 lg:order-1 text-left">
+                            <div className="space-y-4">
+                                <span className="inline-block text-[10px] font-bold text-gold uppercase tracking-widest leading-none">The Leadership Vision</span>
+                                <h2 className="text-3xl sm:text-5xl font-bold font-serif text-emerald-dark tracking-tight">
+                                    About the Founder
+                                </h2>
+                                <div className="w-16 h-1 bg-gold rounded-full" />
+                            </div>
+
+                            <div className="space-y-5 text-emerald-dark/85 text-sm sm:text-base leading-relaxed font-medium">
+                                <p className="text-lg text-emerald font-serif font-semibold leading-relaxed">
+                                    Prateek Bhargava is an educator, researcher, and the founder of BodhGanga Academy and the National Digital District Encyclopedia (NDDE) — India’s First Digital District Encyclopedia.
+                                </p>
+                                <p>
+                                    Alongside his educational initiatives, he has been serving as Deputy Manager at MTNL (Department of Telecommunication) since 2009.
+                                </p>
+                                <p>
+                                    Having personally experienced the competitive examination ecosystem, he developed a strong vision to create educational resources that go beyond rote memorization and fragmented learning.
+                                </p>
+                                <p>
+                                    This vision led to the creation of NDDE — a structured, research-backed digital initiative documenting every district of India through Horizontal Integration.
+                                </p>
+
+                                <div className="space-y-3 pt-3">
+                                    <p className="font-bold text-xs uppercase tracking-wider text-emerald-dark">Under his leadership, BodhGanga Academy continues building:</p>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm font-semibold text-emerald-dark/95">
+                                        <div className="flex items-center gap-2.5 bg-white/70 px-4 py-2.5 rounded-xl border border-emerald/5 shadow-sm">
+                                            <span className="text-gold">✨</span> district-wise comprehensive lectures
+                                        </div>
+                                        <div className="flex items-center gap-2.5 bg-white/70 px-4 py-2.5 rounded-xl border border-emerald/5 shadow-sm">
+                                            <span className="text-gold">✨</span> exam-oriented notes
+                                        </div>
+                                        <div className="flex items-center gap-2.5 bg-white/70 px-4 py-2.5 rounded-xl border border-emerald/5 shadow-sm">
+                                            <span className="text-gold">✨</span> MCQ banks
+                                        </div>
+                                        <div className="flex items-center gap-2.5 bg-white/70 px-4 py-2.5 rounded-xl border border-emerald/5 shadow-sm">
+                                            <span className="text-gold">✨</span> revision frameworks
+                                        </div>
+                                        <div className="flex items-center gap-2.5 bg-white/70 px-4 py-2.5 rounded-xl border border-emerald/5 shadow-sm">
+                                            <span className="text-gold">✨</span> infographics
+                                        </div>
+                                        <div className="flex items-center gap-2.5 bg-white/70 px-4 py-2.5 rounded-xl border border-emerald/5 shadow-sm">
+                                            <span className="text-gold">✨</span> cultural & environmental archives
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Core belief block */}
+                            <div className="mt-8 p-6 bg-emerald/5 border-l-4 border-gold rounded-r-2xl shadow-sm">
+                                <span className="text-gold text-2xl font-serif leading-none">“</span>
+                                <p className="text-base font-serif italic text-emerald-dark font-semibold -mt-2 leading-relaxed">
+                                    To truly understand India, one must understand its districts.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* RIGHT: Founder photo on one side */}
+                        <div className="lg:col-span-5 flex justify-center order-1 lg:order-2">
+                            <div className="relative group max-w-[380px] w-full aspect-[4/5] rounded-[32px] overflow-hidden shadow-2xl border-2 border-gold/30 p-2 bg-white">
+                                <div className="absolute inset-0 border border-gold/10 rounded-[30px] m-1 pointer-events-none z-10" />
+                                <img
+                                    src="/founder.png"
+                                    alt="Prateek Bhargava Portrait"
+                                    loading="lazy"
+                                    className="w-full h-full object-cover rounded-[24px] filter grayscale-[15%] brightness-[0.98] contrast-[1.03] transition-all duration-500 group-hover:grayscale-0 group-hover:scale-105"
+                                />
+                                <div className="absolute bottom-4 left-4 right-4 bg-emerald-950/90 backdrop-blur-md border border-gold/20 p-4 rounded-2xl z-20 text-center">
+                                    <h4 className="text-white font-serif font-bold text-xs tracking-wide">Deputy Manager, MTNL</h4>
+                                    <p className="text-gold font-sans font-bold text-[8px] uppercase tracking-widest mt-1">Telecom Officer Since 2009</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ── MISSION & VISION SECTION ──────────────────────────────── */}
+            <section className="py-24 bg-gradient-to-b from-emerald-950 to-emerald-dark text-white px-6 relative overflow-hidden border-b border-gold/15 z-20">
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(201,169,97,0.01)_1px,transparent_1px),linear-gradient(to_bottom,rgba(201,169,97,0.01)_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none" />
+                <div className="absolute top-1/2 left-1/4 w-[500px] h-[300px] bg-gold/5 rounded-full blur-[120px] pointer-events-none" />
+
+                <div className="max-w-7xl mx-auto relative z-10">
+                    <div className="text-center mb-16 space-y-4">
+                        <span className="inline-block text-[10px] font-bold text-gold uppercase tracking-widest leading-none flex items-center justify-center gap-2">
+                            <Sparkles className="w-3.5 h-3.5 text-gold" /> MAPPED BY HORIZONTAL INTEGRATION
+                        </span>
+                        <h2 className="text-3xl sm:text-5xl font-bold font-serif text-white tracking-wide">
+                            NDDE Mission & Vision
+                        </h2>
+                        <div className="w-24 h-1 bg-gradient-to-r from-transparent via-gold to-transparent mx-auto rounded-full" />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-4">
+                        {/* Mission Card */}
+                        <div className="card-premium relative bg-slate-900/60 backdrop-blur-xl border border-gold/25 rounded-3xl p-8 lg:p-10 shadow-2xl flex flex-col justify-between group hover:border-gold transition-all duration-300">
+                            <div className="space-y-6">
+                                <div className="w-14 h-14 bg-gradient-to-br from-gold to-gold-dark rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-300">
+                                    <span className="text-2xl text-emerald-dark">🎯</span>
+                                </div>
+                                <h3 className="text-2xl font-bold font-serif text-white tracking-tight">Our Mission</h3>
+                                <div className="space-y-4 text-slate-300 text-sm sm:text-base leading-relaxed">
+                                    <p className="font-semibold text-gold">
+                                        To build the most comprehensive research-backed district-wise digital knowledge platform ever created for India.
+                                    </p>
+                                    <p>
+                                        Through NDDE, we aim to present India’s districts as complete living systems—helping students, educators, and citizens explore the country through an integrated multidimensional learning framework.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Vision Card */}
+                        <div className="card-premium relative bg-slate-900/60 backdrop-blur-xl border border-gold/25 rounded-3xl p-8 lg:p-10 shadow-2xl flex flex-col justify-between group hover:border-gold transition-all duration-300">
+                            <div className="space-y-6">
+                                <div className="w-14 h-14 bg-gradient-to-br from-gold to-gold-dark rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-300">
+                                    <span className="text-2xl text-emerald-dark">👁️</span>
+                                </div>
+                                <h3 className="text-2xl font-bold font-serif text-white tracking-tight">Our Vision</h3>
+                                <div className="space-y-4 text-slate-300 text-sm sm:text-base leading-relaxed">
+                                    <p className="font-semibold text-gold">
+                                        To establish a permanent national digital knowledge archive documenting India in its true grassroots form.
+                                    </p>
+                                    <p>
+                                        By combining academic precision, technology, and visual learning, BodhGanga Academy aims to become the definitive repository of regional knowledge for current learners and future generations.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             {/* ── BRANDS & BENEFITS ───────────────────────────────────── */}
             <section className="py-24 bg-ivory-light px-6">

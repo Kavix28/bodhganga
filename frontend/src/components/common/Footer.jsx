@@ -48,6 +48,14 @@ const Footer = () => {
                         <p className="text-white/60 text-sm leading-relaxed max-w-sm">
                             India's premier premium digital academy for competitive and heritage exam preparation. Curating elite study resources for all 36 States and Union Territories.
                         </p>
+                        <div className="pt-2">
+                            <p className="text-gold font-bold text-base flex items-center gap-1.5">
+                                India Unlocked 🇮🇳
+                            </p>
+                            <p className="text-white/80 font-medium text-xs tracking-wider uppercase mt-1">
+                                Decoding India, District by District
+                            </p>
+                        </div>
                         <div className="space-y-3">
                             <a href="mailto:support@bodhganga.in" className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-wider text-gold hover:text-gold-light transition-colors">
                                 <Mail className="w-4 h-4 text-white/50" /> support@bodhganga.in

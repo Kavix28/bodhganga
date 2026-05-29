@@ -19,22 +19,22 @@ const Logo = ({
 }) => {
     // Elegant responsive sizing maps for the circular logo asset (using 100% valid Tailwind classes)
     const sizeMap = {
-        sm: 'w-10 h-10',
-        md: 'w-14 h-14',
-        lg: 'w-24 h-24',
-        xl: 'w-32 h-32'
+        sm: 'w-12 h-12',
+        md: 'w-16 h-16',
+        lg: 'w-28 h-28',
+        xl: 'w-36 h-36'
     };
 
     // Pixel width/height specifications for absolute inline override to prevent any stylesheet override explosion
     const pixelSizes = {
-        sm: 40,
-        md: 56,
-        lg: 96,
-        xl: 128
+        sm: 48,
+        md: 64,
+        lg: 112,
+        xl: 144
     };
 
-    const iconSize = sizeMap[size] || className || 'w-14 h-14';
-    const pxSize = pixelSizes[size] || 56;
+    const iconSize = sizeMap[size] || className || 'w-16 h-16';
+    const pxSize = pixelSizes[size] || 64;
 
     // Theme state styling
     const isDark = theme === 'dark';
@@ -74,13 +74,14 @@ const Logo = ({
                         width: '100%',
                         height: '100%',
                         imageRendering: 'high-quality',
-                        contentVisibility: 'auto'
+                        contentVisibility: 'auto',
+                        filter: 'brightness(1.3) contrast(1.2)'
                     }}
                 />
             </div>
 
             {/* Subtle premium online badge overlay */}
-            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-gradient-to-r from-gold to-gold-dark rounded-full border-2 border-[#062014] shadow-md flex items-center justify-center">
+            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-gradient-to-r from-gold to-gold-dark rounded-full border-2 border-[#062014] shadow-md flex items-center justify-center">
                 <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
             </div>
         </div>
