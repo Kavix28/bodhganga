@@ -353,28 +353,26 @@ const Landing = () => {
 
                         {/* Premium Interactive Slideshow */}
                         <div className="lg:col-span-5 w-full relative">
-                            <div className="relative mx-auto w-full max-w-[460px] h-[340px] sm:h-[450px] rounded-[24px] overflow-hidden shadow-2xl border border-gold/25 glow-emerald-card group">
+                            <div className="relative mx-auto w-full lg:w-[460px] h-[560px] lg:h-[640px] max-w-[420px] lg:max-w-none rounded-[28px] overflow-hidden shadow-2xl border border-gold/25 glow-emerald-card group bg-gradient-to-b from-emerald-900 to-emerald-950 flex items-center justify-center">
                                 {/* Slides */}
                                 {slides.map((slide, idx) => (
                                     <div
                                         key={idx}
-                                        className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+                                        className={`absolute inset-0 w-full h-full overflow-hidden rounded-[28px] bg-gradient-to-b from-emerald-900 to-emerald-950 flex items-center justify-center transition-opacity duration-1000 ease-in-out ${
                                             currentSlide === idx ? 'opacity-100' : 'opacity-0 pointer-events-none'
                                         }`}
                                     >
-                                        <div className="absolute inset-0 bg-gradient-to-t from-emerald-950 via-emerald-950/40 to-transparent z-10" />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent rounded-[28px] z-10 pointer-events-none" />
                                         <img
                                             src={slide.image}
                                             alt={slide.label}
-                                            className={`w-full h-full object-cover transition-transform duration-[4000ms] ease-out ${
-                                                currentSlide === idx ? 'scale-105' : 'scale-100'
-                                            }`}
+                                            className="w-full h-full object-cover object-top rounded-[28px] transition-all duration-700"
                                         />
                                     </div>
                                 ))}
                                 
                                 {/* Overlay Card */}
-                                <div className="absolute bottom-6 left-6 right-6 p-5 bg-emerald-950/85 backdrop-blur-md border border-gold/20 rounded-2xl z-20 text-left">
+                                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-full max-w-[88%] px-6 py-5 bg-emerald-950/85 backdrop-blur-md border border-gold/20 rounded-2xl z-20 text-left">
                                     <div className="text-[10px] font-extrabold uppercase tracking-widest text-gold mb-1">India Unlocked 🇮🇳</div>
                                     <div className="text-xs text-white/50 font-bold uppercase tracking-wider mb-1">Decoding India, District by District</div>
                                     <h3 className="text-base sm:text-lg font-serif font-bold text-white tracking-tight">{slides[currentSlide].title}</h3>
