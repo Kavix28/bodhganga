@@ -12,6 +12,10 @@
       "dest": "/assets/$1"
     },
     {
+      "src": "/api/(.*)",
+      "dest": "http://52.90.126.159:9090/api/$1"
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }
