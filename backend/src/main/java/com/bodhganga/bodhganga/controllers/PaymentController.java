@@ -196,6 +196,74 @@ public class PaymentController {
     }
 
     /**
+     * GET /api/payment/my-purchases
+     * Retrieves all purchases made by the currently authenticated user.
+     */
+    @GetMapping("/my-purchases")
+    public ResponseEntity<ApiResponseDTO> getMyPurchases(Authentication authentication) {
+        try {
+            if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getName())) {
+                return ResponseEntity.status(401).body(ApiResponseDTO.builder()
+                        .success(false)
+                        .message("Authentication required.")
+                        .build());
+            }
+
+            User user = userRepo.findByEmail(authentication.getName())
+                    .orElseThrow(() -> new RuntimeException("User not found: " + authentication.getName()));
+
+            java.util.List<Purchase> purchases = purchaseRepo.findByUserId(user.getId());
+
+            java.util.List<Map<String, Object>> dataList = purchases.stream().map(purchase -> {
+                Map<String, Object> map = new HashMap<>();
+                map.put("id", purchase.getId());
+                map.put("purchaseDate", purchase.getPurchaseDate());
+                map.put("downloadCount", purchase.getDownloadCount());
+                map.put("orderId", purchase.getOrderId());
+                map.put("productId", purchase.getProductId());
+
+                // Find associated product details
+                Optional<Product> prodOpt = productRepo.findById(purchase.getProductId());
+                if (prodOpt.isPresent()) {
+                    Product product = prodOpt.get();
+                    
+                    // Create nested product details object
+                    Map<String, Object> productDetails = new HashMap<>();
+                    productDetails.put("id", product.getId());
+                    productDetails.put("title", product.getTitle());
+                    productDetails.put("type", product.getType());
+                    productDetails.put("price", product.getPrice());
+                    productDetails.put("storageKey", product.getStorageKey());
+                    productDetails.put("thumbnail", product.getPreviewUrl()); // mapping previewUrl to thumbnail
+                    map.put("product", productDetails);
+                    
+                    // Flatten fields directly for convenience/backward compatibility
+                    map.put("title", product.getTitle());
+                    map.put("type", product.getType());
+                    map.put("price", product.getPrice());
+                    map.put("storageKey", product.getStorageKey());
+                    map.put("thumbnail", product.getPreviewUrl());
+                }
+
+                return map;
+            }).collect(java.util.stream.Collectors.toList());
+
+            return ResponseEntity.ok(ApiResponseDTO.builder()
+                    .success(true)
+                    .message("User purchases retrieved successfully.")
+                    .data(dataList)
+                    .build());
+
+        } catch (Exception e) {
+            log.error("Error retrieving purchases: {}", e.getMessage());
+            return ResponseEntity.status(500).body(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("Error retrieving purchases.")
+                    .build());
+        }
+    }
+
+    /**
      * GET /api/payment/check-purchase/{productId}
      * Checks if the currently authenticated user has purchased the product.
      */

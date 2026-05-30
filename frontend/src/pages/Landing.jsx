@@ -352,8 +352,8 @@ const Landing = () => {
                         </div>
 
                         {/* Premium Interactive Slideshow */}
-                        <div className="lg:col-span-5 w-full relative">
-                            <div className="relative mx-auto w-full lg:w-[460px] h-[560px] lg:h-[640px] max-w-[420px] lg:max-w-none rounded-[28px] overflow-hidden shadow-2xl border border-gold/25 glow-emerald-card group bg-gradient-to-b from-emerald-900 to-emerald-950 flex items-center justify-center">
+                        <div className="lg:col-span-5 w-full relative mt-10 lg:mt-0 mx-auto px-4 sm:px-0">
+                            <div className="relative mx-auto w-full max-w-[340px] sm:max-w-[380px] md:max-w-[420px] lg:max-w-none lg:w-[460px] h-[420px] sm:h-[500px] md:h-[560px] lg:h-[640px] rounded-[28px] overflow-hidden shadow-2xl border border-gold/25 glow-emerald-card group bg-gradient-to-b from-emerald-900 to-emerald-950 flex items-center justify-center">
                                 {/* Slides */}
                                 {slides.map((slide, idx) => (
                                     <div
@@ -372,11 +372,11 @@ const Landing = () => {
                                 ))}
                                 
                                 {/* Overlay Card */}
-                                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-full max-w-[88%] px-6 py-5 bg-emerald-950/85 backdrop-blur-md border border-gold/20 rounded-2xl z-20 text-left">
-                                    <div className="text-[10px] font-extrabold uppercase tracking-widest text-gold mb-1">India Unlocked 🇮🇳</div>
-                                    <div className="text-xs text-white/50 font-bold uppercase tracking-wider mb-1">Decoding India, District by District</div>
-                                    <h3 className="text-base sm:text-lg font-serif font-bold text-white tracking-tight">{slides[currentSlide].title}</h3>
-                                    <p className="text-[11px] text-white/70 mt-1 font-semibold uppercase tracking-wider">{slides[currentSlide].label}</p>
+                                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[88%] sm:w-[84%] px-4 py-4 sm:px-6 sm:py-5 bg-emerald-950/85 backdrop-blur-xl border border-gold/20 rounded-2xl z-20 text-left">
+                                    <div className="text-[10px] sm:text-xs tracking-[0.25em] font-extrabold uppercase text-gold mb-1">India Unlocked 🇮🇳</div>
+                                    <div className="text-[9px] sm:text-[10px] text-white/50 font-bold uppercase tracking-wider mb-1">Decoding India, District by District</div>
+                                    <h3 className="text-lg sm:text-2xl font-semibold font-serif text-white tracking-tight leading-tight">{slides[currentSlide].title}</h3>
+                                    <p className="text-xs sm:text-sm opacity-90 text-white/70 mt-1 font-semibold uppercase tracking-wider">{slides[currentSlide].label}</p>
                                 </div>
                                 
                                 {/* Navigation dots in gold */}
@@ -562,15 +562,15 @@ const Landing = () => {
 
                         {/* RIGHT: Founder photo on one side */}
                         <div className="lg:col-span-5 flex justify-center order-1 lg:order-2">
-                            <div className="relative group max-w-[380px] w-full aspect-[4/5] rounded-[32px] overflow-hidden shadow-2xl border-2 border-gold/30 p-2 bg-white">
-                                <div className="absolute inset-0 border border-gold/10 rounded-[30px] m-1 pointer-events-none z-10" />
+                            <div className="relative group w-full max-w-[360px] h-[440px] rounded-3xl overflow-hidden shadow-2xl border border-gold/20 p-2 bg-white">
+                                <div className="absolute inset-0 border border-gold/10 rounded-[22px] m-1 pointer-events-none z-10" />
                                 <img
-                                    src="/founder.png"
+                                    src="/prateek-sir.png"
                                     alt="Prateek Bhargava Portrait"
                                     loading="lazy"
-                                    className="w-full h-full object-cover rounded-[24px] filter grayscale-[15%] brightness-[0.98] contrast-[1.03] transition-all duration-500 group-hover:grayscale-0 group-hover:scale-105"
+                                    className="w-full h-full object-cover object-center rounded-[20px] filter grayscale-[15%] brightness-[0.98] contrast-[1.03] transition-all duration-500 group-hover:grayscale-0 group-hover:scale-105"
                                 />
-                                <div className="absolute bottom-4 left-4 right-4 bg-emerald-950/90 backdrop-blur-md border border-gold/20 p-4 rounded-2xl z-20 text-center">
+                                <div className="absolute bottom-6 left-6 right-6 bg-emerald-950/90 backdrop-blur-md border border-gold/20 p-4 rounded-2xl z-20 text-center">
                                     <h4 className="text-white font-serif font-bold text-xs tracking-wide">Deputy Manager, MTNL</h4>
                                     <p className="text-gold font-sans font-bold text-[8px] uppercase tracking-widest mt-1">Telecom Officer Since 2009</p>
                                 </div>

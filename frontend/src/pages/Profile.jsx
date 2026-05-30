@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { FiUser, FiMail, FiPhone, FiEdit2, FiSave, FiX, FiShoppingBag, FiMapPin } from 'react-icons/fi';
-import { BookOpen, Award, Shield } from 'lucide-react';
+import { BookOpen, Award, Shield, Download } from 'lucide-react';
 import api from '../services/api';
+import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const Profile = () => {
@@ -25,7 +26,32 @@ const Profile = () => {
         api.get('/courses/my-courses')
             .then(res => setEnrollments(res?.data || res || []))
             .catch(() => {});
+
+        // Fetch purchases
+        api.get('/payment/my-purchases')
+            .then(res => setPurchases(res?.data || res || []))
+            .catch(() => {});
     }, []);
+
+    const handleDownload = async (productId) => {
+        if (!productId) {
+            toast.error('Invalid product ID');
+            return;
+        }
+        try {
+            toast.loading('Generating secure download link...', { id: 'download-pdf' });
+            const res = await api.get(`/downloads/${productId}`);
+            if (res?.success && res.data) {
+                toast.success('Download starting!', { id: 'download-pdf' });
+                window.open(res.data, "_blank");
+            } else {
+                toast.error(res?.message || 'Failed to retrieve download URL.', { id: 'download-pdf' });
+            }
+        } catch (err) {
+            console.error('Error generating secure download URL:', err);
+            toast.error(err?.message || 'Failed to retrieve secure download link.', { id: 'download-pdf' });
+        }
+    };
 
     const handleChange = e => {
         const { name, value } = e.target;
@@ -201,6 +227,78 @@ const Profile = () => {
                                             </div>
                                         </div>
                                     ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* My Purchases Section */}
+                        <div className="card-premium bg-white p-6 sm:p-8 mt-8">
+                            <h3 className="text-lg font-bold text-emerald-dark mb-6 font-serif flex items-center gap-2 border-b border-emerald/5 pb-4">
+                                <FiShoppingBag className="w-5 h-5 text-emerald" />
+                                My Purchased Library
+                            </h3>
+                            {purchases.length === 0 ? (
+                                <div className="text-center py-12 bg-emerald/5 rounded-2xl border border-emerald/5">
+                                    <FiShoppingBag className="w-12 h-12 text-emerald/10 mx-auto mb-3" />
+                                    <p className="text-emerald-dark/60 text-sm font-semibold">No purchased books or notes yet.</p>
+                                    <Link to="/store" className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gold hover:text-gold-dark">
+                                        Browse Digital Store
+                                    </Link>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    {purchases.map(purchase => {
+                                        const product = purchase.product || purchase;
+                                        const purchaseDate = purchase.purchaseDate 
+                                            ? new Date(purchase.purchaseDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+                                            : 'N/A';
+                                        
+                                        return (
+                                            <div key={purchase.id} className="group relative bg-emerald-light/5 border border-emerald/5 hover:border-gold/30 rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 hover:shadow-md">
+                                                <div className="space-y-4">
+                                                    {/* Thumbnail or Icon */}
+                                                    <div className="aspect-video w-full rounded-xl overflow-hidden bg-emerald-950/10 border border-emerald/5 relative">
+                                                        {product.thumbnail ? (
+                                                            <img 
+                                                                src={product.thumbnail} 
+                                                                alt={product.title} 
+                                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-900/10 to-emerald-950/10">
+                                                                <BookOpen className="w-10 h-10 text-emerald/40" />
+                                                            </div>
+                                                        )}
+                                                        <span className="absolute top-3 left-3 text-[8px] font-black uppercase tracking-wider bg-emerald-dark text-white px-2.5 py-0.5 rounded-full">
+                                                            {product.type || 'PDF'}
+                                                        </span>
+                                                    </div>
+
+                                                    {/* Title & Metadata */}
+                                                    <div className="space-y-1 text-left">
+                                                        <h4 className="font-bold text-emerald-dark font-serif text-sm leading-snug line-clamp-2 group-hover:text-emerald transition-colors">
+                                                            {product.title || 'Digital Study Notes'}
+                                                        </h4>
+                                                        <p className="text-[10px] text-emerald-dark/50 font-bold uppercase tracking-wider">
+                                                            Purchased: {purchaseDate}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                {/* Action Bar */}
+                                                <div className="border-t border-emerald/5 pt-4 mt-4 flex items-center justify-between">
+                                                    <span className="text-sm font-black text-emerald">₹{product.price || 0}</span>
+                                                    
+                                                    <button 
+                                                        onClick={() => handleDownload(product.id || purchase.productId)}
+                                                        className="px-4 py-2 bg-gradient-to-r from-gold to-gold-dark hover:from-gold-dark hover:to-gold text-emerald-dark font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all duration-300 shadow-sm flex items-center gap-1.5"
+                                                    >
+                                                        <Download className="w-3.5 h-3.5" /> Download PDF
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>
