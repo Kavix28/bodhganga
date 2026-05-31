@@ -5,6 +5,7 @@ import { FiPlay, FiBookOpen, FiClock, FiUser, FiShoppingCart, FiCheck, FiArrowLe
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import Loader from '../components/common/Loader';
+import BuyButton from '../components/common/BuyButton';
 
 const CourseDetail = () => {
     const { id } = useParams();
@@ -14,7 +15,6 @@ const CourseDetail = () => {
     const [course, setCourse] = useState(null);
     const [isPurchased, setIsPurchased] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
-    const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
     // Fetch course details and purchase status
     useEffect(() => {
@@ -47,108 +47,7 @@ const CourseDetail = () => {
         }
     }, [id, navigate]);
 
-    // Helper to dynamically load Razorpay script
-    const loadRazorpayScript = () => {
-        return new Promise((resolve) => {
-            if (window.window.Razorpay) {
-                resolve(true);
-                return;
-            }
-            const script = document.createElement('script');
-            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-            script.async = true;
-            script.onload = () => resolve(true);
-            script.onerror = () => resolve(false);
-            document.body.appendChild(script);
-        });
-    };
 
-    // Handle purchase
-    const handlePurchase = async () => {
-        if (!course) return;
-        if (!user) {
-            toast.error('Please login to purchase courses');
-            navigate('/login?redirect=' + encodeURIComponent(window.location.pathname));
-            return;
-        }
-        
-        setIsProcessingPayment(true);
-        
-        try {
-            const loaded = await loadRazorpayScript();
-            if (!loaded) {
-                toast.error('Razorpay SDK failed to load. Are you offline?');
-                setIsProcessingPayment(false);
-                return;
-            }
-
-            const amountPaise = Math.round(course.price * 100);
-            const orderRes = await api.post('/payment/create-order', {
-                amountPaise: amountPaise,
-                productId: course.id
-            });
-
-            if (!orderRes.success) {
-                toast.error(orderRes.message || 'Failed to initiate order');
-                setIsProcessingPayment(false);
-                return;
-            }
-
-            const options = {
-                key: orderRes.data.keyId,
-                amount: orderRes.data.amount,
-                currency: orderRes.data.currency,
-                name: 'BodhGanga Academy',
-                description: course.title,
-                order_id: orderRes.data.orderId,
-                handler: async function (response) {
-                    try {
-                        const verifyRes = await api.post('/payment/verify', {
-                            razorpayOrderId: response.razorpay_order_id,
-                            razorpayPaymentId: response.razorpay_payment_id,
-                            razorpaySignature: response.razorpay_signature
-                        });
-                        
-                        if (verifyRes.success) {
-                            toast.success("Payment successful! Course unlocked.");
-                            setIsPurchased(true);
-                        } else {
-                            toast.error(verifyRes.message || 'Payment verification failed');
-                        }
-                    } catch (err) {
-                        console.error('Verification error:', err);
-                        toast.error(err.message || 'Payment verification failed');
-                    }
-                },
-                prefill: {
-                    name: user.name || '',
-                    email: user.email || '',
-                    contact: user.phoneNo || ''
-                },
-                theme: {
-                    color: '#022c22'
-                }
-            };
-
-            const rzp = new window.Razorpay(options);
-            rzp.on('payment.failed', function (response) {
-                toast.error('Payment failed: ' + response.error.description);
-            });
-            rzp.open();
-            
-        } catch (error) {
-            console.error('Payment error:', error);
-            if (error.status === 550 || error.status === 503 || error.message?.includes('not configured')) {
-                console.warn('Payment gateway not configured. Falling back to mock success.');
-                toast.success('Demo Mode: Purchase completed successfully!');
-                setIsPurchased(true);
-            } else {
-                toast.error(error.message || 'Failed to process payment');
-            }
-        } finally {
-            setIsProcessingPayment(false);
-        }
-    };
 
     // Handle start learning
     const handleStartLearning = () => {
@@ -315,23 +214,14 @@ const CourseDetail = () => {
                                     <span>Start Learning</span>
                                 </button>
                             ) : (
-                                <button
-                                    onClick={handlePurchase}
-                                    disabled={isProcessingPayment}
-                                    className="w-full btn-primary text-lg py-3 flex items-center justify-center space-x-2 mb-4"
+                                <BuyButton
+                                    courseId={course.id}
+                                    onSuccess={() => setIsPurchased(true)}
+                                    className="w-full text-lg py-3 mb-4"
                                 >
-                                    {isProcessingPayment ? (
-                                        <>
-                                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                                            <span>Processing...</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <FiShoppingCart className="w-5 h-5" />
-                                            <span>Purchase Course</span>
-                                        </>
-                                    )}
-                                </button>
+                                    <FiShoppingCart className="w-5 h-5" />
+                                    <span>Purchase Course</span>
+                                </BuyButton>
                             )}
 
                             {/* Course Details */}

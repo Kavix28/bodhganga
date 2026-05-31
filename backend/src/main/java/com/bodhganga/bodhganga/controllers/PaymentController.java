@@ -8,6 +8,12 @@ import com.bodhganga.bodhganga.repo.UserRepo;
 import com.bodhganga.bodhganga.repo.ProductRepo;
 import com.bodhganga.bodhganga.services.EmailService;
 import com.bodhganga.bodhganga.entity.Product;
+import com.bodhganga.bodhganga.entity.Courses;
+import com.bodhganga.bodhganga.entity.Enrollment;
+import com.bodhganga.bodhganga.entity.Payment;
+import com.bodhganga.bodhganga.repo.CourseRepo;
+import com.bodhganga.bodhganga.repo.EnrollmentRepo;
+import com.bodhganga.bodhganga.repo.PaymentRepo;
 import com.razorpay.Order;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
@@ -46,12 +52,67 @@ public class PaymentController {
     private final PurchaseRepo purchaseRepo;
     private final ProductRepo productRepo;
     private final EmailService emailService;
+    private final PaymentRepo paymentRepo;
+    private final CourseRepo courseRepo;
+    private final EnrollmentRepo enrollmentRepo;
 
-    public PaymentController(UserRepo userRepo, PurchaseRepo purchaseRepo, ProductRepo productRepo, EmailService emailService) {
+    public PaymentController(UserRepo userRepo, PurchaseRepo purchaseRepo, ProductRepo productRepo, 
+                             EmailService emailService, PaymentRepo paymentRepo, CourseRepo courseRepo, 
+                             EnrollmentRepo enrollmentRepo) {
         this.userRepo = userRepo;
         this.purchaseRepo = purchaseRepo;
         this.productRepo = productRepo;
         this.emailService = emailService;
+        this.paymentRepo = paymentRepo;
+        this.courseRepo = courseRepo;
+        this.enrollmentRepo = enrollmentRepo;
+    }
+
+    private void unlockCourse(String userId, String courseId, String orderId) {
+        Optional<Purchase> existingPurchase = purchaseRepo.findByUserIdAndProductId(userId, courseId);
+        if (existingPurchase.isEmpty()) {
+            Purchase purchase = new Purchase();
+            purchase.setUserId(userId);
+            purchase.setProductId(courseId);
+            purchase.setOrderId(orderId);
+            purchase.setPurchaseDate(new java.util.Date());
+            purchase.setDownloadCount(0);
+            purchaseRepo.save(purchase);
+            log.info("Successfully recorded course purchase in MongoDB: userId={}, courseId={}", userId, courseId);
+        }
+
+        Optional<Enrollment> existingEnrollment = enrollmentRepo.findByUserIdAndCourseId(userId, courseId);
+        if (existingEnrollment.isEmpty()) {
+            Enrollment enrollment = new Enrollment();
+            enrollment.setUserId(userId);
+            enrollment.setCourseId(courseId);
+            enrollment.setEnrolledAt(new java.util.Date());
+            enrollment.setStatus("ENROLLED");
+            enrollment.setProgress(0);
+            enrollmentRepo.save(enrollment);
+            log.info("Successfully enrolled user in course: userId={}, courseId={}", userId, courseId);
+        } else {
+            Enrollment enrollment = existingEnrollment.get();
+            if (!"ENROLLED".equals(enrollment.getStatus())) {
+                enrollment.setStatus("ENROLLED");
+                enrollmentRepo.save(enrollment);
+                log.info("Updated course enrollment status to ENROLLED: userId={}, courseId={}", userId, courseId);
+            }
+        }
+    }
+
+    private void unlockProduct(String userId, String productId, String orderId) {
+        Optional<Purchase> existing = purchaseRepo.findByUserIdAndProductId(userId, productId);
+        if (existing.isEmpty()) {
+            Purchase purchase = new Purchase();
+            purchase.setUserId(userId);
+            purchase.setProductId(productId);
+            purchase.setOrderId(orderId);
+            purchase.setPurchaseDate(new java.util.Date());
+            purchase.setDownloadCount(0);
+            purchaseRepo.save(purchase);
+            log.info("Successfully recorded product purchase in MongoDB: userId={}, productId={}", userId, productId);
+        }
     }
 
     /**
@@ -61,7 +122,7 @@ public class PaymentController {
      */
     @PostMapping("/create-order")
     public ResponseEntity<ApiResponseDTO> createOrder(
-            @Valid @RequestBody CreateOrderRequest req,
+            @RequestBody CreateOrderRequest req,
             Authentication authentication) {
 
         if (razorpayKeyId == null || razorpayKeyId.isBlank()) {
@@ -70,20 +131,59 @@ public class PaymentController {
         }
 
         try {
+            String userEmail = authentication.getName();
+            User user = userRepo.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("User not found: " + userEmail));
+
+            int amountPaise = 0;
+            String productId = req.productId();
+            String courseId = req.courseId();
+
+            if (courseId != null && !courseId.trim().isEmpty()) {
+                Courses course = courseRepo.findById(courseId)
+                        .orElseThrow(() -> new RuntimeException("Course not found: " + courseId));
+                amountPaise = (int) Math.round(course.getCoursePrice() * 100);
+            } else if (req.amountPaise() != null) {
+                amountPaise = req.amountPaise();
+            } else {
+                return ResponseEntity.badRequest().body(ApiResponseDTO.builder()
+                        .success(false).message("Invalid request: courseId or amountPaise is required.").build());
+            }
+
             RazorpayClient client = new RazorpayClient(razorpayKeyId, razorpayKeySecret);
 
             JSONObject orderRequest = new JSONObject();
-            orderRequest.put("amount", req.amountPaise());       // amount in paise
+            orderRequest.put("amount", amountPaise);       // amount in paise
             orderRequest.put("currency", "INR");
             orderRequest.put("receipt", "rcpt_" + System.currentTimeMillis());
-            orderRequest.put("notes", new JSONObject()
-                    .put("productId", req.productId())
-                    .put("userEmail", authentication.getName()));
+            
+            JSONObject notes = new JSONObject();
+            if (courseId != null && !courseId.trim().isEmpty()) {
+                notes.put("courseId", courseId);
+            }
+            if (productId != null && !productId.trim().isEmpty()) {
+                notes.put("productId", productId);
+            }
+            notes.put("userEmail", userEmail);
+            orderRequest.put("notes", notes);
 
             Order order = client.orders.create(orderRequest);
+            String orderId = order.get("id");
+
+            if (courseId != null && !courseId.trim().isEmpty()) {
+                Payment payment = new Payment(
+                        user.getId(),
+                        courseId,
+                        orderId,
+                        (double) amountPaise / 100.0,
+                        "INR"
+                );
+                paymentRepo.save(payment);
+                log.info("Created PENDING Payment record for course: userId={}, courseId={}, orderId={}", user.getId(), courseId, orderId);
+            }
 
             Map<String, Object> data = new HashMap<>();
-            data.put("orderId", order.get("id"));
+            data.put("orderId", orderId);
             data.put("amount", order.get("amount"));
             data.put("currency", order.get("currency"));
             data.put("keyId", razorpayKeyId);
@@ -91,7 +191,7 @@ public class PaymentController {
             return ResponseEntity.ok(ApiResponseDTO.builder()
                     .success(true).message("Order created").data(data).build());
 
-        } catch (RazorpayException e) {
+        } catch (Exception e) {
             log.error("Razorpay order creation failed: {}", e.getMessage());
             return ResponseEntity.status(500).body(ApiResponseDTO.builder()
                     .success(false).message("Failed to create payment order.").build());
@@ -115,6 +215,17 @@ public class PaymentController {
 
             if (!expectedSignature.equals(req.razorpaySignature())) {
                 log.warn("Payment signature mismatch for order: {}", req.razorpayOrderId());
+                
+                // If it is a course payment, mark the Payment as FAILED
+                Optional<Payment> paymentOpt = paymentRepo.findByOrderId(req.razorpayOrderId());
+                if (paymentOpt.isPresent()) {
+                    Payment p = paymentOpt.get();
+                    if ("PENDING".equals(p.getStatus())) {
+                        p.setStatus("FAILED");
+                        paymentRepo.save(p);
+                    }
+                }
+                
                 return ResponseEntity.badRequest().body(ApiResponseDTO.builder()
                         .success(false).message("Payment verification failed. Invalid signature.").build());
             }
@@ -127,50 +238,52 @@ public class PaymentController {
             User user = userRepo.findByEmail(authentication.getName())
                     .orElseThrow(() -> new RuntimeException("User not found: " + authentication.getName()));
 
-            // Retrieve productId from Razorpay order notes dynamically
-            String productId = null;
-            if (razorpayKeyId != null && !razorpayKeyId.isBlank() && razorpayKeySecret != null && !razorpayKeySecret.isBlank()) {
-                try {
-                    RazorpayClient client = new RazorpayClient(razorpayKeyId, razorpayKeySecret);
-                    Order order = client.orders.fetch(req.razorpayOrderId());
-                    if (order.has("notes")) {
-                        Object notesObj = order.get("notes");
-                        if (notesObj instanceof JSONObject) {
-                            productId = ((JSONObject) notesObj).optString("productId");
-                        } else if (notesObj instanceof Map) {
-                            productId = String.valueOf(((Map<?, ?>) notesObj).get("productId"));
-                        } else {
-                            JSONObject notesJson = new JSONObject(notesObj.toString());
-                            productId = notesJson.optString("productId");
-                        }
-                    }
-                } catch (Exception ex) {
-                    log.error("Error fetching order details from Razorpay: {}", ex.getMessage());
-                }
-            }
-
-            // Save purchase record to DB
             String resolvedProductName = "Digital Study Notes";
-            if (productId != null && !productId.isBlank()) {
-                Optional<Product> prodOpt = productRepo.findById(productId);
-                if (prodOpt.isPresent()) {
-                    resolvedProductName = prodOpt.get().getTitle();
-                }
-                Optional<Purchase> existing = purchaseRepo.findByUserIdAndProductId(user.getId(), productId);
-                if (existing.isEmpty()) {
-                    Purchase purchase = new Purchase();
-                    purchase.setUserId(user.getId());
-                    purchase.setProductId(productId);
-                    purchase.setOrderId(req.razorpayOrderId());
-                    purchase.setPurchaseDate(new java.util.Date());
-                    purchase.setDownloadCount(0);
-                    purchaseRepo.save(purchase);
-                    log.info("Successfully recorded purchase in MongoDB: userId={}, productId={}", user.getId(), productId);
-                } else {
-                    log.info("Purchase record already exists in MongoDB: userId={}, productId={}", user.getId(), productId);
+            
+            // Check if there is a course Payment record for this order
+            Optional<Payment> paymentOpt = paymentRepo.findByOrderId(req.razorpayOrderId());
+            if (paymentOpt.isPresent()) {
+                Payment p = paymentOpt.get();
+                p.setStatus("SUCCESS");
+                p.setPaymentId(req.razorpayPaymentId());
+                paymentRepo.save(p);
+
+                unlockCourse(user.getId(), p.getCourseId(), req.razorpayOrderId());
+
+                Optional<Courses> courseOpt = courseRepo.findById(p.getCourseId());
+                if (courseOpt.isPresent()) {
+                    resolvedProductName = courseOpt.get().getCourseTitle();
                 }
             } else {
-                log.warn("Unable to resolve productId for purchase record. OrderId: {}", req.razorpayOrderId());
+                // Notes/product payment
+                String productId = req.productId();
+                if (productId == null || productId.isBlank()) {
+                    // Try fetching from Razorpay order notes if not provided in request
+                    try {
+                        RazorpayClient client = new RazorpayClient(razorpayKeyId, razorpayKeySecret);
+                        Order order = client.orders.fetch(req.razorpayOrderId());
+                        if (order.has("notes")) {
+                            Object notesObj = order.get("notes");
+                            if (notesObj instanceof JSONObject) {
+                                productId = ((JSONObject) notesObj).optString("productId");
+                            } else if (notesObj instanceof Map) {
+                                productId = String.valueOf(((Map<?, ?>) notesObj).get("productId"));
+                            }
+                        }
+                    } catch (Exception ex) {
+                        log.error("Error fetching product details from Razorpay: {}", ex.getMessage());
+                    }
+                }
+                
+                if (productId != null && !productId.isBlank()) {
+                    Optional<Product> prodOpt = productRepo.findById(productId);
+                    if (prodOpt.isPresent()) {
+                        resolvedProductName = prodOpt.get().getTitle();
+                    }
+                    unlockProduct(user.getId(), productId, req.razorpayOrderId());
+                } else {
+                    log.warn("Unable to resolve productId for purchase record. OrderId: {}", req.razorpayOrderId());
+                }
             }
 
             // Send confirmation email
@@ -243,6 +356,27 @@ public class PaymentController {
                     map.put("price", product.getPrice());
                     map.put("storageKey", product.getStorageKey());
                     map.put("thumbnail", product.getPreviewUrl());
+                } else {
+                    // Try checking if it's a course
+                    Optional<Courses> courseOpt = courseRepo.findById(purchase.getProductId());
+                    if (courseOpt.isPresent()) {
+                        Courses course = courseOpt.get();
+                        
+                        Map<String, Object> productDetails = new HashMap<>();
+                        productDetails.put("id", course.getId());
+                        productDetails.put("title", course.getCourseTitle());
+                        productDetails.put("type", "COURSE");
+                        productDetails.put("price", course.getCoursePrice());
+                        productDetails.put("storageKey", null);
+                        productDetails.put("thumbnail", course.getThumbnailUrl());
+                        map.put("product", productDetails);
+                        
+                        map.put("title", course.getCourseTitle());
+                        map.put("type", "COURSE");
+                        map.put("price", course.getCoursePrice());
+                        map.put("storageKey", null);
+                        map.put("thumbnail", course.getThumbnailUrl());
+                    }
                 }
 
                 return map;
@@ -323,51 +457,74 @@ public class PaymentController {
                 String orderId = payment.getString("order_id");
                 log.info("Payment captured: paymentId={}, orderId={}", paymentId, orderId);
                 
-                // Retrieve or save purchase record if not already recorded
-                try {
-                    RazorpayClient client = new RazorpayClient(razorpayKeyId, razorpayKeySecret);
-                    Order order = client.orders.fetch(orderId);
-                    Object notesObj = order.has("notes") ? order.get("notes") : null;
-                    String productId = null;
-                    String userEmail = null;
-                    if (notesObj != null) {
-                        if (notesObj instanceof JSONObject) {
-                            productId = ((JSONObject) notesObj).optString("productId");
-                            userEmail = ((JSONObject) notesObj).optString("userEmail");
-                        } else if (notesObj instanceof Map) {
-                            productId = String.valueOf(((Map<?, ?>) notesObj).get("productId"));
-                            userEmail = String.valueOf(((Map<?, ?>) notesObj).get("userEmail"));
+                // First check if there is a course Payment record for this order
+                Optional<Payment> paymentOpt = paymentRepo.findByOrderId(orderId);
+                if (paymentOpt.isPresent()) {
+                    Payment p = paymentOpt.get();
+                    if (!"SUCCESS".equals(p.getStatus())) {
+                        p.setStatus("SUCCESS");
+                        p.setPaymentId(paymentId);
+                        paymentRepo.save(p);
+
+                        unlockCourse(p.getUserId(), p.getCourseId(), orderId);
+
+                        // Send confirmation email
+                        try {
+                            userRepo.findById(p.getUserId()).ifPresent(user -> {
+                                String courseTitle = "Course";
+                                Optional<Courses> courseOpt = courseRepo.findById(p.getCourseId());
+                                if (courseOpt.isPresent()) {
+                                    courseTitle = courseOpt.get().getCourseTitle();
+                                }
+                                try {
+                                    emailService.sendOrderConfirmation(user.getEmail(), orderId, courseTitle);
+                                } catch (Exception ex) {
+                                    log.error("Failed to send course order confirmation email: {}", ex.getMessage());
+                                }
+                            });
+                        } catch (Exception ex) {
+                            log.error("Failed to process webhook email sending: {}", ex.getMessage());
                         }
                     }
-                    if (productId != null && userEmail != null) {
-                        final String finalProdId = productId;
-                        final String finalOrderId = orderId;
-                        userRepo.findByEmail(userEmail).ifPresent(user -> {
-                            String resolvedProductName = "Digital Study Notes";
-                            Optional<Product> prodOpt = productRepo.findById(finalProdId);
-                            if (prodOpt.isPresent()) {
-                                resolvedProductName = prodOpt.get().getTitle();
+                } else {
+                    // Notes/product payment
+                    try {
+                        RazorpayClient client = new RazorpayClient(razorpayKeyId, razorpayKeySecret);
+                        Order order = client.orders.fetch(orderId);
+                        Object notesObj = order.has("notes") ? order.get("notes") : null;
+                        String productId = null;
+                        String userEmail = null;
+                        if (notesObj != null) {
+                            if (notesObj instanceof JSONObject) {
+                                productId = ((JSONObject) notesObj).optString("productId");
+                                userEmail = ((JSONObject) notesObj).optString("userEmail");
+                            } else if (notesObj instanceof Map) {
+                                productId = String.valueOf(((Map<?, ?>) notesObj).get("productId"));
+                                userEmail = String.valueOf(((Map<?, ?>) notesObj).get("userEmail"));
                             }
-                            if (purchaseRepo.findByUserIdAndProductId(user.getId(), finalProdId).isEmpty()) {
-                                Purchase purchase = new Purchase();
-                                purchase.setUserId(user.getId());
-                                purchase.setProductId(finalProdId);
-                                purchase.setOrderId(finalOrderId);
-                                purchase.setPurchaseDate(new java.util.Date());
-                                purchase.setDownloadCount(0);
-                                purchaseRepo.save(purchase);
-                                log.info("Webhook saved purchase successfully for user: {}, product: {}", user.getEmail(), finalProdId);
-                            }
-                            // Send order confirmation email from webhook
-                            try {
-                                emailService.sendOrderConfirmation(user.getEmail(), finalOrderId, resolvedProductName);
-                            } catch (Exception ex) {
-                                log.error("Failed to send webhook order confirmation email: {}", ex.getMessage());
-                            }
-                        });
+                        }
+                        if (productId != null && userEmail != null) {
+                            final String finalProdId = productId;
+                            final String finalOrderId = orderId;
+                            userRepo.findByEmail(userEmail).ifPresent(user -> {
+                                String resolvedProductName = "Digital Study Notes";
+                                Optional<Product> prodOpt = productRepo.findById(finalProdId);
+                                if (prodOpt.isPresent()) {
+                                    resolvedProductName = prodOpt.get().getTitle();
+                                }
+                                unlockProduct(user.getId(), finalProdId, finalOrderId);
+                                
+                                // Send order confirmation email from webhook
+                                try {
+                                    emailService.sendOrderConfirmation(user.getEmail(), finalOrderId, resolvedProductName);
+                                } catch (Exception ex) {
+                                    log.error("Failed to send webhook order confirmation email: {}", ex.getMessage());
+                                }
+                            });
+                        }
+                    } catch (Exception ex) {
+                        log.error("Webhook purchase recording failed: {}", ex.getMessage());
                     }
-                } catch (Exception ex) {
-                    log.error("Webhook purchase recording failed: {}", ex.getMessage());
                 }
             }
 
@@ -390,13 +547,16 @@ public class PaymentController {
     // ── Request Records ───────────────────────────────────────────
 
     public record CreateOrderRequest(
-        @Min(100) int amountPaise,   // minimum ₹1
-        @NotBlank String productId
+        Integer amountPaise,
+        String productId,
+        String courseId
     ) {}
 
     public record VerifyPaymentRequest(
         @NotBlank String razorpayOrderId,
         @NotBlank String razorpayPaymentId,
-        @NotBlank String razorpaySignature
+        @NotBlank String razorpaySignature,
+        String courseId,
+        String productId
     ) {}
 }

@@ -289,12 +289,21 @@ const Profile = () => {
                                                 <div className="border-t border-emerald/5 pt-4 mt-4 flex items-center justify-between">
                                                     <span className="text-sm font-black text-emerald">₹{product.price || 0}</span>
                                                     
-                                                    <button 
-                                                        onClick={() => handleDownload(product.id || purchase.productId)}
-                                                        className="px-4 py-2 bg-gradient-to-r from-gold to-gold-dark hover:from-gold-dark hover:to-gold text-emerald-dark font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all duration-300 shadow-sm flex items-center gap-1.5"
-                                                    >
-                                                        <Download className="w-3.5 h-3.5" /> Download PDF
-                                                    </button>
+                                                    {product.type === "COURSE" ? (
+                                                        <Link 
+                                                            to={`/courses/${product.id}`}
+                                                            className="px-4 py-2 bg-gradient-to-r from-emerald to-emerald-dark hover:from-emerald-dark hover:to-emerald text-white font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all duration-300 shadow-sm flex items-center gap-1.5"
+                                                        >
+                                                            <BookOpen className="w-3.5 h-3.5 text-white" /> View Course
+                                                        </Link>
+                                                    ) : (
+                                                        <button 
+                                                            onClick={() => handleDownload(product.id || purchase.productId)}
+                                                            className="px-4 py-2 bg-gradient-to-r from-gold to-gold-dark hover:from-gold-dark hover:to-gold text-emerald-dark font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all duration-300 shadow-sm flex items-center gap-1.5"
+                                                        >
+                                                            <Download className="w-3.5 h-3.5" /> Download PDF
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         );
