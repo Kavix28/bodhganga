@@ -1,383 +1,316 @@
-import React, { useState } from 'react';
-import { Upload, FileText, Trash2, Edit, Check, X, Filter, Download } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Upload, FileText, Trash2, Check, X, Filter, Download, ExternalLink, RefreshCw, Plus } from 'lucide-react';
+import api from '../../services/api';
+import AdminPdfUploadModal from '../../components/admin/AdminPdfUploadModal';
 
 /**
  * AdminPDFManager Component
- * Frontend-only admin interface for PDF upload and management
- * Actual upload logic will be handled by backend
+ * Admin interface for importing and managing PDFs on BodhGanga S3 & MongoDB
  */
 const AdminPDFManager = () => {
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
     const [filterType, setFilterType] = useState('all');
     const [filterRegion, setFilterRegion] = useState('all');
+    
+    // Real PDF products state
+    const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(false);
 
-    // Mock existing PDFs - Replace with actual API call
-    const [existingPDFs, setExistingPDFs] = useState([
-        {
-            id: 1,
-            fileName: 'Indian_Constitution_Notes.pdf',
-            fileSize: '2.4 MB',
-            uploadDate: '2024-01-10',
-            region: 'Maharashtra',
-            regionType: 'state',
-            contentType: 'notes',
-            status: 'active'
-        },
-        {
-            id: 2,
-            fileName: 'History_Question_Bank.pdf',
-            fileSize: '3.1 MB',
-            uploadDate: '2024-01-08',
-            region: 'Uttar Pradesh',
-            regionType: 'state',
-            contentType: 'questions',
-            status: 'active'
-        },
-        {
-            id: 3,
-            fileName: 'Geography_Solutions.pdf',
-            fileSize: '1.8 MB',
-            uploadDate: '2024-01-05',
-            region: 'Delhi (NCT)',
-            regionType: 'ut',
-            contentType: 'solutions',
-            status: 'active'
-        }
-    ]);
+    useEffect(() => {
+        fetchProducts();
+    }, []);
 
-    const [newPDF, setNewPDF] = useState({
-        file: null,
-        region: '',
-        regionType: 'state',
-        contentType: 'notes'
-    });
-
-    const handleFileSelect = (e) => {
-        const file = e.target.files[0];
-        if (file && file.type === 'application/pdf') {
-            setNewPDF({ ...newPDF, file });
-        } else {
-            alert('Please select a valid PDF file');
+    const fetchProducts = async () => {
+        setLoading(true);
+        try {
+            const response = await api.get('/api/products');
+            // Support both response formats
+            const allProducts = response?.data || response || [];
+            // Filter to only display PDF items in this PDF manager
+            const pdfItems = allProducts.filter(p => p.type === 'PDF');
+            setProducts(pdfItems);
+        } catch (err) {
+            console.error('Failed to fetch products:', err);
+        } finally {
+            setLoading(false);
         }
     };
 
-    const handleUpload = () => {
-        if (!newPDF.file || !newPDF.region || !newPDF.regionType || !newPDF.contentType) {
-            alert('Please fill all fields and select a file');
-            return;
-        }
-
-        // Frontend-only - Backend will handle actual upload
-        console.log('Uploading PDF:', {
-            fileName: newPDF.file.name,
-            fileSize: (newPDF.file.size / (1024 * 1024)).toFixed(2) + ' MB',
-            region: newPDF.region,
-            regionType: newPDF.regionType,
-            contentType: newPDF.contentType
-        });
-
-        alert('PDF upload initiated! (Backend integration required)');
-        setUploadModalOpen(false);
-        setNewPDF({ file: null, region: '', regionType: 'state', contentType: 'notes' });
-    };
-
-    const handleDelete = (pdfId) => {
-        if (window.confirm('Are you sure you want to delete this PDF?')) {
-            // Frontend-only - Backend will handle actual deletion
-            console.log('Deleting PDF ID:', pdfId);
-            setExistingPDFs(existingPDFs.filter(pdf => pdf.id !== pdfId));
+    const handleDelete = async (pdfId) => {
+        if (window.confirm('Are you sure you want to delete this PDF? This will remove it from the marketplace.')) {
+            try {
+                await api.delete(`/api/products/${pdfId}`);
+                await fetchProducts();
+            } catch (err) {
+                console.error('Failed to delete PDF product:', err);
+                alert('Failed to delete product: ' + (err.message || err));
+            }
         }
     };
 
-    const filteredPDFs = existingPDFs.filter(pdf => {
-        const typeMatch = filterType === 'all' || pdf.contentType === filterType;
-        const regionMatch = filterRegion === 'all' || pdf.region === filterRegion;
+    const formatBytes = (bytes) => {
+        if (!bytes) return 'N/A';
+        const k = 1024;
+        const dm = 2;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    };
+
+    const getDownloadUrl = (storageKey) => {
+        if (!storageKey) return '#';
+        // Base API URL is relative or absolute. We append to redirect to signed URL
+        const base = api.defaults.baseURL || '';
+        return `${base}/api/pdf/${storageKey}?redirect=true`;
+    };
+
+    // Filter Products dynamically
+    const filteredPDFs = products.filter(pdf => {
+        // Map types
+        const typeMatch = filterType === 'all' || 
+            (pdf.category && pdf.category.toLowerCase() === filterType.toLowerCase()) ||
+            (pdf.type && pdf.type.toLowerCase() === filterType.toLowerCase());
+            
+        // Map regions
+        const regionMatch = filterRegion === 'all' || 
+            (pdf.stateSlug && pdf.stateSlug.toLowerCase() === filterRegion.toLowerCase());
+            
         return typeMatch && regionMatch;
     });
 
     const getContentTypeBadge = (type) => {
-        switch (type) {
-            case 'notes':
-                return 'bg-blue-100 text-blue-700 border-blue-200';
-            case 'questions':
-                return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-            case 'solutions':
-                return 'bg-green-100 text-green-700 border-green-200';
-            default:
-                return 'bg-gray-100 text-gray-700 border-gray-200';
+        const t = type ? type.toLowerCase() : '';
+        if (t.includes('note')) {
+            return 'bg-blue-100 text-blue-700 border-blue-200';
+        } else if (t.includes('question') || t.includes('bank')) {
+            return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+        } else if (t.includes('solution')) {
+            return 'bg-green-100 text-green-700 border-green-200';
+        } else if (t.includes('syllabus')) {
+            return 'bg-purple-100 text-purple-700 border-purple-200';
+        } else {
+            return 'bg-gray-100 text-gray-700 border-gray-200';
         }
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 p-8">
+        <div className="min-h-screen bg-gray-50 p-6">
             {/* Header */}
-            <div className="mb-[16px]">
-                <h1 className="text-4xl font-bold mb-2" style={{ color: 'var(--navy)' }}>
-                    PDF Content Manager
-                </h1>
-                <p className="text-gray-600">
-                    Upload and manage study materials for BodhGanga Academy
-                </p>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                <div>
+                    <h1 className="text-3xl font-bold font-serif text-emerald-premium">
+                        PDF Content Manager
+                    </h1>
+                    <p className="text-sm text-slate-500 mt-1">
+                        Import and manage PDF study materials for BodhGanga Academy
+                    </p>
+                </div>
+                
+                <div className="flex gap-2">
+                    <button
+                        onClick={fetchProducts}
+                        disabled={loading}
+                        className="p-2.5 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl text-slate-600 transition-colors shadow-sm"
+                        title="Refresh List"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                    </button>
+                    
+                    <button
+                        onClick={() => setUploadModalOpen(true)}
+                        className="btn-premium btn-premium-primary text-xs py-2.5 px-4 flex items-center gap-1.5 shadow-md"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Import PDF
+                    </button>
+                </div>
             </div>
 
-            {/* Actions Bar */}
-            <div className="bg-white rounded-[2px] shadow-none border-2 border-gray-200 p-6 mb-[16px]">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-[14px]">
+            {/* Actions & Filters Bar */}
+            <div className="bg-white rounded-2xl border border-slate-100 p-5 mb-6 shadow-sm">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     {/* Filters */}
-                    <div className="flex items-center gap-[14px] flex-wrap">
-                        <div className="flex items-center gap-2">
-                            <Filter className="w-5 h-5 text-gray-600" />
-                            <span className="text-sm font-semibold text-gray-700">Filter:</span>
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <div className="flex items-center gap-2 text-slate-600 text-xs font-bold uppercase tracking-wider">
+                            <Filter className="w-4 h-4 text-emerald-glow" />
+                            <span>Filter by:</span>
                         </div>
 
                         <select
                             value={filterType}
                             onChange={(e) => setFilterType(e.target.value)}
-                            className="border-2 border-gray-300 rounded-[2px] px-4 py-2 text-sm font-medium"
+                            className="input-premium py-1.5 px-3 text-xs w-auto cursor-pointer focus:ring-1 focus:ring-emerald-glow"
                         >
                             <option value="all">All Types</option>
-                            <option value="notes">Notes Only</option>
-                            <option value="questions">Questions Only</option>
-                            <option value="solutions">Solutions Only</option>
+                            <option value="notes">Notes</option>
+                            <option value="question bank">Question Banks</option>
+                            <option value="solutions">Solutions</option>
+                            <option value="syllabus">Syllabus</option>
                         </select>
 
                         <select
                             value={filterRegion}
                             onChange={(e) => setFilterRegion(e.target.value)}
-                            className="border-2 border-gray-300 rounded-[2px] px-4 py-2 text-sm font-medium"
+                            className="input-premium py-1.5 px-3 text-xs w-auto cursor-pointer focus:ring-1 focus:ring-emerald-glow"
                         >
                             <option value="all">All Regions</option>
-                            <option value="Maharashtra">Maharashtra</option>
-                            <option value="Uttar Pradesh">Uttar Pradesh</option>
-                            <option value="Delhi (NCT)">Delhi (NCT)</option>
-                            {/* Add more regions as needed */}
+                            <option value="all">All India (General)</option>
+                            <option value="maharashtra">Maharashtra</option>
+                            <option value="uttar-pradesh">Uttar Pradesh</option>
+                            <option value="bihar">Bihar</option>
+                            <option value="rajasthan">Rajasthan</option>
+                            <option value="madhya-pradesh">Madhya Pradesh</option>
+                            <option value="delhi">Delhi (NCT)</option>
                         </select>
                     </div>
-
-                    {/* Upload Button */}
-                    <button
-                        onClick={() => setUploadModalOpen(true)}
-                        className="btn-saffron"
-                    >
-                        <Upload className="w-5 h-5 mr-2" />
-                        Upload New PDF
-                    </button>
                 </div>
             </div>
 
             {/* PDF List */}
-            <div className="bg-white rounded-[2px] shadow-none border-2 border-gray-200 overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead className="bg-gray-100 border-b-2 border-gray-200">
-                            <tr>
-                                <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">File Name</th>
-                                <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">Region</th>
-                                <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">Type</th>
-                                <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">Size</th>
-                                <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">Upload Date</th>
-                                <th className="px-6 py-4 text-left text-sm font-bold text-gray-700">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filteredPDFs.map((pdf) => (
-                                <tr key={pdf.id} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
-                                            <FileText className="w-6 h-6 text-[var(--navy)]" />
-                                            <span className="font-medium text-gray-900">{pdf.fileName}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className="text-gray-700">{pdf.region}</span>
-                                        <span className="ml-2 text-xs text-gray-500">({pdf.regionType})</span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className={`exam-badge ${getContentTypeBadge(pdf.contentType)}`}>
-                                            {pdf.contentType}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-gray-600">{pdf.fileSize}</td>
-                                    <td className="px-6 py-4 text-gray-600">
-                                        {new Date(pdf.uploadDate).toLocaleDateString()}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                className="p-2 text-[var(--navy)] hover:bg-blue-50 rounded-[2px] transition-colors"
-                                                title="Download"
-                                            >
-                                                <Download className="w-5 h-5" />
-                                            </button>
-                                            <button
-                                                className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-[2px] transition-colors"
-                                                title="Edit"
-                                            >
-                                                <Edit className="w-5 h-5" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(pdf.id)}
-                                                className="p-2 text-red-600 hover:bg-red-50 rounded-[2px] transition-colors"
-                                                title="Delete"
-                                            >
-                                                <Trash2 className="w-5 h-5" />
-                                            </button>
-                                        </div>
-                                    </td>
+            <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
+                {loading ? (
+                    <div className="py-24 text-center">
+                        <Loader2 className="w-10 h-10 text-emerald-premium animate-spin mx-auto mb-4" />
+                        <p className="text-sm font-semibold text-slate-500">Loading PDFs from S3 & MongoDB...</p>
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full border-collapse">
+                            <thead className="bg-slate-50 border-b border-slate-100 text-left">
+                                <tr>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Document Title</th>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Region / Category</th>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Access / Price</th>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">File Size</th>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Source</th>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500">Import Date</th>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {filteredPDFs.map((pdf) => (
+                                    <tr key={pdf.id} className="hover:bg-slate-50/50 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-start gap-3">
+                                                <div className="p-2 bg-emerald-premium/5 border border-emerald-premium/10 rounded-lg text-emerald-premium mt-0.5">
+                                                    <FileText className="w-5 h-5" />
+                                                </div>
+                                                <div className="space-y-0.5 max-w-sm overflow-hidden">
+                                                    <p className="font-bold text-slate-800 truncate" title={pdf.title}>
+                                                        {pdf.title}
+                                                    </p>
+                                                    <p className="text-xs text-slate-400 truncate" title={pdf.fileName || pdf.storageKey}>
+                                                        {pdf.fileName || pdf.storageKey}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col gap-1">
+                                                <span className="text-xs font-bold text-slate-700 capitalize">
+                                                    {pdf.stateSlug === 'all' ? 'All India' : pdf.stateSlug ? pdf.stateSlug.replace('-', ' ') : 'N/A'}
+                                                </span>
+                                                <div>
+                                                    <span className={`px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wide ${getContentTypeBadge(pdf.category || pdf.type)}`}>
+                                                        {pdf.category || 'PDF'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            {pdf.price && pdf.price > 0 ? (
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold">
+                                                    ₹{pdf.price}
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold">
+                                                    Free
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 text-xs font-bold text-slate-600">
+                                            {formatBytes(pdf.fileSize)}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            {pdf.importedFromDrive ? (
+                                                <span className="text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full inline-block">
+                                                    Google Drive
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs font-semibold text-slate-500 bg-slate-50 border border-slate-200 px-2.5 py-0.5 rounded-full inline-block">
+                                                    Local Upload
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 text-xs font-bold text-slate-500">
+                                            {pdf.createdAt ? new Date(pdf.createdAt).toLocaleDateString() : 'N/A'}
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex items-center justify-end gap-1.5">
+                                                {/* Open Presigned URL */}
+                                                {pdf.previewUrl && (
+                                                    <a
+                                                        href={pdf.previewUrl}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="p-2 text-emerald-premium hover:bg-emerald-premium/5 border border-transparent hover:border-emerald-premium/10 rounded-xl transition-all"
+                                                        title="Open Preview"
+                                                    >
+                                                        <ExternalLink className="w-4 h-4" />
+                                                    </a>
+                                                )}
+                                                
+                                                {/* Secure S3 Download */}
+                                                {pdf.storageKey && (
+                                                    <a
+                                                        href={getDownloadUrl(pdf.storageKey)}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="p-2 text-slate-600 hover:bg-slate-100 border border-transparent hover:border-slate-200 rounded-xl transition-all"
+                                                        title="Download Secure PDF"
+                                                    >
+                                                        <Download className="w-4 h-4" />
+                                                    </a>
+                                                )}
+                                                
+                                                {/* Delete */}
+                                                <button
+                                                    onClick={() => handleDelete(pdf.id)}
+                                                    className="p-2 text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 rounded-xl transition-all"
+                                                    title="Delete PDF"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
 
-                {filteredPDFs.length === 0 && (
-                    <div className="p-12 text-center">
-                        <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-xl font-bold text-gray-700 mb-2">No PDFs Found</h3>
-                        <p className="text-gray-500">
+                {!loading && filteredPDFs.length === 0 && (
+                    <div className="p-16 text-center space-y-3">
+                        <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400">
+                            <FileText className="w-6 h-6" />
+                        </div>
+                        <h3 className="text-base font-bold text-slate-700">No PDFs Found</h3>
+                        <p className="text-xs text-slate-400 max-w-xs mx-auto">
                             {filterType !== 'all' || filterRegion !== 'all'
-                                ? 'Try adjusting your filters'
-                                : 'Upload your first PDF to get started'}
+                                ? 'No imported PDFs match your current filter settings. Try adjusting filters.'
+                                : 'Import your first PDF document from Google Drive to get started.'}
                         </p>
                     </div>
                 )}
             </div>
 
-            {/* Upload Modal */}
-            {uploadModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full">
-                        {/* Modal Header */}
-                        <div className="bg-gradient-to-r from-[var(--saffron)] to-[var(--saffron-dark)] text-white p-6 rounded-t-2xl">
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-2xl font-bold">Upload New PDF</h2>
-                                <button
-                                    onClick={() => setUploadModalOpen(false)}
-                                    className="text-white hover:bg-white hover:bg-opacity-20 rounded-[2px] p-2 transition-colors"
-                                >
-                                    <X className="w-6 h-6" />
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Modal Content */}
-                        <div className="p-8 space-y-6">
-                            {/* File Upload */}
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">
-                                    Select PDF File *
-                                </label>
-                                <div className="border-2 border-dashed border-gray-300 rounded-[2px] p-8 text-center hover:border-[var(--saffron)] transition-colors cursor-pointer">
-                                    <input
-                                        type="file"
-                                        accept="application/pdf"
-                                        onChange={handleFileSelect}
-                                        className="hidden"
-                                        id="pdf-upload"
-                                    />
-                                    <label htmlFor="pdf-upload" className="cursor-pointer">
-                                        <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                                        <p className="text-gray-600 font-medium">
-                                            {newPDF.file ? newPDF.file.name : 'Click to select PDF file'}
-                                        </p>
-                                        <p className="text-sm text-gray-500 mt-1">
-                                            Maximum file size: 50 MB
-                                        </p>
-                                    </label>
-                                </div>
-                            </div>
-
-                            {/* Region Selection */}
-                            <div className="card-grid">
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">
-                                        Region Type *
-                                    </label>
-                                    <select
-                                        value={newPDF.regionType}
-                                        onChange={(e) => setNewPDF({ ...newPDF, regionType: e.target.value })}
-                                        className="w-full border-2 border-gray-300 rounded-[2px] px-4 py-3 font-medium focus:ring-2 focus:ring-[var(--saffron)] focus:border-[var(--saffron)]"
-                                    >
-                                        <option value="state">State</option>
-                                        <option value="ut">Union Territory</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">
-                                        Select Region *
-                                    </label>
-                                    <select
-                                        value={newPDF.region}
-                                        onChange={(e) => setNewPDF({ ...newPDF, region: e.target.value })}
-                                        className="w-full border-2 border-gray-300 rounded-[2px] px-4 py-3 font-medium focus:ring-2 focus:ring-[var(--saffron)] focus:border-[var(--saffron)]"
-                                    >
-                                        <option value="">-- Select Region --</option>
-                                        <option value="Maharashtra">Maharashtra</option>
-                                        <option value="Uttar Pradesh">Uttar Pradesh</option>
-                                        <option value="Delhi (NCT)">Delhi (NCT)</option>
-                                        {/* Add all states and UTs */}
-                                    </select>
-                                </div>
-                            </div>
-
-                            {/* Content Type */}
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">
-                                    Content Type *
-                                </label>
-                                <div className="card-grid">
-                                    <button
-                                        onClick={() => setNewPDF({ ...newPDF, contentType: 'notes' })}
-                                        className={`p-4 rounded-[2px] border-2 font-semibold transition-all ${newPDF.contentType === 'notes'
-                                            ? 'border-[var(--navy)] bg-blue-50 text-[var(--navy)]'
-                                            : 'border-gray-300 text-gray-700 hover:border-[var(--navy)]'
-                                            }`}
-                                    >
-                                        Notes
-                                    </button>
-                                    <button
-                                        onClick={() => setNewPDF({ ...newPDF, contentType: 'questions' })}
-                                        className={`p-4 rounded-[2px] border-2 font-semibold transition-all ${newPDF.contentType === 'questions'
-                                            ? 'border-[var(--saffron)] bg-orange-50 text-[var(--saffron)]'
-                                            : 'border-gray-300 text-gray-700 hover:border-[var(--saffron)]'
-                                            }`}
-                                    >
-                                        Questions
-                                    </button>
-                                    <button
-                                        onClick={() => setNewPDF({ ...newPDF, contentType: 'solutions' })}
-                                        className={`p-4 rounded-[2px] border-2 font-semibold transition-all ${newPDF.contentType === 'solutions'
-                                            ? 'border-[var(--green)] bg-green-50 text-[var(--green)]'
-                                            : 'border-gray-300 text-gray-700 hover:border-[var(--green)]'
-                                            }`}
-                                    >
-                                        Solutions
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Action Buttons */}
-                            <div className="flex gap-[14px] pt-4">
-                                <button
-                                    onClick={handleUpload}
-                                    className="btn-saffron flex-1"
-                                >
-                                    <Check className="w-5 h-5 mr-2" />
-                                    Upload PDF
-                                </button>
-                                <button
-                                    onClick={() => setUploadModalOpen(false)}
-                                    className="btn bg-gray-200 text-gray-700 hover:bg-gray-300 flex-1"
-                                >
-                                    <X className="w-5 h-5 mr-2" />
-                                    Cancel
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {/* Google Drive Import Modal */}
+            <AdminPdfUploadModal 
+                isOpen={uploadModalOpen} 
+                onClose={() => setUploadModalOpen(false)} 
+                onUploadSuccess={fetchProducts} 
+            />
         </div>
     );
 };

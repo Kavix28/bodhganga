@@ -2,16 +2,18 @@ package com.bodhganga.bodhganga.services;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.regions.Region;
+import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
+import java.io.IOException;
 import java.time.Duration;
+import java.util.UUID;
 
 @Service
 public class S3Service {
@@ -19,31 +21,71 @@ public class S3Service {
     private final S3Client s3Client;
     private final S3Presigner s3Presigner;
 
-    @Value("${aws.s3.bucket.name:bodhganga-prod}")
+    @Value("${aws.s3.bucket-name:${aws.s3.bucket.name:bodhganga-pdf-storage-prod}}")
     private String bucketName;
 
-    public S3Service(
-            @Value("${aws.access.key.id:mock-access-key}") String accessKeyId,
-            @Value("${aws.secret.access.key:mock-secret-key}") String secretAccessKey,
-            @Value("${aws.region:ap-south-1}") String regionString) {
+    public S3Service(S3Client s3Client, S3Presigner s3Presigner) {
+        this.s3Client = s3Client;
+        this.s3Presigner = s3Presigner;
+    }
 
-        Region region = Region.of(regionString);
-        AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKeyId, secretAccessKey);
+    /**
+     * Upload a PDF file to S3 under pdfs/{uuid}-{filename}
+     * Returns the S3 key.
+     */
+    public String uploadPdf(MultipartFile file) throws IOException {
+        String originalFilename = file.getOriginalFilename();
+        String sanitizedFilename = originalFilename != null 
+                ? originalFilename.replaceAll("[^a-zA-Z0-9.-]", "_") 
+                : "document.pdf";
+        
+        String key = "pdfs/" + UUID.randomUUID().toString() + "-" + sanitizedFilename;
 
-        this.s3Client = S3Client.builder()
-                .region(region)
-                .credentialsProvider(StaticCredentialsProvider.create(credentials))
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .contentType("application/pdf")
                 .build();
 
-        this.s3Presigner = S3Presigner.builder()
-                .region(region)
-                .credentialsProvider(StaticCredentialsProvider.create(credentials))
+        s3Client.putObject(putObjectRequest, 
+                RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+
+        return key;
+    }
+
+    /**
+     * Upload a PDF file from a byte array to S3 under pdfs/{uuid}-{filename}
+     * Returns the S3 key.
+     */
+    public String uploadPdf(byte[] bytes, String originalFilename) {
+        String sanitizedFilename = originalFilename != null 
+                ? originalFilename.replaceAll("[^a-zA-Z0-9.-]", "_") 
+                : "document.pdf";
+        
+        String key = "pdfs/" + UUID.randomUUID().toString() + "-" + sanitizedFilename;
+
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .contentType("application/pdf")
                 .build();
+
+        s3Client.putObject(putObjectRequest, 
+                RequestBody.fromBytes(bytes));
+
+        return key;
     }
 
     /**
      * Generate a short-lived (temporary) signed URL for secure download
-     * Only paid users should receive this URL.
+     * Expiry set to 10 minutes by default.
+     */
+    public String generatePresignedUrl(String objectKey) {
+        return generatePresignedUrl(objectKey, 10);
+    }
+
+    /**
+     * Generate a short-lived (temporary) signed URL for secure download with custom expiry minutes
      */
     public String generatePresignedUrl(String objectKey, int expiryMinutes) {
         GetObjectRequest getObjectRequest = GetObjectRequest.builder()

@@ -45,6 +45,7 @@ const AdminBlogs = lazy(() => import('./pages/admin/AdminBlogs'));
 const AdminContent = lazy(() => import('./pages/admin/AdminContent'));
 const Marketplace = lazy(() => import('./pages/Marketplace'));
 const AdminMarketplace = lazy(() => import('./pages/admin/AdminMarketplace'));
+const AdminPDFManager = lazy(() => import('./pages/admin/AdminPDFManager'));
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -101,6 +102,7 @@ function App() {
                                                 <Route path="blogs" element={<AdminBlogs />} />
                                                 <Route path="content" element={<AdminContent />} />
                                                 <Route path="content-marketplace" element={<AdminMarketplace />} />
+                                                <Route path="pdf-manager" element={<AdminPDFManager />} />
                                             </Route>
 
                                             {/* Protected User Routes */}
