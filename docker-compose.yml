@@ -32,6 +32,8 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
+    env_file:
+      - .env
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       MONGO_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASS:-changeme}@mongodb:27017/bodhganga?authSource=admin
@@ -39,6 +41,7 @@ services:
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
       RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
       RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+      MSG91_AUTH_KEY: ${MSG91_AUTH_KEY:-}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_REGION: ${AWS_REGION:-ap-south-1}
