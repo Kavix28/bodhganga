@@ -6,7 +6,7 @@ import api from '../../services/api';
  * AdminPdfUploadModal
  * Reusable modal for importing PDFs from Google Drive directly to S3 and MongoDB
  */
-const AdminPdfUploadModal = ({ isOpen, onClose, onUploadSuccess }) => {
+const AdminPdfUploadModal = ({ isOpen = true, onClose, onSuccess, onUploadSuccess }) => {
     const [courses, setCourses] = useState([]);
     const [coursesLoading, setCoursesLoading] = useState(false);
     
@@ -144,6 +144,9 @@ const AdminPdfUploadModal = ({ isOpen, onClose, onUploadSuccess }) => {
                     url: response.url || `/api/pdf/${response.s3Key}`
                 });
                 setImportStatus('success');
+                if (onSuccess) {
+                    onSuccess();
+                }
                 if (onUploadSuccess) {
                     onUploadSuccess();
                 }

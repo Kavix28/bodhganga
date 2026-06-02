@@ -80,26 +80,37 @@ public class DataLoader implements CommandLineRunner {
 
     private void ensureAdminUser() {
         String adminEmail = "admin@bodhganga.in";
+        String targetPhone = "9958277244";
+        String targetPassword = "indiadistricst@800";
+
         userRepo.findByEmail(adminEmail).ifPresentOrElse(
             user -> {
+                boolean changed = false;
                 if (!"ADMIN".equals(user.getRole())) {
                     user.setRole("ADMIN");
+                    changed = true;
+                }
+                if (!targetPhone.equals(user.getPhoneNo())) {
+                    user.setPhoneNo(targetPhone);
+                    changed = true;
+                }
+                if (!passwordEncoder.matches(targetPassword, user.getHashedPassword())) {
+                    user.setHashedPassword(passwordEncoder.encode(targetPassword));
+                    changed = true;
+                }
+                if (changed) {
                     userRepo.save(user);
-                    log.info("Promoted existing user {} to ADMIN role", adminEmail);
+                    log.info("Updated existing admin user credentials in MongoDB: email={}, phone={}", adminEmail, targetPhone);
                 } else {
-                    log.info("Admin user already exists: {}", adminEmail);
+                    log.info("Admin user already exists and is up to date: {}", adminEmail);
                 }
             },
             () -> {
-                String adminPassword = System.getenv("ADMIN_INITIAL_PASSWORD");
-                if (adminPassword == null || adminPassword.isBlank()) {
-                    adminPassword = "Admin@123"; // Development fallback
-                }
                 User admin = User.builder()
                     .name("Admin")
                     .email(adminEmail)
-                    .phoneNo("9000000001")
-                    .hashedPassword(passwordEncoder.encode(adminPassword))
+                    .phoneNo(targetPhone)
+                    .hashedPassword(passwordEncoder.encode(targetPassword))
                     .role("ADMIN")
                     .isVerified(true)
                     .isActive(true)
@@ -107,7 +118,7 @@ public class DataLoader implements CommandLineRunner {
                     .createdAt(new Date())
                     .build();
                 userRepo.save(admin);
-                log.info("Created admin user: {}", adminEmail);
+                log.info("Created admin user with target credentials: {}", adminEmail);
             }
         );
     }

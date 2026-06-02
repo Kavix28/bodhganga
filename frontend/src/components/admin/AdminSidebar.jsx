@@ -26,13 +26,13 @@ const AdminSidebar = () => {
             description: 'Overview & Analytics'
         },
         {
-            path: '/admin/states-uts',
+            path: '/admin/states',
             icon: Map,
             label: 'States & UTs',
             description: 'Regional Management'
         },
         {
-            path: '/admin/pdf-manager',
+            path: '/admin/content',
             icon: FileText,
             label: 'PDF Manager',
             description: 'Content Library'

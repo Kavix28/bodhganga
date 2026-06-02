@@ -64,7 +64,7 @@ jobs:
 
       - name: Build
         env:
-          VITE_API_BASE_URL: https://api.bodhganga.in/api
+          VITE_API_BASE_URL: https://bodhganga.in/api
         run: npm run build
 
       - name: Upload dist artifact
@@ -103,6 +103,6 @@ jobs:
           push: false
           tags: bodhganga/frontend:latest
           build-args: |
-            VITE_API_BASE_URL=https://api.bodhganga.in/api
+            VITE_API_BASE_URL=https://bodhganga.in/api
           cache-from: type=gha
           cache-to: type=gha,mode=max

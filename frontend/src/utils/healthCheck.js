@@ -90,7 +90,7 @@ export const checkBackendHealth = async () => {
             `   \n` +
             `   ⚠️ Please ensure:\n` +
             `      1. Backend is running: ./mvnw spring-boot:run\n` +
-            `      2. Port 9090 is not blocked\n` +
+            `      2. Backend port is not blocked\n` +
             `      3. MongoDB is running on port 27017`
         );
 

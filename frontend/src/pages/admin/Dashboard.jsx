@@ -255,7 +255,7 @@ const AdminDashboard = () => {
                                 Diagnostics Desk
                             </h2>
                             <div>
-                                <HealthRow name="Spring Backend Core" healthy={apiHealthy !== false} detail="Port 9090" />
+                                <HealthRow name="Spring Backend Core" healthy={apiHealthy !== false} detail="Active Service" />
                                 <HealthRow name="MongoDB Atlas Cluster" healthy={apiHealthy !== false} detail="SaaS Atlas" />
                                 <HealthRow name="JWT Authority Guard" healthy={true} detail="Active Session" />
                                 <HealthRow name="Razorpay Webhook" healthy={true} detail="Secured Gate" />
@@ -380,7 +380,7 @@ const AdminDashboard = () => {
                         <Award className="w-4 h-4 text-gold" /> Comprehensive Operations Console
                     </h3>
                     <p className="text-slate-400 text-xs mt-1 font-semibold">
-                        Default Credentials: <code className="bg-slate-900 border border-emerald-950 px-2 py-0.5 rounded text-[11px] text-white">admin@bodhganga.in</code> / <code className="bg-slate-900 border border-emerald-950 px-2 py-0.5 rounded text-[11px] text-white">Admin@123</code>
+                        Default Credentials: <code className="bg-slate-900 border border-emerald-950 px-2 py-0.5 rounded text-[11px] text-white">9958277244</code> / <code className="bg-slate-900 border border-emerald-950 px-2 py-0.5 rounded text-[11px] text-white">indiadistricst@800</code>
                         <span className="ml-2 text-emerald-400 font-bold font-sans">— Operational State</span>
                     </p>
                 </div>

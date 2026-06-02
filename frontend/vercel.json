@@ -13,7 +13,7 @@
     },
     {
       "src": "/api/(.*)",
-      "dest": "http://52.90.126.159:9090/api/$1"
+      "dest": "https://bodhganga.in/api/$1"
     },
     {
       "src": "/(.*)",

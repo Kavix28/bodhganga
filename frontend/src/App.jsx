@@ -100,7 +100,7 @@ function App() {
                                                 <Route path="dashboard" element={<AdminDashboardPage />} />
                                                 <Route path="states" element={<AdminStates />} />
                                                 <Route path="blogs" element={<AdminBlogs />} />
-                                                <Route path="content" element={<AdminContent />} />
+                                                <Route path="content" element={<AdminPDFManager />} />
                                                 <Route path="content-marketplace" element={<AdminMarketplace />} />
                                                 <Route path="pdf-manager" element={<AdminPDFManager />} />
                                             </Route>

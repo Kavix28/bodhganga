@@ -8,7 +8,7 @@ import AdminPdfUploadModal from '../../components/admin/AdminPdfUploadModal';
  * Admin interface for importing and managing PDFs on BodhGanga S3 & MongoDB
  */
 const AdminPDFManager = () => {
-    const [uploadModalOpen, setUploadModalOpen] = useState(false);
+    const [showUploadModal, setShowUploadModal] = useState(false);
     const [filterType, setFilterType] = useState('all');
     const [filterRegion, setFilterRegion] = useState('all');
     
@@ -35,6 +35,8 @@ const AdminPDFManager = () => {
             setLoading(false);
         }
     };
+
+    const fetchContent = fetchProducts;
 
     const handleDelete = async (pdfId) => {
         if (window.confirm('Are you sure you want to delete this PDF? This will remove it from the marketplace.')) {
@@ -117,11 +119,16 @@ const AdminPDFManager = () => {
                     </button>
                     
                     <button
-                        onClick={() => setUploadModalOpen(true)}
+                        type="button"
+                        onClick={() => {
+                            console.log("Upload PDF clicked");
+                            setShowUploadModal(true);
+                        }}
                         className="btn-premium btn-premium-primary text-xs py-2.5 px-4 flex items-center gap-1.5 shadow-md"
+                        style={{ pointerEvents: 'auto', cursor: 'pointer', zIndex: 999, position: 'relative' }}
                     >
                         <Plus className="w-4 h-4" />
-                        Import PDF
+                        Upload PDF
                     </button>
                 </div>
             </div>
@@ -306,11 +313,15 @@ const AdminPDFManager = () => {
             </div>
 
             {/* Google Drive Import Modal */}
-            <AdminPdfUploadModal 
-                isOpen={uploadModalOpen} 
-                onClose={() => setUploadModalOpen(false)} 
-                onUploadSuccess={fetchProducts} 
-            />
+            {showUploadModal && (
+                <AdminPdfUploadModal
+                    onClose={() => setShowUploadModal(false)}
+                    onSuccess={() => {
+                        setShowUploadModal(false);
+                        fetchContent();
+                    }}
+                />
+            )}
         </div>
     );
 };
