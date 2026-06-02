@@ -45,7 +45,6 @@ const AdminLayout = lazy(() => import('./layouts/AdminLayout'));
 const AdminDashboardPage = lazy(() => import('./pages/admin/Dashboard'));
 const AdminStates = lazy(() => import('./pages/admin/AdminStates'));
 const AdminBlogs = lazy(() => import('./pages/admin/AdminBlogs'));
-const AdminContent = lazy(() => import('./pages/admin/AdminContent'));
 const Marketplace = lazy(() => import('./pages/Marketplace'));
 const AdminMarketplace = lazy(() => import('./pages/admin/AdminMarketplace'));
 const AdminPDFManager = lazy(() => import('./pages/admin/AdminPDFManager'));
