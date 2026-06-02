@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { SpaceThemeProvider } from './context/SpaceThemeContext';
+import { CartProvider } from './context/CartContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import AdminProtectedRoute from './components/common/AdminProtectedRoute';
 import Navbar from './components/common/Navbar';
@@ -35,6 +36,8 @@ const Subjects = lazy(() => import('./pages/Subjects'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const ErrorPage = lazy(() => import('./pages/Error'));
 const AboutIndia = lazy(() => import('./pages/AboutIndia'));
+const Cart = lazy(() => import('./pages/Cart'));
+const OrderHistory = lazy(() => import('./pages/OrderHistory'));
 
 // Admin Pages
 const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'));
@@ -46,6 +49,7 @@ const AdminContent = lazy(() => import('./pages/admin/AdminContent'));
 const Marketplace = lazy(() => import('./pages/Marketplace'));
 const AdminMarketplace = lazy(() => import('./pages/admin/AdminMarketplace'));
 const AdminPDFManager = lazy(() => import('./pages/admin/AdminPDFManager'));
+const AdminOrders = lazy(() => import('./pages/admin/AdminOrders'));
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -65,6 +69,7 @@ function App() {
         <QueryClientProvider client={queryClient}>
             <SpaceThemeProvider>
                 <AuthProvider>
+                    <CartProvider>
                     <Router>
                         <div className="min-h-screen flex flex-col">
                             {/* Only show regular navbar for non-admin routes or when admin is not logged in */}
@@ -92,6 +97,10 @@ function App() {
                                             <Route path="/login" element={<Login />} />
                                             <Route path="/forgot-password" element={<ForgotPassword />} />
                                             <Route path="/error" element={<ErrorPage />} />
+                                            <Route path="/cart" element={<Cart />} />
+                                            <Route path="/orders" element={
+                                                <ProtectedRoute><OrderHistory /></ProtectedRoute>
+                                            } />
 
                                             {/* Admin Routes */}
                                             <Route path="/admin/login" element={<AdminLogin />} />
@@ -103,6 +112,7 @@ function App() {
                                                 <Route path="content" element={<AdminPDFManager />} />
                                                 <Route path="content-marketplace" element={<AdminMarketplace />} />
                                                 <Route path="pdf-manager" element={<AdminPDFManager />} />
+                                                <Route path="orders" element={<AdminOrders />} />
                                             </Route>
 
                                             {/* Protected User Routes */}
@@ -184,6 +194,7 @@ function App() {
                             }}
                         />
                     </Router>
+                    </CartProvider>
                 </AuthProvider>
             </SpaceThemeProvider>
         </QueryClientProvider>

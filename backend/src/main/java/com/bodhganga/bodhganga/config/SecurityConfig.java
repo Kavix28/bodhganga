@@ -63,6 +63,22 @@ public class SecurityConfig {
                         .requestMatchers("/api/payment/webhook", "/api/payment/check-purchase/**").permitAll()
                         .requestMatchers("/api/payment/**").authenticated()
 
+                        // Cart — count is public (returns 0 for guests), rest requires auth
+                        .requestMatchers("/api/cart/count").permitAll()
+                        .requestMatchers("/api/cart/**").authenticated()
+
+                        // User orders — require auth
+                        .requestMatchers("/api/orders").authenticated()
+
+                        // Admin orders — require ADMIN role
+                        .requestMatchers("/api/admin/orders/**").hasAuthority("ROLE_ADMIN")
+
+                        // Dashboard admin-stats is called with admin token; revenue/content/storage same
+                        .requestMatchers("/api/dashboard/admin-stats").authenticated()
+                        .requestMatchers("/api/dashboard/revenue").authenticated()
+                        .requestMatchers("/api/dashboard/content").authenticated()
+                        .requestMatchers("/api/dashboard/storage").authenticated()
+
                         // Protected user endpoints
                         .requestMatchers("/api/dashboard/**").authenticated()
                         .requestMatchers("/api/profile/**").authenticated()

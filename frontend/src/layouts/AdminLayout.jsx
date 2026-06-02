@@ -2,7 +2,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { logoutAdmin, getAdminSession } from '../utils/adminAuth';
 import {
     LayoutDashboard, MapPin, FileText, Package,
-    ShoppingBag, LogOut, Menu, X, BookOpen
+    ShoppingBag, LogOut, Menu, X, BookOpen, Receipt
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -14,6 +14,7 @@ const navItems = [
     { to: '/admin/blogs', icon: FileText, label: 'Blog Posts' },
     { to: '/admin/content', icon: BookOpen, label: 'Content Manager' },
     { to: '/admin/content-marketplace', icon: ShoppingBag, label: 'Marketplace' },
+    { to: '/admin/orders', icon: Receipt, label: 'Orders' },
 ];
 
 const AdminLayout = () => {

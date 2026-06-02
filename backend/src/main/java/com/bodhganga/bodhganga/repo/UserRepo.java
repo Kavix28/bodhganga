@@ -5,6 +5,7 @@ import org.springframework.stereotype.Repository;
 
 import com.bodhganga.bodhganga.entity.User;
 
+import java.util.Date;
 import java.util.Optional;
 
 @Repository
@@ -20,4 +21,7 @@ public interface UserRepo extends MongoRepository<User, String> {
     long deleteByIsVerified(boolean isVerified);
 
     long deleteByEmailVerifiedFalseAndPhoneVerifiedFalse();
+
+    /** Count users registered after the given date (for weekly/monthly growth) */
+    long countByCreatedAtAfter(Date date);
 }

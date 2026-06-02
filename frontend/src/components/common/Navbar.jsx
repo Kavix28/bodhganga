@@ -1,8 +1,9 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { FiUser, FiLogOut, FiMenu, FiX, FiChevronDown } from 'react-icons/fi';
-import { BookOpen, MapPin, Building, LayoutDashboard, ShoppingBag } from 'lucide-react';
+import { BookOpen, MapPin, Building, LayoutDashboard, ShoppingBag, ShoppingCart, Receipt } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useCart } from '../../context/CartContext';
 
 import Logo from './Logo';
 
@@ -16,6 +17,7 @@ const navLinks = [
 
 const Navbar = () => {
     const { isAuthenticated, user, logout } = useAuth();
+    const { cartCount } = useCart();
     const navigate = useNavigate();
     const location = useLocation();
     const [mobileOpen, setMobileOpen] = useState(false);
@@ -104,6 +106,15 @@ const Navbar = () => {
 
                     {/* Right Actions */}
                     <div className="hidden md:flex items-center gap-4">
+                        {/* Cart icon with badge */}
+                        <Link to="/cart" className="relative p-2.5 text-white/70 hover:text-gold hover:bg-white/5 rounded-xl border border-transparent hover:border-gold/15 transition-all duration-300" title="Shopping Cart">
+                            <ShoppingCart className="w-5 h-5" />
+                            {cartCount > 0 && (
+                                <span className="absolute -top-1 -right-1 w-5 h-5 bg-gold text-emerald-950 text-[10px] font-black rounded-full flex items-center justify-center leading-none">
+                                    {cartCount > 9 ? '9+' : cartCount}
+                                </span>
+                            )}
+                        </Link>
                         {isAuthenticated ? (
                             <div className="relative">
                                 <button
@@ -131,6 +142,9 @@ const Navbar = () => {
                                         </Link>
                                         <Link to="/dashboard" className="flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 hover:text-gold transition-colors duration-300">
                                             <LayoutDashboard className="w-4 h-4" /> Dashboard
+                                        </Link>
+                                        <Link to="/orders" className="flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 hover:text-gold transition-colors duration-300">
+                                            <Receipt className="w-4 h-4" /> My Orders
                                         </Link>
                                         {user?.role === 'ADMIN' && (
                                             <Link to="/admin/dashboard" className="flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider text-red-400 hover:bg-red-500/10 transition-colors duration-300">
