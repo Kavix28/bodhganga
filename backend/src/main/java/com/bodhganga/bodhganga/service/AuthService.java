@@ -281,7 +281,7 @@ public class AuthService {
         private String getMobileFromMsg91(String accessToken) throws Exception {
                 String authKey = System.getenv("MSG91_AUTH_KEY");
                 if (authKey == null || authKey.isBlank()) {
-                        authKey = "520206A2KLoox4x6a15faa9P1"; // Fallback to provided key
+                        throw new IllegalStateException("MSG91_AUTH_KEY environment variable is not configured.");
                 }
 
                 String url = "https://control.msg91.com/api/v5/widget/verifyAccessToken";
