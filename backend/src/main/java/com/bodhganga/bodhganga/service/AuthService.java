@@ -9,12 +9,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 @Service
 public class AuthService {
+
+        private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
         private final UserRepo userRepo;
         private final PasswordEncoder passwordEncoder;
@@ -87,7 +91,7 @@ public class AuthService {
                                 .createdAt(new Date())
                                 .build();
 
-                System.out.println("Saving verified user: " + user.getPhoneNo());
+                log.info("Saving verified user: {}", user.getPhoneNo());
                 User savedUser = userRepo.save(user);
 
                 // Trigger welcome email asynchronously if a real email is used
@@ -95,7 +99,7 @@ public class AuthService {
                         try {
                                 emailService.sendWelcomeEmail(savedUser.getEmail(), savedUser.getName());
                         } catch (Exception e) {
-                                System.err.println("Failed to trigger welcome email: " + e.getMessage());
+                                log.error("Failed to trigger welcome email: {}", e.getMessage());
                         }
                 }
 
@@ -278,7 +282,7 @@ public class AuthService {
                 return loginResult;
         }
 
-        private String getMobileFromMsg91(String accessToken) throws Exception {
+        String getMobileFromMsg91(String accessToken) throws Exception {
                 String authKey = System.getenv("MSG91_AUTH_KEY");
                 if (authKey == null || authKey.isBlank()) {
                         throw new IllegalStateException("MSG91_AUTH_KEY environment variable is not configured.");
@@ -301,7 +305,7 @@ public class AuthService {
                 java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
                 
                 if (response.statusCode() != 200) {
-                        System.err.println("MSG91 Token Verification failed. Status: " + response.statusCode() + ", Body: " + response.body());
+                        log.error("MSG91 Token Verification failed. Status: {}, Body: {}", response.statusCode(), response.body());
                         return null;
                 }
 
@@ -341,27 +345,38 @@ public class AuthService {
          */
         public ApiResponseDTO verifyMsg91Token(String accessToken, String phoneNumber, SignupRequestDTO signupData) {
                 try {
-                        String normalizedPhone = getMobileFromMsg91(accessToken);
-                        if (normalizedPhone == null || normalizedPhone.isBlank()) {
-                                // Fallback to provided phoneNumber if MSG91 API fails or returns empty in test/mock envs
-                                if (phoneNumber != null && !phoneNumber.isBlank()) {
-                                        normalizedPhone = phoneNumber.replaceAll("[^0-9]", "");
-                                        if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
-                                                normalizedPhone = normalizedPhone.substring(2);
-                                        }
-                                } else {
-                                        return ApiResponseDTO.builder()
-                                                        .success(false)
-                                                        .message("MSG91 token verification failed or mobile number not retrieved")
-                                                        .build();
-                                }
-                        } else {
-                                // Normalize phone retrieved from MSG91
-                                normalizedPhone = normalizedPhone.replaceAll("[^0-9]", "");
-                                if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
-                                        normalizedPhone = normalizedPhone.substring(2);
-                                }
+                        String verifiedPhone = getMobileFromMsg91(accessToken);
+                        if (verifiedPhone == null || verifiedPhone.isBlank()) {
+                                return ApiResponseDTO.builder()
+                                                .success(false)
+                                                .message("MSG91 verification failed")
+                                                .build();
                         }
+
+                        // Normalize phone retrieved from MSG91
+                        String normalizedPhone = verifiedPhone.replaceAll("[^0-9]", "");
+                        if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
+                                normalizedPhone = normalizedPhone.substring(2);
+                        }
+
+                        // Validate that the MSG91 verified number matches the supplied phone number
+                        if (phoneNumber == null || phoneNumber.isBlank()) {
+                                return ApiResponseDTO.builder()
+                                                .success(false)
+                                                .message("Phone number is required for verification")
+                                                .build();
+                        }
+                        String normalizedProvidedPhone = phoneNumber.replaceAll("[^0-9]", "");
+                        if (normalizedProvidedPhone.startsWith("91") && normalizedProvidedPhone.length() == 12) {
+                                normalizedProvidedPhone = normalizedProvidedPhone.substring(2);
+                        }
+
+                        if (!normalizedPhone.equals(normalizedProvidedPhone)) {
+                                return ApiResponseDTO.builder()
+                                                .success(false)
+                                                .message("Verified phone number does not match the registration phone number")
+                                                .build();
+                        } 
 
                         // Check if it's signup flow or login flow
                         if (signupData != null) {
@@ -391,14 +406,14 @@ public class AuthService {
                                                         .createdAt(new Date())
                                                         .build();
                                         
-                                        System.out.println("Creating new user via MSG91 OTP: " + user.getPhoneNo());
+                                        log.info("Creating new user via MSG91 OTP: {}", user.getPhoneNo());
                                         user = userRepo.save(user);
 
                                         if (user.getEmail() != null && !user.getEmail().endsWith("@bodhganga.in")) {
                                                 try {
                                                         emailService.sendWelcomeEmail(user.getEmail(), user.getName());
                                                 } catch (Exception e) {
-                                                        System.err.println("Failed to trigger welcome email: " + e.getMessage());
+                                                        log.error("Failed to trigger welcome email: {}", e.getMessage());
                                                 }
                                         }
                                 } else {
@@ -422,7 +437,7 @@ public class AuthService {
                                                 .build();
                         }
                 } catch (Exception e) {
-                        System.err.println("Error during MSG91 token verification: " + e.getMessage());
+                        log.error("Error during MSG91 token verification: {}", e.getMessage());
                         return ApiResponseDTO.builder()
                                         .success(false)
                                         .message("Internal server error during MSG91 verification")
@@ -462,7 +477,7 @@ public class AuthService {
                                         .build();
 
                 } catch (Exception e) {
-                        System.err.println("Error during MSG91 password reset: " + e.getMessage());
+                        log.error("Error during MSG91 password reset: {}", e.getMessage());
                         return ApiResponseDTO.builder()
                                         .success(false)
                                         .message("Internal server error during password reset")
