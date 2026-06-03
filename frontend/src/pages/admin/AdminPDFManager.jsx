@@ -121,7 +121,6 @@ const AdminPDFManager = () => {
                     <button
                         type="button"
                         onClick={() => {
-                            console.log("Upload PDF clicked");
                             setShowUploadModal(true);
                         }}
                         className="btn-premium btn-premium-primary text-xs py-2.5 px-4 flex items-center gap-1.5 shadow-md"

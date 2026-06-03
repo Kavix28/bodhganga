@@ -1,45 +1,21 @@
 // API Base URL from environment variables
-let envApiUrl = import.meta.env.VITE_API_BASE_URL;
-
-// Prevent Mixed Content security blocks by overriding direct IP backend calls in production
-// 'NTIuOTAuMTI2LjE1OQ==' is base64 for '52.90.126.159'
-// 'YXBpLmJvZGhnYW5nYS5pbg==' is base64 for 'api.bodhganga.in'
-const ipPattern = typeof window !== 'undefined' ? window.atob('NTIuOTAuMTI2LjE1OQ==') : Buffer.from('NTIuOTAuMTI2LjE1OQ==', 'base64').toString('utf-8');
-const apiDomainPattern = typeof window !== 'undefined' ? window.atob('YXBpLmJvZGhnYW5nYS5pbg==') : Buffer.from('YXBpLmJvZGhnYW5nYS5pbg==', 'base64').toString('utf-8');
-
-if (envApiUrl && (envApiUrl.includes(ipPattern) || envApiUrl.includes(apiDomainPattern))) {
-    envApiUrl = 'https://bodhganga.in/api';
-}
+const envApiUrl = import.meta.env.VITE_API_BASE_URL;
 
 // FAIL-FAST: Detect missing or invalid API URL configuration
 if (!envApiUrl) {
-    const protoStr = ['ht', 'tp', '://'].join('');
-    const portStr = [9, 0, 9, 0].join('');
     console.error(
         '❌ CRITICAL: VITE_API_BASE_URL is not defined in .env file!\n' +
         'Create a .env file in the frontend directory with:\n' +
-        `VITE_API_BASE_URL=${protoStr}localhost:${portStr}/api\n` +
+        'VITE_API_BASE_URL=http://localhost:9090/api\n' +
         'Then restart Vite (npm run dev)'
     );
     console.warn('⚠️ Using fallback URL: https://bodhganga.in/api');
 }
 
 const isDev = import.meta.env.DEV;
-const devUrlFallback = ['ht', 'tp', '://', 'localhost', ':', '9', '0', '9', '0', '/api'].join('');
-const API_BASE_URL_RAW = envApiUrl || (isDev ? devUrlFallback : 'https://bodhganga.in/api');
+const devUrlFallback = isDev ? 'http://localhost:9090/api' : 'https://bodhganga.in/api';
+export const API_BASE_URL = envApiUrl || devUrlFallback;
 
-if (!API_BASE_URL_RAW) {
-    console.error('❌ CRITICAL: VITE_API_BASE_URL is not defined in production environment variables!');
-}
-
-// Prevent double /api paths (e.g., http://localhost:9090/api/api)
-if (API_BASE_URL_RAW.endsWith('/api/api')) {
-    console.error('❌ CRITICAL: API_BASE_URL has duplicate /api path!');
-    console.error('Current value:', API_BASE_URL_RAW);
-    console.error('Fix: Remove one /api from VITE_API_BASE_URL in .env');
-}
-
-export const API_BASE_URL = API_BASE_URL_RAW;
 
 // Local Storage Keys
 export const STORAGE_KEYS = {
