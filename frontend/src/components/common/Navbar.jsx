@@ -12,7 +12,13 @@ const navLinks = [
     { path: '/courses',           label: 'Courses',        icon: BookOpen,      public: true },
     { path: '/store',             label: 'Store',          icon: ShoppingBag,   public: true },
     { path: '/blog',              label: 'Blog',           icon: null,          public: true },
-    { path: '/#about',            label: 'About Us',       icon: null,          public: true, isScroll: true },
+];
+
+const aboutLinks = [
+    { path: '/about',            label: 'About BodhGanga' },
+    { path: '/ndde',             label: 'About NDDE' },
+    { path: '/founder',          label: 'Founder & CEO' },
+    { path: '/mission-vision',   label: 'Mission & Vision' }
 ];
 
 const Navbar = () => {
@@ -23,6 +29,7 @@ const Navbar = () => {
     const [mobileOpen, setMobileOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const [aboutMenuOpen, setAboutMenuOpen] = useState(false);
 
     useEffect(() => {
         const onScroll = () => setScrolled(window.scrollY > 10);
@@ -31,7 +38,7 @@ const Navbar = () => {
     }, []);
 
     // Close mobile menu on route change
-    useEffect(() => { setMobileOpen(false); setUserMenuOpen(false); }, [location.pathname]);
+    useEffect(() => { setMobileOpen(false); setUserMenuOpen(false); setAboutMenuOpen(false); }, [location.pathname]);
 
     const isActive = (path) => {
         if (path.includes('#')) {
@@ -92,6 +99,40 @@ const Navbar = () => {
                                 )}
                             </Link>
                         ))}
+
+                        {/* ABOUT Dropdown Link */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setAboutMenuOpen(!aboutMenuOpen)}
+                                onBlur={() => setTimeout(() => setAboutMenuOpen(false), 150)}
+                                className={`flex items-center gap-1 px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-300 rounded-xl ${
+                                    aboutLinks.some(l => isActive(l.path))
+                                        ? 'text-gold bg-white/5 border border-gold/20'
+                                        : 'text-white/80 hover:text-gold hover:bg-white/5 border border-transparent'
+                                }`}
+                            >
+                                <span>About</span>
+                                <FiChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${aboutMenuOpen ? 'rotate-180' : ''}`} />
+                            </button>
+                            {aboutMenuOpen && (
+                                <div className="absolute left-0 mt-3 w-56 bg-emerald-dark/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gold/20 py-2 scale-in z-50">
+                                    {aboutLinks.map(item => (
+                                        <Link
+                                            key={item.path}
+                                            to={item.path}
+                                            className={`flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${
+                                                isActive(item.path)
+                                                    ? 'text-gold bg-white/5'
+                                                    : 'text-white/80 hover:bg-white/5 hover:text-gold'
+                                            }`}
+                                        >
+                                            {item.label}
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
                         {isAuthenticated && (
                             <Link to="/dashboard"
                                 className={`relative px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-300 rounded-xl ${
@@ -205,6 +246,24 @@ const Navbar = () => {
                                 <LayoutDashboard className="w-4 h-4" /> Dashboard
                             </Link>
                         )}
+                        {/* Mobile About section */}
+                        <div className="border-t border-gold/15 pt-3 mt-3">
+                            <div className="px-4 py-1 text-[10px] text-gold/60 font-black uppercase tracking-widest">
+                                About Academy
+                            </div>
+                            {aboutLinks.map(item => (
+                                <Link
+                                    key={item.path}
+                                    to={item.path}
+                                    onClick={() => setMobileOpen(false)}
+                                    className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 ${
+                                        isActive(item.path) ? 'bg-white/5 text-gold border border-gold/10' : 'text-white/80 hover:bg-white/5 border border-transparent'
+                                    }`}
+                                >
+                                    {item.label}
+                                </Link>
+                            ))}
+                        </div>
                         <div className="border-t border-gold/10 pt-4 mt-4">
                             {isAuthenticated ? (
                                 <>

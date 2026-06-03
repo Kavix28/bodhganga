@@ -1,22 +1,29 @@
 import { useEffect } from 'react';
 
-export const useSEO = ({ title, description }) => {
+export const useSEO = ({ title, description, keywords, ogTitle, ogDescription, ogImage, ogUrl }) => {
     useEffect(() => {
         if (title) {
             document.title = `${title} | BODHGANGA Knowledge Portal`;
         }
 
-        if (description) {
-            let metaDesc = document.querySelector('meta[name="description"]');
-            if (!metaDesc) {
-                metaDesc = document.createElement('meta');
-                metaDesc.name = "description";
-                document.head.appendChild(metaDesc);
+        const updateMetaTag = (attrName, attrVal, contentVal) => {
+            if (!contentVal) return;
+            let metaTag = document.querySelector(`meta[${attrName}="${attrVal}"]`);
+            if (!metaTag) {
+                metaTag = document.createElement('meta');
+                metaTag.setAttribute(attrName, attrVal);
+                document.head.appendChild(metaTag);
             }
-            metaDesc.content = description;
-        }
+            metaTag.setAttribute('content', contentVal);
+        };
 
-        // Cleanup isn't strictly necessary for title/description if the next page overrides them, 
-        // but restoring default title could happen here if deeply required.
-    }, [title, description]);
+        updateMetaTag('name', 'description', description);
+        updateMetaTag('name', 'keywords', keywords);
+        updateMetaTag('property', 'og:title', ogTitle || title);
+        updateMetaTag('property', 'og:description', ogDescription || description);
+        updateMetaTag('property', 'og:image', ogImage || '/logo.png');
+        updateMetaTag('property', 'og:url', ogUrl || window.location.href);
+        updateMetaTag('property', 'og:type', 'website');
+    }, [title, description, keywords, ogTitle, ogDescription, ogImage, ogUrl]);
 };
+

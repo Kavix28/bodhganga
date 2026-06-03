@@ -35,6 +35,10 @@ const QuestionBank = lazy(() => import('./pages/QuestionBank'));
 const Subjects = lazy(() => import('./pages/Subjects'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const ErrorPage = lazy(() => import('./pages/Error'));
+const About = lazy(() => import('./pages/About'));
+const Ndde = lazy(() => import('./pages/Ndde'));
+const Founder = lazy(() => import('./pages/Founder'));
+const MissionVision = lazy(() => import('./pages/MissionVision'));
 const AboutIndia = lazy(() => import('./pages/AboutIndia'));
 const Cart = lazy(() => import('./pages/Cart'));
 const OrderHistory = lazy(() => import('./pages/OrderHistory'));
@@ -80,6 +84,10 @@ function App() {
                                         <Routes>
                                             {/* Public Routes */}
                                             <Route path="/" element={<Landing />} />
+                                            <Route path="/about" element={<About />} />
+                                            <Route path="/ndde" element={<Ndde />} />
+                                            <Route path="/founder" element={<Founder />} />
+                                            <Route path="/mission-vision" element={<MissionVision />} />
                                             <Route path="/about-india" element={<AboutIndia />} />
                                             <Route path="/states" element={<States />} />
                                             <Route path="/union-territories" element={<UnionTerritories />} />
