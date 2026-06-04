@@ -4,12 +4,7 @@
   "outputDirectory": "dist",
   "routes": [
     {
-      "src": "/msg91-otp.html",
-      "dest": "/msg91-otp.html"
-    },
-    {
-      "src": "/assets/(.*)",
-      "dest": "/assets/$1"
+      "handle": "filesystem"
     },
     {
       "src": "/(.*)",
