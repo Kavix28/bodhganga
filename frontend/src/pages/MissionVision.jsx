@@ -1,8 +1,9 @@
+import React from 'react';
 import { motion } from 'framer-motion';
 import { useSEO } from '../hooks/useSEO';
 import { 
-    Target, Eye, Heart, ShieldCheck, Compass, Sparkles, 
-    BookOpen, Layers, Award, ChevronRight 
+    Target, Eye, ShieldCheck, Compass, Sparkles, 
+    Heart, ChevronRight
 } from 'lucide-react';
 import indiaMap from '../assets/images/india-map.webp';
 
@@ -69,7 +70,7 @@ const MissionVision = () => {
                 className="absolute inset-0 pointer-events-none select-none bg-contain bg-no-repeat z-0" 
                 style={{
                     backgroundImage: `url(${indiaMap})`,
-                    backgroundPosition: 'left 5% center',
+                    backgroundPosition: 'right 5% center',
                     opacity: 0.02,
                     mixBlendMode: 'multiply'
                 }}
@@ -196,7 +197,7 @@ const MissionVision = () => {
             <section className="bg-gradient-to-r from-emerald-dark via-emerald-950 to-emerald-dark py-14 border-b border-gold/15 text-center relative overflow-hidden z-10">
                 <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-[rgba(212,175,55,0.2)]" />
                 <div className="max-w-4xl mx-auto px-6 space-y-3">
-                    <p className="text-[10px] text-gold font-bold uppercase tracking-[0.25em] leading-none mb-1">India Unlocked</p>
+                    <p className="text-[10px] text-gold font-bold uppercase tracking-[0.25em] leading-none mb-1">India Unlocked 🇮🇳</p>
                     <h2 className="text-2xl sm:text-4xl font-serif text-white font-bold leading-tight">
                         Decoding India, District by District.
                     </h2>

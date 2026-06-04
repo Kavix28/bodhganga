@@ -1,13 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useSEO } from '../hooks/useSEO';
 import { 
-    ArrowRight, BookOpen, HelpCircle, CheckCircle, MapPin, 
-    Award, Star, Globe, TrendingUp, Play, Sparkles, ShieldCheck, 
-    Flame, Users, BookOpenCheck, Landmark, Compass, Award as Medal 
+    ArrowRight, BookOpen, CheckCircle, MapPin, 
+    Globe, TrendingUp, Play, Sparkles, ShieldCheck, 
+    Flame, Users, BookOpenCheck, Landmark, Compass, Heart
 } from 'lucide-react';
-import Logo from '../components/common/Logo';
 import indiaMap from '../assets/images/india-map.webp';
 
 const Counter = ({ target, suffix = '', duration = 1500 }) => {
@@ -48,7 +47,7 @@ const About = () => {
     const navigate = useNavigate();
 
     useSEO({
-        title: "About BodhGanga Academy",
+        title: "About BodhGanga Academy - Grassroots Knowledge",
         description: "BodhGanga Academy is a research-driven educational platform built to help learners understand India in its truest grassroots form through India's First Digital District Encyclopedia.",
         keywords: "BodhGanga Academy, Digital District Encyclopedia, NDDE, Horizontal Integration, State Exams, UPSC, State GK",
         ogTitle: "About BodhGanga Academy - Grassroots Knowledge Portal",
@@ -66,13 +65,13 @@ const About = () => {
                 style={{
                     backgroundImage: `url(${indiaMap})`,
                     backgroundPosition: 'right 5% center',
-                    opacity: 0.03,
+                    opacity: 0.02,
                     mixBlendMode: 'multiply'
                 }}
             />
 
             {/* ── HERO BANNER ────────────────────────────────────────── */}
-            <section className="relative min-h-[60vh] flex items-center justify-center bg-gradient-to-b from-emerald-dark via-emerald-dark to-emerald-950 px-6 border-b border-gold/15 py-20 text-center overflow-hidden">
+            <section className="relative min-h-[50vh] flex items-center justify-center bg-gradient-to-b from-emerald-dark via-emerald-dark to-emerald-950 px-6 border-b border-gold/15 py-24 text-center overflow-hidden">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(201,169,97,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(201,169,97,0.02)_1px,transparent_1px)] bg-[size:4.5rem_4.5rem]" />
                 <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-emerald-light/5 rounded-full blur-[120px] pointer-events-none" />
                 
@@ -88,10 +87,6 @@ const About = () => {
 
                     <p className="text-lg sm:text-xl text-gold-glow-soft font-serif max-w-2xl mx-auto leading-relaxed italic">
                         "Decoding India, District by District"
-                    </p>
-
-                    <p className="text-sm sm:text-base text-white/70 max-w-3xl mx-auto leading-relaxed">
-                        A pioneering, research-driven educational initiative dedicated to documenting, mapping, and unlocking the academic wealth of every region in India in a structured, multi-dimensional, and digitally accessible format.
                     </p>
                 </div>
             </section>
@@ -116,24 +111,27 @@ const About = () => {
                 </div>
             </section>
 
-            {/* ── WHY BODHGANGA EXISTS ────────────────────────────────── */}
+            {/* ── BODHGANGA INTRO & THE DISCONNECT ────────────────────── */}
             <section className="py-20 max-w-5xl mx-auto px-6 relative z-10">
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-12 items-center">
                     <div className="md:col-span-7 space-y-6 text-left">
                         <div className="space-y-2">
-                            <span className="text-[10px] font-bold text-gold uppercase tracking-widest">The Educational Problem</span>
-                            <h2 className="text-3xl sm:text-4xl font-bold font-serif text-emerald-dark">Why BodhGanga Exists</h2>
+                            <span className="text-[10px] font-bold text-gold uppercase tracking-widest">Our Genesis</span>
+                            <h2 className="text-3xl sm:text-4xl font-bold font-serif text-emerald-dark">About Us</h2>
                             <div className="w-12 h-1 bg-gold rounded-full" />
                         </div>
                         <div className="space-y-4 text-emerald-dark/85 text-sm sm:text-base leading-relaxed font-medium">
                             <p>
-                                Traditional academic study and test preparation environments treat regional topics in isolation. Students are forced to consult fragmented sources, dry statistics tables, and incomplete maps to piece together local general knowledge.
+                                India is one of the most diverse civilizations in the world. Its geography, history, culture, governance, economy, and traditions vary dramatically from one region to the next. Yet, traditional educational resources almost exclusively explain India at the macro national or state level.
+                            </p>
+                            <p className="font-semibold text-emerald">
+                                The real India, however, exists at the grassroots—at the district level.
                             </p>
                             <p>
-                                BodhGanga Academy was created to revolutionize this landscape. We believe that state exams, public service preparation, and civic awareness require a unified, intuitive, and highly rigorous visual knowledge system.
+                                Every district has its own distinct historical journey, ecological identity, economic engine, and developmental challenge. Understanding India in its truest form requires understanding its districts.
                             </p>
                             <p>
-                                By bridging the gap between textbook geography and actual field knowledge, we help serious aspirants master complex regional frameworks seamlessly.
+                                BodhGanga Academy’s flagship initiative, the National Digital District Encyclopedia (NDDE), is a pioneering research-backed project dedicated to documenting every single district of India in a structured, multi-dimensional, and digitally accessible format.
                             </p>
                         </div>
                     </div>
@@ -142,195 +140,173 @@ const About = () => {
                             <div className="w-12 h-12 rounded-xl bg-gold/10 text-gold flex items-center justify-center">
                                 <Flame className="w-6 h-6 text-gold fill-gold" />
                             </div>
-                            <h3 className="text-xl font-bold font-serif text-gold">The Disconnect</h3>
+                            <h3 className="text-xl font-bold font-serif text-gold">The Grassroots Reality</h3>
                             <p className="text-xs text-white/70 leading-relaxed font-medium">
-                                "Most textbooks explain state geography, local history, and district administration as completely separate fields, leaving the student to manually synthesize connections. BodhGanga fixes this."
+                                "Traditional educational resources almost exclusively explain India at the macro national or state level, while the true civilizational depth, economy, and culture function at the district unit."
                             </p>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* ── UNDERSTANDING INDIA THROUGH DISTRICTS ─────────────────── */}
+            {/* ── CONCEPT OF HORIZONTAL INTEGRATION ────────────────────── */}
             <section className="py-20 bg-white border-y border-emerald/5 px-6 relative z-10">
-                <div className="max-w-5xl mx-auto text-center space-y-8">
-                    <div className="space-y-2">
-                        <span className="text-[10px] font-bold text-gold uppercase tracking-widest">Grassroots Foundations</span>
-                        <h2 className="text-3xl sm:text-4xl font-bold font-serif text-emerald-dark">Understanding India Through Districts</h2>
+                <div className="max-w-5xl mx-auto text-left space-y-8">
+                    <div className="space-y-2 text-center">
+                        <span className="text-[10px] font-bold text-gold uppercase tracking-widest">Our Learning Philosophy</span>
+                        <h2 className="text-3xl sm:text-4xl font-bold font-serif text-emerald-dark">The Concept of Horizontal Integration</h2>
                         <div className="w-16 h-1 bg-gold rounded-full mx-auto" />
                     </div>
-                    <p className="text-base sm:text-lg text-emerald font-serif font-bold max-w-3xl mx-auto leading-relaxed">
-                        India is not just a collection of states—it is a network of districts, each carrying its own unique physical, historical, administrative, and cultural footprint.
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left pt-6">
+                    
+                    <div className="space-y-4 text-emerald-dark/85 text-sm sm:text-base leading-relaxed font-medium">
+                        <p>
+                            At the core of NDDE lies the concept of **Horizontal Integration**. Traditional learning often treats subjects such as Geography, History, Polity, Economy, Environment, and Culture as separate disciplines. In reality, however, these domains are deeply interconnected.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-6 pt-4">
                         {[
-                            { title: "Grassroots Administration", desc: "The district serves as the primary unit of governance, policy execution, and resource allocation. Understanding it is key for prospective civil servants." },
-                            { title: "Localized Economics", desc: "From unique mineral deposits to localized industrial zones and regional crops, each district drives a specific pillar of state revenue." },
-                            { title: "Socio-Cultural Tapestry", desc: "Every local district boasts specific tribal heritages, folklore, dialects, monuments, and sacred sanctuaries that define regional diversity." }
+                            { title: "Geography's Impact", desc: "A district’s geography directly influences its agricultural capacity, mineral resources, and regional economy." },
+                            { title: "History's Shadow", desc: "Historical events, dynasties, and battles shape local demographic patterns and cultural identities." },
+                            { title: "Ecological Patterns", desc: "Rivers, forests, wetlands, and micro-climates impact settlement configurations and developmental challenges." },
+                            { title: "Strategic Security", desc: "Strategic geographical location influences border administration, local governance, trade routes, and security." },
+                            { title: "Social Tapestry", desc: "Tribal traditions, regional folk heritage, and local cultural assets structure the local social systems." }
                         ].map((item, idx) => (
-                            <div key={idx} className="space-y-3 bg-ivory-light p-6 rounded-2xl border border-emerald/5 shadow-sm">
+                            <div key={idx} className="space-y-3 bg-ivory-light p-5 rounded-2xl border border-emerald/5 shadow-sm">
                                 <span className="text-gold font-bold text-lg font-serif">0{idx + 1}.</span>
-                                <h3 className="text-base font-bold font-serif text-emerald-dark">{item.title}</h3>
+                                <h3 className="text-sm font-bold font-serif text-emerald-dark">{item.title}</h3>
                                 <p className="text-xs text-emerald-dark/70 leading-relaxed font-medium">{item.desc}</p>
                             </div>
                         ))}
                     </div>
+
+                    <div className="space-y-4 text-emerald-dark/85 text-sm sm:text-base leading-relaxed font-medium pt-4">
+                        <p>
+                            NDDE integrates all these dimensions into one unified district-wise framework, enabling learners to understand India contextually rather than through disconnected information. This approach not only strengthens conceptual clarity but also aligns closely with the analytical requirements of competitive examinations such as UPSC and State PSCs.
+                        </p>
+                    </div>
                 </div>
             </section>
 
-            {/* ── HORIZONTAL INTEGRATION FRAMEWORK ──────────────────────── */}
+            {/* ── WHAT WE CREATE ──────────────────────────────────────── */}
             <section className="py-20 max-w-6xl mx-auto px-6 relative z-10">
                 <div className="text-center mb-16 space-y-4">
-                    <span className="inline-block text-[10px] font-bold text-gold uppercase tracking-widest leading-none">The Core Philosophy</span>
-                    <h2 className="text-3xl sm:text-5xl font-bold font-serif text-emerald-dark">Horizontal Integration Framework</h2>
+                    <span className="inline-block text-[10px] font-bold text-gold uppercase tracking-widest leading-none">Our Deliverables</span>
+                    <h2 className="text-3xl sm:text-5xl font-bold font-serif text-emerald-dark">What We Create</h2>
                     <p className="text-xs sm:text-sm text-emerald-dark/60 max-w-2xl mx-auto">
-                        Connecting isolated subjects into a single, cohesive, multi-dimensional learning map.
+                        The National Digital District Encyclopedia is designed as a layered digital learning ecosystem consisting of multiple interconnected formats.
                     </p>
                     <div className="w-24 h-1 bg-gold mx-auto rounded-full" />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {[
-                        { icon: Compass, title: "Geography & Ecology", desc: "River systems, soil structures, agricultural terrains, weather patterns, forest reserves, and environmental sanctuaries." },
-                        { icon: Landmark, title: "History & Heritage", desc: "Fortresses, local dynasties, freedom struggle landmarks, administrative histories, archaeological ruins, and tribal chronicles." },
-                        { icon: TrendingUp, title: "Economy & Resources", desc: "Industrial belts, minor/major minerals, GI-tagged crafts, regional agriculture outputs, transport maps, and tourism clusters." },
-                        { icon: ShieldCheck, title: "Governance & Polity", desc: "District administration structure, panchayat configurations, municipal corporations, strategic border posts, and development indicators." }
+                        { 
+                            icon: Play, 
+                            title: "1. District-Wise Comprehensive Lectures", 
+                            desc: "In-depth district analysis covering: Geography, History, Economy, Culture, Environment, Governance, Agriculture, Infrastructure, Strategic relevance, and Current developments." 
+                        },
+                        { 
+                            icon: BookOpenCheck, 
+                            title: "2. Quick Revision Modules", 
+                            desc: "Structured revision content designed for UPSC, State PSCs, SSC, CUET, Defence exams, and School learning. These modules simplify large amounts of information into concise and exam-oriented frameworks." 
+                        },
+                        { 
+                            icon: Compass, 
+                            title: "3. Digital Infographics & Visual Learning", 
+                            desc: "To improve retention and accessibility, NDDE creates infographics, visual fact sheets, revision grids, maps, data-based explainers, and comparative district frameworks." 
+                        },
+                        { 
+                            icon: Sparkles, 
+                            title: "4. Micro-Learning Content", 
+                            desc: "The initiative develops short educational formats such as fact capsules, quiz-based learning, “Where Am I Going in India?” geography challenges, historical storytelling, cultural heritage explainers, and environmental awareness content." 
+                        },
+                        { 
+                            icon: Globe, 
+                            title: "5. Thematic National Knowledge Series", 
+                            desc: "Beyond district documentation, NDDE builds thematic educational archives on Tribes of India, Festivals and Folk Traditions, National Movements and Wars, Biodiversity and Protected Areas, Ramsar Sites, Strategic Border Regions, Legends of India, and Cultural Landscapes of India." 
+                        }
                     ].map((item, idx) => (
-                        <div key={idx} className="card-premium bg-white p-8 flex flex-col group hover:-translate-y-1 transition-all duration-300 text-left">
-                            <div className="w-12 h-12 rounded-2xl bg-emerald/5 text-emerald flex items-center justify-center mb-6 group-hover:bg-emerald group-hover:text-white transition-all duration-300 shadow-sm border border-emerald/5">
-                                <item.icon className="w-5 h-5" />
+                        <div key={idx} className="card-premium bg-white p-8 flex flex-col group hover:-translate-y-1 transition-all duration-300 text-left justify-between">
+                            <div>
+                                <div className="w-12 h-12 rounded-2xl bg-emerald/5 text-emerald flex items-center justify-center mb-6 group-hover:bg-emerald group-hover:text-white transition-all duration-300 shadow-sm border border-emerald/5">
+                                    <item.icon className="w-5 h-5" />
+                                </div>
+                                <h3 className="text-lg font-bold text-emerald-dark mb-3 font-serif tracking-tight">{item.title}</h3>
+                                <p className="text-xs text-emerald-dark/65 leading-relaxed font-medium">{item.desc}</p>
                             </div>
-                            <h3 className="text-lg font-bold text-emerald-dark mb-3 font-serif tracking-tight">{item.title}</h3>
-                            <p className="text-xs text-emerald-dark/60 leading-relaxed font-medium">{item.desc}</p>
                         </div>
                     ))}
                 </div>
             </section>
 
-            {/* ── WHAT WE CREATE ──────────────────────────────────────── */}
+            {/* ── WHY THIS INITIATIVE MATTERS ─────────────────────────── */}
             <section className="py-20 bg-emerald-950 text-white border-y border-gold/15 px-6 relative overflow-hidden z-10">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(201,169,97,0.01)_1px,transparent_1px),linear-gradient(to_bottom,rgba(201,169,97,0.01)_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none" />
-                <div className="max-w-5xl mx-auto">
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-12 items-center">
-                        <div className="md:col-span-5 space-y-6 text-left">
-                            <span className="text-[10px] font-bold text-gold uppercase tracking-widest flex items-center gap-1">
-                                <Sparkles className="w-3.5 h-3.5 text-gold" /> Mapped Educational Assets
-                            </span>
-                            <h2 className="text-3xl sm:text-4xl font-serif text-white font-bold leading-tight">
-                                What We Create
-                            </h2>
-                            <p className="text-xs text-white/70 leading-relaxed font-medium">
-                                We design state-of-the-art educational materials combining rigorous scholarship, visual mapping, and tech-enabled delivery.
-                            </p>
-                        </div>
-                        <div className="md:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-                            {[
-                                { title: "District Lectures", desc: "Interactive, research-backed video sessions decoding districts as complex living units." },
-                                { title: "Bilingual Study Notes", desc: "Expertly structured PDF textbooks formatted precisely for state PSC exams." },
-                                { title: "High-Yield MCQ Banks", desc: "High-yield state specific questionnaires for rigorous exam prep." },
-                                { title: "Thematic Infographics", desc: "Micro-learning visuals for rapid geographical and historical retention." }
-                            ].map((item, idx) => (
-                                <div key={idx} className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-2 hover:border-gold/30 transition-all duration-300">
-                                    <h3 className="text-sm font-bold font-serif text-gold">{item.title}</h3>
-                                    <p className="text-[11px] text-white/60 leading-relaxed font-medium">{item.desc}</p>
-                                </div>
-                            ))}
-                        </div>
+                <div className="max-w-4xl mx-auto text-center space-y-8">
+                    <div className="space-y-2">
+                        <span className="text-[10px] font-bold text-gold uppercase tracking-widest">National Knowledge Reform</span>
+                        <h2 className="text-3xl sm:text-4xl font-serif text-white font-bold">Why This Initiative Matters</h2>
+                        <div className="w-16 h-1 bg-gold rounded-full mx-auto" />
                     </div>
-                </div>
-            </section>
-
-            {/* ── WHY THIS INITIATIVE MATTERS ─────────────────────────── */}
-            <section className="py-20 max-w-5xl mx-auto px-6 relative z-10">
-                <div className="text-center mb-12 space-y-4">
-                    <span className="text-[10px] font-bold text-gold uppercase tracking-widest">National Reform</span>
-                    <h2 className="text-3xl sm:text-4xl font-bold font-serif text-emerald-dark">Why This Initiative Matters</h2>
-                    <div className="w-16 h-1 bg-gold rounded-full mx-auto" />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 text-left items-stretch">
-                    <div className="md:col-span-6 bg-white p-8 rounded-3xl border border-emerald/5 shadow-sm space-y-4">
-                        <div className="text-xl">🎓</div>
-                        <h3 className="text-lg font-bold font-serif text-emerald-dark">Syllabus Synchronization</h3>
-                        <p className="text-xs text-emerald-dark/70 leading-relaxed font-medium">
-                            State Civil Services and competitive exams increasingly demand localized general knowledge. BodhGanga aligns its archives perfectly with updated boards to prevent aspirants from studying outdated databases.
+                    <p className="text-lg text-gold font-serif leading-relaxed italic max-w-2xl mx-auto">
+                        "India is not merely a political map. It is a civilizational mosaic built through thousands of local identities, ecological systems, historical processes, and cultural traditions."
+                    </p>
+                    <div className="space-y-4 text-white/80 text-xs sm:text-sm leading-relaxed font-medium text-left max-w-3xl mx-auto">
+                        <p>
+                            Unfortunately, district-level knowledge often remains scattered across reports, archives, textbooks, government documents, and fragmented internet sources. There has never been a unified digital platform dedicated to systematically organizing and presenting India district by district.
                         </p>
-                    </div>
-                    <div className="md:col-span-6 bg-white p-8 rounded-3xl border border-emerald/5 shadow-sm space-y-4">
-                        <div className="text-xl">🗺️</div>
-                        <h3 className="text-lg font-bold font-serif text-emerald-dark">Grassroots Awareness</h3>
-                        <p className="text-xs text-emerald-dark/70 leading-relaxed font-medium">
-                            Beyond examination success, building regional, cultural, and environmental literacy at a local scale helps citizens, civil society, and policymakers understand district potentials and issues correctly.
+                        <p>
+                            NDDE seeks to fill this gap. The initiative aims to preserve district-level knowledge in a structured digital format for:
                         </p>
+                        <div className="grid grid-cols-2 gap-4 pt-2 font-bold text-gold">
+                            <div className="flex items-center gap-2">✔ Education</div>
+                            <div className="flex items-center gap-2">✔ Competitive Examinations</div>
+                            <div className="flex items-center gap-2">✔ Research</div>
+                            <div className="flex items-center gap-2">✔ Governance Awareness</div>
+                            <div className="flex items-center gap-2">✔ Cultural Preservation</div>
+                            <div className="flex items-center gap-2">✔ Future Academic Reference</div>
+                        </div>
                     </div>
                 </div>
             </section>
 
             {/* ── WHO WE SERVE ────────────────────────────────────────── */}
-            <section className="py-20 bg-white border-t border-emerald/5 px-6 relative z-10">
-                <div className="max-w-4xl mx-auto text-center space-y-8">
-                    <div className="space-y-2">
-                        <span className="text-[10px] font-bold text-gold uppercase tracking-widest">Our Community</span>
+            <section className="py-20 bg-white px-6 relative z-10">
+                <div className="max-w-5xl mx-auto text-center space-y-12">
+                    <div className="space-y-4">
+                        <span className="text-[10px] font-bold text-gold uppercase tracking-widest">Our Target Audience</span>
                         <h2 className="text-3xl sm:text-4xl font-bold font-serif text-emerald-dark">Who We Serve</h2>
                         <div className="w-16 h-1 bg-gold rounded-full mx-auto" />
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         {[
-                            { name: "UPSC & State PSC", desc: "Aspirants looking for regional studies and local GS papers." },
-                            { name: "Academic Researchers", desc: "Educators and writers seeking authenticated regional resources." },
-                            { name: "School Educators", desc: "Teachers utilizing maps and visual infographics in class." },
-                            { name: "Pragmatic Citizens", desc: "Anyone eager to explore India's geography, history, and resources." }
+                            { title: "Competitive Exam Aspirants", desc: "UPSC, State PSCs, SSC, CUET, Defence and allied examinations." },
+                            { title: "Educators & Institutions", desc: "Teachers, schools, colleges, and coaching institutions seeking structured India-focused educational resources." },
+                            { title: "Researchers & Policy Enthusiasts", desc: "Individuals interested in grassroots governance, development studies, district administration, and regional diversity." },
+                            { title: "Lifelong Learners", desc: "Anyone seeking a deeper and more meaningful understanding of India beyond textbook-level information." }
                         ].map((grp, idx) => (
-                            <div key={idx} className="p-5 bg-ivory-light border border-emerald/5 rounded-2xl flex flex-col justify-between">
-                                <h3 className="text-sm font-bold font-serif text-emerald-dark mb-2">{grp.name}</h3>
-                                <p className="text-[10px] text-emerald-dark/60 leading-relaxed font-medium">{grp.desc}</p>
+                            <div key={idx} className="p-6 bg-ivory-light border border-emerald/5 rounded-3xl flex flex-col justify-between text-left shadow-sm">
+                                <div>
+                                    <div className="p-3 bg-emerald-50 text-emerald rounded-2xl h-fit shrink-0 w-fit mb-4">
+                                        <Users className="w-5 h-5 text-emerald" />
+                                    </div>
+                                    <h3 className="text-sm font-bold font-serif text-emerald-dark mb-2">{grp.title}</h3>
+                                    <p className="text-[11px] text-emerald-dark/70 leading-relaxed font-medium">{grp.desc}</p>
+                                </div>
                             </div>
                         ))}
                     </div>
                 </div>
             </section>
 
-            {/* ── MISSION & VISION ────────────────────────────────────── */}
-            <section className="py-20 bg-gradient-to-b from-emerald-950 to-emerald-dark text-white px-6 border-b border-gold/15 relative overflow-hidden z-10">
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(201,169,97,0.01)_1px,transparent_1px),linear-gradient(to_bottom,rgba(201,169,97,0.01)_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none" />
-                <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12">
-                    <div className="p-8 bg-slate-900/60 backdrop-blur-xl border border-gold/25 rounded-3xl space-y-4 text-left">
-                        <div className="w-10 h-10 rounded-xl bg-gold/10 text-gold flex items-center justify-center">🎯</div>
-                        <h3 className="text-xl font-bold font-serif text-white">Our Mission</h3>
-                        <p className="text-xs text-slate-300 leading-relaxed font-medium">
-                            To create the most detailed, structured, research-backed district-level digital knowledge repository for India. We seek to present districts as complete entities to simplify exam preparation and empower grassroots learners.
-                        </p>
-                    </div>
-                    <div className="p-8 bg-slate-900/60 backdrop-blur-xl border border-gold/25 rounded-3xl space-y-4 text-left">
-                        <div className="w-10 h-10 rounded-xl bg-gold/10 text-gold flex items-center justify-center">👁️</div>
-                        <h3 className="text-xl font-bold font-serif text-white">Our Vision</h3>
-                        <p className="text-xs text-slate-300 leading-relaxed font-medium">
-                            To establish a permanent digital archive documenting India's local geography, culture, history, and economy. By fusing visual storytelling with technology, we aim to inspire future generations of researchers and administrators.
-                        </p>
-                    </div>
-                </div>
-            </section>
-
-            {/* ── INDIA UNLOCKED BANNER ───────────────────────────────── */}
-            <section className="bg-gradient-to-r from-emerald-dark via-emerald-950 to-emerald-dark py-14 border-b border-gold/15 text-center relative overflow-hidden z-10">
-                <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-[rgba(212,175,55,0.2)]" />
-                <div className="max-w-4xl mx-auto px-6 space-y-3">
-                    <p className="text-[10px] text-gold font-bold uppercase tracking-[0.25em] leading-none mb-1">Decentralizing Knowledge</p>
-                    <h2 className="text-2xl sm:text-4xl font-serif text-white font-bold leading-tight">
-                        India Unlocked — District by District
-                    </h2>
-                    <p className="text-xs text-white/60 max-w-xl mx-auto leading-relaxed">
-                        Join our mission to explore, map, and document the administrative, historical, and geological wealth of all districts across India.
-                    </p>
-                </div>
-            </section>
-
             {/* ── CALL TO ACTION ──────────────────────────────────────── */}
-            <section className="py-24 bg-white text-center px-6 relative z-10">
+            <section className="py-20 bg-ivory-light text-center px-6 relative z-10 border-t border-emerald/5">
                 <div className="max-w-xl mx-auto space-y-8">
                     <h2 className="text-3xl sm:text-4xl font-bold font-serif text-emerald-dark tracking-tight">
                         Start Mapped Learning Today
                     </h2>
-                    <p className="text-xs sm:text-sm text-emerald-dark/60 leading-relaxed">
+                    <p className="text-xs sm:text-sm text-emerald-dark/60 leading-relaxed font-medium">
                         Access our state-specific courses, digital note bundles, maps, and high-yield question banks instantly from your academic dashboard.
                     </p>
                     <div className="flex flex-col sm:flex-row justify-center items-center gap-4">
@@ -342,7 +318,7 @@ const About = () => {
                         </button>
                         <Link 
                             to="/states"
-                            className="w-full sm:w-auto px-8 py-4 bg-ivory-light border border-emerald/10 hover:border-gold/30 text-emerald font-bold text-xs uppercase tracking-widest rounded-2xl transition-all duration-300 text-center"
+                            className="w-full sm:w-auto px-8 py-4 bg-white border border-emerald/10 hover:border-gold/30 text-emerald font-bold text-xs uppercase tracking-widest rounded-2xl transition-all duration-300 text-center shadow-sm"
                         >
                             Explore States & UTs
                         </Link>
