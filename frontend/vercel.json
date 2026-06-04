@@ -12,10 +12,6 @@
       "dest": "/assets/$1"
     },
     {
-      "src": "/api/(.*)",
-      "dest": "https://bodhganga.in/api/$1"
-    },
-    {
       "src": "/(.*)",
       "dest": "/index.html"
     }

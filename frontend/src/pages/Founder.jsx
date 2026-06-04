@@ -34,6 +34,7 @@ const Founder = () => {
         ogImage: "/prateek-sir.png"
     });
 
+
     const achievements = [
         { title: "Telecom Leader", desc: "Serving as Deputy Manager at MTNL (Department of Telecommunications) since 2009.", icon: Briefcase },
         { title: "Exam Veteran", desc: "Successfully cleared multiple national competitive examinations, mastering the testing ecosystem.", icon: Award },
