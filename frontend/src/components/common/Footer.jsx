@@ -26,7 +26,7 @@ const Footer = () => {
             { label: 'About India',     to: '/about-india' },
             { label: 'Privacy Policy',  to: '/' },
             { label: 'Terms of Use',    to: '/' },
-            { label: 'Contact Us',      to: '/' },
+            { label: 'Contact Us',      to: 'mailto:bodhgangaacademy@gmail.com' },
             { label: 'Careers',         to: '/' },
         ],
     };
@@ -57,11 +57,11 @@ const Footer = () => {
                             </p>
                         </div>
                         <div className="space-y-3">
-                            <a href="mailto:support@bodhganga.in" className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-wider text-gold hover:text-gold-light transition-colors">
-                                <Mail className="w-4 h-4 text-white/50" /> support@bodhganga.in
+                            <a href="mailto:bodhgangaacademy@gmail.com" className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-wider text-gold hover:text-gold-light transition-colors">
+                                <Mail className="w-4 h-4 text-white/50" /> bodhgangaacademy@gmail.com
                             </a>
-                            <a href="tel:+911800000000" className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-wider text-gold hover:text-gold-light transition-colors">
-                                <Phone className="w-4 h-4 text-white/50" /> 1800-000-0000 (Toll Free)
+                            <a href="tel:+916265143178" className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-wider text-gold hover:text-gold-light transition-colors">
+                                <Phone className="w-4 h-4 text-white/50" /> 6265143178
                             </a>
                         </div>
                         {/* Social */}
@@ -82,11 +82,19 @@ const Footer = () => {
                             <ul className="space-y-3.5">
                                 {items.map(item => (
                                     <li key={item.label}>
-                                        <Link to={item.to}
-                                            className="text-xs font-bold uppercase tracking-wider text-white/60 hover:text-gold flex items-center gap-1 group transition-colors duration-300">
-                                            <span className="w-0 group-hover:w-1.5 h-0.5 bg-gold transition-all duration-300" />
-                                            {item.label}
-                                        </Link>
+                                        {item.to.startsWith('mailto:') || item.to.startsWith('tel:') ? (
+                                            <a href={item.to}
+                                                className="text-xs font-bold uppercase tracking-wider text-white/60 hover:text-gold flex items-center gap-1 group transition-colors duration-300">
+                                                <span className="w-0 group-hover:w-1.5 h-0.5 bg-gold transition-all duration-300" />
+                                                {item.label}
+                                            </a>
+                                        ) : (
+                                            <Link to={item.to}
+                                                className="text-xs font-bold uppercase tracking-wider text-white/60 hover:text-gold flex items-center gap-1 group transition-colors duration-300">
+                                                <span className="w-0 group-hover:w-1.5 h-0.5 bg-gold transition-all duration-300" />
+                                                {item.label}
+                                            </Link>
+                                        )}
                                     </li>
                                 ))}
                             </ul>

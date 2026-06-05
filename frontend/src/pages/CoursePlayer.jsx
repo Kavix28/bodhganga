@@ -346,9 +346,12 @@ const CoursePlayer = () => {
                                 <p className="text-blue-800 text-sm mb-3">
                                     Having trouble accessing the content?
                                 </p>
-                                <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                                <a 
+                                    href="mailto:bodhgangaacademy@gmail.com" 
+                                    className="text-blue-600 hover:text-blue-700 text-sm font-medium inline-block"
+                                >
                                     Contact Support
-                                </button>
+                                </a>
                             </div>
                         </div>
                     </div>
