@@ -77,6 +77,37 @@ public class S3Service {
     }
 
     /**
+     * Upload a PDF file from an InputStream to S3 under pdfs/{uuid}-{filename}
+     * Returns the S3 key. Useful for streaming from external sources like Google Drive.
+     */
+    public String uploadPdf(java.io.InputStream inputStream, long size, String originalFilename) {
+        return uploadPdf(inputStream, size, originalFilename, "pdfs");
+    }
+
+    /**
+     * Upload a PDF file from an InputStream to S3 under a custom path {customPath}/{uuid}-{filename}
+     */
+    public String uploadPdf(java.io.InputStream inputStream, long size, String originalFilename, String customPath) {
+        String sanitizedFilename = originalFilename != null 
+                ? originalFilename.replaceAll("[^a-zA-Z0-9.-]", "_") 
+                : "document.pdf";
+        
+        String key = (customPath != null && !customPath.isEmpty() ? customPath + "/" : "") 
+                + UUID.randomUUID().toString() + "-" + sanitizedFilename;
+
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .contentType("application/pdf")
+                .build();
+
+        s3Client.putObject(putObjectRequest, 
+                RequestBody.fromInputStream(inputStream, size));
+
+        return key;
+    }
+
+    /**
      * Generate a short-lived (temporary) signed URL for secure download
      * Expiry set to 10 minutes by default.
      */
