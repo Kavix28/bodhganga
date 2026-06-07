@@ -352,7 +352,15 @@ const Landing = () => {
                         </div>
 
                         {/* Premium Interactive Slideshow */}
-                        <div className="lg:col-span-5 w-full relative mt-10 lg:mt-0 mx-auto px-4 sm:px-0">
+                        <div className="lg:col-span-5 w-full flex flex-col gap-6 mt-10 lg:mt-0 mx-auto px-4 sm:px-0">
+                            {/* Text Block repositioned above the image, aligned horizontally with the image */}
+                            <div className="w-full max-w-[340px] sm:max-w-[380px] md:max-w-[420px] lg:max-w-none lg:w-[460px] mx-auto text-left space-y-1">
+                                <div className="text-[10px] sm:text-xs tracking-[0.25em] font-extrabold uppercase text-gold">India Unlocked 🇮🇳</div>
+                                <div className="text-[9px] sm:text-[10px] text-white/50 font-bold uppercase tracking-wider">Decoding India, District by District</div>
+                                <h3 className="text-lg sm:text-2xl font-semibold font-serif text-white tracking-tight leading-tight pt-1">{slides[currentSlide].title}</h3>
+                                <p className="text-xs sm:text-sm opacity-90 text-white/70 font-semibold uppercase tracking-wider">{slides[currentSlide].label}</p>
+                            </div>
+
                             <div className="relative mx-auto w-full max-w-[340px] sm:max-w-[380px] md:max-w-[420px] lg:max-w-none lg:w-[460px] h-[420px] sm:h-[500px] md:h-[560px] lg:h-[640px] rounded-[28px] overflow-hidden shadow-2xl border border-gold/25 glow-emerald-card group bg-gradient-to-b from-emerald-900 to-emerald-950 flex items-center justify-center">
                                 {/* Slides */}
                                 {slides.map((slide, idx) => (
@@ -370,14 +378,6 @@ const Landing = () => {
                                         />
                                     </div>
                                 ))}
-                                
-                                {/* Overlay Card */}
-                                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[88%] sm:w-[84%] px-4 py-4 sm:px-6 sm:py-5 bg-emerald-950/85 backdrop-blur-xl border border-gold/20 rounded-2xl z-20 text-left">
-                                    <div className="text-[10px] sm:text-xs tracking-[0.25em] font-extrabold uppercase text-gold mb-1">India Unlocked 🇮🇳</div>
-                                    <div className="text-[9px] sm:text-[10px] text-white/50 font-bold uppercase tracking-wider mb-1">Decoding India, District by District</div>
-                                    <h3 className="text-lg sm:text-2xl font-semibold font-serif text-white tracking-tight leading-tight">{slides[currentSlide].title}</h3>
-                                    <p className="text-xs sm:text-sm opacity-90 text-white/70 mt-1 font-semibold uppercase tracking-wider">{slides[currentSlide].label}</p>
-                                </div>
                                 
                                 {/* Navigation dots in gold */}
                                 <div className="absolute top-6 right-6 z-20 flex gap-2">
