@@ -3,8 +3,8 @@ package com.bodhganga.bodhganga.services;
 import com.google.api.services.drive.model.File;
 import com.bodhganga.bodhganga.entity.Product;
 import com.bodhganga.bodhganga.repo.ProductRepo;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -13,13 +13,19 @@ import java.io.InputStream;
 import java.util.List;
 
 @Component
-@RequiredArgsConstructor
-@Slf4j
 public class DriveToS3PipelineTask {
+
+    private static final Logger log = LoggerFactory.getLogger(DriveToS3PipelineTask.class);
 
     private final GoogleDriveSyncService googleDriveSyncService;
     private final S3Service s3Service;
     private final ProductRepo productRepo;
+
+    public DriveToS3PipelineTask(GoogleDriveSyncService googleDriveSyncService, S3Service s3Service, ProductRepo productRepo) {
+        this.googleDriveSyncService = googleDriveSyncService;
+        this.s3Service = s3Service;
+        this.productRepo = productRepo;
+    }
 
     @Value("${google.drive.source-folder-id:#{null}}")
     private String sourceFolderId;
