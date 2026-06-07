@@ -16,11 +16,16 @@ public class Purchase {
     
     private Date purchaseDate;
     private int downloadCount;
+    private Double amountPaid;
     
     public Purchase() {
         this.purchaseDate = new Date();
         this.downloadCount = 0;
+        this.amountPaid = 0.0;
     }
+
+    public Double getAmountPaid() { return amountPaid; }
+    public void setAmountPaid(Double amountPaid) { this.amountPaid = amountPaid; }
 
     // Getters and Setters
     public String getId() { return id; }

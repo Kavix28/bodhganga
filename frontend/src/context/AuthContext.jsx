@@ -8,6 +8,10 @@ export const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [authModalState, setAuthModalState] = useState({ isOpen: false, mode: 'welcome' });
+
+    const openAuthModal = (mode = 'welcome') => setAuthModalState({ isOpen: true, mode });
+    const closeAuthModal = () => setAuthModalState({ isOpen: false, mode: 'welcome' });
 
     // Initialize auth state from localStorage on mount
     useEffect(() => {
@@ -60,6 +64,9 @@ export const AuthProvider = ({ children }) => {
         login,
         logout,
         updateUser,
+        authModalState,
+        openAuthModal,
+        closeAuthModal,
     };
 
     return (

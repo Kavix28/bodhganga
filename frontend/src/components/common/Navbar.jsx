@@ -1,7 +1,7 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { FiUser, FiLogOut, FiMenu, FiX, FiChevronDown } from 'react-icons/fi';
-import { BookOpen, MapPin, Building, LayoutDashboard, ShoppingBag, ShoppingCart, Receipt } from 'lucide-react';
+import { BookOpen, MapPin, Building, LayoutDashboard, ShoppingBag, ShoppingCart, Receipt, Sparkles } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useCart } from '../../context/CartContext';
 
@@ -11,6 +11,7 @@ const navLinks = [
     { path: '/states',            label: 'States & UTs',  icon: MapPin,        public: true },
     { path: '/courses',           label: 'Courses',        icon: BookOpen,      public: true },
     { path: '/store',             label: 'Store',          icon: ShoppingBag,   public: true },
+    { path: '/free-resources',    label: 'Free Resources', icon: Sparkles,      public: true },
     { path: '/blog',              label: 'Blog',           icon: null,          public: true },
 ];
 
@@ -22,7 +23,7 @@ const aboutLinks = [
 ];
 
 const Navbar = () => {
-    const { isAuthenticated, user, logout } = useAuth();
+    const { isAuthenticated, user, logout, openAuthModal } = useAuth();
     const { cartCount } = useCart();
     const navigate = useNavigate();
     const location = useLocation();
@@ -45,6 +46,15 @@ const Navbar = () => {
             return location.pathname === '/' && location.hash === path.substring(path.indexOf('#'));
         }
         return location.pathname === path || (path !== '/' && location.pathname.startsWith(path + '/'));
+    };
+
+    const handleLinkClick = (e, path) => {
+        const protectedRoutes = ['/free-resources', '/courses', '/cart', '/library', '/dashboard', '/profile', '/orders'];
+        const isProtected = protectedRoutes.some(r => path.startsWith(r));
+        if (isProtected && !isAuthenticated) {
+            e.preventDefault();
+            openAuthModal('welcome');
+        }
     };
 
     const handleScrollClick = (e, path) => {
@@ -87,7 +97,10 @@ const Navbar = () => {
                     <div className="hidden md:flex items-center gap-2">
                         {navLinks.map(link => (
                             <Link key={link.path} to={link.path}
-                                onClick={(e) => link.isScroll && handleScrollClick(e, link.path)}
+                                onClick={(e) => {
+                                    handleLinkClick(e, link.path);
+                                    if (link.isScroll) handleScrollClick(e, link.path);
+                                }}
                                 className={`relative px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-300 rounded-xl ${
                                     isActive(link.path)
                                         ? 'text-gold bg-white/5 border border-gold/20'
@@ -148,7 +161,7 @@ const Navbar = () => {
                     {/* Right Actions */}
                     <div className="hidden md:flex items-center gap-4">
                         {/* Cart icon with badge */}
-                        <Link to="/cart" className="relative p-2.5 text-white/70 hover:text-gold hover:bg-white/5 rounded-xl border border-transparent hover:border-gold/15 transition-all duration-300" title="Shopping Cart">
+                        <Link to="/cart" onClick={(e) => handleLinkClick(e, '/cart')} className="relative p-2.5 text-white/70 hover:text-gold hover:bg-white/5 rounded-xl border border-transparent hover:border-gold/15 transition-all duration-300" title="Shopping Cart">
                             <ShoppingCart className="w-5 h-5" />
                             {cartCount > 0 && (
                                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-gold text-emerald-950 text-[10px] font-black rounded-full flex items-center justify-center leading-none">
@@ -180,6 +193,9 @@ const Navbar = () => {
                                         </div>
                                         <Link to="/profile" className="flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 hover:text-gold transition-colors duration-300">
                                             <FiUser className="w-4 h-4" /> My Profile
+                                        </Link>
+                                        <Link to="/library" className="flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 hover:text-gold transition-colors duration-300">
+                                            <BookOpen className="w-4 h-4" /> My Library
                                         </Link>
                                         <Link to="/dashboard" className="flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 hover:text-gold transition-colors duration-300">
                                             <LayoutDashboard className="w-4 h-4" /> Dashboard
@@ -214,11 +230,21 @@ const Navbar = () => {
                         )}
                     </div>
 
-                    {/* Mobile hamburger */}
-                    <button onClick={() => setMobileOpen(!mobileOpen)}
-                        className="md:hidden p-2 text-white/80 hover:text-gold hover:bg-white/5 rounded-xl transition-all duration-300 border border-transparent hover:border-gold/15">
-                        {mobileOpen ? <FiX className="w-6 h-6" /> : <FiMenu className="w-6 h-6" />}
-                    </button>
+                    {/* Mobile Cart and hamburger */}
+                    <div className="flex md:hidden items-center gap-2">
+                        <Link to="/cart" onClick={(e) => handleLinkClick(e, '/cart')} className="relative p-2.5 text-white/70 hover:text-gold hover:bg-white/5 rounded-xl border border-transparent hover:border-gold/15 transition-all duration-300" title="Shopping Cart">
+                            <ShoppingCart className="w-5 h-5" />
+                            {cartCount > 0 && (
+                                <span className="absolute -top-1 -right-1 w-5 h-5 bg-gold text-emerald-950 text-[10px] font-black rounded-full flex items-center justify-center leading-none">
+                                    {cartCount > 9 ? '9+' : cartCount}
+                                </span>
+                            )}
+                        </Link>
+                        <button onClick={() => setMobileOpen(!mobileOpen)}
+                            className="p-2 text-white/80 hover:text-gold hover:bg-white/5 rounded-xl transition-all duration-300 border border-transparent hover:border-gold/15">
+                            {mobileOpen ? <FiX className="w-6 h-6" /> : <FiMenu className="w-6 h-6" />}
+                        </button>
+                    </div>
                 </div>
             </nav>
 
@@ -229,6 +255,7 @@ const Navbar = () => {
                         {navLinks.map(link => (
                             <Link key={link.path} to={link.path}
                                 onClick={(e) => {
+                                    handleLinkClick(e, link.path);
                                     if (link.isScroll) {
                                         handleScrollClick(e, link.path);
                                     }
@@ -272,6 +299,9 @@ const Navbar = () => {
                                     </div>
                                     <Link to="/profile" className="flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 border border-transparent">
                                         <FiUser className="w-4 h-4" /> My Profile
+                                    </Link>
+                                    <Link to="/library" className="flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 border border-transparent">
+                                        <BookOpen className="w-4 h-4" /> My Library
                                     </Link>
                                     <button onClick={handleLogout}
                                         className="flex items-center gap-3.5 w-full px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-red-400 hover:bg-red-500/10 border border-transparent">

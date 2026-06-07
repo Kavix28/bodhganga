@@ -100,12 +100,49 @@ public class DriveToS3PipelineTask {
             if (inputStream != null) {
                 long size = file.getSize() != null ? file.getSize() : 0;
                 
-                // Extract State & District metadata from the folderPath
-                FolderMetadata metadata = extractMetadata(folderPath);
-                
-                // Construct hyphenated slugs for S3 path hierarchy
-                String stateSlug = metadata.state.replace(" ", "-");
-                String districtSlug = metadata.district.replace(" ", "-");
+                boolean isFree = false;
+                String category = "Notes";
+                String state = null;
+                String district = null;
+                Double price = 99.0;
+
+                // Check if folderPath contains "Free Resources"
+                boolean hasFreeResources = false;
+                if (folderPath != null && !folderPath.isEmpty()) {
+                    for (String folderName : folderPath) {
+                        if (folderName.equalsIgnoreCase("Free Resources") || folderName.equalsIgnoreCase("Free-Resources")) {
+                            hasFreeResources = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (hasFreeResources) {
+                    isFree = true;
+                    price = 0.0;
+                    int freeIndex = -1;
+                    for (int i = 0; i < folderPath.size(); i++) {
+                        if (folderPath.get(i).equalsIgnoreCase("Free Resources") || folderPath.get(i).equalsIgnoreCase("Free-Resources")) {
+                            freeIndex = i;
+                            break;
+                        }
+                    }
+                    if (freeIndex != -1 && folderPath.size() > freeIndex + 1) {
+                        category = normalizeName(folderPath.get(freeIndex + 1));
+                    } else {
+                        category = "Free Resources";
+                    }
+                    state = "general";
+                    district = "general";
+                } else {
+                    FolderMetadata metadata = extractMetadata(folderPath);
+                    state = metadata.state;
+                    district = metadata.district;
+                }
+
+                // Construct slugs for S3 path hierarchy
+                String stateSlug = state != null ? state.replace(" ", "-") : "general";
+                String districtSlug = district != null ? district.replace(" ", "-") : "general";
                 String s3Key = stateSlug + "/" + districtSlug + "/" + file.getName();
                 
                 log.info("Uploading to S3: {}", s3Key);
@@ -126,12 +163,14 @@ public class DriveToS3PipelineTask {
                 product.setFileName(file.getName());
                 product.setFileSize(size);
                 product.setImportedFromDrive(true);
-                product.setPublished(false); // Can be manually reviewed by admin
-                product.setPrice(99.0); // Default price, admin can change
+                product.setPublished(true); // Automatically publish newly synced documents
+                product.setPrice(price);
+                product.setFree(isFree);
+                product.setCategory(category);
                 
                 // Ingestion specific metadata
-                product.setState(metadata.state);
-                product.setDistrict(metadata.district);
+                product.setState(state);
+                product.setDistrict(district);
                 product.setMimeType(file.getMimeType());
                 product.setS3Url(s3Url);
                 product.setSource("Google Drive");

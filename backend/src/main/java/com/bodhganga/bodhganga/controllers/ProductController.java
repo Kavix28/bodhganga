@@ -58,6 +58,7 @@ public class ProductController {
      */
     @PostMapping
     public ResponseEntity<ApiResponseDTO> createProduct(@RequestBody Product product) {
+        product.setPrice(product.isFree() ? 0.0 : 99.0);
         product.setCreatedAt(new Date());
         Product saved = productRepo.save(product);
         return ResponseEntity.ok(ApiResponseDTO.builder().success(true).data(saved).build());
@@ -71,6 +72,7 @@ public class ProductController {
         if (!productRepo.existsById(id)) {
             return ResponseEntity.status(404).body(ApiResponseDTO.builder().success(false).message("Not Found").build());
         }
+        product.setPrice(product.isFree() ? 0.0 : 99.0);
         product.setId(id);
         Product saved = productRepo.save(product);
         return ResponseEntity.ok(ApiResponseDTO.builder().success(true).data(saved).build());

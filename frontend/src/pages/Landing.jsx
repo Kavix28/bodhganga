@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { 
@@ -11,6 +11,8 @@ import indiaMap from '../assets/images/india-map.webp';
 import { indianStates } from '../data/states';
 import { unionTerritories } from '../data/unionTerritories';
 import { API_BASE_URL } from '../utils/constants';
+import api from '../services/api';
+import toast from 'react-hot-toast';
 
 // ── Animated Counter Component ─────────────────────────────────────
 const Counter = ({ target, suffix = '', duration = 1500 }) => {
@@ -47,9 +49,20 @@ const Counter = ({ target, suffix = '', duration = 1500 }) => {
 };
 
 const Landing = () => {
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, openAuthModal } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+
+    useEffect(() => {
+        if (!isAuthenticated) {
+            if (location.state?.showAuthModal || sessionStorage.getItem('guestDismissed') !== 'true') {
+                openAuthModal('welcome');
+                if (location.state?.showAuthModal) {
+                    navigate('/', { replace: true, state: {} });
+                }
+            }
+        }
+    }, [isAuthenticated, openAuthModal, location.state, navigate]);
 
     const [currentSlide, setCurrentSlide] = useState(0);
     const aboutSectionRef = useRef(null);
@@ -183,18 +196,102 @@ const Landing = () => {
         "Aspirant from Bengaluru unlocked KPSC General Studies MCQ Pack"
     ];
 
-    const featuredStates = [
-        { id: "bihar", name: "Bihar", exam: "BPSC", prepExplanation: "Comprehensive Bihar specific history, polity, and economic surveys.", notesCount: 18, videosCount: 42, aspirants: "4,820+", image: "https://picsum.photos/400/250?random=bpsc" },
-        { id: "maharashtra", name: "Maharashtra", exam: "MPSC", prepExplanation: "Fully updated MPSC prelims & mains, Marathi bilingual syllabus coverage.", notesCount: 15, videosCount: 38, aspirants: "3,210+", image: "https://picsum.photos/400/250?random=mpsc" },
-        { id: "rajasthan", name: "Rajasthan", exam: "RAS", prepExplanation: "Highly specialized local GK, history, culture, and science packages.", notesCount: 12, videosCount: 29, aspirants: "2,940+", image: "https://picsum.photos/400/250?random=ras" },
-        { id: "uttar-pradesh", name: "Uttar Pradesh", exam: "UPPSC", prepExplanation: "Topper-annotated core GS guides, mains model answer writing modules.", notesCount: 22, videosCount: 56, aspirants: "6,130+", image: "https://picsum.photos/400/250?random=uppsc" }
-    ];
+    const [dbStates, setDbStates] = useState([]);
+    const [latestVideos, setLatestVideos] = useState([]);
+    const [freeResources, setFreeResources] = useState([]);
+    const [claimingId, setClaimingId] = useState(null);
+    const [dbProducts, setDbProducts] = useState([]);
 
-    const popularNotes = [
-        { title: "MPPSC General Studies Master Notes", state: "Madhya Pradesh", price: "₹299", discount: "40% OFF", rating: 4.9, sales: "1,240 sold", badge: "Bestseller" },
-        { title: "Rajasthan History & Heritage (RAS)", state: "Rajasthan", price: "₹199", discount: "50% OFF", rating: 4.8, sales: "982 sold", badge: "Trending" },
-        { title: "UPPSC Core Polity & Governance", state: "Uttar Pradesh", price: "₹349", discount: "30% OFF", rating: 4.9, sales: "1,520 sold", badge: "Bestseller" }
-    ];
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                // Fetch states
+                const statesRes = await api.get('/states/available');
+                setDbStates(statesRes || []);
+
+                // Fetch latest videos
+                const videosRes = await api.get('/videos/latest');
+                setLatestVideos(videosRes || []);
+
+                // Fetch products (for popular and free resources)
+                const productsRes = await api.get('/products');
+                const allProducts = productsRes.data || productsRes || [];
+                setDbProducts(allProducts);
+                
+                const freeItems = allProducts.filter(p => p.isFree || p.price === 0);
+                setFreeResources(freeItems.slice(0, 4)); // top 4 free resources
+            } catch (err) {
+                console.error("Failed to load homepage feeds:", err);
+            }
+        };
+        fetchData();
+    }, []);
+
+    const handleClaim = async (productId, title) => {
+        if (!isAuthenticated) {
+            openAuthModal('welcome');
+            return;
+        }
+        
+        try {
+            setClaimingId(productId);
+            const res = await api.post(`/payment/claim-free/${productId}`);
+            if (res.success) {
+                toast.success(`"${title}" claimed successfully! Added to your library.`);
+                navigate('/library');
+            } else {
+                throw new Error(res.message || "Failed to claim resource");
+            }
+        } catch (error) {
+            console.error("Claim error:", error);
+            toast.error(error.message || "Could not claim free resource");
+        } finally {
+            setClaimingId(null);
+        }
+    };
+
+    const featuredStates = useMemo(() => {
+        const staticList = [
+            ...indianStates.map(s => ({ ...s, type: 'STATE' })),
+            ...unionTerritories.map(ut => ({ ...ut, type: 'UT' }))
+        ];
+
+        const activeList = staticList.filter(item => 
+            dbStates.some(d => d.state?.toLowerCase() === item.name?.toLowerCase())
+        );
+
+        return activeList.map(item => {
+            const dbMatch = dbStates.find(d => d.state?.toLowerCase() === item.name?.toLowerCase());
+            return {
+                ...item,
+                exam: item.exams?.[0] || `${item.code}PSC`,
+                prepExplanation: `Comprehensive preparation materials and GK for ${item.name} state exams.`,
+                notesCount: dbMatch?.count || 0,
+                videosCount: Math.floor(Math.random() * 20) + 15,
+                aspirants: (Math.floor(Math.random() * 5) + 3) + ",200+",
+                image: `https://picsum.photos/400/250?random=${item.code}`
+            };
+        }).slice(0, 4); // Limit to 4 for Featured PSC Hubs
+    }, [dbStates]);
+
+    const popularNotes = useMemo(() => {
+        const paidProducts = dbProducts.filter(p => !p.isFree && p.price > 0);
+        const sourceList = paidProducts.length > 0 ? paidProducts : [
+            { id: "p1", title: "MPPSC General Studies Master Notes", state: "Madhya Pradesh", price: 99.0, discount: "80% OFF", rating: 4.9, sales: "1,240 sold", badge: "Bestseller", category: "Notes" },
+            { id: "p2", title: "Rajasthan History & Heritage (RAS)", state: "Rajasthan", price: 99.0, discount: "80% OFF", rating: 4.8, sales: "982 sold", badge: "Trending", category: "Notes" },
+            { id: "p3", title: "UPPSC Core Polity & Governance", state: "Uttar Pradesh", price: 99.0, discount: "80% OFF", rating: 4.9, sales: "1,520 sold", badge: "Bestseller", category: "Notes" }
+        ];
+        return sourceList.map((item, idx) => ({
+            id: item.id,
+            title: item.title,
+            state: item.state || "Civil Services",
+            price: `₹${item.price || 99.0}`,
+            discount: item.discount || "80% OFF",
+            rating: item.rating || (4.7 + (idx * 0.1)),
+            sales: item.sales || `${Math.floor(Math.random() * 800) + 400} sold`,
+            badge: item.badge || (idx === 0 ? "Bestseller" : "Trending")
+        })).slice(0, 3);
+    }, [dbProducts]);
 
     const toppers = [
         { name: "Ananya Deshmukh", exam: "MPPSC 2024", rank: "Rank 3 (SDM)", quote: "BodhGanga's state-specific notes are exceptionally well-organized and mapped precisely to the latest syllabus. Absolute life-saver!" },
@@ -690,51 +787,126 @@ const Landing = () => {
                         </Link>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {featuredStates.map(state => (
-                            <div key={state.id} className="card-premium relative bg-slate-900 border border-emerald-950/60 hover:border-gold/30 rounded-2xl overflow-hidden group flex flex-col justify-between h-[360px] glow-emerald-card">
-                                {/* Thumbnail */}
-                                <div className="h-40 overflow-hidden relative border-b border-emerald-950/60">
-                                    <div className="absolute inset-0 bg-black/40 group-hover:bg-black/10 transition-colors z-10" />
-                                    <img 
-                                        src={state.image} 
-                                        alt={state.name} 
-                                        loading="lazy"
-                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
-                                    />
-                                    <span className="absolute top-4 left-4 z-20 text-[10px] font-black uppercase bg-gold text-emerald-dark px-3 py-1 rounded-full shadow-md">
-                                        {state.exam} Exam
-                                    </span>
-                                </div>
-
-                                {/* Content */}
-                                <div className="p-5 flex-1 flex flex-col justify-between">
-                                    <div className="space-y-2">
-                                        <h3 className="font-serif font-bold text-white text-lg group-hover:text-gold transition-colors">
-                                            {state.name} Civil Services
-                                        </h3>
-                                        <p className="text-[11px] text-slate-400 leading-relaxed line-clamp-2">
-                                            {state.prepExplanation}
-                                        </p>
+                    {featuredStates.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {featuredStates.map(state => (
+                                <div key={state.id} className="card-premium relative bg-slate-900 border border-emerald-950/60 hover:border-gold/30 rounded-2xl overflow-hidden group flex flex-col justify-between h-[360px] glow-emerald-card">
+                                    {/* Thumbnail */}
+                                    <div className="h-40 overflow-hidden relative border-b border-emerald-950/60">
+                                        <div className="absolute inset-0 bg-black/40 group-hover:bg-black/10 transition-colors z-10" />
+                                        <img 
+                                            src={state.image} 
+                                            alt={state.name} 
+                                            loading="lazy"
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
+                                        />
+                                        <span className="absolute top-4 left-4 z-20 text-[10px] font-black uppercase bg-gold text-emerald-dark px-3 py-1 rounded-full shadow-md">
+                                            {state.exam} Exam
+                                        </span>
                                     </div>
 
-                                    {/* Stats & CTA */}
-                                    <div className="pt-4 border-t border-emerald-950 mt-4">
-                                        <div className="flex justify-between items-center text-[10px] text-slate-400 font-semibold mb-4">
-                                            <span className="flex items-center gap-1"><BookOpen className="w-3.5 h-3.5 text-gold" /> {state.notesCount} Books</span>
-                                            <span className="flex items-center gap-1"><Play className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400 animate-pulse" /> {state.videosCount} Lectures</span>
+                                    {/* Content */}
+                                    <div className="p-5 flex-1 flex flex-col justify-between">
+                                        <div className="space-y-2">
+                                            <h3 className="font-serif font-bold text-white text-lg group-hover:text-gold transition-colors">
+                                                {state.name} Civil Services
+                                            </h3>
+                                            <p className="text-[11px] text-slate-400 leading-relaxed line-clamp-2">
+                                                {state.prepExplanation}
+                                            </p>
                                         </div>
-                                        <button 
-                                            onClick={() => navigate(`/states/${state.id}`)}
-                                            className="w-full py-2 bg-slate-800 hover:bg-gradient-to-r hover:from-gold hover:to-gold-dark text-slate-200 hover:text-emerald-dark font-bold text-[10px] uppercase tracking-widest rounded-xl transition-all duration-300 active:scale-95 border border-emerald-900/40"
-                                        >
-                                            Enter Portal
-                                        </button>
+
+                                        {/* Stats & CTA */}
+                                        <div className="pt-4 border-t border-emerald-950 mt-4">
+                                            <div className="flex justify-between items-center text-[10px] text-slate-400 font-semibold mb-4">
+                                                <span className="flex items-center gap-1"><BookOpen className="w-3.5 h-3.5 text-gold" /> {state.notesCount} Books</span>
+                                                <span className="flex items-center gap-1"><Play className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400 animate-pulse" /> {state.videosCount} Lectures</span>
+                                            </div>
+                                            <button 
+                                                onClick={() => navigate(`/states/${state.id}`)}
+                                                className="w-full py-2 bg-slate-800 hover:bg-gradient-to-r hover:from-gold hover:to-gold-dark text-slate-200 hover:text-emerald-dark font-bold text-[10px] uppercase tracking-widest rounded-xl transition-all duration-300 active:scale-95 border border-emerald-900/40"
+                                            >
+                                                Enter Portal
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-12 text-slate-400 text-xs font-bold uppercase tracking-widest bg-slate-900/40 rounded-3xl border border-emerald-950">
+                            Academic portals are dynamically generating. Mapped regions will appear here.
+                        </div>
+                    )}
+                </div>
+            </section>
+
+            {/* ── FREE RESOURCES SHELF ─────────────────────────────────── */}
+            <section className="py-20 bg-ivory-light border-b border-emerald/5 px-6">
+                <div className="max-w-7xl mx-auto">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-12 gap-4">
+                        <div className="text-left space-y-2">
+                            <span className="text-[10px] font-bold text-gold uppercase tracking-widest">Free Resources</span>
+                            <h2 className="text-3xl font-bold font-serif text-emerald-dark">Free Scholar Materials</h2>
+                        </div>
+                        <Link to="/free-resources" className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-widest text-emerald hover:text-gold transition-colors">
+                            Explore Free Library <ArrowRight className="w-4 h-4" />
+                        </Link>
                     </div>
+
+                    {freeResources.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {freeResources.map(product => (
+                                <div key={product.id} className="card-premium bg-white border border-emerald/5 hover:border-gold/30 rounded-2xl overflow-hidden group flex flex-col justify-between h-[360px] relative shadow-sm">
+                                    <span className="absolute top-4 left-4 z-20 text-[9px] font-black uppercase bg-gold text-emerald-dark px-2.5 py-0.5 rounded-full shadow-md">
+                                        FREE
+                                    </span>
+                                    
+                                    {/* Thumbnail */}
+                                    <div className="h-40 overflow-hidden relative bg-slate-900 border-b border-emerald/5">
+                                        <img 
+                                            src={product.previewUrl || "https://picsum.photos/400/250?random=free"} 
+                                            alt={product.title} 
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                                    </div>
+
+                                    {/* Content */}
+                                    <div className="p-5 flex-1 flex flex-col justify-between">
+                                        <div className="space-y-2">
+                                            <div className="flex gap-2 text-[8px] font-black uppercase text-gold">
+                                                <span>{product.state || 'All India'}</span>
+                                                {product.district && <span>· {product.district}</span>}
+                                            </div>
+                                            <h3 className="font-serif font-bold text-emerald-dark text-sm group-hover:text-gold transition-colors line-clamp-2">
+                                                {product.title}
+                                            </h3>
+                                        </div>
+
+                                        {/* Claim CTA */}
+                                        <div className="pt-4 border-t border-emerald/5 mt-4">
+                                            <button
+                                                onClick={() => handleClaim(product.id, product.title)}
+                                                disabled={claimingId === product.id}
+                                                className="w-full py-2.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-[10px] uppercase tracking-widest rounded-xl transition-all duration-300 active:scale-95 shadow-md flex items-center justify-center gap-1.5"
+                                            >
+                                                {claimingId === product.id ? (
+                                                    <><div className="w-3.5 h-3.5 border-2 border-emerald-dark border-t-transparent rounded-full animate-spin" /> Unlocking...</>
+                                                ) : (
+                                                    <><CheckCircle className="w-3.5 h-3.5" /> Get Free Access</>
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-12 text-emerald-dark/50 text-xs font-bold uppercase tracking-widest bg-white rounded-3xl border border-emerald/5">
+                            Loading free scholar guides & maps...
+                        </div>
+                    )}
                 </div>
             </section>
 
@@ -749,78 +921,56 @@ const Landing = () => {
                             <Play className="w-3.5 h-3.5 text-gold fill-gold" /> Cinema Hall Lectures
                         </span>
                         <h2 className="text-3xl sm:text-5xl font-bold font-serif text-white leading-tight">
-                            Netflix-Style <span className="text-gradient-gold">Lecture Showcase</span>
+                            Latest <span className="text-gradient-gold">YouTube Videos</span>
                         </h2>
                         <p className="text-xs sm:text-sm text-slate-400 max-w-2xl mx-auto font-medium">
-                            Preview our ultra-premium high-production UPSC & State PSC syllabus courses. Click to start learning instantly in cinema-grade definition.
+                            Explore our latest official classes & mapping guides. Click to start learning instantly in new tab.
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        {[
-                            { 
-                                id: "vid1", 
-                                title: "UPSC & State PSC Strategy: Crack local GK & Current Affairs", 
-                                duration: "42:15", 
-                                views: "124K views",
-                                category: "UPSC GS CORE",
-                                thumbnail: "https://img.youtube.com/vi/W4rR48C6B14/maxresdefault.jpg", 
-                                youtubeUrl: "https://www.youtube.com/embed/W4rR48C6B14" 
-                            },
-                            { 
-                                id: "vid2", 
-                                title: "State PSC Art, Heritage, Geography and Resources Master Class", 
-                                duration: "1:24:10", 
-                                views: "86K views",
-                                category: "STATE GK",
-                                thumbnail: "https://img.youtube.com/vi/P1u4QG2x6y4/maxresdefault.jpg", 
-                                youtubeUrl: "https://www.youtube.com/embed/P1u4QG2x6y4" 
-                            },
-                            { 
-                                id: "vid3", 
-                                title: "UPSC/PSC Mains Solved PYQ - High-Yield Answer Structure Blueprint", 
-                                duration: "56:30", 
-                                views: "98K views",
-                                category: "MAINS WRITING",
-                                thumbnail: "https://img.youtube.com/vi/6p9N0_m59mI/maxresdefault.jpg", 
-                                youtubeUrl: "https://www.youtube.com/embed/6p9N0_m59mI" 
-                            }
-                        ].map((video) => (
-                            <div 
-                                key={video.id} 
-                                className="netflix-card shadow-2xl hover:scale-[1.03] transition-all duration-500 relative group border border-gold/10 hover:border-gold/30 rounded-2xl overflow-hidden glow-emerald-card aspect-video h-auto"
-                                onClick={() => setSelectedVideo(video)}
-                            >
-                                <img 
-                                    src={video.thumbnail} 
-                                    alt={video.title} 
-                                    loading="lazy"
-                                    className="w-full h-full object-cover group-hover:brightness-[0.7] group-hover:scale-105 transition-all duration-700"
-                                />
-                                
-                                <span className="absolute top-4 left-4 z-20 text-[8px] font-black uppercase bg-gold text-emerald-dark px-2.5 py-0.5 rounded-md tracking-wider">
-                                    {video.category}
-                                </span>
+                    {latestVideos.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            {latestVideos.map((video) => (
+                                <div 
+                                    key={video.id || video.videoId} 
+                                    className="netflix-card shadow-2xl hover:scale-[1.03] transition-all duration-500 relative group border border-gold/10 hover:border-gold/30 rounded-2xl overflow-hidden glow-emerald-card aspect-video h-auto cursor-pointer"
+                                    onClick={() => window.open(video.youtubeUrl, '_blank')}
+                                >
+                                    <img 
+                                        src={video.thumbnailUrl || video.thumbnail} 
+                                        alt={video.title} 
+                                        loading="lazy"
+                                        className="w-full h-full object-cover group-hover:brightness-[0.7] group-hover:scale-105 transition-all duration-700"
+                                    />
+                                    
+                                    <span className="absolute top-4 left-4 z-20 text-[8px] font-black uppercase bg-gold text-emerald-dark px-2.5 py-0.5 rounded-md tracking-wider">
+                                        YOUTUBE
+                                    </span>
 
-                                <span className="absolute bottom-3 right-3 text-[8px] font-extrabold uppercase px-2 py-0.5 bg-black/80 rounded tracking-widest text-white z-20">
-                                    {video.duration}
-                                </span>
+                                    <span className="absolute bottom-3 right-3 text-[8px] font-extrabold uppercase px-2 py-0.5 bg-black/80 rounded tracking-widest text-white z-20">
+                                        {video.publishedAt ? new Date(video.publishedAt).toLocaleDateString() : 'LATEST'}
+                                    </span>
 
-                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 bg-gold/90 text-emerald-dark rounded-full flex items-center justify-center shadow-2xl transition-all duration-500 group-hover:scale-125 pointer-events-none z-20">
-                                    <Play className="w-6 h-6 fill-emerald-dark text-emerald-dark ml-1" />
+                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 bg-gold/90 text-emerald-dark rounded-full flex items-center justify-center shadow-2xl transition-all duration-500 group-hover:scale-125 pointer-events-none z-20">
+                                        <Play className="w-6 h-6 fill-emerald-dark text-emerald-dark ml-1" />
+                                    </div>
+
+                                    <div className="netflix-card-overlay text-left p-6">
+                                        <h4 className="text-xs sm:text-sm font-bold text-white font-serif tracking-wide line-clamp-2 mb-1 group-hover:text-gold transition-colors">
+                                            {video.title}
+                                        </h4>
+                                        <p className="text-[9px] text-gold font-extrabold uppercase tracking-widest flex items-center gap-1.5">
+                                            <Users className="w-3.5 h-3.5 text-gold" /> YouTube Channel Video
+                                        </p>
+                                    </div>
                                 </div>
-
-                                <div className="netflix-card-overlay text-left p-6">
-                                    <h4 className="text-xs sm:text-sm font-bold text-white font-serif tracking-wide line-clamp-2 mb-1 group-hover:text-gold transition-colors">
-                                        {video.title}
-                                    </h4>
-                                    <p className="text-[9px] text-gold font-extrabold uppercase tracking-widest flex items-center gap-1.5">
-                                        <Users className="w-3 h-3 text-gold" /> {video.views} · High Rating
-                                    </p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-12 text-slate-400 text-xs font-bold uppercase tracking-widest bg-slate-900/40 rounded-3xl border border-emerald-950">
+                            Synchronizing official video broadcast feeds...
+                        </div>
+                    )}
                 </div>
             </section>
 

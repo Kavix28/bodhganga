@@ -37,12 +37,18 @@ public class Product {
     private String mimeType;
     private String s3Url;
     private String source;
+
+    private boolean isFree;
     
     public Product() {
         this.createdAt = new Date();
         this.isPublished = false;
         this.importedFromDrive = false;
+        this.isFree = false;
     }
+
+    public boolean isFree() { return isFree; }
+    public void setFree(boolean free) { isFree = free; }
 
     // Getters and Setters
     public String getId() { return id; }

@@ -1,14 +1,42 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Building } from 'lucide-react';
 import StateNavigator from '../components/states/StateNavigator';
 import Breadcrumb from '../components/common/Breadcrumb';
 import { unionTerritories } from '../data/unionTerritories';
+import api from '../services/api';
 
 /**
  * Union Territories Page
  * Browse all 8 Indian Union Territories
  */
 const UnionTerritories = () => {
+    const [availableUts, setAvailableUts] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchAvailable = async () => {
+            try {
+                const data = await api.get('/states/available');
+                const active = unionTerritories.filter(ut => 
+                    data.some(d => d.state?.toLowerCase() === ut.name?.toLowerCase())
+                ).map(ut => {
+                    const match = data.find(d => d.state?.toLowerCase() === ut.name?.toLowerCase());
+                    return {
+                        ...ut,
+                        notesCount: match?.count || 0
+                    };
+                });
+                setAvailableUts(active);
+            } catch (err) {
+                console.error("Error loading available UTs:", err);
+                setAvailableUts([]);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchAvailable();
+    }, []);
+
     return (
         <div className="min-h-screen bg-gray-50 page-enter">
             {/* Tricolor Top Accent */}
@@ -36,10 +64,16 @@ const UnionTerritories = () => {
                 </div>
 
                 {/* Union Territories Navigator */}
-                <StateNavigator
-                    items={unionTerritories}
-                    type="union-territory"
-                />
+                {isLoading ? (
+                    <div className="text-center py-10 text-gray-500 font-bold uppercase tracking-wider text-xs">
+                        Loading UT portals...
+                    </div>
+                ) : (
+                    <StateNavigator
+                        items={availableUts}
+                        type="union-territory"
+                    />
+                )}
 
                 {/* Info Section */}
                 <div className="mt-20 bg-white rounded-2xl p-8 md:p-12 shadow-none border-2 border-gray-200">

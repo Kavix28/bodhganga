@@ -22,12 +22,17 @@ public class Order {
     
     private String status; // "CREATED", "PAID", "FAILED"
     
+    private String orderType; // "PAID_RESOURCE", "FREE_RESOURCE"
+    private String paymentStatus; // "PENDING", "COMPLETED", "FAILED"
+    
     private Date createdAt;
     private Date updatedAt;
     
     public Order() {
         this.createdAt = new Date();
         this.status = "CREATED";
+        this.paymentStatus = "PENDING";
+        this.orderType = "PAID_RESOURCE";
     }
 
     // Getters and Setters
@@ -49,6 +54,10 @@ public class Order {
     public void setCurrency(String currency) { this.currency = currency; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public String getOrderType() { return orderType; }
+    public void setOrderType(String orderType) { this.orderType = orderType; }
+    public String getPaymentStatus() { return paymentStatus; }
+    public void setPaymentStatus(String paymentStatus) { this.paymentStatus = paymentStatus; }
     public Date getCreatedAt() { return createdAt; }
     public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
     public Date getUpdatedAt() { return updatedAt; }

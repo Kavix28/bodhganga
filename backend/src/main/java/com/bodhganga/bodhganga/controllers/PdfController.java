@@ -2,6 +2,7 @@ package com.bodhganga.bodhganga.controllers;
 
 import com.bodhganga.bodhganga.dto.ApiResponseDTO;
 import com.bodhganga.bodhganga.entity.Product;
+import com.bodhganga.bodhganga.entity.Purchase;
 import com.bodhganga.bodhganga.repo.ProductRepo;
 import com.bodhganga.bodhganga.services.S3Service;
 import org.slf4j.Logger;
@@ -15,6 +16,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Optional;
+import java.util.List;
 
 @RestController
 public class PdfController {
@@ -22,13 +25,19 @@ public class PdfController {
     private static final Logger log = LoggerFactory.getLogger(PdfController.class);
     private final S3Service s3Service;
     private final ProductRepo productRepo;
+    private final com.bodhganga.bodhganga.repo.PurchaseRepo purchaseRepo;
+    private final com.bodhganga.bodhganga.repo.UserRepo userRepo;
 
     // 20MB limit
     private static final long MAX_FILE_SIZE = 20 * 1024 * 1024;
 
-    public PdfController(S3Service s3Service, ProductRepo productRepo) {
+    public PdfController(S3Service s3Service, ProductRepo productRepo, 
+                         com.bodhganga.bodhganga.repo.PurchaseRepo purchaseRepo, 
+                         com.bodhganga.bodhganga.repo.UserRepo userRepo) {
         this.s3Service = s3Service;
         this.productRepo = productRepo;
+        this.purchaseRepo = purchaseRepo;
+        this.userRepo = userRepo;
     }
 
     /**
@@ -90,8 +99,15 @@ public class PdfController {
     @GetMapping("/api/pdf/{*key}")
     public ResponseEntity<?> getPdfUrl(
             @PathVariable String key,
-            @RequestParam(value = "redirect", defaultValue = "false") boolean redirect) {
+            @RequestParam(value = "redirect", defaultValue = "false") boolean redirect,
+            org.springframework.security.core.Authentication authentication) {
         
+        if (authentication == null || !authentication.isAuthenticated() 
+                || "anonymousUser".equals(authentication.getName())) {
+            return ResponseEntity.status(401).body(ApiResponseDTO.builder()
+                    .success(false).message("Authentication required.").build());
+        }
+
         if (key == null || key.isBlank()) {
             return ResponseEntity.badRequest().body(ApiResponseDTO.builder()
                     .success(false).message("Key is required.").build());
@@ -103,6 +119,47 @@ public class PdfController {
         }
 
         try {
+            boolean isAdmin = authentication.getAuthorities().contains(
+                    new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN"));
+
+            if (!isAdmin) {
+                com.bodhganga.bodhganga.entity.User user = userRepo.findByEmail(authentication.getName())
+                        .orElseThrow(() -> new RuntimeException("User not found"));
+
+                // Try to find the product matching this key in DB
+                Optional<Product> prodOpt = productRepo.findByS3Key(key);
+                if (prodOpt.isEmpty()) {
+                    prodOpt = productRepo.findByStorageKey(key);
+                }
+
+                if (prodOpt.isPresent()) {
+                    Product product = prodOpt.get();
+                    Optional<Purchase> purchaseOpt = purchaseRepo.findByUserIdAndProductId(user.getId(), product.getId());
+                    if (purchaseOpt.isEmpty()) {
+                        return ResponseEntity.status(403).body(ApiResponseDTO.builder()
+                                .success(false).message("You do not own this document. Please claim or purchase it.").build());
+                    }
+                } else {
+                    // Search dynamically matching suffix/substring
+                    final String finalKey = key;
+                    List<Product> matches = productRepo.findAll().stream()
+                            .filter(p -> (p.getS3Key() != null && p.getS3Key().contains(finalKey)) || 
+                                         (p.getStorageKey() != null && p.getStorageKey().contains(finalKey)))
+                            .collect(java.util.stream.Collectors.toList());
+                    if (!matches.isEmpty()) {
+                        Product product = matches.get(0);
+                        Optional<Purchase> purchaseOpt = purchaseRepo.findByUserIdAndProductId(user.getId(), product.getId());
+                        if (purchaseOpt.isEmpty()) {
+                            return ResponseEntity.status(403).body(ApiResponseDTO.builder()
+                                    .success(false).message("You do not own this document. Please claim or purchase it.").build());
+                        }
+                    } else {
+                        return ResponseEntity.status(403).body(ApiResponseDTO.builder()
+                                .success(false).message("Document not found in catalog or unauthorized.").build());
+                    }
+                }
+            }
+
             String signedUrl = s3Service.generatePresignedUrl(key);
 
             if (redirect) {
@@ -208,7 +265,11 @@ public class PdfController {
             product.setTitle(req.title().trim());
             product.setDescription(req.description() != null ? req.description().trim() : "");
             product.setType("PDF");
-            product.setPrice((req.isPaid() != null && req.isPaid() && req.price() != null) ? req.price() : 0.0);
+            
+            boolean isFree = (req.isPaid() == null || !req.isPaid());
+            product.setFree(isFree);
+            product.setPrice(isFree ? 0.0 : 99.0);
+            
             product.setPreviewUrl(url); // Store preview URL or signed URL
             product.setStorageKey(key); // Store S3 Object Key
             product.setPublished(true);

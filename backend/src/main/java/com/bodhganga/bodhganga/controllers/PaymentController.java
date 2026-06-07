@@ -1,19 +1,9 @@
 package com.bodhganga.bodhganga.controllers;
 
 import com.bodhganga.bodhganga.dto.ApiResponseDTO;
-import com.bodhganga.bodhganga.entity.Purchase;
-import com.bodhganga.bodhganga.entity.User;
-import com.bodhganga.bodhganga.repo.PurchaseRepo;
-import com.bodhganga.bodhganga.repo.UserRepo;
-import com.bodhganga.bodhganga.repo.ProductRepo;
+import com.bodhganga.bodhganga.entity.*;
+import com.bodhganga.bodhganga.repo.*;
 import com.bodhganga.bodhganga.services.EmailService;
-import com.bodhganga.bodhganga.entity.Product;
-import com.bodhganga.bodhganga.entity.Courses;
-import com.bodhganga.bodhganga.entity.Enrollment;
-import com.bodhganga.bodhganga.entity.Payment;
-import com.bodhganga.bodhganga.repo.CourseRepo;
-import com.bodhganga.bodhganga.repo.EnrollmentRepo;
-import com.bodhganga.bodhganga.repo.PaymentRepo;
 import com.razorpay.Order;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
@@ -55,10 +45,14 @@ public class PaymentController {
     private final PaymentRepo paymentRepo;
     private final CourseRepo courseRepo;
     private final EnrollmentRepo enrollmentRepo;
+    private final OrderRepo orderRepo;
+    private final InvoiceRepo invoiceRepo;
+    private final CartItemRepo cartItemRepo;
 
     public PaymentController(UserRepo userRepo, PurchaseRepo purchaseRepo, ProductRepo productRepo, 
                              EmailService emailService, PaymentRepo paymentRepo, CourseRepo courseRepo, 
-                             EnrollmentRepo enrollmentRepo) {
+                             EnrollmentRepo enrollmentRepo, OrderRepo orderRepo, InvoiceRepo invoiceRepo,
+                             CartItemRepo cartItemRepo) {
         this.userRepo = userRepo;
         this.purchaseRepo = purchaseRepo;
         this.productRepo = productRepo;
@@ -66,6 +60,9 @@ public class PaymentController {
         this.paymentRepo = paymentRepo;
         this.courseRepo = courseRepo;
         this.enrollmentRepo = enrollmentRepo;
+        this.orderRepo = orderRepo;
+        this.invoiceRepo = invoiceRepo;
+        this.cartItemRepo = cartItemRepo;
     }
 
     private void unlockCourse(String userId, String courseId, String orderId) {
@@ -77,6 +74,9 @@ public class PaymentController {
             purchase.setOrderId(orderId);
             purchase.setPurchaseDate(new java.util.Date());
             purchase.setDownloadCount(0);
+            courseRepo.findById(courseId).ifPresent(c -> {
+                purchase.setAmountPaid(c.getCoursePrice());
+            });
             purchaseRepo.save(purchase);
             log.info("Successfully recorded course purchase in MongoDB: userId={}, courseId={}", userId, courseId);
         }
@@ -110,6 +110,9 @@ public class PaymentController {
             purchase.setOrderId(orderId);
             purchase.setPurchaseDate(new java.util.Date());
             purchase.setDownloadCount(0);
+            productRepo.findById(productId).ifPresent(p -> {
+                purchase.setAmountPaid(p.getPrice());
+            });
             purchaseRepo.save(purchase);
             log.info("Successfully recorded product purchase in MongoDB: userId={}, productId={}", userId, productId);
         }
@@ -348,6 +351,8 @@ public class PaymentController {
                     productDetails.put("price", product.getPrice());
                     productDetails.put("storageKey", product.getStorageKey());
                     productDetails.put("thumbnail", product.getPreviewUrl()); // mapping previewUrl to thumbnail
+                    productDetails.put("state", product.getState());
+                    productDetails.put("district", product.getDistrict());
                     map.put("product", productDetails);
                     
                     // Flatten fields directly for convenience/backward compatibility
@@ -356,6 +361,8 @@ public class PaymentController {
                     map.put("price", product.getPrice());
                     map.put("storageKey", product.getStorageKey());
                     map.put("thumbnail", product.getPreviewUrl());
+                    map.put("state", product.getState());
+                    map.put("district", product.getDistrict());
                 } else {
                     // Try checking if it's a course
                     Optional<Courses> courseOpt = courseRepo.findById(purchase.getProductId());
@@ -423,6 +430,118 @@ public class PaymentController {
             log.error("Error checking purchase status: {}", e.getMessage());
             return ResponseEntity.status(500).body(ApiResponseDTO.builder()
                     .success(false).message("Error checking purchase status").build());
+        }
+    }
+
+    /**
+     * POST /api/payment/claim-free/{productId}
+     * Claims a free resource. Creates a ₹0 order, invoice, and purchase record.
+     */
+    @PostMapping("/claim-free/{productId}")
+    public ResponseEntity<ApiResponseDTO> claimFreeResource(
+            @PathVariable String productId,
+            Authentication authentication) {
+        try {
+            if (authentication == null || !authentication.isAuthenticated() 
+                    || "anonymousUser".equals(authentication.getName())) {
+                return ResponseEntity.status(401).body(ApiResponseDTO.builder()
+                        .success(false).message("Authentication required.").build());
+            }
+
+            String userEmail = authentication.getName();
+            User user = userRepo.findByEmail(userEmail)
+                    .orElseThrow(() -> new RuntimeException("User not found: " + userEmail));
+
+            Product product = productRepo.findById(productId)
+                    .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
+
+            if (!product.isFree()) {
+                return ResponseEntity.badRequest().body(ApiResponseDTO.builder()
+                        .success(false).message("Only free resources can be claimed via this endpoint.").build());
+            }
+
+            // Check if already purchased
+            Optional<Purchase> existingPurchase = purchaseRepo.findByUserIdAndProductId(user.getId(), productId);
+            if (existingPurchase.isPresent()) {
+                return ResponseEntity.ok(ApiResponseDTO.builder()
+                        .success(true).message("You already own this resource.").build());
+            }
+
+            // 1. Add resource to cart programmatically if it doesn't exist (requirement: "Add resource to cart")
+            Optional<CartItem> existingCart = cartItemRepo.findByUserIdAndProductId(user.getId(), productId);
+            if (existingCart.isEmpty()) {
+                CartItem cartItem = new CartItem(user.getId(), productId, "PRODUCT");
+                cartItemRepo.save(cartItem);
+            }
+
+            // 2. Create order (requirement: "Create order")
+            String freeOrderId = "free_ord_" + System.currentTimeMillis();
+            String freePaymentId = "free_pay_" + System.currentTimeMillis();
+            
+            com.bodhganga.bodhganga.entity.Order dbOrder = new com.bodhganga.bodhganga.entity.Order();
+            dbOrder.setUserId(user.getId());
+            dbOrder.setProductId(productId);
+            dbOrder.setAmount(0.0);
+            dbOrder.setCurrency("INR");
+            dbOrder.setStatus("PAID");
+            dbOrder.setOrderType("FREE_RESOURCE");
+            dbOrder.setPaymentStatus("COMPLETED");
+            dbOrder.setRazorpayOrderId(freeOrderId);
+            dbOrder.setRazorpayPaymentId(freePaymentId);
+            orderRepo.save(dbOrder);
+
+            // 3. Generate invoice (requirement: "Generate invoice")
+            Invoice invoice = new Invoice();
+            invoice.setOrderId(dbOrder.getId());
+            invoice.setUserId(user.getId());
+            invoice.setInvoiceNumber("INV-FREE-" + System.currentTimeMillis());
+            invoice.setAmount(0.0);
+            invoice.setPdfUrl("free");
+            invoiceRepo.save(invoice);
+
+            // 4. Grant ownership (unlockProduct) (requirement: "Grant ownership")
+            Purchase purchase = new Purchase();
+            purchase.setUserId(user.getId());
+            purchase.setProductId(productId);
+            purchase.setOrderId(freeOrderId);
+            purchase.setPurchaseDate(new java.util.Date());
+            purchase.setDownloadCount(0);
+            purchase.setAmountPaid(0.0);
+            purchaseRepo.save(purchase);
+
+            // 5. Add payment entity tracking
+            Payment payment = new Payment();
+            payment.setUserId(user.getId());
+            payment.setCourseId(null);
+            payment.setOrderId(freeOrderId);
+            payment.setPaymentId(freePaymentId);
+            payment.setAmount(0.0);
+            payment.setCurrency("INR");
+            payment.setStatus("SUCCESS");
+            paymentRepo.save(payment);
+
+            // 6. Clear from user's cart (requirement: "Add resource to user library" - library queries purchases, so we just clear cart)
+            cartItemRepo.deleteByUserIdAndProductId(user.getId(), productId);
+
+            // Send confirmation email
+            try {
+                emailService.sendOrderConfirmation(user.getEmail(), freeOrderId, product.getTitle());
+            } catch (Exception ex) {
+                log.error("Failed to send order confirmation email for free resource: {}", ex.getMessage());
+            }
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("orderId", freeOrderId);
+            data.put("paymentId", freePaymentId);
+            data.put("status", "SUCCESS");
+
+            return ResponseEntity.ok(ApiResponseDTO.builder()
+                    .success(true).message("Free resource claimed successfully.").data(data).build());
+
+        } catch (Exception e) {
+            log.error("Error claiming free resource: {}", e.getMessage());
+            return ResponseEntity.status(500).body(ApiResponseDTO.builder()
+                    .success(false).message("Error claiming free resource: " + e.getMessage()).build());
         }
     }
 

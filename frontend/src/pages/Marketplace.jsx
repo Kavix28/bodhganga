@@ -7,6 +7,7 @@ import {
     TrendingUp, Award, CheckCircle, ArrowRight, BookOpenCheck, Bookmark
 } from 'lucide-react';
 import api from '../services/api';
+import { useAuth } from '../hooks/useAuth';
 import { indianStates } from '../data/states';
 import { unionTerritories } from '../data/unionTerritories';
 import EmptyState from '../components/ui/EmptyState';
@@ -158,6 +159,7 @@ const topperReviews = [
 ];
 
 const Marketplace = () => {
+    const { isAuthenticated, openAuthModal } = useAuth();
     const { slug } = useParams();
     const [search, setSearch] = useState('');
     const [category, setCategory] = useState('All');
@@ -211,6 +213,12 @@ const Marketplace = () => {
         staleTime: 5 * 60 * 1000,
     });
 
+    const { data: dbStates = [] } = useQuery({
+        queryKey: ['availableStates'],
+        queryFn: () => api.get('/states/available').then(r => r || []),
+        staleTime: 5 * 60 * 1000,
+    });
+
     // Merge DB products with highly premium static backup items
     const allProducts = [...dbProducts];
     
@@ -259,9 +267,8 @@ const Marketplace = () => {
 
     // Trigger Real Razorpay Purchase Flow
     const handleBuyNow = async (product) => {
-        const token = localStorage.getItem('auth_token');
-        if (!token) {
-            window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+        if (!isAuthenticated) {
+            openAuthModal('welcome');
             return;
         }
 
@@ -518,7 +525,13 @@ const Marketplace = () => {
 
                                         <div className="grid grid-cols-2 gap-2.5 pt-1">
                                             <button 
-                                                onClick={() => setPreviewProduct(product)}
+                                                onClick={() => {
+                                                    if (!isAuthenticated) {
+                                                        openAuthModal('welcome');
+                                                    } else {
+                                                        setPreviewProduct(product);
+                                                    }
+                                                }}
                                                 className="py-2.5 text-xs font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-750 border border-emerald-900/50 rounded-xl transition-all flex items-center justify-center gap-1 shadow-sm active:scale-95"
                                             >
                                                 <Eye className="w-3.5 h-3.5" /> Preview PDF
@@ -603,12 +616,16 @@ const Marketplace = () => {
                                     <option value="All">All Regions / India-wide</option>
                                     <option value="all-india">All India Core Materials</option>
                                     <optgroup label="States">
-                                        {indianStates.map(state => (
+                                        {indianStates.filter(state => 
+                                            dbStates.some(d => d.state?.toLowerCase() === state.name?.toLowerCase())
+                                        ).map(state => (
                                             <option key={state.id} value={state.id}>{state.name}</option>
                                         ))}
                                     </optgroup>
                                     <optgroup label="Union Territories">
-                                        {unionTerritories.map(ut => (
+                                        {unionTerritories.filter(ut => 
+                                            dbStates.some(d => d.state?.toLowerCase() === ut.name?.toLowerCase())
+                                        ).map(ut => (
                                             <option key={ut.id} value={ut.id}>{ut.name}</option>
                                         ))}
                                     </optgroup>
@@ -706,7 +723,13 @@ const Marketplace = () => {
 
                                                 <div className="flex items-center gap-2">
                                                     <button 
-                                                        onClick={() => setPreviewProduct(product)}
+                                                        onClick={() => {
+                                                            if (!isAuthenticated) {
+                                                                openAuthModal('welcome');
+                                                            } else {
+                                                                setPreviewProduct(product);
+                                                            }
+                                                        }}
                                                         className="p-2 text-xs font-semibold bg-slate-800 hover:bg-slate-750 text-slate-200 hover:text-white rounded-lg border border-emerald-900/40 transition-colors"
                                                         title="Preview PDF Pages"
                                                     >

@@ -3,6 +3,10 @@ package com.bodhganga.bodhganga.controllers;
 import com.bodhganga.bodhganga.dto.ApiResponseDTO;
 import com.bodhganga.bodhganga.entity.State;
 import com.bodhganga.bodhganga.repo.StateRepo;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
+import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,9 +19,30 @@ import java.util.List;
 public class StateController {
 
     private final StateRepo stateRepo;
+    private final MongoTemplate mongoTemplate;
 
-    public StateController(StateRepo stateRepo) {
+    public StateController(StateRepo stateRepo, MongoTemplate mongoTemplate) {
         this.stateRepo = stateRepo;
+        this.mongoTemplate = mongoTemplate;
+    }
+
+    public record StateCount(String state, long count) {}
+
+    /**
+     * GET /api/states/available
+     * Show only states that have notes/documents (isPublished == true)
+     */
+    @GetMapping("/available")
+    public ResponseEntity<List<StateCount>> getAvailableStates() {
+        Aggregation agg = Aggregation.newAggregation(
+            Aggregation.match(Criteria.where("isPublished").is(true).and("state").exists(true).ne(null).ne("")),
+            Aggregation.group("state").count().as("count"),
+            Aggregation.project("count").and("_id").as("state").andExclude("_id")
+        );
+
+        AggregationResults<StateCount> results = mongoTemplate.aggregate(agg, "products", StateCount.class);
+        List<StateCount> list = results.getMappedResults();
+        return ResponseEntity.ok(list);
     }
 
     /**

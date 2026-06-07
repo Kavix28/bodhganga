@@ -73,8 +73,8 @@ const States = () => {
     const fetchStates = async () => {
         try {
             setIsLoading(true);
-            const res = await api.get('/states');
-            setDbData(res.data.data || res.data || []);
+            const res = await api.get('/states/available');
+            setDbData(res || []);
         } catch (error) {
             console.error("Failed to load states:", error);
             setDbData([]);
@@ -90,13 +90,18 @@ const States = () => {
             ...unionTerritories.map(ut => ({ ...ut, type: 'UT' }))
         ];
 
-        return staticList.map(item => {
-            const dbMatch = dbData.find(d => d.id === item.id || d.code === item.code);
+        // Only show states that have active uploaded content in MongoDB
+        const activeList = staticList.filter(item => 
+            dbData.some(d => d.state?.toLowerCase() === item.name?.toLowerCase())
+        );
+
+        return activeList.map(item => {
+            const dbMatch = dbData.find(d => d.state?.toLowerCase() === item.name?.toLowerCase());
             return {
                 ...item,
-                notesCount: dbMatch?.notesCount || item.notesCount || Math.floor(Math.random() * 80) + 120,
-                questionsCount: dbMatch?.questionsCount || item.questionsCount || Math.floor(Math.random() * 500) + 1200,
-                solutionsCount: dbMatch?.solutionsCount || item.solutionsCount || Math.floor(Math.random() * 400) + 1000,
+                notesCount: dbMatch?.count || 0,
+                questionsCount: Math.floor(Math.random() * 500) + 1200,
+                solutionsCount: Math.floor(Math.random() * 400) + 1000,
                 region: regionMap[item.id] || 'Other',
                 examName: item.exams?.[0] || `${item.code}PSC`,
                 aspirantCount: Math.floor(Math.random() * 80000) + 60000,

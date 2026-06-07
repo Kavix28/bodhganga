@@ -12,6 +12,7 @@ import Footer from './components/common/Footer';
 import Loader from './components/common/Loader';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import { isAdminAuthenticated } from './utils/adminAuth';
+import AuthGateModal from './components/common/AuthGateModal';
 // Auto-run backend health check on app load
 import './utils/healthCheck';
 
@@ -42,6 +43,8 @@ const MissionVision = lazy(() => import('./pages/MissionVision'));
 const AboutIndia = lazy(() => import('./pages/AboutIndia'));
 const Cart = lazy(() => import('./pages/Cart'));
 const OrderHistory = lazy(() => import('./pages/OrderHistory'));
+const Library = lazy(() => import('./pages/Library'));
+const FreeResources = lazy(() => import('./pages/FreeResources'));
 
 // Admin Pages
 const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'));
@@ -77,6 +80,7 @@ function App() {
                         <div className="min-h-screen flex flex-col">
                             {/* Only show regular navbar for non-admin routes or when admin is not logged in */}
                             {(!isAdminRoute || (isAdminRoute && !isAdminLoggedIn)) && <Navbar />}
+                            <AuthGateModal />
 
                             <main className="flex-grow">
                                 <ErrorBoundary>
@@ -104,10 +108,14 @@ function App() {
                                             <Route path="/login" element={<Login />} />
                                             <Route path="/forgot-password" element={<ForgotPassword />} />
                                             <Route path="/error" element={<ErrorPage />} />
-                                            <Route path="/cart" element={<Cart />} />
+                                            <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
                                             <Route path="/orders" element={
                                                 <ProtectedRoute><OrderHistory /></ProtectedRoute>
                                             } />
+                                            <Route path="/library" element={<ProtectedRoute><Library /></ProtectedRoute>} />
+                                            <Route path="/free-resources" element={<ProtectedRoute><FreeResources /></ProtectedRoute>} />
+                                            <Route path="/checkout" element={<ProtectedRoute><NotFound /></ProtectedRoute>} />
+                                            <Route path="/payment" element={<ProtectedRoute><NotFound /></ProtectedRoute>} />
 
                                             {/* Admin Routes */}
                                             <Route path="/admin/login" element={<AdminLogin />} />
