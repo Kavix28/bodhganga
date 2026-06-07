@@ -60,6 +60,14 @@ public class ProductController {
     public ResponseEntity<ApiResponseDTO> createProduct(@RequestBody Product product) {
         product.setPrice(product.isFree() ? 0.0 : 99.0);
         product.setCreatedAt(new Date());
+        if (product.getState() != null) {
+            product.setStateSlug(Product.generateSlug(product.getState()));
+        }
+        if (product.getDistrict() != null) {
+            product.setDistrictSlug(Product.generateSlug(product.getDistrict()));
+        } else {
+            product.setDistrictSlug("general");
+        }
         Product saved = productRepo.save(product);
         return ResponseEntity.ok(ApiResponseDTO.builder().success(true).data(saved).build());
     }
@@ -74,6 +82,14 @@ public class ProductController {
         }
         product.setPrice(product.isFree() ? 0.0 : 99.0);
         product.setId(id);
+        if (product.getState() != null) {
+            product.setStateSlug(Product.generateSlug(product.getState()));
+        }
+        if (product.getDistrict() != null) {
+            product.setDistrictSlug(Product.generateSlug(product.getDistrict()));
+        } else {
+            product.setDistrictSlug("general");
+        }
         Product saved = productRepo.save(product);
         return ResponseEntity.ok(ApiResponseDTO.builder().success(true).data(saved).build());
     }

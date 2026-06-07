@@ -34,6 +34,7 @@ public class Product {
     // Recursive State/District Ingestion Fields
     private String state;
     private String district;
+    private String districtSlug;
     private String mimeType;
     private String s3Url;
     private String source;
@@ -93,6 +94,9 @@ public class Product {
     public String getDistrict() { return district; }
     public void setDistrict(String district) { this.district = district; }
 
+    public String getDistrictSlug() { return districtSlug; }
+    public void setDistrictSlug(String districtSlug) { this.districtSlug = districtSlug; }
+
     public String getMimeType() { return mimeType; }
     public void setMimeType(String mimeType) { this.mimeType = mimeType; }
 
@@ -101,4 +105,13 @@ public class Product {
 
     public String getSource() { return source; }
     public void setSource(String source) { this.source = source; }
+
+    public static String generateSlug(String name) {
+        if (name == null || name.isBlank()) return "general";
+        return name.toLowerCase()
+                .trim()
+                .replaceAll("[^a-z0-9\\s-]", "")
+                .replaceAll("\\s+", "-")
+                .replaceAll("-+", "-");
+    }
 }

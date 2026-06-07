@@ -341,25 +341,29 @@ public class DataLoader implements CommandLineRunner {
 
     private void seedProducts() {
         List<Product> products = Arrays.asList(
-            createProduct("Rajasthan PSC Complete History Notes", "Comprehensive PDF notes covering Ancient, Medieval, and Modern History of Rajasthan for RPSC exams.", "rajasthan", "Notes", 199.0, "https://images.unsplash.com/photo-1596524430615-b46475ddff6e?w=800", "rpsc-history-notes.pdf"),
-            createProduct("Bihar Special Geography & Economy Blueprint", "Key geography topics and economy analysis of Bihar, tailormade for BPSC civil services preparation.", "bihar", "Notes", 249.0, "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800", "bpsc-geography-economy.pdf"),
-            createProduct("Uttar Pradesh General Knowledge Question Bank", "Over 1000 high-yield multiple choice questions with detailed explanations for UPPSC and subordinate exams.", "uttar-pradesh", "Question Bank", 299.0, "https://images.unsplash.com/photo-1509228627152-72ae9ae6848d?w=800", "uppsc-gk-question-bank.pdf"),
-            createProduct("Madhya Pradesh Tribe & Culture Companion", "Specialized guide to tribes, folk dances, art forms, and cultural heritage of MP for MPPSC candidates.", "madhya-pradesh", "Notes", 149.0, "https://images.unsplash.com/photo-1580853039692-835f8d0a8b68?w=800", "mppsc-tribes-culture.pdf"),
-            createProduct("Ultimate General Studies Mock Test Series", "Full-length mock test papers with detailed answers covering history, polity, geography, and general science.", "all", "Bundle", 399.0, "https://images.unsplash.com/photo-1511192336575-5a79af67a629?w=800", "gs-mock-test-series.pdf")
+            createProduct("Rajasthan PSC Complete History Notes", "Comprehensive PDF notes covering Ancient, Medieval, and Modern History of Rajasthan for RPSC exams.", "Rajasthan", "Notes", 99.0, "https://images.unsplash.com/photo-1596524430615-b46475ddff6e?w=800", "rpsc-history-notes.pdf"),
+            createProduct("Bihar Special Geography & Economy Blueprint", "Key geography topics and economy analysis of Bihar, tailormade for BPSC civil services preparation.", "Bihar", "Notes", 99.0, "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800", "bpsc-geography-economy.pdf"),
+            createProduct("Uttar Pradesh General Knowledge Question Bank", "Over 1000 high-yield multiple choice questions with detailed explanations for UPPSC and subordinate exams.", "Uttar Pradesh", "Question Bank", 99.0, "https://images.unsplash.com/photo-1509228627152-72ae9ae6848d?w=800", "uppsc-gk-question-bank.pdf"),
+            createProduct("Madhya Pradesh Tribe & Culture Companion", "Specialized guide to tribes, folk dances, art forms, and cultural heritage of MP for MPPSC candidates.", "Madhya Pradesh", "Notes", 99.0, "https://images.unsplash.com/photo-1580853039692-835f8d0a8b68?w=800", "mppsc-tribes-culture.pdf"),
+            createProduct("Ultimate General Studies Mock Test Series", "Full-length mock test papers with detailed answers covering history, polity, geography, and general science.", "All India", "Bundle", 99.0, "https://images.unsplash.com/photo-1511192336575-5a79af67a629?w=800", "gs-mock-test-series.pdf")
         );
 
         productRepo.saveAll(products);
         log.info("Successfully loaded {} sample products into database", products.size());
     }
 
-    private Product createProduct(String title, String description, String stateSlug, String type, Double price, String previewUrl, String storageKey) {
+    private Product createProduct(String title, String description, String state, String type, Double price, String previewUrl, String storageKey) {
         Product p = new Product();
         p.setId(UUID.randomUUID().toString());
         p.setTitle(title);
         p.setDescription(description);
-        p.setStateSlug(stateSlug);
+        p.setState(state);
+        p.setStateSlug(Product.generateSlug(state));
+        p.setDistrict("general");
+        p.setDistrictSlug("general");
         p.setType("PDF"); // Matches categories or files
-        p.setPrice(price);
+        p.setPrice(99.0);
+        p.setFree(false);
         p.setPreviewUrl(previewUrl);
         p.setStorageKey(storageKey);
         p.setPublished(true);

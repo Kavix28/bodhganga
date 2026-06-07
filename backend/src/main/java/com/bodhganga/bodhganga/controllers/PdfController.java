@@ -284,8 +284,12 @@ public class PdfController {
             product.setDriveUrl(driveUrl);
             product.setImportedFromDrive(true);
 
-            // Map category to stateSlug for marketplace filters if matches state
-            product.setStateSlug(req.category().toLowerCase().trim().replace(" ", "-"));
+            // Map category to state and slugs for marketplace filters
+            String categoryClean = req.category().trim();
+            product.setState(categoryClean);
+            product.setStateSlug(Product.generateSlug(categoryClean));
+            product.setDistrict("general");
+            product.setDistrictSlug("general");
 
             Product savedProduct = productRepo.save(product);
             log.info("Successfully imported PDF from Google Drive and saved Product: key={}, id={}", key, savedProduct.getId());

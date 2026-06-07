@@ -170,11 +170,12 @@ public class DriveToS3PipelineTask {
                 
                 // Ingestion specific metadata
                 product.setState(state);
+                product.setStateSlug(Product.generateSlug(state));
                 product.setDistrict(district);
+                product.setDistrictSlug(Product.generateSlug(district));
                 product.setMimeType(file.getMimeType());
                 product.setS3Url(s3Url);
                 product.setSource("Google Drive");
-                product.setStateSlug(stateSlug.toLowerCase() + "-" + districtSlug.toLowerCase());
 
                 Product savedProduct = productRepo.save(product);
                 log.info("Product saved: {}", savedProduct.getId());
