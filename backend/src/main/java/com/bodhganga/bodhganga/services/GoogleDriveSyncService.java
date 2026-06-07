@@ -46,7 +46,19 @@ public class GoogleDriveSyncService {
 
         try {
             final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
-            GoogleCredentials credentials = GoogleCredentials.fromStream(new FileInputStream(credentialsFilePath))
+            
+            InputStream credentialsStream;
+            if (credentialsFilePath.startsWith("classpath:")) {
+                String resourcePath = credentialsFilePath.substring("classpath:".length());
+                credentialsStream = getClass().getClassLoader().getResourceAsStream(resourcePath);
+                if (credentialsStream == null) {
+                    throw new IOException(resourcePath + " not found in classpath");
+                }
+            } else {
+                credentialsStream = new FileInputStream(credentialsFilePath);
+            }
+
+            GoogleCredentials credentials = GoogleCredentials.fromStream(credentialsStream)
                     .createScoped(SCOPES);
             HttpRequestInitializer requestInitializer = new HttpCredentialsAdapter(credentials);
 
