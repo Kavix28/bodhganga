@@ -47,80 +47,152 @@ public class DriveToS3PipelineTask {
         }
 
         log.info("Starting Google Drive to S3 Sync Pipeline...");
-
         try {
-            List<File> files = googleDriveSyncService.listFilesInFolder(sourceFolderId);
-            if (files == null || files.isEmpty()) {
-                log.info("No new files found in the source folder.");
-                return;
-            }
-
-            for (File file : files) {
-                // Ignore folders
-                if ("application/vnd.google-apps.folder".equals(file.getMimeType())) {
-                    continue;
-                }
-
-                log.info("Processing file: {} (ID: {})", file.getName(), file.getId());
-
-                try (InputStream inputStream = googleDriveSyncService.downloadFile(file.getId())) {
-                    if (inputStream != null) {
-                        long size = file.getSize() != null ? file.getSize() : 0;
-                        
-                        // 1. Parse filename to determine S3 folder and state slug
-                        // Assuming file name like "UttarPradesh_Lucknow_Notes.pdf"
-                        String fileNameNoExt = file.getName().replace(".pdf", "").replace(".PDF", "");
-                        String[] parts = fileNameNoExt.split("_");
-                        
-                        String s3FolderPath = "notes";
-                        String stateSlug = "general";
-                        
-                        if (parts.length >= 2) {
-                            String state = parts[0];
-                            String city = parts[1];
-                            s3FolderPath = "notes/" + state + "/" + city;
-                            stateSlug = state.toLowerCase() + "-" + city.toLowerCase();
-                        } else if (parts.length == 1 && !parts[0].isEmpty()) {
-                            String state = parts[0];
-                            s3FolderPath = "notes/" + state;
-                            stateSlug = state.toLowerCase();
-                        }
-
-                        // 2. Upload to S3 with specific path
-                        String s3Key = s3Service.uploadPdf(inputStream, size, file.getName(), s3FolderPath);
-                        log.info("Successfully uploaded {} to S3 path {} with key: {}", file.getName(), s3FolderPath, s3Key);
-
-                        // 3. Save metadata to Database
-                        Product product = new Product();
-                        product.setTitle(fileNameNoExt);
-                        product.setType("PDF");
-                        product.setS3Key(s3Key);
-                        product.setStorageKey(s3Key);
-                        product.setFileName(file.getName());
-                        product.setFileSize(size);
-                        product.setImportedFromDrive(true);
-                        product.setPublished(false); // Can be manually reviewed by admin
-                        product.setPrice(99.0); // Default price, admin can change
-                        product.setStateSlug(stateSlug);
-
-                        productRepo.save(product);
-                        log.info("Saved product to database: {}", product.getTitle());
-
-                        // 3. Move to Archive folder so it's not processed again
-                        if (archiveFolderId != null) {
-                            googleDriveSyncService.moveFileToArchive(file.getId(), sourceFolderId, archiveFolderId);
-                            log.info("Moved file {} to Archive folder.", file.getName());
-                        }
-                    }
-                } catch (Exception e) {
-                    log.error("Failed to process file: " + file.getName(), e);
-                }
-            }
-
+            traverseAndSync(sourceFolderId, "BodhGanga", new java.util.ArrayList<>());
         } catch (Exception e) {
             log.error("Error during Drive to S3 sync", e);
         }
-
         log.info("Google Drive to S3 Sync Pipeline completed.");
+    }
+
+    private void traverseAndSync(String folderId, String folderName, List<String> folderPath) {
+        log.info("Scanning folder: {}", folderName);
+        try {
+            List<File> items = googleDriveSyncService.listFilesInFolder(folderId);
+            if (items == null) {
+                log.info("Google Drive returned 0 items");
+                return;
+            }
+            log.info("Google Drive returned {} items", items.size());
+
+            for (File item : items) {
+                if ("application/vnd.google-apps.folder".equals(item.getMimeType())) {
+                    // It's a folder!
+                    List<String> nextPath = new java.util.ArrayList<>(folderPath);
+                    nextPath.add(item.getName());
+                    
+                    String normalizedName = normalizeName(item.getName());
+                    if (nextPath.size() == 1) {
+                        log.info("Found state folder: {}", normalizedName);
+                    } else if (nextPath.size() >= 2) {
+                        log.info("Found district folder: {}", normalizedName);
+                    }
+                    
+                    traverseAndSync(item.getId(), item.getName(), nextPath);
+                } else {
+                    // It's a file!
+                    log.info("Found file: {}", item.getName());
+                    
+                    try {
+                        processFile(item, folderId, folderPath);
+                    } catch (Exception e) {
+                        log.error("Failed processing file {}", item.getName(), e);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error scanning folder: " + folderName, e);
+        }
+    }
+
+    private void processFile(File file, String parentFolderId, List<String> folderPath) throws Exception {
+        try (InputStream inputStream = googleDriveSyncService.downloadFile(file.getId())) {
+            if (inputStream != null) {
+                long size = file.getSize() != null ? file.getSize() : 0;
+                
+                // Extract State & District metadata from the folderPath
+                FolderMetadata metadata = extractMetadata(folderPath);
+                
+                // Construct hyphenated slugs for S3 path hierarchy
+                String stateSlug = metadata.state.replace(" ", "-");
+                String districtSlug = metadata.district.replace(" ", "-");
+                String s3Key = stateSlug + "/" + districtSlug + "/" + file.getName();
+                
+                log.info("Uploading to S3: {}", s3Key);
+                
+                // S3 Upload
+                String returnedKey = s3Service.uploadFileWithKey(inputStream, size, s3Key, file.getMimeType());
+                String s3Url = s3Service.getS3Url(returnedKey);
+                
+                log.info("Successfully uploaded: {}", s3Url);
+                
+                // MongoDB Save
+                Product product = new Product();
+                String fileNameNoExt = file.getName().replace(".pdf", "").replace(".PDF", "");
+                product.setTitle(fileNameNoExt);
+                product.setType("PDF");
+                product.setS3Key(returnedKey);
+                product.setStorageKey(returnedKey);
+                product.setFileName(file.getName());
+                product.setFileSize(size);
+                product.setImportedFromDrive(true);
+                product.setPublished(false); // Can be manually reviewed by admin
+                product.setPrice(99.0); // Default price, admin can change
+                
+                // Ingestion specific metadata
+                product.setState(metadata.state);
+                product.setDistrict(metadata.district);
+                product.setMimeType(file.getMimeType());
+                product.setS3Url(s3Url);
+                product.setSource("Google Drive");
+                product.setStateSlug(stateSlug.toLowerCase() + "-" + districtSlug.toLowerCase());
+
+                Product savedProduct = productRepo.save(product);
+                log.info("Product saved: {}", savedProduct.getId());
+
+                // Archive movement (only after S3 and MongoDB operations succeed)
+                if (archiveFolderId != null) {
+                    googleDriveSyncService.moveFileToArchive(file.getId(), parentFolderId, archiveFolderId);
+                    log.info("Moved file to archive: {}", file.getName());
+                }
+            }
+        }
+    }
+
+    private String normalizeName(String name) {
+        if (name == null) return "";
+        // 1. Remove prefixes like "State 1 - ", "State- ", "1- ", "State 1 ", "1 " (case-insensitive)
+        String cleaned = name.replaceAll("(?i)^(State\\s*\\d+\\s*-\\s*|State\\s*-\\s*|State\\s+\\d+\\s+|\\d+\\s*-\\s*|\\d+\\s+)", "").trim();
+        // 2. Remove " District" or " district" at the end
+        cleaned = cleaned.replaceAll("(?i)\\s+District$", "").trim();
+        return cleaned;
+    }
+
+    private FolderMetadata extractMetadata(List<String> folderPath) {
+        List<String> normalizedList = new java.util.ArrayList<>();
+        for (String f : folderPath) {
+            String norm = normalizeName(f);
+            if (!norm.isEmpty()) {
+                normalizedList.add(norm);
+            }
+        }
+        
+        if (normalizedList.isEmpty()) {
+            return new FolderMetadata("general", "general");
+        }
+        
+        String state = normalizedList.get(0);
+        String district = "general";
+        
+        // Find last element that is different from state, or if only 1 unique element, it's just the state
+        for (int i = normalizedList.size() - 1; i >= 0; i--) {
+            String current = normalizedList.get(i);
+            if (!current.equalsIgnoreCase(state)) {
+                district = current;
+                break;
+            }
+        }
+        
+        return new FolderMetadata(state, district);
+    }
+
+    private static class FolderMetadata {
+        public final String state;
+        public final String district;
+        
+        public FolderMetadata(String state, String district) {
+            this.state = state;
+            this.district = district;
+        }
     }
 }

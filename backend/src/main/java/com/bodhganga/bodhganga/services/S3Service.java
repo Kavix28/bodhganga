@@ -24,6 +24,9 @@ public class S3Service {
     @Value("${aws.s3.bucket-name:${aws.s3.bucket.name:bodhganga-pdf-storage-prod}}")
     private String bucketName;
 
+    @Value("${aws.region:eu-north-1}")
+    private String awsRegion;
+
     public S3Service(S3Client s3Client, S3Presigner s3Presigner) {
         this.s3Client = s3Client;
         this.s3Presigner = s3Presigner;
@@ -131,5 +134,28 @@ public class S3Service {
 
         PresignedGetObjectRequest presignedGetObjectRequest = s3Presigner.presignGetObject(getObjectPresignRequest);
         return presignedGetObjectRequest.url().toString();
+    }
+
+    /**
+     * Upload a file with an explicit S3 key.
+     */
+    public String uploadFileWithKey(java.io.InputStream inputStream, long size, String s3Key, String contentType) {
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(s3Key)
+                .contentType(contentType)
+                .build();
+
+        s3Client.putObject(putObjectRequest, 
+                RequestBody.fromInputStream(inputStream, size));
+
+        return s3Key;
+    }
+
+    /**
+     * Get S3 URL for a given key.
+     */
+    public String getS3Url(String s3Key) {
+        return "https://" + bucketName + ".s3." + awsRegion + ".amazonaws.com/" + s3Key;
     }
 }

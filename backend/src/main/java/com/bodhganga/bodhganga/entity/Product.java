@@ -31,6 +31,13 @@ public class Product {
     private String driveUrl;
     private Boolean importedFromDrive;
     
+    // Recursive State/District Ingestion Fields
+    private String state;
+    private String district;
+    private String mimeType;
+    private String s3Url;
+    private String source;
+    
     public Product() {
         this.createdAt = new Date();
         this.isPublished = false;
@@ -73,4 +80,19 @@ public class Product {
     public void setDriveUrl(String driveUrl) { this.driveUrl = driveUrl; }
     public Boolean getImportedFromDrive() { return importedFromDrive; }
     public void setImportedFromDrive(Boolean importedFromDrive) { this.importedFromDrive = importedFromDrive; }
+
+    public String getState() { return state; }
+    public void setState(String state) { this.state = state; }
+
+    public String getDistrict() { return district; }
+    public void setDistrict(String district) { this.district = district; }
+
+    public String getMimeType() { return mimeType; }
+    public void setMimeType(String mimeType) { this.mimeType = mimeType; }
+
+    public String getS3Url() { return s3Url; }
+    public void setS3Url(String s3Url) { this.s3Url = s3Url; }
+
+    public String getSource() { return source; }
+    public void setSource(String source) { this.source = source; }
 }
