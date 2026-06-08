@@ -252,11 +252,40 @@ public class DriveToS3PipelineTask {
             return new FolderMetadata("general", "general");
         }
         
-        String state = normalizedList.get(0);
+        // Known state slugs to identify the state regardless of folder depth
+        java.util.List<String> knownStates = java.util.Arrays.asList(
+            "andhra-pradesh", "arunachal-pradesh", "assam", "bihar", "chhattisgarh", "goa", 
+            "gujarat", "haryana", "himachal-pradesh", "jharkhand", "karnataka", "kerala", 
+            "madhya-pradesh", "maharashtra", "manipur", "meghalaya", "mizoram", "nagaland", 
+            "odisha", "punjab", "rajasthan", "sikkim", "tamil-nadu", "telangana", "tripura", 
+            "uttar-pradesh", "uttarakhand", "west-bengal", "delhi", "jammu-and-kashmir", 
+            "ladakh", "puducherry", "chandigarh", "lakshadweep", "andaman-and-nicobar-islands"
+        );
+
+        String state = null;
+        int stateIndex = -1;
+
+        // Traverse folders to find the state
+        for (int i = 0; i < normalizedList.size(); i++) {
+            String folder = normalizedList.get(i);
+            String slug = Product.generateSlug(folder);
+            if (knownStates.contains(slug)) {
+                state = folder;
+                stateIndex = i;
+                break;
+            }
+        }
+
+        // Fallback to first element if no exact state match
+        if (state == null) {
+            state = normalizedList.get(0);
+            stateIndex = 0;
+        }
+
         String district = "general";
         
         // Find the first unique element after state in nesting path
-        for (int i = 1; i < normalizedList.size(); i++) {
+        for (int i = stateIndex + 1; i < normalizedList.size(); i++) {
             String current = normalizedList.get(i);
             if (!current.equalsIgnoreCase(state)) {
                 district = current;
