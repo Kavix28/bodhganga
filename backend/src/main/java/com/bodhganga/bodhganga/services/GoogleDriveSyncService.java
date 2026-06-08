@@ -21,6 +21,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -31,6 +32,9 @@ public class GoogleDriveSyncService {
 
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
     private static final List<String> SCOPES = Collections.singletonList(DriveScopes.DRIVE);
+
+    // Max results per page — 1000 is the API hard limit
+    private static final int PAGE_SIZE = 1000;
 
     @Value("${google.drive.credentials.path:#{null}}")
     private String credentialsFilePath;
@@ -46,7 +50,7 @@ public class GoogleDriveSyncService {
 
         try {
             final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
-            
+
             InputStream credentialsStream;
             if (credentialsFilePath.startsWith("classpath:")) {
                 String resourcePath = credentialsFilePath.substring("classpath:".length());
@@ -76,49 +80,145 @@ public class GoogleDriveSyncService {
     }
 
     /**
-     * Lists all files in a specific Google Drive folder.
+     * Lists ALL files and subfolders directly inside the given Drive folder.
+     *
+     * <p>Fixes applied vs original:
+     * <ol>
+     *   <li>{@code supportsAllDrives(true)} — required to access Shared / Team Drive items.</li>
+     *   <li>{@code includeItemsFromAllDrives(true)} — required companion flag; without it,
+     *       Shared Drive contents are silently excluded even when the folder is accessible.</li>
+     *   <li>Full pagination via {@code nextPageToken} — the original code fetched only the first
+     *       page (≤100 items by default) and discarded the rest; now all pages are consumed.</li>
+     *   <li>Page size raised to 1000 (API maximum) to reduce round-trips.</li>
+     *   <li>Detailed per-file logging for production observability.</li>
+     * </ol>
+     *
+     * @param folderId the Google Drive folder ID whose direct children should be listed
+     * @return all files and sub-folders found, never {@code null}
      */
     public List<File> listFilesInFolder(String folderId) throws IOException {
-        if (!isConfigured()) return Collections.emptyList();
+        if (!isConfigured()) {
+            log.warn("[DRIVE] listFilesInFolder called but Drive service is not configured. Returning empty list.");
+            return Collections.emptyList();
+        }
 
-        FileList result = driveService.files().list()
-                .setQ("'" + folderId + "' in parents and trashed=false")
-                .setSpaces("drive")
-                .setFields("nextPageToken, files(id, name, mimeType, size, parents)")
-                .execute();
+        List<File> allFiles = new ArrayList<>();
+        String query = "'" + folderId + "' in parents and trashed=false";
 
-        return result.getFiles();
+        log.info("[DRIVE] listFilesInFolder — FolderID={} Query=\"{}\"", folderId, query);
+
+        String pageToken = null;
+        int pageNumber = 0;
+
+        do {
+            pageNumber++;
+
+            Drive.Files.List request = driveService.files().list()
+                    .setQ(query)
+                    .setSpaces("drive")
+                    .setFields("nextPageToken, files(id, name, mimeType, size, parents)")
+                    .setPageSize(PAGE_SIZE)
+                    // ─── FIX 1: Support Shared Drives / Team Drives ──────────────
+                    // Without supportsAllDrives=true the API returns HTTP 200 with an
+                    // empty files[] for any folder that lives inside a Shared Drive,
+                    // because the service account's "My Drive" context is assumed.
+                    .setSupportsAllDrives(true)
+                    // ─── FIX 2: Include items from all drives ─────────────────────
+                    // Companion flag — must be true alongside supportsAllDrives.
+                    // Omitting it causes the API to silently filter out Shared Drive
+                    // items from the result set even when the folder ID is correct.
+                    .setIncludeItemsFromAllDrives(true);
+
+            if (pageToken != null) {
+                request.setPageToken(pageToken);
+            }
+
+            FileList result = request.execute();
+
+            List<File> pageFiles = result.getFiles();
+            if (pageFiles != null && !pageFiles.isEmpty()) {
+                allFiles.addAll(pageFiles);
+                log.info("[DRIVE] Page {} — {} item(s) returned from FolderID={}",
+                        pageNumber, pageFiles.size(), folderId);
+
+                // Per-file detail log — critical for production diagnostics
+                for (File f : pageFiles) {
+                    log.info("[DRIVE] Found item — Name=\"{}\" MimeType=\"{}\" ID=\"{}\" Size={}",
+                            f.getName(),
+                            f.getMimeType(),
+                            f.getId(),
+                            f.getSize() != null ? f.getSize() + " bytes" : "N/A (folder)");
+                }
+            } else {
+                log.warn("[DRIVE] Page {} — 0 items returned from FolderID={} (folder may be empty, "
+                        + "or service account lacks access, or Shared Drive flags were needed)",
+                        pageNumber, folderId);
+            }
+
+            // ─── FIX 3: Pagination ────────────────────────────────────────────
+            // The original code never consumed nextPageToken. Folders with >100
+            // items (default page size) silently lost all items beyond page 1.
+            pageToken = result.getNextPageToken();
+
+        } while (pageToken != null);
+
+        log.info("[DRIVE] listFilesInFolder complete — FolderID={} TotalItems={} Pages={}",
+                folderId, allFiles.size(), pageNumber);
+
+        return allFiles;
     }
 
     /**
      * Downloads a file from Google Drive as an InputStream.
+     *
+     * <p>Requires {@code supportsAllDrives(true)} for Shared Drive files.
      */
     public InputStream downloadFile(String fileId) throws IOException {
         if (!isConfigured()) return null;
-        return driveService.files().get(fileId).executeMediaAsInputStream();
+        log.info("[DRIVE] Downloading file — ID={}", fileId);
+        return driveService.files().get(fileId)
+                // ─── FIX 4: Support Shared Drives for download ────────────────
+                .setSupportsAllDrives(true)
+                .executeMediaAsInputStream();
     }
 
     /**
      * Moves a file to an 'Archived/Processed' folder so it is not processed again.
+     *
+     * <p>Requires {@code supportsAllDrives(true)} at both the {@code get} (to read current parents)
+     * and the {@code update} (to perform the parent swap) steps.
      */
     public void moveFileToArchive(String fileId, String currentFolderId, String archiveFolderId) throws IOException {
         if (!isConfigured()) return;
-        
-        // Retrieve the existing parents to remove
+
+        log.info("[DRIVE] moveFileToArchive — FileID={} CurrentParent={} ArchiveFolder={}",
+                fileId, currentFolderId, archiveFolderId);
+
+        // ─── FIX 5: Support Shared Drives for metadata fetch ──────────────
         File file = driveService.files().get(fileId)
                 .setFields("parents")
+                .setSupportsAllDrives(true)
                 .execute();
-        
+
         StringBuilder previousParents = new StringBuilder();
-        for (String parent : file.getParents()) {
-            previousParents.append(parent).append(",");
+        if (file.getParents() != null) {
+            for (String parent : file.getParents()) {
+                previousParents.append(parent).append(",");
+            }
+        } else {
+            // Fallback: use the known current folder ID
+            log.warn("[DRIVE] File {} returned null parents — using currentFolderId as removeParent", fileId);
+            previousParents.append(currentFolderId);
         }
 
-        // Move the file to the new folder
+        // ─── FIX 6: Support Shared Drives for file move ───────────────────
         driveService.files().update(fileId, null)
                 .setAddParents(archiveFolderId)
                 .setRemoveParents(previousParents.toString())
                 .setFields("id, parents")
+                .setSupportsAllDrives(true)
                 .execute();
+
+        log.info("[DRIVE] moveFileToArchive SUCCESS — FileID={} moved to ArchiveFolder={}", fileId, archiveFolderId);
     }
 }
