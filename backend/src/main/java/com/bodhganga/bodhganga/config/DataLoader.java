@@ -36,16 +36,19 @@ public class DataLoader implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final ProductRepo productRepo;
     private final StateRepo stateRepo;
+    private final org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
 
     public DataLoader(CourseRepo courseRepo, BlogPostRepo blogPostRepo,
                       UserRepo userRepo, PasswordEncoder passwordEncoder,
-                      ProductRepo productRepo, StateRepo stateRepo) {
+                      ProductRepo productRepo, StateRepo stateRepo,
+                      org.springframework.data.mongodb.core.MongoTemplate mongoTemplate) {
         this.courseRepo = courseRepo;
         this.blogPostRepo = blogPostRepo;
         this.userRepo = userRepo;
         this.passwordEncoder = passwordEncoder;
         this.productRepo = productRepo;
         this.stateRepo = stateRepo;
+        this.mongoTemplate = mongoTemplate;
     }
 
     @Override
@@ -447,10 +450,103 @@ public class DataLoader implements CommandLineRunner {
     }
 
     private void migrateImportedProducts() {
-        log.info("Running idempotent migration for imported products...");
+        log.info("Running duplicate resolution and migration script for imported products...");
         List<Product> products = productRepo.findAll();
-        boolean changedAny = false;
+        
+        // Group by googleDriveFileId
+        java.util.Map<String, java.util.List<Product>> byDriveId = new java.util.HashMap<>();
+        // Group by s3Key
+        java.util.Map<String, java.util.List<Product>> byS3Key = new java.util.HashMap<>();
+        // Group by fileName (scoped by state/district)
+        java.util.Map<String, java.util.List<Product>> byFileName = new java.util.HashMap<>();
+
         for (Product p : products) {
+            boolean isImported = Boolean.TRUE.equals(p.getImportedFromDrive()) || "Google Drive".equals(p.getSource());
+            if (!isImported) continue;
+
+            String driveId = p.getGoogleDriveFileId();
+            if (driveId != null && !driveId.trim().isEmpty()) {
+                byDriveId.computeIfAbsent(driveId.trim(), k -> new java.util.ArrayList<>()).add(p);
+            }
+
+            String s3Key = p.getS3Key();
+            if (s3Key != null && !s3Key.trim().isEmpty()) {
+                byS3Key.computeIfAbsent(s3Key.trim(), k -> new java.util.ArrayList<>()).add(p);
+            }
+
+            String fileName = p.getFileName();
+            if (fileName != null && !fileName.trim().isEmpty()) {
+                byFileName.computeIfAbsent(fileName.trim(), k -> new java.util.ArrayList<>()).add(p);
+            }
+        }
+
+        java.util.Set<String> deletedIds = new java.util.HashSet<>();
+
+        // Resolver helper to handle each list of duplicate products
+        java.util.function.Consumer<java.util.List<Product>> resolver = list -> {
+            if (list.size() <= 1) return;
+            
+            // Sort by createdAt ascending (oldest first)
+            list.sort(java.util.Comparator.comparing(p -> p.getCreatedAt() != null ? p.getCreatedAt() : new Date(0)));
+            
+            // Find the oldest one that hasn't already been deleted
+            Product oldest = null;
+            int startIndex = 0;
+            for (int i = 0; i < list.size(); i++) {
+                if (!deletedIds.contains(list.get(i).getId())) {
+                    oldest = list.get(i);
+                    startIndex = i;
+                    break;
+                }
+            }
+            if (oldest == null || startIndex >= list.size() - 1) return; // No duplicates left
+
+            // Backfill googleDriveFileId to oldest if possible
+            if (oldest.getGoogleDriveFileId() == null || oldest.getGoogleDriveFileId().trim().isEmpty()) {
+                for (int i = startIndex + 1; i < list.size(); i++) {
+                    Product dup = list.get(i);
+                    if (dup.getGoogleDriveFileId() != null && !dup.getGoogleDriveFileId().trim().isEmpty()) {
+                        oldest.setGoogleDriveFileId(dup.getGoogleDriveFileId());
+                        productRepo.save(oldest);
+                        log.info("Backfilled googleDriveFileId {} to oldest product {}", dup.getGoogleDriveFileId(), oldest.getId());
+                        break;
+                    }
+                }
+            }
+
+            // Delete newer duplicates
+            for (int i = startIndex + 1; i < list.size(); i++) {
+                Product dup = list.get(i);
+                if (!deletedIds.contains(dup.getId())) {
+                    productRepo.delete(dup);
+                    deletedIds.add(dup.getId());
+                    log.info("Deleted duplicate product record: id={}, title={}, createdAt={}", dup.getId(), dup.getTitle(), dup.getCreatedAt());
+                }
+            }
+        };
+
+        // Resolve duplicates
+        for (java.util.List<Product> group : byDriveId.values()) {
+            resolver.accept(group);
+        }
+        for (java.util.List<Product> group : byS3Key.values()) {
+            resolver.accept(group);
+        }
+        for (java.util.List<Product> group : byFileName.values()) {
+            java.util.Map<String, java.util.List<Product>> subGroup = new java.util.HashMap<>();
+            for (Product p : group) {
+                String pathKey = (p.getState() != null ? p.getState() : "") + "|" + (p.getDistrict() != null ? p.getDistrict() : "");
+                subGroup.computeIfAbsent(pathKey, k -> new java.util.ArrayList<>()).add(p);
+            }
+            for (java.util.List<Product> sg : subGroup.values()) {
+                resolver.accept(sg);
+            }
+        }
+
+        // Refresh all remaining products list and backfill metadata, setting published=true on all imported
+        List<Product> remainingProducts = productRepo.findAll();
+        boolean changedAny = false;
+        for (Product p : remainingProducts) {
             boolean changed = false;
             boolean isImported = Boolean.TRUE.equals(p.getImportedFromDrive()) || "Google Drive".equals(p.getSource());
             
@@ -518,24 +614,6 @@ public class DataLoader implements CommandLineRunner {
                     p.setUpdatedAt(p.getCreatedAt() != null ? p.getCreatedAt() : new Date());
                     changed = true;
                 }
-            } else {
-                if (p.getContentType() == null || p.getContentType().isEmpty()) {
-                    String mt = p.getMimeType() != null ? p.getMimeType() : Product.determineMimeType(p.getFileName() != null ? p.getFileName() : p.getStorageKey());
-                    String ct = Product.determineContentType(mt, p.getFileName() != null ? p.getFileName() : p.getStorageKey());
-                    p.setContentType(ct);
-                    p.setMimeType(mt);
-                    p.setType(ct);
-                    changed = true;
-                }
-                if (p.getOriginalFileName() == null || p.getOriginalFileName().isEmpty()) {
-                    p.setOriginalFileName(p.getFileName() != null ? p.getFileName() : p.getStorageKey());
-                    changed = true;
-                }
-                if (p.getDisplayTitle() == null || p.getDisplayTitle().isEmpty()) {
-                    p.setDisplayTitle(Product.stripExtension(p.getTitle() != null ? p.getTitle() : p.getOriginalFileName()));
-                    p.setTitle(p.getDisplayTitle());
-                    changed = true;
-                }
             }
 
             if (changed) {
@@ -543,10 +621,72 @@ public class DataLoader implements CommandLineRunner {
                 changedAny = true;
             }
         }
+
         if (changedAny) {
-            log.info("Idempotent migration completed successfully (updated products).");
+            log.info("Migration completed successfully (updated products).");
         } else {
-            log.info("Idempotent migration completed: all products are already up to date.");
+            log.info("Migration completed: all products are already up to date.");
+        }
+
+        // Programmatically enforce unique sparse indexes in MongoDB to guarantee uniqueness.
+        // Drop any existing conflicting index first (IndexOptionsConflict code 85) before re-creating.
+        ensureUniqueSparseIndex("googleDriveFileId");
+        ensureUniqueSparseIndex("s3Key");
+    }
+
+    /**
+     * Safely ensures a unique sparse index on a given field in the products collection.
+     * If an existing index with the same key but different options (e.g. non-sparse) is found,
+     * it is dropped first to avoid IndexOptionsConflict (error code 85).
+     */
+    private void ensureUniqueSparseIndex(String fieldName) {
+        org.springframework.data.mongodb.core.index.IndexOperations indexOps = mongoTemplate.indexOps(Product.class);
+        try {
+            // Attempt to create the sparse unique index directly
+            indexOps.ensureIndex(new org.springframework.data.mongodb.core.index.Index()
+                .named(fieldName)
+                .on(fieldName, org.springframework.data.domain.Sort.Direction.ASC)
+                .unique()
+                .sparse());
+            log.info("Unique sparse index on '{}' verified/created successfully.", fieldName);
+        } catch (Exception e) {
+            String msg = e.getMessage() != null ? e.getMessage() : "";
+            if (msg.contains("IndexOptionsConflict") || msg.contains("already exists with a different name") || msg.contains("code 85")) {
+                // Drop all indexes whose key includes this field, then recreate
+                log.warn("IndexOptionsConflict for field '{}'. Dropping conflicting index and retrying.", fieldName);
+                try {
+                    indexOps.dropIndex(fieldName);
+                    log.info("Dropped conflicting index '{}' successfully.", fieldName);
+                } catch (Exception dropEx) {
+                    log.warn("Could not drop index '{}' by name ({}), trying field-based drop.", fieldName, dropEx.getMessage());
+                    // Fallback: fetch all indexes, find any that covers this field, and drop by name
+                    try {
+                        for (org.springframework.data.mongodb.core.index.IndexInfo info : indexOps.getIndexInfo()) {
+                            boolean coversField = info.getIndexFields().stream()
+                                .anyMatch(f -> fieldName.equals(f.getKey()));
+                            if (coversField && !info.getName().equals("_id_")) {
+                                indexOps.dropIndex(info.getName());
+                                log.info("Dropped conflicting index '{}' covering field '{}'.", info.getName(), fieldName);
+                            }
+                        }
+                    } catch (Exception scanEx) {
+                        log.error("Failed to scan and drop indexes for field '{}': {}", fieldName, scanEx.getMessage());
+                    }
+                }
+                // Retry creation after drop
+                try {
+                    indexOps.ensureIndex(new org.springframework.data.mongodb.core.index.Index()
+                        .named(fieldName)
+                        .on(fieldName, org.springframework.data.domain.Sort.Direction.ASC)
+                        .unique()
+                        .sparse());
+                    log.info("Unique sparse index on '{}' created successfully after drop.", fieldName);
+                } catch (Exception retryEx) {
+                    log.error("Failed to create unique sparse index on '{}' after drop: {}", fieldName, retryEx.getMessage());
+                }
+            } else {
+                log.error("Failed to create unique sparse index on '{}': {}", fieldName, e.getMessage());
+            }
         }
     }
 }

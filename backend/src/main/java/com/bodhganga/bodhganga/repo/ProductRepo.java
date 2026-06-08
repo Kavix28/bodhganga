@@ -15,6 +15,7 @@ public interface ProductRepo extends MongoRepository<Product, String> {
     List<Product> findByImportedFromDrive(Boolean importedFromDrive);
 
     // Hardened pipeline duplicate check queries
+    Product findByGoogleDriveFileId(String googleDriveFileId);
     boolean existsByFileName(String fileName);
     boolean existsByS3Key(String s3Key);
     boolean existsByGoogleDriveFileId(String googleDriveFileId);

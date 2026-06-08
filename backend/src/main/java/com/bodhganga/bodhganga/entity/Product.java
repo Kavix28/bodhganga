@@ -2,6 +2,7 @@ package com.bodhganga.bodhganga.entity;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.index.Indexed;
 
 import java.util.Date;
 
@@ -27,6 +28,7 @@ public class Product {
     private String courseId;
     private String fileName;
     private Long fileSize;
+    @Indexed(unique = true, sparse = true)
     private String s3Key;
     private String driveUrl;
     private Boolean importedFromDrive;
@@ -46,6 +48,7 @@ public class Product {
 
     // Hardened pipeline fields
     private String fileExtension;
+    @Indexed(unique = true, sparse = true)
     private String googleDriveFileId;
     private IngestionStatus ingestionStatus;
     private Date updatedAt;

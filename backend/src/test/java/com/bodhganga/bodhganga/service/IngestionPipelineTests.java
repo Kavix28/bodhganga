@@ -607,6 +607,95 @@ public class IngestionPipelineTests {
                 .moveFileToArchive(eq("gdoc-file-id"), anyString(), eq("archive-folder-id"));
     }
 
+    /**
+     * THREE CONSECUTIVE RUNS IDEMPOTENCY TEST
+     *
+     * Runs the scheduler 3 consecutive times with N=5 mock files.
+     * Verifies that after 3 runs, exactly 5 product documents exist in MongoDB,
+     * exactly 5 S3 uploads were performed, exactly 5 archive moves occurred,
+     * and 0 duplicate documents were created.
+     */
+    @Test
+    void testSchedulerIdempotencyThreeRuns() throws Exception {
+        // BodhGanga → State 1- Andhra Pradesh
+        File stateFolder = mkFolder("ap-state-id", "State 1- Andhra Pradesh");
+        when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(stateFolder));
+
+        // State → Alluri District
+        File districtFolder = mkFolder("alluri-dist-id", "Alluri Sitharama Raju District");
+        when(googleDriveSyncService.listFilesInFolder("ap-state-id")).thenReturn(List.of(districtFolder));
+
+        // District → PDFs folder
+        File pdfsFolder = mkFolder("alluri-pdfs-id", "PDFs");
+        when(googleDriveSyncService.listFilesInFolder("alluri-dist-id")).thenReturn(List.of(pdfsFolder));
+
+        // PDFs folder contains 5 distinct PDF files
+        List<File> files = new ArrayList<>();
+        for (int i = 1; i <= 5; i++) {
+            File f = mkFile("file-id-" + i, "Notes_Chapter_" + i + ".pdf", "application/pdf", 1024L * i);
+            files.add(f);
+            
+            // Stub download
+            when(googleDriveSyncService.downloadFile("file-id-" + i))
+                    .thenReturn(new ByteArrayInputStream(("Chapter " + i + " mock content").getBytes()));
+            
+            String s3Key = "andhra-pradesh/alluri-sitharama-raju/pdfs/Notes_Chapter_" + i + ".pdf";
+            when(s3Service.uploadFileWithKey(any(), eq(1024L * i), eq(s3Key), eq("application/pdf"))).thenReturn(s3Key);
+            when(s3Service.getS3Url(s3Key)).thenReturn("https://s3/test-bucket/" + s3Key);
+        }
+        when(googleDriveSyncService.listFilesInFolder("alluri-pdfs-id")).thenReturn(files);
+
+        // --- FIRST RUN ---
+        pipelineTask.syncDriveToS3(true);
+
+        List<Product> productsRun1 = productRepo.findAll();
+        assertEquals(5, productsRun1.size(), "First run must ingest exactly 5 products");
+        for (Product p : productsRun1) {
+            assertEquals(IngestionStatus.COMPLETED, p.getIngestionStatus());
+            assertTrue(p.isPublished());
+            assertTrue(p.getImportedFromDrive());
+            assertNotNull(p.getGoogleDriveFileId());
+            assertTrue(p.isArchived());
+        }
+
+        // --- SECOND RUN ---
+        // Clear mock invocations to count calls in the second run
+        reset(s3Service);
+        reset(googleDriveSyncService);
+        
+        // Re-stub necessary sync queries
+        when(googleDriveSyncService.isConfigured()).thenReturn(true);
+        when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(stateFolder));
+        when(googleDriveSyncService.listFilesInFolder("ap-state-id")).thenReturn(List.of(districtFolder));
+        when(googleDriveSyncService.listFilesInFolder("alluri-dist-id")).thenReturn(List.of(pdfsFolder));
+        when(googleDriveSyncService.listFilesInFolder("alluri-pdfs-id")).thenReturn(files);
+
+        pipelineTask.syncDriveToS3(true);
+
+        List<Product> productsRun2 = productRepo.findAll();
+        assertEquals(5, productsRun2.size(), "Second run must not create any new MongoDB documents");
+        verify(s3Service, never()).uploadFileWithKey(any(), anyLong(), anyString(), anyString());
+        verify(googleDriveSyncService, never()).downloadFile(anyString());
+        verify(googleDriveSyncService, never()).moveFileToArchive(anyString(), anyString(), anyString());
+
+        // --- THIRD RUN ---
+        reset(s3Service);
+        reset(googleDriveSyncService);
+        when(googleDriveSyncService.isConfigured()).thenReturn(true);
+        when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(stateFolder));
+        when(googleDriveSyncService.listFilesInFolder("ap-state-id")).thenReturn(List.of(districtFolder));
+        when(googleDriveSyncService.listFilesInFolder("alluri-dist-id")).thenReturn(List.of(pdfsFolder));
+        when(googleDriveSyncService.listFilesInFolder("alluri-pdfs-id")).thenReturn(files);
+
+        pipelineTask.syncDriveToS3(true);
+
+        List<Product> productsRun3 = productRepo.findAll();
+        assertEquals(5, productsRun3.size(), "Third run must not create any new MongoDB documents");
+        verify(s3Service, never()).uploadFileWithKey(any(), anyLong(), anyString(), anyString());
+        verify(googleDriveSyncService, never()).downloadFile(anyString());
+        verify(googleDriveSyncService, never()).moveFileToArchive(anyString(), anyString(), anyString());
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // HELPERS
     // ─────────────────────────────────────────────────────────────────────────

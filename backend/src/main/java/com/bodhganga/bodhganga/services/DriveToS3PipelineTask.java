@@ -228,22 +228,6 @@ public class DriveToS3PipelineTask {
         s3KeyBuilder.append(fileName);
         String s3Key = s3KeyBuilder.toString();
 
-        // Check for duplicates before upload
-        boolean duplicate = false;
-        if (fileName != null && productRepo.existsByFileName(fileName)) {
-            duplicate = true;
-        } else if (s3Key != null && productRepo.existsByS3Key(s3Key)) {
-            duplicate = true;
-        } else if (file.getId() != null && productRepo.existsByGoogleDriveFileId(file.getId())) {
-            duplicate = true;
-        }
-
-        if (duplicate) {
-            log.info("DUPLICATE FILE DETECTED - SKIPPING");
-            filesSkipped.incrementAndGet();
-            return;
-        }
-
         long size = file.getSize() != null ? file.getSize() : 0;
         boolean isFree = false;
         String category = "Notes";
@@ -291,6 +275,54 @@ public class DriveToS3PipelineTask {
         log.info("[INGESTION] FILE TYPE - Type: {}", contentType);
         log.info("[INGESTION] FILE SIZE - Size: {}", size);
         log.info("[INGESTION] S3 KEY - Key: {}", s3Key);
+
+        // Check for duplicates before upload and save
+        Product existing = productRepo.findByGoogleDriveFileId(file.getId());
+        if (existing == null) {
+            existing = productRepo.findByS3Key(s3Key).orElse(null);
+        }
+        if (existing == null && fileName != null) {
+            List<Product> matches = productRepo.findByImportedFromDrive(true);
+            for (Product p : matches) {
+                if (fileName.equals(p.getFileName())) {
+                    existing = p;
+                    break;
+                }
+            }
+        }
+
+        if (existing != null) {
+            log.info("Existing product found.");
+            log.info("Updating existing record.");
+            log.info("Skipping duplicate upload.");
+
+            if (existing.getGoogleDriveFileId() == null || existing.getGoogleDriveFileId().isEmpty()) {
+                existing.setGoogleDriveFileId(file.getId());
+            }
+
+            String displayTitle = Product.stripExtension(fileName);
+            existing.setTitle(displayTitle);
+            existing.setDisplayTitle(displayTitle);
+            existing.setMimeType(fileMimeType);
+            existing.setState(state);
+            existing.setDistrict(district);
+            existing.setStateSlug(Product.generateSlug(state));
+            existing.setDistrictSlug(Product.generateSlug(district));
+            
+            if (existing.getS3Key() == null || existing.getS3Key().isEmpty()) {
+                existing.setS3Key(s3Key);
+                existing.setStorageKey(s3Key);
+            }
+            existing.setS3Url(s3Service.getS3Url(existing.getS3Key()));
+            existing.setPublished(true);
+            existing.setImportedFromDrive(true);
+            existing.setIngestionStatus(IngestionStatus.COMPLETED);
+            existing.setUpdatedAt(new Date());
+
+            productRepo.save(existing);
+            filesSkipped.incrementAndGet();
+            return;
+        }
 
         // Create product record in Mongo with status PROCESSING first (generates ID)
         Product product = new Product();
@@ -343,14 +375,14 @@ public class DriveToS3PipelineTask {
 
                 // Enterprise-grade structured logging format
                 log.info("[INGESTION]\nState={}\nDistrict={}\nFile={}\nType={}\nSize={} bytes\nS3Key={}\nMongoId={}",
-                        state, district, file.getName(), contentType, size, returnedKey, product.getId());
+                        state, district, fileName, contentType, size, returnedKey, product.getId());
 
                 // Archive movement (only after S3 and MongoDB operations succeed)
                 if (archiveFolderId != null && !archiveFolderId.isEmpty() && !archiveFolderId.equals("null")) {
                     googleDriveSyncService.moveFileToArchive(file.getId(), parentFolderId, archiveFolderId);
                     product.setArchived(true);
                     product = productRepo.save(product);
-                    log.info("[INGESTION] ARCHIVE SUCCESS - File archived: {}", file.getName());
+                    log.info("[INGESTION] ARCHIVE SUCCESS - File archived: {}", fileName);
                 }
                 filesUploaded.incrementAndGet();
             } else {
