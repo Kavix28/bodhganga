@@ -158,4 +158,8 @@ public class S3Service {
     public String getS3Url(String s3Key) {
         return "https://" + bucketName + ".s3." + awsRegion + ".amazonaws.com/" + s3Key;
     }
+
+    public String getBucketName() {
+        return bucketName;
+    }
 }

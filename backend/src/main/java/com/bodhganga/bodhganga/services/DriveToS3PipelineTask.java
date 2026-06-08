@@ -36,53 +36,71 @@ public class DriveToS3PipelineTask {
     @Value("${google.drive.pipeline.enabled:false}")
     private boolean pipelineEnabled;
 
+    @jakarta.annotation.PostConstruct
+    public void validateStartup() {
+        log.info("Startup Google Drive to S3 Ingestion Pipeline Validation Check:");
+        log.info("  - Ingestion Pipeline Enabled: {}", pipelineEnabled);
+        log.info("  - Source Folder ID: {}", sourceFolderId);
+        log.info("  - Archive Folder ID: {}", archiveFolderId);
+        log.info("  - AWS S3 Bucket: {}", s3Service != null ? s3Service.getBucketName() : "N/A");
+    }
+
     /**
      * This scheduled task runs every 10 minutes to sync files.
      * Ensure you add @EnableScheduling to your BodhgangaApplication.java
      */
     @Scheduled(fixedDelay = 600000) // 10 minutes in milliseconds
     public void syncDriveToS3() {
-        if (!pipelineEnabled || !googleDriveSyncService.isConfigured() || sourceFolderId == null) {
+        syncDriveToS3(false);
+    }
+
+    public void syncDriveToS3(boolean force) {
+        if (!force && (!pipelineEnabled || !googleDriveSyncService.isConfigured() || sourceFolderId == null)) {
+            log.info("Pipeline sync skipped: enabled={}, configured={}, sourceFolderId={}",
+                    pipelineEnabled, googleDriveSyncService.isConfigured(), sourceFolderId);
             return;
         }
 
-        log.info("Starting Google Drive to S3 Sync Pipeline...");
+        if (force && (!googleDriveSyncService.isConfigured() || sourceFolderId == null)) {
+            log.warn("Cannot run pipeline sync: configured={}, sourceFolderId={}",
+                    googleDriveSyncService.isConfigured(), sourceFolderId);
+            throw new IllegalStateException("Google Drive sync service is not configured or source folder ID is missing.");
+        }
+
+        log.info("Starting Google Drive to S3 Sync Pipeline (forced={})...", force);
         try {
             traverseAndSync(sourceFolderId, "BodhGanga", new java.util.ArrayList<>());
         } catch (Exception e) {
             log.error("Error during Drive to S3 sync", e);
+            if (force) {
+                throw new RuntimeException("Error during manual Drive to S3 sync: " + e.getMessage(), e);
+            }
         }
         log.info("Google Drive to S3 Sync Pipeline completed.");
     }
 
     private void traverseAndSync(String folderId, String folderName, List<String> folderPath) {
-        log.info("Scanning folder: {}", folderName);
+        log.info("Recursion level - Folder ID: {}, Folder Name: {}", folderId, folderName);
         try {
             List<File> items = googleDriveSyncService.listFilesInFolder(folderId);
+            int itemCount = (items != null) ? items.size() : 0;
+            log.info("Recursion level - Folder ID: {}, Folder Name: {}, Item Count: {}", folderId, folderName, itemCount);
             if (items == null) {
-                log.info("Google Drive returned 0 items");
                 return;
             }
-            log.info("Google Drive returned {} items", items.size());
 
             for (File item : items) {
-                if ("application/vnd.google-apps.folder".equals(item.getMimeType())) {
-                    // It's a folder!
+                log.info("Recursion level - Item Name: {}, Item Mime Type: {}, Item ID: {}", item.getName(), item.getMimeType(), item.getId());
+
+                String mimeType = item.getMimeType();
+                if ("application/vnd.google-apps.folder".equals(mimeType)) {
+                    // It's a folder! Support arbitrary nesting depth
                     List<String> nextPath = new java.util.ArrayList<>(folderPath);
                     nextPath.add(item.getName());
                     
-                    String normalizedName = normalizeName(item.getName());
-                    if (nextPath.size() == 1) {
-                        log.info("Found state folder: {}", normalizedName);
-                    } else if (nextPath.size() >= 2) {
-                        log.info("Found district folder: {}", normalizedName);
-                    }
-                    
                     traverseAndSync(item.getId(), item.getName(), nextPath);
                 } else {
-                    // It's a file!
-                    log.info("Found file: {}", item.getName());
-                    
+                    // It's a file! Detect files by: mimeType != application/vnd.google-apps.folder
                     try {
                         processFile(item, folderId, folderPath);
                     } catch (Exception e) {
@@ -91,11 +109,15 @@ public class DriveToS3PipelineTask {
                 }
             }
         } catch (Exception e) {
-            log.error("Error scanning folder: " + folderName, e);
+            log.error("Error scanning folder: " + folderName + " (ID: " + folderId + ")", e);
         }
     }
 
+
     private void processFile(File file, String parentFolderId, List<String> folderPath) throws Exception {
+        log.info("Found file: {}", file.getName());
+        log.info("Uploading file: {}", file.getName());
+
         try (InputStream inputStream = googleDriveSyncService.downloadFile(file.getId())) {
             if (inputStream != null) {
                 long size = file.getSize() != null ? file.getSize() : 0;
@@ -140,20 +162,29 @@ public class DriveToS3PipelineTask {
                     district = metadata.district;
                 }
 
-                // Construct slugs for S3 path hierarchy
-                String stateSlug = state != null ? state.replace(" ", "-") : "general";
-                String districtSlug = district != null ? district.replace(" ", "-") : "general";
-                String s3Key = stateSlug + "/" + districtSlug + "/" + file.getName();
+                // Construct clean hierarchical S3 key using folder path slugs
+                StringBuilder s3KeyBuilder = new StringBuilder();
+                if (folderPath != null && !folderPath.isEmpty()) {
+                    for (String folder : folderPath) {
+                        String folderSlug = Product.generateSlug(folder);
+                        if (!folderSlug.equals("general") && !folderSlug.isEmpty()) {
+                            s3KeyBuilder.append(folderSlug).append("/");
+                        }
+                    }
+                }
+                s3KeyBuilder.append(file.getName());
+                String s3Key = s3KeyBuilder.toString();
                 
-                log.info("Uploading to S3: {}", s3Key);
+                log.info("Uploading file: {} to S3 key: {}", file.getName(), s3Key);
                 
                 // S3 Upload
                 String returnedKey = s3Service.uploadFileWithKey(inputStream, size, s3Key, file.getMimeType());
                 String s3Url = s3Service.getS3Url(returnedKey);
                 
-                log.info("Successfully uploaded: {}", s3Url);
+                log.info("Uploaded file: {}", file.getName());
                 
                 // MongoDB Save
+                log.info("Saving product: {}", file.getName());
                 Product product = new Product();
                 String fileNameNoExt = file.getName().replace(".pdf", "").replace(".PDF", "");
                 product.setTitle(fileNameNoExt);
@@ -170,9 +201,9 @@ public class DriveToS3PipelineTask {
                 
                 // Ingestion specific metadata
                 product.setState(state);
-                product.setStateSlug(Product.generateSlug(state));
+                product.setStateSlug(Product.generateSlug(state)); // Must only contain state slug
                 product.setDistrict(district);
-                product.setDistrictSlug(Product.generateSlug(district));
+                product.setDistrictSlug(Product.generateSlug(district)); // Must only contain district slug
                 product.setMimeType(file.getMimeType());
                 product.setS3Url(s3Url);
                 product.setSource("Google Drive");
@@ -183,7 +214,7 @@ public class DriveToS3PipelineTask {
                 // Archive movement (only after S3 and MongoDB operations succeed)
                 if (archiveFolderId != null) {
                     googleDriveSyncService.moveFileToArchive(file.getId(), parentFolderId, archiveFolderId);
-                    log.info("Moved file to archive: {}", file.getName());
+                    log.info("Archived file: {}", file.getName());
                 }
             }
         }
@@ -200,10 +231,12 @@ public class DriveToS3PipelineTask {
 
     private FolderMetadata extractMetadata(List<String> folderPath) {
         List<String> normalizedList = new java.util.ArrayList<>();
-        for (String f : folderPath) {
-            String norm = normalizeName(f);
-            if (!norm.isEmpty()) {
-                normalizedList.add(norm);
+        if (folderPath != null) {
+            for (String f : folderPath) {
+                String norm = normalizeName(f);
+                if (!norm.isEmpty()) {
+                    normalizedList.add(norm);
+                }
             }
         }
         
@@ -214,8 +247,8 @@ public class DriveToS3PipelineTask {
         String state = normalizedList.get(0);
         String district = "general";
         
-        // Find last element that is different from state, or if only 1 unique element, it's just the state
-        for (int i = normalizedList.size() - 1; i >= 0; i--) {
+        // Find the first unique element after state in nesting path
+        for (int i = 1; i < normalizedList.size(); i++) {
             String current = normalizedList.get(i);
             if (!current.equalsIgnoreCase(state)) {
                 district = current;
