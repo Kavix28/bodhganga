@@ -92,9 +92,24 @@ public class GoogleDriveSyncService {
 
     /**
      * Downloads a file from Google Drive as an InputStream.
+     * Automatically exports Google Workspace documents (Docs, Sheets, Slides) to PDF.
      */
-    public InputStream downloadFile(String fileId) throws IOException {
+    public InputStream downloadFile(String fileId, String mimeType) throws IOException {
         if (!isConfigured()) return null;
+        
+        if (mimeType != null && mimeType.startsWith("application/vnd.google-apps.")) {
+            // Export Google Workspace documents to PDF
+            if (mimeType.equals("application/vnd.google-apps.document") || 
+                mimeType.equals("application/vnd.google-apps.spreadsheet") ||
+                mimeType.equals("application/vnd.google-apps.presentation")) {
+                log.info("Exporting Google Workspace document {} to PDF", fileId);
+                return driveService.files().export(fileId, "application/pdf").executeMediaAsInputStream();
+            } else {
+                throw new IOException("Unsupported Google Workspace document type for download: " + mimeType);
+            }
+        }
+        
+        // Regular files (PDFs, images, etc)
         return driveService.files().get(fileId).executeMediaAsInputStream();
     }
 

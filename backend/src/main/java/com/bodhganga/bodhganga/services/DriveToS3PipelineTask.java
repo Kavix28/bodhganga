@@ -118,7 +118,16 @@ public class DriveToS3PipelineTask {
         log.info("Found file: {}", file.getName());
         log.info("Uploading file: {}", file.getName());
 
-        try (InputStream inputStream = googleDriveSyncService.downloadFile(file.getId())) {
+        String mimeType = file.getMimeType();
+        boolean isGoogleDoc = mimeType != null && mimeType.startsWith("application/vnd.google-apps.");
+        String targetMimeType = isGoogleDoc ? "application/pdf" : mimeType;
+        
+        String fileName = file.getName();
+        if (isGoogleDoc && !fileName.toLowerCase().endsWith(".pdf")) {
+            fileName = fileName + ".pdf";
+        }
+
+        try (InputStream inputStream = googleDriveSyncService.downloadFile(file.getId(), mimeType)) {
             if (inputStream != null) {
                 long size = file.getSize() != null ? file.getSize() : 0;
                 
@@ -172,28 +181,28 @@ public class DriveToS3PipelineTask {
                         }
                     }
                 }
-                s3KeyBuilder.append(file.getName());
+                s3KeyBuilder.append(fileName);
                 String s3Key = s3KeyBuilder.toString();
                 
-                log.info("Uploading file: {} to S3 key: {}", file.getName(), s3Key);
+                log.info("Uploading file: {} to S3 key: {}", fileName, s3Key);
                 
                 // S3 Upload
-                String returnedKey = s3Service.uploadFileWithKey(inputStream, size, s3Key, file.getMimeType());
+                String returnedKey = s3Service.uploadFileWithKey(inputStream, size, s3Key, targetMimeType);
                 String s3Url = s3Service.getS3Url(returnedKey);
                 
-                log.info("Uploaded file: {}", file.getName());
+                log.info("Uploaded file: {}", fileName);
                 
                 // MongoDB Save
-                log.info("Saving product: {}", file.getName());
+                log.info("Saving product: {}", fileName);
                 Product product = new Product();
-                String displayTitle = Product.stripExtension(file.getName());
+                String displayTitle = Product.stripExtension(fileName);
                 product.setTitle(displayTitle);
                 product.setDisplayTitle(displayTitle);
-                product.setOriginalFileName(file.getName());
-                product.setFileName(file.getName());
+                product.setOriginalFileName(fileName);
+                product.setFileName(fileName);
                 
-                String fileMimeType = file.getMimeType() != null ? file.getMimeType() : Product.determineMimeType(file.getName());
-                String contentType = Product.determineContentType(fileMimeType, file.getName());
+                String fileMimeType = targetMimeType != null ? targetMimeType : Product.determineMimeType(fileName);
+                String contentType = Product.determineContentType(fileMimeType, fileName);
                 
                 product.setType(contentType);
                 product.setContentType(contentType);
@@ -201,7 +210,7 @@ public class DriveToS3PipelineTask {
                 
                 product.setS3Key(returnedKey);
                 product.setStorageKey(returnedKey);
-                product.setFileSize(size);
+                product.setFileSize(size); // Note: For Google Docs this will be 0 initially
                 product.setImportedFromDrive(true);
                 product.setPublished(true); // Automatically publish newly synced documents
                 product.setPrice(price);
@@ -222,7 +231,7 @@ public class DriveToS3PipelineTask {
                 // Archive movement (only after S3 and MongoDB operations succeed)
                 if (archiveFolderId != null) {
                     googleDriveSyncService.moveFileToArchive(file.getId(), parentFolderId, archiveFolderId);
-                    log.info("Archived file: {}", file.getName());
+                    log.info("Archived file: {}", fileName);
                 }
             }
         }
