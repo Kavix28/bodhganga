@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import Breadcrumb from '../components/common/Breadcrumb';
+import { getResourceBadge } from './Marketplace';
 
 const FreeResources = () => {
     const navigate = useNavigate();
@@ -130,9 +131,14 @@ const FreeResources = () => {
                                 {/* Content */}
                                 <div className="p-5 flex-1 flex flex-col justify-between">
                                     <div className="space-y-2">
-                                        <div className="flex gap-2 text-[8px] font-black uppercase text-gold">
-                                            <span>{product.state || 'All India'}</span>
-                                            {product.district && <span>· {product.district}</span>}
+                                        <div className="flex justify-between items-center flex-wrap gap-1">
+                                            <div className="flex gap-2 text-[8px] font-black uppercase text-gold">
+                                                <span>{product.state || 'All India'}</span>
+                                                {product.district && <span>· {product.district}</span>}
+                                            </div>
+                                            <span className={`inline-flex items-center gap-1 text-[8px] font-black uppercase px-2 py-0.5 rounded border ${getResourceBadge(product.contentType || product.type).color}`}>
+                                                <span>{getResourceBadge(product.contentType || product.type).icon}</span> {getResourceBadge(product.contentType || product.type).text}
+                                            </span>
                                         </div>
                                         <h3 className="font-serif font-bold text-emerald-dark text-sm group-hover:text-gold transition-colors line-clamp-2">
                                             {product.title}

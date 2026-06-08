@@ -2,6 +2,7 @@ package com.bodhganga.bodhganga.controllers;
 
 import com.bodhganga.bodhganga.dto.ApiResponseDTO;
 import com.bodhganga.bodhganga.entity.State;
+import com.bodhganga.bodhganga.entity.Product;
 import com.bodhganga.bodhganga.repo.StateRepo;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
@@ -26,22 +27,63 @@ public class StateController {
         this.mongoTemplate = mongoTemplate;
     }
 
-    public record StateCount(String state, long count) {}
+    public record DistrictInfo(String district, String districtSlug, long count) {}
 
     /**
      * GET /api/states/available
      * Show only states that have notes/documents (isPublished == true)
      */
     @GetMapping("/available")
-    public ResponseEntity<List<StateCount>> getAvailableStates() {
+    public ResponseEntity<List<State>> getAvailableStates() {
+        // Find all unique stateSlugs of published products
         Aggregation agg = Aggregation.newAggregation(
-            Aggregation.match(Criteria.where("isPublished").is(true).and("state").exists(true).ne(null).ne("")),
-            Aggregation.group("state").count().as("count"),
-            Aggregation.project("count").and("_id").as("state").andExclude("_id")
+            Aggregation.match(Criteria.where("isPublished").is(true).and("stateSlug").exists(true).ne(null).ne("").ne("general")),
+            Aggregation.group("stateSlug"),
+            Aggregation.project().and("_id").as("stateSlug").andExclude("_id")
         );
 
-        AggregationResults<StateCount> results = mongoTemplate.aggregate(agg, "products", StateCount.class);
-        List<StateCount> list = results.getMappedResults();
+        AggregationResults<org.bson.Document> results = mongoTemplate.aggregate(agg, "products", org.bson.Document.class);
+        List<String> activeSlugs = results.getMappedResults().stream()
+                .map(doc -> doc.getString("stateSlug"))
+                .filter(slug -> slug != null && !slug.isEmpty())
+                .toList();
+
+        // Load states matching these slugs
+        List<State> states = stateRepo.findAllById(activeSlugs);
+        
+        // Populate product counts
+        for (State state : states) {
+            long count = mongoTemplate.count(
+                org.springframework.data.mongodb.core.query.Query.query(
+                    Criteria.where("isPublished").is(true).and("stateSlug").is(state.getId())
+                ),
+                Product.class
+            );
+            state.setNotesCount((int) count);
+        }
+
+        return ResponseEntity.ok(states);
+    }
+
+    /**
+     * GET /api/states/{stateSlug}/districts
+     * Get only districts of a state that actually contain published products
+     */
+    @GetMapping("/{stateSlug}/districts")
+    public ResponseEntity<List<DistrictInfo>> getAvailableDistricts(@PathVariable String stateSlug) {
+        Aggregation agg = Aggregation.newAggregation(
+            Aggregation.match(Criteria.where("isPublished").is(true)
+                .and("stateSlug").is(stateSlug)
+                .and("district").exists(true).ne(null).ne("").ne("general")),
+            Aggregation.group("district", "districtSlug").count().as("count"),
+            Aggregation.project("count")
+                .and("_id.district").as("district")
+                .and("_id.districtSlug").as("districtSlug")
+                .andExclude("_id")
+        );
+
+        AggregationResults<DistrictInfo> results = mongoTemplate.aggregate(agg, "products", DistrictInfo.class);
+        List<DistrictInfo> list = results.getMappedResults();
         return ResponseEntity.ok(list);
     }
 

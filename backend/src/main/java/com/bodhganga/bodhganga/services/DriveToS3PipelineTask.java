@@ -186,12 +186,21 @@ public class DriveToS3PipelineTask {
                 // MongoDB Save
                 log.info("Saving product: {}", file.getName());
                 Product product = new Product();
-                String fileNameNoExt = file.getName().replace(".pdf", "").replace(".PDF", "");
-                product.setTitle(fileNameNoExt);
-                product.setType("PDF");
+                String displayTitle = Product.stripExtension(file.getName());
+                product.setTitle(displayTitle);
+                product.setDisplayTitle(displayTitle);
+                product.setOriginalFileName(file.getName());
+                product.setFileName(file.getName());
+                
+                String fileMimeType = file.getMimeType() != null ? file.getMimeType() : Product.determineMimeType(file.getName());
+                String contentType = Product.determineContentType(fileMimeType, file.getName());
+                
+                product.setType(contentType);
+                product.setContentType(contentType);
+                product.setMimeType(fileMimeType);
+                
                 product.setS3Key(returnedKey);
                 product.setStorageKey(returnedKey);
-                product.setFileName(file.getName());
                 product.setFileSize(size);
                 product.setImportedFromDrive(true);
                 product.setPublished(true); // Automatically publish newly synced documents
@@ -204,7 +213,6 @@ public class DriveToS3PipelineTask {
                 product.setStateSlug(Product.generateSlug(state)); // Must only contain state slug
                 product.setDistrict(district);
                 product.setDistrictSlug(Product.generateSlug(district)); // Must only contain district slug
-                product.setMimeType(file.getMimeType());
                 product.setS3Url(s3Url);
                 product.setSource("Google Drive");
 

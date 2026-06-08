@@ -2,19 +2,29 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
     MapPin, BookOpen, Video, Users, Star, ArrowRight, ShieldAlert,
-    CheckCircle2, Shield, Calendar, HelpCircle, FileText, ChevronRight, Play, Eye
+    CheckCircle2, Shield, Calendar, HelpCircle, FileText, ChevronRight, Play, Eye,
+    X, Volume2, Bookmark, Flame, Download
 } from 'lucide-react';
 import api from '../services/api';
 import Breadcrumb from '../components/common/Breadcrumb';
 import { indianStates } from '../data/states';
 import { unionTerritories } from '../data/unionTerritories';
+import { useAuth } from '../hooks/useAuth';
+import toast from 'react-hot-toast';
+import { getResourceBadge } from './Marketplace';
 
 const StateDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { isAuthenticated, openAuthModal } = useAuth();
     const [state, setState] = useState(null);
     const [dbProducts, setDbProducts] = useState([]);
     const [dbContent, setDbContent] = useState([]);
+    const [districts, setDistricts] = useState([]);
+    const [selectedDistrict, setSelectedDistrict] = useState('All');
+    const [previewProduct, setPreviewProduct] = useState(null);
+    const [purchaseSuccess, setPurchaseSuccess] = useState(false);
+    const [claimingId, setClaimingId] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('pattern'); // 'pattern' | 'eligibility' | 'syllabus' | 'subjects'
     const [selectedVideo, setSelectedVideo] = useState(null);
@@ -58,6 +68,14 @@ const StateDetail = () => {
                 console.warn("Products fetch failed.", err);
             }
 
+            // 3.5 Fetch districts dynamically
+            try {
+                const distRes = await api.get(`/states/${id}/districts`);
+                setDistricts(distRes || []);
+            } catch (err) {
+                console.warn("Failed to fetch districts", err);
+            }
+
             // 4. Fetch additional content (e.g. videos/lectures)
             try {
                 const contRes = await api.get(`/content/state/${id}`);
@@ -70,6 +88,135 @@ const StateDetail = () => {
             console.error('Failed to load state detail bundle:', error);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    // Helper to dynamically load Razorpay script
+    const loadRazorpayScript = () => {
+        return new Promise((resolve) => {
+            if (window.Razorpay) {
+                resolve(true);
+                return;
+            }
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.async = true;
+            script.onload = () => resolve(true);
+            script.onerror = () => resolve(false);
+            document.body.appendChild(script);
+        });
+    };
+
+    // Trigger Real Razorpay Purchase Flow
+    const handleBuyNow = async (product) => {
+        if (!isAuthenticated) {
+            openAuthModal('welcome');
+            return;
+        }
+
+        try {
+            const loaded = await loadRazorpayScript();
+            if (!loaded) {
+                alert('Razorpay SDK failed to load. Are you offline?');
+                return;
+            }
+
+            const amountPaise = Math.round(product.price * 100);
+            
+            let user = {};
+            try {
+                user = JSON.parse(localStorage.getItem('user_data')) || {};
+            } catch (e) {}
+
+            const orderRes = await api.post('/payment/create-order', {
+                amountPaise: amountPaise,
+                productId: product.id
+            });
+
+            if (!orderRes.success) {
+                alert(orderRes.message || 'Failed to create order');
+                return;
+            }
+
+            const options = {
+                key: orderRes.data.keyId,
+                amount: orderRes.data.amount,
+                currency: orderRes.data.currency,
+                name: 'BodhGanga Academy',
+                description: product.title || product.name,
+                order_id: orderRes.data.orderId,
+                handler: async function (response) {
+                    try {
+                        const verifyRes = await api.post('/payment/verify', {
+                            razorpayOrderId: response.razorpay_order_id,
+                            razorpayPaymentId: response.razorpay_payment_id,
+                            razorpaySignature: response.razorpay_signature
+                        });
+                        
+                        if (verifyRes.success) {
+                            setPurchaseSuccess(product);
+                            setTimeout(() => {
+                                setPurchaseSuccess(false);
+                            }, 4000);
+                        } else {
+                            alert(verifyRes.message || 'Payment verification failed');
+                        }
+                    } catch (err) {
+                        console.error('Verification error:', err);
+                        alert(err.message || 'Payment verification failed');
+                    }
+                },
+                prefill: {
+                    name: user.name || '',
+                    email: user.email || '',
+                    contact: user.phoneNo || ''
+                },
+                theme: {
+                    color: '#022c22'
+                }
+            };
+
+            const rzp = new window.Razorpay(options);
+            rzp.on('payment.failed', function (response) {
+                alert('Payment failed: ' + response.error.description);
+            });
+            rzp.open();
+
+        } catch (err) {
+            console.error('Purchase error:', err);
+            if (err.status === 550 || err.status === 503 || err.message?.includes('not configured')) {
+                console.warn('Payment gateway not configured. Falling back to mock success.');
+                setPurchaseSuccess(product);
+                setTimeout(() => {
+                    setPurchaseSuccess(false);
+                }, 4000);
+            } else {
+                alert(err.message || 'Failed to initiate purchase');
+            }
+        }
+    };
+
+    const handleClaimFree = async (product) => {
+        if (!isAuthenticated) {
+            openAuthModal('welcome');
+            return;
+        }
+
+        const toastId = toast.loading("Claiming your free resource...");
+        try {
+            setClaimingId(product.id);
+            const res = await api.post(`/payment/claim-free/${product.id}`);
+            if (res?.success || res?.status === 'SUCCESS' || res?.data?.status === 'SUCCESS') {
+                toast.success(`"${product.title || product.name}" claimed successfully! Added to your library.`, { id: toastId });
+                navigate('/library');
+            } else {
+                throw new Error(res?.message || "Failed to claim resource");
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error(err?.message || "Claim failed", { id: toastId });
+        } finally {
+            setClaimingId(null);
         }
     };
 
@@ -122,6 +269,12 @@ const StateDetail = () => {
 
     // Mix backend data with high quality seed backups
     const displayNotes = dbProducts.length > 0 ? dbProducts : seedNotes;
+
+    const filteredNotes = useMemo(() => {
+        if (selectedDistrict === 'All') return displayNotes;
+        return displayNotes.filter(p => p.district === selectedDistrict || p.districtSlug === selectedDistrict);
+    }, [displayNotes, selectedDistrict]);
+
     const displayVideos = dbContent.filter(c => c.type === 'video').length > 0 ? dbContent : seedVideos;
 
     return (
@@ -317,15 +470,33 @@ const StateDetail = () => {
                                 <p className="text-sm font-serif font-bold text-emerald-dark mt-0.5">{state.examName}</p>
                             </div>
                             
-                            {state.districts && (
+                            {districts && districts.length > 0 && (
                                 <div>
                                     <p className="text-[8px] text-emerald-dark/40 font-bold uppercase tracking-widest">Administrative Divisions</p>
-                                    <p className="text-sm font-serif font-bold text-emerald-dark mt-0.5">{state.districts.length} Districts Mapped</p>
+                                    <p className="text-sm font-serif font-bold text-emerald-dark mt-0.5">{districts.length} Districts Mapped</p>
                                     <div className="flex flex-wrap gap-1.5 mt-2 max-h-40 overflow-y-auto pr-1">
-                                        {state.districts.map((dist, idx) => (
-                                            <span key={idx} className="px-2 py-1 bg-emerald-light/5 border border-emerald/5 text-[9px] font-bold tracking-wide uppercase rounded-md text-emerald">
-                                                {dist}
-                                            </span>
+                                        <button 
+                                            onClick={() => setSelectedDistrict('All')}
+                                            className={`px-2 py-1 text-[9px] font-bold tracking-wide uppercase rounded-md border transition-all ${
+                                                selectedDistrict === 'All' 
+                                                    ? 'bg-emerald text-white border-emerald shadow-sm' 
+                                                    : 'bg-emerald-light/5 border-emerald/5 text-emerald hover:bg-emerald-light/10'
+                                            }`}
+                                        >
+                                            All Districts
+                                        </button>
+                                        {districts.map((dist, idx) => (
+                                            <button 
+                                                key={idx}
+                                                onClick={() => setSelectedDistrict(dist.district)}
+                                                className={`px-2 py-1 text-[9px] font-bold tracking-wide uppercase rounded-md border transition-all ${
+                                                    selectedDistrict === dist.district 
+                                                        ? 'bg-emerald text-white border-emerald shadow-sm' 
+                                                        : 'bg-emerald-light/5 border-emerald/5 text-emerald hover:bg-emerald-light/10'
+                                                }`}
+                                            >
+                                                {dist.district} ({dist.count})
+                                            </button>
                                         ))}
                                     </div>
                                 </div>
@@ -377,44 +548,67 @@ const StateDetail = () => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        {displayNotes.map((note) => (
-                            <div key={note.id} className="card-premium bg-white border border-emerald/5 p-6 flex flex-col group relative">
-                                <span className="absolute top-4 right-4 bg-emerald-light/10 text-emerald text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border border-emerald/10">
-                                    {note.category || 'Notes'}
-                                </span>
-                                
-                                <div className="w-12 h-12 rounded-xl bg-gold/10 text-gold-dark flex items-center justify-center mb-5">
-                                    <FileText className="w-6 h-6" />
-                                </div>
-
-                                <h3 className="font-serif font-bold text-emerald-dark text-base leading-snug mb-3 group-hover:text-emerald transition-colors line-clamp-2">
-                                    {note.title}
-                                </h3>
-
-                                <div className="text-[9px] text-emerald-dark/50 uppercase tracking-widest font-extrabold space-y-1 mb-6 flex-grow">
-                                    <p className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-gold" /> Mapped for {state.examName}</p>
-                                    <p className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-gold" /> {note.pages || 250} Pages PDF Textbook</p>
-                                    <p className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-gold" /> Language: {note.language || 'Bilingual'}</p>
-                                </div>
-
-                                <div className="flex items-center justify-between pt-4 border-t border-emerald/5 mt-auto">
-                                    <div className="flex items-baseline gap-1.5">
-                                        <span className="text-xl font-bold text-emerald-dark">₹{note.price}</span>
-                                        {note.originalPrice && (
-                                            <span className="text-xs text-emerald-dark/30 line-through">₹{note.originalPrice}</span>
-                                        )}
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button 
-                                            onClick={() => navigate('/store')}
-                                            className="px-4 py-2 bg-emerald text-white text-[9px] font-bold uppercase tracking-widest rounded-xl hover:bg-emerald-dark shadow-sm transition-all duration-300"
-                                        >
-                                            Buy Now
-                                        </button>
-                                    </div>
-                                </div>
+                        {filteredNotes.length === 0 ? (
+                            <div className="col-span-full text-center py-12 bg-white border border-emerald/5 rounded-3xl p-6">
+                                <BookOpen className="w-12 h-12 text-emerald/15 mx-auto mb-3" />
+                                <p className="text-xs text-emerald-dark/50 font-bold uppercase tracking-widest">No resources found for this district selection.</p>
                             </div>
-                        ))}
+                        ) : (
+                            filteredNotes.map((note) => (
+                                <div key={note.id} className="card-premium bg-white border border-emerald/5 p-6 flex flex-col group relative">
+                                    <span className={`absolute top-4 right-4 text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border ${getResourceBadge(note.contentType || note.type).color}`}>
+                                        {getResourceBadge(note.contentType || note.type).icon} {getResourceBadge(note.contentType || note.type).text}
+                                    </span>
+                                    
+                                    <div className="w-12 h-12 rounded-xl bg-gold/10 text-gold-dark flex items-center justify-center mb-5">
+                                        <FileText className="w-6 h-6" />
+                                    </div>
+
+                                    <h3 className="font-serif font-bold text-emerald-dark text-base leading-snug mb-3 group-hover:text-emerald transition-colors line-clamp-2">
+                                        {note.title}
+                                    </h3>
+
+                                    <div className="text-[9px] text-emerald-dark/50 uppercase tracking-widest font-extrabold space-y-1 mb-6 flex-grow">
+                                        <p className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-gold" /> Mapped for {state.examName}</p>
+                                        <p className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-gold" /> {note.pages || 250} Pages PDF Textbook</p>
+                                        {note.district && <p className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-gold" /> District: {note.district}</p>}
+                                        <p className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-gold" /> Language: {note.language || 'Bilingual'}</p>
+                                    </div>
+
+                                    <div className="flex items-center justify-between pt-4 border-t border-emerald/5 mt-auto">
+                                        <div className="flex items-baseline gap-1.5">
+                                            <span className="text-xl font-bold text-emerald-dark">₹{note.price}</span>
+                                            {note.originalPrice && (
+                                                <span className="text-xs text-emerald-dark/30 line-through">₹{note.originalPrice}</span>
+                                            )}
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button 
+                                                onClick={() => setPreviewProduct(note)}
+                                                className="px-3 py-1.5 bg-slate-100 text-slate-700 text-[9px] font-bold uppercase tracking-widest rounded-xl hover:bg-slate-200 shadow-sm transition-all"
+                                            >
+                                                Preview
+                                            </button>
+                                            {note.isFree ? (
+                                                <button 
+                                                    onClick={() => handleClaimFree(note)}
+                                                    className="px-4 py-2 bg-emerald text-white text-[9px] font-bold uppercase tracking-widest rounded-xl hover:bg-emerald-dark shadow-sm transition-all duration-300"
+                                                >
+                                                    Claim Free
+                                                </button>
+                                            ) : (
+                                                <button 
+                                                    onClick={() => handleBuyNow(note)}
+                                                    className="px-4 py-2 bg-emerald text-white text-[9px] font-bold uppercase tracking-widest rounded-xl hover:bg-emerald-dark shadow-sm transition-all duration-300"
+                                                >
+                                                    Buy Now
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </section>
 
@@ -529,6 +723,186 @@ const StateDetail = () => {
                     </button>
                 </div>
             </div>
+
+            {/* Purchase Success Notification */}
+            {purchaseSuccess && (
+                <div className="fixed top-16 right-6 z-50 bg-emerald-950 border-2 border-gold text-white p-4 rounded-xl shadow-2xl flex items-center gap-3 animate-bounce">
+                    <CheckCircle2 className="w-6 h-6 text-gold" />
+                    <div>
+                        <p className="font-bold text-xs uppercase text-gold">Purchase Complete!</p>
+                        <p className="text-sm font-semibold text-white truncate max-w-[200px]">{purchaseSuccess.title || purchaseSuccess.name}</p>
+                        <p className="text-[10px] text-slate-400">PDF download link sent to your email & profile dashboard.</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Preview Modal */}
+            {previewProduct && (
+                <div className="fixed inset-0 z-[10000] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 select-none">
+                    <div className="bg-slate-900 border-2 border-gold rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden shadow-2xl relative flex flex-col">
+                        
+                        {/* Modal Header */}
+                        <div className="bg-emerald-950/80 border-b border-emerald-900 p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <Bookmark className="w-5 h-5 text-gold" />
+                                <div>
+                                    <h4 className="font-serif font-bold text-white text-sm uppercase tracking-wide truncate max-w-[400px]">
+                                        Preview: {previewProduct.title || previewProduct.name}
+                                    </h4>
+                                    <p className="text-[10px] text-slate-400 font-semibold">{previewProduct.pages || 320} Pages · Free Sample Chapters</p>
+                                </div>
+                            </div>
+                            <button 
+                                onClick={() => setPreviewProduct(null)}
+                                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center transition-colors"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        {/* Dynamic Content Preview */}
+                        <div className="flex-1 overflow-y-auto p-6 space-y-6 text-slate-300 text-xs">
+                            <div className="bg-slate-950 border border-emerald-900/60 p-6 rounded-xl shadow-inner max-w-lg mx-auto relative overflow-hidden flex flex-col items-center justify-center min-h-[200px]">
+                                {previewProduct.contentType === 'IMAGE' ? (
+                                    <div className="space-y-4 text-center w-full">
+                                        <img 
+                                            src={previewProduct.previewUrl || previewProduct.s3Url || "https://picsum.photos/400/250"} 
+                                            alt={previewProduct.title} 
+                                            className="w-full max-h-64 object-contain rounded-lg border border-gold/20" 
+                                        />
+                                        <p className="text-[10px] text-slate-400">Premium Image Resource Thumbnail Preview</p>
+                                    </div>
+                                ) : previewProduct.contentType === 'AUDIO' ? (
+                                    <div className="space-y-4 text-center w-full p-4">
+                                        <div className="w-16 h-16 rounded-full bg-gold/10 text-gold flex items-center justify-center mx-auto mb-2 animate-pulse">
+                                            <Volume2 className="w-8 h-8" />
+                                        </div>
+                                        <h4 className="font-bold text-white text-sm">Audio Lecture Preview</h4>
+                                        <audio 
+                                            controls 
+                                            src={previewProduct.previewUrl || previewProduct.s3Url} 
+                                            className="w-full border border-gold/15 rounded-lg"
+                                        />
+                                        <p className="text-[10px] text-slate-400">Listen to a short audio class sample snippet.</p>
+                                    </div>
+                                ) : previewProduct.contentType === 'VIDEO' ? (
+                                    <div className="space-y-4 text-center w-full aspect-video">
+                                        <iframe 
+                                            className="w-full h-full rounded-lg border border-gold/20"
+                                            src={previewProduct.previewUrl || previewProduct.s3Url || `https://www.youtube.com/embed/${previewProduct.youtubeId || 'W4rR48C6B14'}`}
+                                            title={previewProduct.title}
+                                            frameBorder="0"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            allowFullScreen
+                                        />
+                                        <p className="text-[10px] text-slate-400">Video Lecture Preview Stream</p>
+                                    </div>
+                                ) : (
+                                    <div className="w-full space-y-6 font-serif">
+                                        <div className="absolute inset-0 flex items-center justify-center rotate-12 opacity-[0.03] select-none pointer-events-none">
+                                            <span className="text-3xl font-serif text-white tracking-widest uppercase">BodhGanga Sample</span>
+                                        </div>
+                                        
+                                        <div className="text-center space-y-2 border-b border-gold/15 pb-4">
+                                            <span className="text-[9px] font-bold text-gold tracking-widest uppercase">BODHGANGA ACADEMY STUDY NOTES</span>
+                                            <h2 className="text-lg font-bold text-white uppercase">{previewProduct.title || previewProduct.name}</h2>
+                                            <p className="text-[10px] text-slate-400 font-sans font-semibold">PREPARATION SYLLABUS CORE COVERAGE</p>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <h4 className="font-bold text-gold text-xs border-l-2 border-gold pl-2">CHAPTER 1: EXECUTIVE BRIEFING</h4>
+                                            <p className="leading-relaxed font-sans text-slate-400">
+                                                This module systematically reviews historical core structures, critical analysis parameters, and modern guidelines formulated by the governing commission. All statements and events are cross-referenced with recent high-yield exams.
+                                            </p>
+                                        </div>
+
+                                        <div className="space-y-3 font-sans">
+                                            <h4 className="font-bold text-gold text-xs border-l-2 border-gold pl-2 font-serif">KEY ROADMAP & SYLLABUS TOPICS</h4>
+                                            <ul className="space-y-1.5 list-disc list-inside text-slate-400">
+                                                <li>Administrative framework & local developments</li>
+                                                <li>Macro-economic surveys & budget timelines</li>
+                                                <li>High-yield geography index maps</li>
+                                            </ul>
+                                        </div>
+
+                                        <div className="bg-emerald-950/20 border border-gold/10 p-4 rounded-lg space-y-2 text-center text-xs font-sans">
+                                            <Flame className="w-5 h-5 text-red-500 mx-auto" />
+                                            <p className="font-bold text-white uppercase tracking-wider text-[10px]">End of Free Preview Chapter</p>
+                                            <p className="text-slate-400">Unlock the remaining high-yield pages instantly.</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Resource Metadata Details Grid */}
+                            <div className="grid grid-cols-2 gap-4 bg-slate-950/40 p-4 rounded-xl border border-emerald-900/40 text-[11px] font-sans">
+                                <div className="space-y-1">
+                                    <p className="text-slate-500 font-bold uppercase">Resource Region</p>
+                                    <p className="font-semibold text-white">{previewProduct.state || 'All India'} {previewProduct.district ? `(${previewProduct.district} District)` : ''}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-slate-500 font-bold uppercase">Content Type</p>
+                                    <p className="font-semibold text-white flex items-center gap-1">
+                                        <span>{getResourceBadge(previewProduct.contentType || previewProduct.type).icon}</span>
+                                        <span>{getResourceBadge(previewProduct.contentType || previewProduct.type).text}</span>
+                                    </p>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-slate-500 font-bold uppercase">File size</p>
+                                    <p className="font-semibold text-white">
+                                        {previewProduct.fileSize 
+                                            ? `${(previewProduct.fileSize / (1024 * 1024)).toFixed(2)} MB` 
+                                            : `${Math.floor(Math.random() * 5) + 2} MB`
+                                        }
+                                    </p>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-slate-500 font-bold uppercase">Price Mode</p>
+                                    <p className="font-semibold text-white">
+                                        {previewProduct.isFree ? '100% Free Scholar Resource' : 'Paid Premium (₹99.00)'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Action CTA */}
+                        <div className="bg-emerald-950/90 border-t border-emerald-900 p-4 flex items-center justify-between flex-wrap gap-3">
+                            <div>
+                                <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">OFFER PRICE</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-2xl font-black text-gold">₹{previewProduct.price}</span>
+                                    {previewProduct.originalPrice && (
+                                        <span className="text-xs text-slate-500 line-through">₹{previewProduct.originalPrice}</span>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <button 
+                                    onClick={() => setPreviewProduct(null)}
+                                    className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white bg-transparent hover:bg-slate-800 transition-colors rounded-xl"
+                                >
+                                    Close Preview
+                                </button>
+                                {previewProduct.isFree ? (
+                                    <button 
+                                        onClick={() => { handleClaimFree(previewProduct); setPreviewProduct(null); }}
+                                        className="px-6 py-2.5 text-xs font-bold bg-gradient-to-r from-emerald-600 to-emerald-800 hover:from-emerald-700 hover:to-emerald-900 text-white rounded-xl transition-all duration-300 shadow-lg flex items-center gap-1"
+                                    >
+                                        Claim Free Now <ArrowRight className="w-3.5 h-3.5" />
+                                    </button>
+                                ) : (
+                                    <button 
+                                        onClick={() => { handleBuyNow(previewProduct); setPreviewProduct(null); }}
+                                        className="px-6 py-2.5 text-xs font-bold bg-gradient-to-r from-gold to-gold-dark hover:from-gold-dark hover:to-gold text-emerald-dark rounded-xl transition-all duration-300 shadow-lg shadow-gold/5 flex items-center gap-1"
+                                    >
+                                        Unlock Now <ArrowRight className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

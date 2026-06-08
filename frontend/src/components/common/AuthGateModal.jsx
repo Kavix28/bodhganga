@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { X, Lock, Mail, User, Phone, MapPin, Eye, EyeOff, Sparkles, BookOpen } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { login as loginService } from '../../services/authService';
@@ -9,6 +9,7 @@ import Logo from './Logo';
 
 const AuthGateModal = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { authModalState, closeAuthModal, login } = useAuth();
     
     // modalState contains { isOpen: false, mode: 'welcome' }
@@ -91,6 +92,8 @@ const AuthGateModal = () => {
                 login(res.data.token, res.data.user);
                 toast.success(`Welcome back, ${res.data.user?.name?.split(' ')[0] || 'Scholar'}!`);
                 closeAuthModal();
+                const fromPath = location.state?.from || '/';
+                navigate(fromPath);
             } else {
                 throw new Error(res?.message || 'Login failed');
             }

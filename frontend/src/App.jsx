@@ -93,14 +93,14 @@ function App() {
                                             <Route path="/founder" element={<Founder />} />
                                             <Route path="/mission-vision" element={<MissionVision />} />
                                             <Route path="/about-india" element={<AboutIndia />} />
-                                            <Route path="/states" element={<States />} />
-                                            <Route path="/union-territories" element={<UnionTerritories />} />
-                                            <Route path="/states/:id" element={<StateDetail />} />
-                                            <Route path="/union-territories/:id" element={<StateDetail />} />
-                                            <Route path="/question-bank" element={<QuestionBank />} />
-                                            <Route path="/subjects" element={<Subjects />} />
-                                            <Route path="/store" element={<Marketplace />} />
-                                            <Route path="/store/state/:slug" element={<Marketplace />} />
+                                            <Route path="/states" element={<ProtectedRoute><States /></ProtectedRoute>} />
+                                            <Route path="/union-territories" element={<ProtectedRoute><UnionTerritories /></ProtectedRoute>} />
+                                            <Route path="/states/:id" element={<ProtectedRoute><StateDetail /></ProtectedRoute>} />
+                                            <Route path="/union-territories/:id" element={<ProtectedRoute><StateDetail /></ProtectedRoute>} />
+                                            <Route path="/question-bank" element={<ProtectedRoute><QuestionBank /></ProtectedRoute>} />
+                                            <Route path="/subjects" element={<ProtectedRoute><Subjects /></ProtectedRoute>} />
+                                            <Route path="/store" element={<ProtectedRoute><Marketplace /></ProtectedRoute>} />
+                                            <Route path="/store/state/:slug" element={<ProtectedRoute><Marketplace /></ProtectedRoute>} />
                                             <Route path="/blog" element={<Blog />} />
                                             <Route path="/blog/:slug" element={<BlogPost />} />
                                             <Route path="/register" element={<Register />} />

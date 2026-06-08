@@ -83,29 +83,18 @@ const States = () => {
         }
     };
 
-    // Merge backend counts and slugs with rich static definitions
+    // Build list dynamically from MongoDB
     const mergedData = useMemo(() => {
-        const staticList = [
-            ...indianStates.map(s => ({ ...s, type: 'STATE' })),
-            ...unionTerritories.map(ut => ({ ...ut, type: 'UT' }))
-        ];
-
-        // Only show states that have active uploaded content in MongoDB
-        const activeList = staticList.filter(item => 
-            dbData.some(d => d.state?.toLowerCase() === item.name?.toLowerCase())
-        );
-
-        return activeList.map(item => {
-            const dbMatch = dbData.find(d => d.state?.toLowerCase() === item.name?.toLowerCase());
+        return dbData.map(item => {
             return {
                 ...item,
-                notesCount: dbMatch?.count || 0,
+                notesCount: item.notesCount || 0,
                 questionsCount: Math.floor(Math.random() * 500) + 1200,
                 solutionsCount: Math.floor(Math.random() * 400) + 1000,
                 region: regionMap[item.id] || 'Other',
-                examName: item.exams?.[0] || `${item.code}PSC`,
+                examName: `${item.code || 'State'}PSC`,
                 aspirantCount: Math.floor(Math.random() * 80000) + 60000,
-                thumbnail: `https://picsum.photos/400/250?random=${item.code}`
+                thumbnail: `https://picsum.photos/400/250?random=${item.code || item.id}`
             };
         });
     }, [dbData]);

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { 
     ShoppingBag, Search, BookOpen, Download, Star, Filter, 
     Clock, ShieldCheck, Flame, Eye, Sparkles, X, ChevronRight,
-    TrendingUp, Award, CheckCircle, ArrowRight, BookOpenCheck, Bookmark
+    TrendingUp, Award, CheckCircle, ArrowRight, BookOpenCheck, Bookmark, Volume2
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
@@ -12,8 +12,31 @@ import { indianStates } from '../data/states';
 import { unionTerritories } from '../data/unionTerritories';
 import EmptyState from '../components/ui/EmptyState';
 import SkeletonLoader from '../components/common/SkeletonLoader';
+import toast from 'react-hot-toast';
 
 const categories = ['All', 'Notes', 'Question Bank', 'Bundle', 'Mock Test'];
+
+export const getResourceBadge = (contentType) => {
+    const type = (contentType || 'PDF').toUpperCase();
+    switch (type) {
+        case 'PDF':
+            return { icon: '📕', text: 'PDF Notes', color: 'bg-red-500/10 text-red-400 border-red-500/20' };
+        case 'DOCUMENT':
+            return { icon: '📄', text: 'Document', color: 'bg-blue-500/10 text-blue-400 border-blue-500/20' };
+        case 'SPREADSHEET':
+            return { icon: '📊', text: 'Spreadsheet', color: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' };
+        case 'PRESENTATION':
+            return { icon: '📈', text: 'Presentation', color: 'bg-orange-500/10 text-orange-400 border-orange-500/20' };
+        case 'IMAGE':
+            return { icon: '🖼️', text: 'Image Resource', color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' };
+        case 'AUDIO':
+            return { icon: '🎧', text: 'Audio Lecture', color: 'bg-purple-500/10 text-purple-400 border-purple-500/20' };
+        case 'VIDEO':
+            return { icon: '🎥', text: 'Video Lecture', color: 'bg-pink-500/10 text-pink-400 border-pink-500/20' };
+        default:
+            return { icon: '📕', text: 'PDF Notes', color: 'bg-red-500/10 text-red-400 border-red-500/20' };
+    }
+};
 
 // Premium static backup data in case API does not return sufficient items
 const backupProducts = [
@@ -354,6 +377,27 @@ const Marketplace = () => {
         }
     };
 
+    const handleClaimFree = async (product) => {
+        if (!isAuthenticated) {
+            openAuthModal('welcome');
+            return;
+        }
+
+        const toastId = toast.loading("Claiming your free resource...");
+        try {
+            const res = await api.post(`/payment/claim-free/${product.id}`);
+            if (res?.success || res?.status === 'SUCCESS' || res?.data?.status === 'SUCCESS') {
+                toast.success(`"${product.title || product.name}" claimed successfully! Added to your library.`, { id: toastId });
+                navigate('/library');
+            } else {
+                throw new Error(res?.message || "Failed to claim resource");
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error(err?.message || "Claim failed", { id: toastId });
+        }
+    };
+
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-20 relative">
             
@@ -451,7 +495,7 @@ const Marketplace = () => {
                                     <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                                     
                                     {/* Bestseller/Discount badges */}
-                                    <div className="flex justify-between items-start mb-4 relative z-10">
+                                    <div className="flex justify-between items-start mb-4 relative z-10 flex-wrap gap-2">
                                         <div className="flex gap-1.5 flex-wrap">
                                             {product.isBestseller && (
                                                 <span className="text-[9px] font-black uppercase tracking-wider bg-gold text-emerald-dark px-2.5 py-1 rounded-full shadow-md">
@@ -463,10 +507,20 @@ const Marketplace = () => {
                                                     <Flame className="w-2.5 h-2.5" /> TRENDING
                                                 </span>
                                             )}
+                                            {product.isFree && (
+                                                <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-600 text-white px-2.5 py-1 rounded-full shadow-md">
+                                                    FREE
+                                                </span>
+                                            )}
                                         </div>
-                                        <span className="text-[9px] font-extrabold uppercase bg-emerald-900/60 border border-emerald-700 text-emerald-300 px-2 py-0.5 rounded-md">
-                                            {product.category || 'Core Package'}
-                                        </span>
+                                        <div className="flex gap-1.5">
+                                            <span className={`inline-flex items-center gap-1 text-[8px] font-black uppercase px-2 py-0.5 rounded border ${getResourceBadge(product.contentType || product.type).color}`}>
+                                                <span>{getResourceBadge(product.contentType || product.type).icon}</span> {getResourceBadge(product.contentType || product.type).text}
+                                            </span>
+                                            <span className="text-[9px] font-extrabold uppercase bg-emerald-900/60 border border-emerald-700 text-emerald-300 px-2 py-0.5 rounded-md">
+                                                {product.category || 'Core Package'}
+                                            </span>
+                                        </div>
                                     </div>
 
                                     {/* Icon & Title */}
@@ -534,14 +588,23 @@ const Marketplace = () => {
                                                 }}
                                                 className="py-2.5 text-xs font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-750 border border-emerald-900/50 rounded-xl transition-all flex items-center justify-center gap-1 shadow-sm active:scale-95"
                                             >
-                                                <Eye className="w-3.5 h-3.5" /> Preview PDF
+                                                <Eye className="w-3.5 h-3.5" /> Preview Resource
                                             </button>
-                                            <button 
-                                                onClick={() => handleBuyNow(product)}
-                                                className="py-2.5 text-xs font-bold bg-gradient-to-r from-gold to-gold-dark hover:from-gold-dark hover:to-gold text-emerald-dark rounded-xl transition-all duration-300 flex items-center justify-center gap-1 shadow-md shadow-gold/5 active:scale-95"
-                                            >
-                                                Buy Now <ArrowRight className="w-3.5 h-3.5" />
-                                            </button>
+                                            {product.isFree ? (
+                                                <button 
+                                                    onClick={() => handleClaimFree(product)}
+                                                    className="py-2.5 text-xs font-bold bg-gradient-to-r from-emerald-600 to-emerald-800 hover:from-emerald-700 hover:to-emerald-900 text-white rounded-xl transition-all duration-300 flex items-center justify-center gap-1 shadow-md active:scale-95"
+                                                >
+                                                    Claim Free <ArrowRight className="w-3.5 h-3.5" />
+                                                </button>
+                                            ) : (
+                                                <button 
+                                                    onClick={() => handleBuyNow(product)}
+                                                    className="py-2.5 text-xs font-bold bg-gradient-to-r from-gold to-gold-dark hover:from-gold-dark hover:to-gold text-emerald-dark rounded-xl transition-all duration-300 flex items-center justify-center gap-1 shadow-md shadow-gold/5 active:scale-95"
+                                                >
+                                                    Buy Now <ArrowRight className="w-3.5 h-3.5" />
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -680,12 +743,12 @@ const Marketplace = () => {
                                             )}
 
                                             <div>
-                                                <div className="flex justify-between items-center mb-3">
+                                                <div className="flex justify-between items-center mb-3 flex-wrap gap-1">
                                                     <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-950/80 border border-emerald-800 text-emerald-300">
                                                         {product.category || 'Study Dossier'}
                                                     </span>
-                                                    <span className="text-[9px] font-bold text-slate-400 mr-20">
-                                                        {product.fileType || 'PDF Document'}
+                                                    <span className={`inline-flex items-center gap-1 text-[8px] font-black uppercase px-2 py-0.5 rounded border ${getResourceBadge(product.contentType || product.type).color}`}>
+                                                        <span>{getResourceBadge(product.contentType || product.type).icon}</span> {getResourceBadge(product.contentType || product.type).text}
                                                     </span>
                                                 </div>
 
@@ -718,7 +781,7 @@ const Marketplace = () => {
                                                             <span className="text-[10px] text-slate-500 line-through">₹{product.originalPrice}</span>
                                                         )}
                                                     </div>
-                                                    <span className="text-[9px] text-emerald-400 font-bold uppercase">Save {discount}% now</span>
+                                                    <span className="text-[9px] text-emerald-400 font-bold uppercase">{product.isFree ? '100% Free' : `Save ${discount}% now`}</span>
                                                 </div>
 
                                                 <div className="flex items-center gap-2">
@@ -731,16 +794,25 @@ const Marketplace = () => {
                                                             }
                                                         }}
                                                         className="p-2 text-xs font-semibold bg-slate-800 hover:bg-slate-750 text-slate-200 hover:text-white rounded-lg border border-emerald-900/40 transition-colors"
-                                                        title="Preview PDF Pages"
+                                                        title="Preview Resource"
                                                     >
                                                         <Eye className="w-4 h-4" />
                                                     </button>
-                                                    <button 
-                                                        onClick={() => handleBuyNow(product)}
-                                                        className="px-4 py-2 text-xs font-bold bg-gradient-to-r from-emerald-800 to-emerald-950 hover:from-gold hover:to-gold-dark text-white hover:text-emerald-dark rounded-lg transition-all duration-300 shadow-md"
-                                                    >
-                                                        Buy Now
-                                                    </button>
+                                                    {product.isFree ? (
+                                                        <button 
+                                                            onClick={() => handleClaimFree(product)}
+                                                            className="px-4 py-2 text-xs font-bold bg-gradient-to-r from-emerald-600 to-emerald-800 hover:from-emerald-700 hover:to-emerald-900 text-white rounded-lg transition-all duration-300 shadow-md"
+                                                        >
+                                                            Claim Free
+                                                        </button>
+                                                    ) : (
+                                                        <button 
+                                                            onClick={() => handleBuyNow(product)}
+                                                            className="px-4 py-2 text-xs font-bold bg-gradient-to-r from-emerald-800 to-emerald-950 hover:from-gold hover:to-gold-dark text-white hover:text-emerald-dark rounded-lg transition-all duration-300 shadow-md"
+                                                        >
+                                                            Buy Now
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -792,7 +864,7 @@ const Marketplace = () => {
 
             {/* ── PHASE 4 PDF PREVIEW MODAL ─────────────────────────────── */}
             {previewProduct && (
-                <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 select-none">
+                <div className="fixed inset-0 z-[10000] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 select-none">
                     <div className="bg-slate-900 border-2 border-gold rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden shadow-2xl relative flex flex-col">
                         
                         {/* Modal Header */}
@@ -814,41 +886,107 @@ const Marketplace = () => {
                             </button>
                         </div>
 
-                        {/* Mock PDF Content Viewer */}
+                        {/* Dynamic Content Preview */}
                         <div className="flex-1 overflow-y-auto p-6 space-y-6 text-slate-300 text-xs">
-                            <div className="bg-slate-950 border border-emerald-900/60 p-8 rounded-xl shadow-inner space-y-6 font-serif max-w-lg mx-auto relative overflow-hidden">
-                                
-                                {/* Watermark */}
-                                <div className="absolute inset-0 flex items-center justify-center rotate-12 opacity-[0.03] select-none pointer-events-none">
-                                    <span className="text-3xl font-serif text-white tracking-widest uppercase">BodhGanga Officer Club Sample</span>
-                                </div>
+                            <div className="bg-slate-950 border border-emerald-900/60 p-6 rounded-xl shadow-inner max-w-lg mx-auto relative overflow-hidden flex flex-col items-center justify-center min-h-[200px]">
+                                {previewProduct.contentType === 'IMAGE' ? (
+                                    <div className="space-y-4 text-center w-full">
+                                        <img 
+                                            src={previewProduct.previewUrl || previewProduct.s3Url || "https://picsum.photos/400/250"} 
+                                            alt={previewProduct.title} 
+                                            className="w-full max-h-64 object-contain rounded-lg border border-gold/20" 
+                                        />
+                                        <p className="text-[10px] text-slate-400">Premium Image Resource Thumbnail Preview</p>
+                                    </div>
+                                ) : previewProduct.contentType === 'AUDIO' ? (
+                                    <div className="space-y-4 text-center w-full p-4">
+                                        <div className="w-16 h-16 rounded-full bg-gold/10 text-gold flex items-center justify-center mx-auto mb-2 animate-pulse">
+                                            <Volume2 className="w-8 h-8" />
+                                        </div>
+                                        <h4 className="font-bold text-white text-sm">Audio Lecture Preview</h4>
+                                        <audio 
+                                            controls 
+                                            src={previewProduct.previewUrl || previewProduct.s3Url} 
+                                            className="w-full border border-gold/15 rounded-lg"
+                                        />
+                                        <p className="text-[10px] text-slate-400">Listen to a short audio class sample snippet.</p>
+                                    </div>
+                                ) : previewProduct.contentType === 'VIDEO' ? (
+                                    <div className="space-y-4 text-center w-full aspect-video">
+                                        <iframe 
+                                            className="w-full h-full rounded-lg border border-gold/20"
+                                            src={previewProduct.previewUrl || previewProduct.s3Url || `https://www.youtube.com/embed/${previewProduct.youtubeId || 'W4rR48C6B14'}`}
+                                            title={previewProduct.title}
+                                            frameBorder="0"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            allowFullScreen
+                                        />
+                                        <p className="text-[10px] text-slate-400">Video Lecture Preview Stream</p>
+                                    </div>
+                                ) : (
+                                    <div className="w-full space-y-6 font-serif">
+                                        <div className="absolute inset-0 flex items-center justify-center rotate-12 opacity-[0.03] select-none pointer-events-none">
+                                            <span className="text-3xl font-serif text-white tracking-widest uppercase">BodhGanga Sample</span>
+                                        </div>
+                                        
+                                        <div className="text-center space-y-2 border-b border-gold/15 pb-4">
+                                            <span className="text-[9px] font-bold text-gold tracking-widest uppercase">BODHGANGA ACADEMY STUDY NOTES</span>
+                                            <h2 className="text-lg font-bold text-white uppercase">{previewProduct.title || previewProduct.name}</h2>
+                                            <p className="text-[10px] text-slate-400 font-sans font-semibold">PREPARATION SYLLABUS CORE COVERAGE</p>
+                                        </div>
 
-                                <div className="text-center space-y-2 border-b border-gold/15 pb-4">
-                                    <span className="text-[9px] font-bold text-gold tracking-widest uppercase">BODHGANGA ACADEMY STUDY NOTES</span>
-                                    <h2 className="text-lg font-bold text-white uppercase">{previewProduct.title || previewProduct.name}</h2>
-                                    <p className="text-[10px] text-slate-400 font-sans font-semibold">PREPARATION SYLLABUS CORE COVERAGE</p>
-                                </div>
+                                        <div className="space-y-4">
+                                            <h4 className="font-bold text-gold text-xs border-l-2 border-gold pl-2">CHAPTER 1: EXECUTIVE BRIEFING</h4>
+                                            <p className="leading-relaxed font-sans text-slate-400">
+                                                This module systematically reviews historical core structures, critical analysis parameters, and modern guidelines formulated by the governing commission. All statements and events are cross-referenced with recent high-yield exams.
+                                            </p>
+                                        </div>
 
-                                <div className="space-y-4">
-                                    <h4 className="font-bold text-gold text-xs border-l-2 border-gold pl-2">CHAPTER 1: EXECUTIVE BRIEFING</h4>
-                                    <p className="leading-relaxed font-sans text-slate-400">
-                                        This module systematically reviews historical core structures, critical analysis parameters, and modern guidelines formulated by the governing commission. All statements and events are cross-referenced with recent high-yield exams.
+                                        <div className="space-y-3 font-sans">
+                                            <h4 className="font-bold text-gold text-xs border-l-2 border-gold pl-2 font-serif">KEY ROADMAP & SYLLABUS TOPICS</h4>
+                                            <ul className="space-y-1.5 list-disc list-inside text-slate-400">
+                                                <li>Administrative framework & local developments</li>
+                                                <li>Macro-economic surveys & budget timelines</li>
+                                                <li>High-yield geography index maps</li>
+                                            </ul>
+                                        </div>
+
+                                        <div className="bg-emerald-950/20 border border-gold/10 p-4 rounded-lg space-y-2 text-center text-xs font-sans">
+                                            <Flame className="w-5 h-5 text-red-500 mx-auto" />
+                                            <p className="font-bold text-white uppercase tracking-wider text-[10px]">End of Free Preview Chapter</p>
+                                            <p className="text-slate-400">Unlock the remaining high-yield pages instantly.</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Resource Metadata Details Grid */}
+                            <div className="grid grid-cols-2 gap-4 bg-slate-950/40 p-4 rounded-xl border border-emerald-900/40 text-[11px] font-sans">
+                                <div className="space-y-1">
+                                    <p className="text-slate-500 font-bold uppercase">Resource Region</p>
+                                    <p className="font-semibold text-white">{previewProduct.state || 'All India'} {previewProduct.district ? `(${previewProduct.district} District)` : ''}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-slate-500 font-bold uppercase">Content Type</p>
+                                    <p className="font-semibold text-white flex items-center gap-1">
+                                        <span>{getResourceBadge(previewProduct.contentType || previewProduct.type).icon}</span>
+                                        <span>{getResourceBadge(previewProduct.contentType || previewProduct.type).text}</span>
                                     </p>
                                 </div>
-
-                                <div className="space-y-3 font-sans">
-                                    <h4 className="font-bold text-gold text-xs border-l-2 border-gold pl-2 font-serif">KEY ROADMAP & SYLLABUS TOPICS</h4>
-                                    <ul className="space-y-1.5 list-disc list-inside text-slate-400">
-                                        <li>Administrative framework & local developments</li>
-                                        <li>Macro-economic surveys & budget timelines</li>
-                                        <li>High-yield geography index maps</li>
-                                    </ul>
+                                <div className="space-y-1">
+                                    <p className="text-slate-500 font-bold uppercase">File size</p>
+                                    <p className="font-semibold text-white">
+                                        {previewProduct.fileSize 
+                                            ? `${(previewProduct.fileSize / (1024 * 1024)).toFixed(2)} MB` 
+                                            : `${Math.floor(Math.random() * 5) + 2} MB`
+                                        }
+                                    </p>
                                 </div>
-
-                                <div className="bg-emerald-950/20 border border-gold/10 p-4 rounded-lg space-y-2 text-center text-xs font-sans">
-                                    <Flame className="w-5 h-5 text-red-500 mx-auto" />
-                                    <p className="font-bold text-white uppercase tracking-wider text-[10px]">End of Free Preview Chapter</p>
-                                    <p className="text-slate-400">Unlock the remaining 340 high-yield pages with topper annotations instantly.</p>
+                                <div className="space-y-1">
+                                    <p className="text-slate-500 font-bold uppercase">Price Mode</p>
+                                    <p className="font-semibold text-white">
+                                        {previewProduct.isFree ? '100% Free Scholar Resource' : 'Paid Premium (₹99.00)'}
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -871,12 +1009,21 @@ const Marketplace = () => {
                                 >
                                     Close Preview
                                 </button>
-                                <button 
-                                    onClick={() => { handleBuyNow(previewProduct); setPreviewProduct(null); }}
-                                    className="px-6 py-2.5 text-xs font-bold bg-gradient-to-r from-gold to-gold-dark hover:from-gold-dark hover:to-gold text-emerald-dark rounded-xl transition-all duration-300 shadow-lg shadow-gold/5 flex items-center gap-1"
-                                >
-                                    Unlock PDF Now <ArrowRight className="w-3.5 h-3.5" />
-                                </button>
+                                {previewProduct.isFree ? (
+                                    <button 
+                                        onClick={() => { handleClaimFree(previewProduct); setPreviewProduct(null); }}
+                                        className="px-6 py-2.5 text-xs font-bold bg-gradient-to-r from-emerald-600 to-emerald-800 hover:from-emerald-700 hover:to-emerald-900 text-white rounded-xl transition-all duration-300 shadow-lg flex items-center gap-1"
+                                    >
+                                        Claim Free Now <ArrowRight className="w-3.5 h-3.5" />
+                                    </button>
+                                ) : (
+                                    <button 
+                                        onClick={() => { handleBuyNow(previewProduct); setPreviewProduct(null); }}
+                                        className="px-6 py-2.5 text-xs font-bold bg-gradient-to-r from-gold to-gold-dark hover:from-gold-dark hover:to-gold text-emerald-dark rounded-xl transition-all duration-300 shadow-lg shadow-gold/5 flex items-center gap-1"
+                                    >
+                                        Unlock PDF Now <ArrowRight className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>

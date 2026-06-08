@@ -36,6 +36,9 @@ public class Product {
     private String district;
     private String districtSlug;
     private String mimeType;
+    private String contentType;
+    private String displayTitle;
+    private String originalFileName;
     private String s3Url;
     private String source;
 
@@ -100,6 +103,15 @@ public class Product {
     public String getMimeType() { return mimeType; }
     public void setMimeType(String mimeType) { this.mimeType = mimeType; }
 
+    public String getContentType() { return contentType; }
+    public void setContentType(String contentType) { this.contentType = contentType; }
+
+    public String getDisplayTitle() { return displayTitle; }
+    public void setDisplayTitle(String displayTitle) { this.displayTitle = displayTitle; }
+
+    public String getOriginalFileName() { return originalFileName; }
+    public void setOriginalFileName(String originalFileName) { this.originalFileName = originalFileName; }
+
     public String getS3Url() { return s3Url; }
     public void setS3Url(String s3Url) { this.s3Url = s3Url; }
 
@@ -113,5 +125,71 @@ public class Product {
                 .replaceAll("[^a-z0-9\\s-]", "")
                 .replaceAll("\\s+", "-")
                 .replaceAll("-+", "-");
+    }
+
+    public static String stripExtension(String fileName) {
+        if (fileName == null) return "";
+        int lastDot = fileName.lastIndexOf('.');
+        if (lastDot > 0) {
+            String ext = fileName.substring(lastDot + 1).toLowerCase();
+            if (java.util.List.of("pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "png", "jpg", "jpeg", "mp3", "m4a", "wav", "mp4").contains(ext)) {
+                return fileName.substring(0, lastDot);
+            }
+        }
+        return fileName;
+    }
+
+    public static String determineContentType(String mimeType, String fileName) {
+        if (mimeType != null) {
+            String mt = mimeType.toLowerCase();
+            if (mt.equals("application/pdf")) return "PDF";
+            if (mt.equals("application/msword") || mt.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document")) return "DOCUMENT";
+            if (mt.equals("application/vnd.ms-excel") || mt.equals("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")) return "SPREADSHEET";
+            if (mt.equals("application/vnd.ms-powerpoint") || mt.equals("application/vnd.openxmlformats-officedocument.presentationml.presentation")) return "PRESENTATION";
+            if (mt.startsWith("image/")) return "IMAGE";
+            if (mt.startsWith("audio/")) return "AUDIO";
+            if (mt.startsWith("video/")) return "VIDEO";
+        }
+        if (fileName != null) {
+            int lastDot = fileName.lastIndexOf('.');
+            if (lastDot > 0) {
+                String ext = fileName.substring(lastDot + 1).toLowerCase();
+                switch (ext) {
+                    case "pdf": return "PDF";
+                    case "doc": case "docx": return "DOCUMENT";
+                    case "xls": case "xlsx": return "SPREADSHEET";
+                    case "ppt": case "pptx": return "PRESENTATION";
+                    case "png": case "jpg": case "jpeg": return "IMAGE";
+                    case "mp3": case "m4a": case "wav": return "AUDIO";
+                    case "mp4": return "VIDEO";
+                }
+            }
+        }
+        return "DOCUMENT";
+    }
+
+    public static String determineMimeType(String fileName) {
+        if (fileName != null) {
+            int lastDot = fileName.lastIndexOf('.');
+            if (lastDot > 0) {
+                String ext = fileName.substring(lastDot + 1).toLowerCase();
+                switch (ext) {
+                    case "pdf": return "application/pdf";
+                    case "doc": return "application/msword";
+                    case "docx": return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+                    case "xls": return "application/vnd.ms-excel";
+                    case "xlsx": return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                    case "ppt": return "application/vnd.ms-powerpoint";
+                    case "pptx": return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+                    case "png": return "image/png";
+                    case "jpg": case "jpeg": return "image/jpeg";
+                    case "mp3": return "audio/mpeg";
+                    case "m4a": return "audio/m4a";
+                    case "wav": return "audio/wav";
+                    case "mp4": return "video/mp4";
+                }
+            }
+        }
+        return "application/octet-stream";
     }
 }

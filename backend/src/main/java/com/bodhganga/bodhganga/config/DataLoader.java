@@ -3,10 +3,12 @@ package com.bodhganga.bodhganga.config;
 import com.bodhganga.bodhganga.entity.BlogPost;
 import com.bodhganga.bodhganga.entity.Courses;
 import com.bodhganga.bodhganga.entity.Product;
+import com.bodhganga.bodhganga.entity.State;
 import com.bodhganga.bodhganga.entity.User;
 import com.bodhganga.bodhganga.repo.BlogPostRepo;
 import com.bodhganga.bodhganga.repo.CourseRepo;
 import com.bodhganga.bodhganga.repo.ProductRepo;
+import com.bodhganga.bodhganga.repo.StateRepo;
 import com.bodhganga.bodhganga.repo.UserRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,15 +34,17 @@ public class DataLoader implements CommandLineRunner {
     private final UserRepo userRepo;
     private final PasswordEncoder passwordEncoder;
     private final ProductRepo productRepo;
+    private final StateRepo stateRepo;
 
     public DataLoader(CourseRepo courseRepo, BlogPostRepo blogPostRepo,
                       UserRepo userRepo, PasswordEncoder passwordEncoder,
-                      ProductRepo productRepo) {
+                      ProductRepo productRepo, StateRepo stateRepo) {
         this.courseRepo = courseRepo;
         this.blogPostRepo = blogPostRepo;
         this.userRepo = userRepo;
         this.passwordEncoder = passwordEncoder;
         this.productRepo = productRepo;
+        this.stateRepo = stateRepo;
     }
 
     @Override
@@ -49,6 +53,14 @@ public class DataLoader implements CommandLineRunner {
         long deletedCount1 = userRepo.deleteByIsVerified(false);
         long deletedCount2 = userRepo.deleteByEmailVerifiedFalseAndPhoneVerifiedFalse();
         log.info("Cleaned up {} unverified and {} incomplete temporary users from database.", deletedCount1, deletedCount2);
+
+        // Seed states
+        if (stateRepo.count() == 0) {
+            log.info("Loading sample states and UTs data...");
+            seedStates();
+        } else {
+            log.info("States already exist in database. Skipping state seed.");
+        }
 
         // Seed courses
         if (courseRepo.count() == 0) {
@@ -73,6 +85,9 @@ public class DataLoader implements CommandLineRunner {
         } else {
             log.info("Products already exist in database. Skipping product seed.");
         }
+
+        // Run idempotent product migration
+        migrateImportedProducts();
 
         // Ensure admin user exists with ADMIN role
         ensureAdminUser();
@@ -369,5 +384,156 @@ public class DataLoader implements CommandLineRunner {
         p.setPublished(true);
         p.setCreatedAt(new Date());
         return p;
+    }
+
+    private void seedStates() {
+        List<State> states = Arrays.asList(
+            createState("andhra-pradesh", "AP", "Andhra Pradesh", "Amaravati", "Comprehensive preparation material for Andhra Pradesh State Government Exams including APPSC, Police, Forest, and Revenue services.", "STATE", Arrays.asList("Alluri Sitharama Raju", "Anakapalli", "Ananthapuramu", "Chittoor", "East Godavari", "Eluru", "Guntur", "Kakinada", "Konaseema", "Krishna", "Kurnool", "Manyam", "NTR", "Nandyal", "Palnadu", "Prakasam", "Srikakulam", "Sri Potti Sriramulu Nellore", "Sri Sathya Sai", "Tirupati", "Visakhapatnam", "Vizianagaram", "West Godavari", "YSR Kadapa")),
+            createState("arunachal-pradesh", "AR", "Arunachal Pradesh", "Itanagar", "Study materials for Arunachal Pradesh Public Service Commission and state-level examinations.", "STATE", Arrays.asList("Anjaw", "Changlang", "Dibang Valley", "East Kameng", "East Siang", "Kamle", "Kra Daadi", "Kurung Kumey", "Lepa Rada", "Lohit", "Longding", "Lower Dibang Valley", "Lower Siang", "Lower Subansiri", "Namsai", "Pakke Kessang", "Papum Pare", "Shi Yomi", "Siang", "Tawang", "Tirap", "Upper Siang", "Upper Subansiri", "West Kameng", "West Siang")),
+            createState("assam", "AS", "Assam", "Dispur", "Complete study resource for Assam Public Service Commission and various state government examinations.", "STATE", Arrays.asList("Bajali", "Baksa", "Barpeta", "Biswanath", "Bongaigaon", "Cachar", "Charaideo", "Chirang", "Darrang", "Dhemaji", "Dhubri", "Dibrugarh", "Dima Hasao", "Goalpara", "Golaghat", "Hailakandi", "Hojai", "Jorhat", "Kamrup", "Kamrup Metropolitan", "Karbi Anglong", "Karimganj", "Kokrajhar", "Lakhimpur", "Majuli", "Morigaon", "Nagaon", "Nalbari", "Sivasagar", "Sonitpur", "South Salmara-Mankachar", "Tinsukia", "Udalguri", "West Karbi Anglong")),
+            createState("bihar", "BR", "Bihar", "Patna", "Extensive preparation material for Bihar PSC, Police, Sub-Inspector, and Staff Selection Commission examinations.", "STATE", Arrays.asList("Araria", "Arwal", "Aurangabad", "Banka", "Begusarai", "Bhagalpur", "Bhojpur", "Buxar", "Darbhanga", "East Champaran", "Gaya", "Gopalganj", "Jamui", "Jehanabad", "Kaimur", "Katihar", "Khagaria", "Kishanganj", "Lakhisarai", "Madhepura", "Madhubani", "Munger", "Muzaffarpur", "Nalanda", "Nawada", "Patna", "Purnia", "Rohtas", "Saharsa", "Samastipur", "Saran", "Sheikhpura", "Sheohar", "Sitamarhi", "Siwan", "Supaul", "Vaishali", "West Champaran")),
+            createState("chhattisgarh", "CT", "Chhattisgarh", "Raipur", "Comprehensive notes and questions for Chhattisgarh Public Service Commission and state exams.", "STATE", Arrays.asList("Balod", "Baloda Bazar", "Balrampur", "Bastar", "Bemetara", "Bijapur", "Bilaspur", "Dantewada", "Dhamtari", "Durg", "Gariaband", "Gaurela-Pendra-Marwahi", "Janjgir-Champa", "Jashpur", "Kabirdham", "Kanker", "Kondagaon", "Korba", "Korea", "Mahasamund", "Manendragarh-Chirmiri-Bharatpur", "Mohla-Manpur-Ambagarh Chowki", "Mungeli", "Narayanpur", "Raigarh", "Raipur", "Rajnandgaon", "Sakti", "Sarangarh-Bilaigarh", "Sukma", "Surajpur", "Surguja")),
+            createState("goa", "GA", "Goa", "Panaji", "Study materials for Goa Public Service Commission and state government examinations.", "STATE", Arrays.asList("North Goa", "South Goa")),
+            createState("gujarat", "GJ", "Gujarat", "Gandhinagar", "Complete resource for Gujarat PSC, Police, Transport, and Staff Selection Board examinations.", "STATE", Arrays.asList("Ahmedabad", "Amreli", "Anand", "Aravalli", "Banaskantha", "Bharuch", "Bhavnagar", "Botad", "Chhota Udepur", "Dahod", "Dang", "Devbhumi Dwarka", "Gandhinagar", "Gir Somnath", "Jamnagar", "Junagadh", "Kheda", "Kutch", "Mahisagar", "Mehsana", "Morbi", "Narmada", "Navsari", "Panchmahal", "Patan", "Porbandar", "Rajkot", "Sabarkantha", "Surat", "Surendranagar", "Tapi", "Vadodara", "Valsad")),
+            createState("haryana", "HR", "Haryana", "Chandigarh", "Preparation material for Haryana Public Service Commission and Staff Selection Commission exams.", "STATE", Arrays.asList("Ambala", "Bhiwani", "Charkhi Dadri", "Faridabad", "Fatehabad", "Gurugram", "Hisar", "Jhajjar", "Jind", "Kaithal", "Karnal", "Kurukshetra", "Mahendragarh", "Nuh", "Palwal", "Panchkula", "Panipat", "Rewari", "Rohtak", "Sirsa", "Sonipat", "Yamunanagar")),
+            createState("himachal-pradesh", "HP", "Himachal Pradesh", "Shimla", "Complete preparation portal for Himachal Pradesh PSC and sub-ordinate exams.", "STATE", Arrays.asList("Bilaspur", "Chamba", "Hamirpur", "Kangra", "Kinnaur", "Kullu", "Lahaul and Spiti", "Mandi", "Shimla", "Sirmaur", "Solan", "Una")),
+            createState("jharkhand", "JH", "Jharkhand", "Ranchi", "Study resources for JPSC, JSSC, and state-level government jobs.", "STATE", Arrays.asList("Bokaro", "Chatra", "Deoghar", "Dhanbad", "Dumka", "East Singhbhum", "Garhwa", "Giridih", "Godda", "Gumla", "Hazaribagh", "Jamtara", "Khunti", "Koderma", "Latehar", "Lohardaga", "Pakur", "Palamu", "Ramgarh", "Ranchi", "Sahibganj", "Seraikela Kharsawan", "Simdega", "West Singhbhum")),
+            createState("karnataka", "KA", "Karnataka", "Bengaluru", "Preparation portal for KPSC, Karnataka Police, and state government jobs.", "STATE", Arrays.asList("Bagalkot", "Ballari", "Belagavi", "Bengaluru Rural", "Bengaluru Urban", "Bidar", "Chamarajanagar", "Chikkaballapur", "Chikkamagaluru", "Chitradurga", "Dakshina Kannada", "Davanagere", "Dharwad", "Gadag", "Hassan", "Haveri", "Kalaburagi", "Kodagu", "Kolar", "Koppal", "Mandya", "Mysuru", "Raichur", "Ramanagara", "Shivamogga", "Tumakuru", "Udupi", "Uttara Kannada", "Vijayapura", "Yadgir")),
+            createState("kerala", "KL", "Kerala", "Thiruvananthapuram", "Extensive guide for Kerala PSC, KAS, and sub-ordinate recruitment examinations.", "STATE", Arrays.asList("Alappuzha", "Ernakulam", "Idukki", "Kannur", "Kasaragod", "Kollam", "Kottayam", "Kozhikode", "Malappuram", "Palakkad", "Pathanamthitta", "Thiruvananthapuram", "Thrissur", "Wayanad")),
+            createState("madhya-pradesh", "MP", "Madhya Pradesh", "Bhopal", "Comprehensive notes and blueprint for MPPSC and Vyapam exams.", "STATE", Arrays.asList("Agar Malwa", "Alirajpur", "Anuppur", "Ashoknagar", "Balaghat", "Barwani", "Betul", "Bhind", "Bhopal", "Burhanpur", "Chhatarpur", "Chhindwara", "Damoh", "Datia", "Dewas", "Dhar", "Dindori", "Guna", "Gwalior", "Harda", "Narmadapuram", "Indore", "Jabalpur", "Jhabua", "Katni", "Khandwa", "Khargone", "Mandla", "Mandsaur", "Morena", "Narsinghpur", "Neemuch", "Niwari", "Panna", "Raisen", "Rajgarh", "Ratlam", "Rewa", "Sagar", "Satna", "Sehore", "Seoni", "Shahdol", "Shajapur", "Sheopur", "Shivpuri", "Sidhi", "Singrauli", "Tikamgarh", "Ujjain", "Umaria", "Vidisha")),
+            createState("maharashtra", "MH", "Maharashtra", "Mumbai", "Study notes and booster sets for MPSC Prelims & Mains curriculum.", "STATE", Arrays.asList("Ahmednagar", "Akola", "Amravati", "Beed", "Bhandara", "Buldhana", "Chandrapur", "Dhule", "Gadchiroli", "Gondia", "Hingoli", "Jalgaon", "Jalna", "Kolhapur", "Latur", "Mumbai City", "Mumbai Suburban", "Nagpur", "Nanded", "Nandurbar", "Nashik", "Osmanabad", "Palghar", "Parbhani", "Pune", "Raigad", "Ratnagiri", "Sangli", "Satara", "Sindhudurg", "Solapur", "Thane", "Wardha", "Washim", "Yavatmal")),
+            createState("manipur", "MN", "Manipur", "Imphal", "Study materials for Manipur Public Service Commission and state-level examinations.", "STATE", Arrays.asList("Bishnupur", "Chandel", "Churachandpur", "Imphal East", "Imphal West", "Jiribam", "Kakching", "Kamjong", "Kangpokpi", "Noney", "Pherzawl", "Senapati", "Tamenglong", "Tengnoupal", "Thoubal", "Ukhrul")),
+            createState("meghalaya", "ML", "Meghalaya", "Shillong", "Preparation portal for Meghalaya Public Service Commission and sub-ordinate exams.", "STATE", Arrays.asList("East Garo Hills", "East Jaintia Hills", "East Khasi Hills", "Eastern West Khasi Hills", "North Garo Hills", "Ri Bhoi", "South Garo Hills", "South West Garo Hills", "South West Khasi Hills", "West Garo Hills", "West Jaintia Hills", "West Khasi Hills")),
+            createState("mizoram", "MZ", "Mizoram", "Aizawl", "Study notes and resources for Mizoram Public Service Commission examinations.", "STATE", Arrays.asList("Aizawl", "Champhai", "Hnahthial", "Khawzawl", "Kolasib", "Lawngtlai", "Lunglei", "Mamit", "Saiha", "Saitual", "Serchhip")),
+            createState("nagaland", "NL", "Nagaland", "Kohima", "Complete prep guide for Nagaland Public Service Commission examinations.", "STATE", Arrays.asList("Chümoukedim", "Dimapur", "Kiphire", "Kohima", "Longleng", "Mokokchung", "Mon", "Niuland", "Noklak", "Peren", "Phek", "Shamator", "Tseminyü", "Tuensang", "Wokha", "Zunheboto")),
+            createState("odisha", "OR", "Odisha", "Bhubaneswar", "Comprehensive prep material for OPSC and Odisha State Government exams.", "STATE", Arrays.asList("Angul", "Balangir", "Balasore", "Bargarh", "Bhadrak", "Boudh", "Cuttack", "Deogarh", "Dhenkanal", "Gajapati", "Ganjam", "Jagatsinghpur", "Jajpur", "Jharsuguda", "Kalahandi", "Kandhamal", "Kendrapara", "Kendujhar", "Khordha", "Koraput", "Malkangiri", "Mayurbhanj", "Nabarangpur", "Nayagarh", "Nuapada", "Puri", "Rayagada", "Sambalpur", "Subarnapur", "Sundargarh")),
+            createState("punjab", "PB", "Punjab", "Chandigarh", "Complete study material for PPSC and Punjab state examinations.", "STATE", Arrays.asList("Amritsar", "Barnala", "Bathinda", "Faridkot", "Fatehgarh Sahib", "Fazilka", "Ferozepur", "Gurdaspur", "Hoshiarpur", "Jalandhar", "Kapurthala", "Ludhiana", "Malerkotla", "Mansa", "Moga", "Muktsar", "Pathankot", "Patiala", "Rupnagar", "Sahibzada Ajit Singh Nagar", "Sangrur", "Shahid Bhagat Singh Nagar", "Sri Muktsar Sahib", "Tarn Taran")),
+            createState("rajasthan", "RJ", "Rajasthan", "Jaipur", "RAS Prelims and Mains study textbooks and question bank modules.", "STATE", Arrays.asList("Ajmer", "Alwar", "Banswara", "Baran", "Barmer", "Bharatpur", "Bhilwara", "Bikaner", "Bundi", "Chittorgarh", "Churu", "Dausa", "Dholpur", "Dungarpur", "Hanumangarh", "Jaipur", "Jaisalmer", "Jalore", "Jhalawar", "Jhunjhunu", "Jodhpur", "Karauli", "Kota", "Nagaur", "Pali", "Pratapgarh", "Rajsamand", "Sawai Modhopur", "Sikar", "Sirohi", "Sri Ganganagar", "Tonk", "Udaipur")),
+            createState("sikkim", "SK", "Sikkim", "Gangtok", "Study resources for Sikkim Public Service Commission and state-level exams.", "STATE", Arrays.asList("Gyalshing", "Mangan", "Namchi", "Pakyong", "Soreng", "Gangtok")),
+            createState("tamil-nadu", "TN", "Tamil Nadu", "Chennai", "Comprehensive notes and question banks for TNPSC exams.", "STATE", Arrays.asList("Ariyalur", "Chengalpattu", "Chennai", "Coimbatore", "Cuddalore", "Dharmapuri", "Dindigul", "Erode", "Kallakurichi", "Kanchipuram", "Kanyakumari", "Karur", "Krishnagiri", "Madurai", "Mayiladuthurai", "Nagapattinam", "Namakkal", "Nilgiris", "Perambalur", "Pudukkottai", "Ramanathapuram", "Ranipet", "Salem", "Sivaganga", "Tenkasi", "Thanjavur", "Theni", "Thoothukudi", "Tiruchirappalli", "Tirunelveli", "Tirupathur", "Tiruppur", "Tiruvallur", "Tiruvannamalai", "Tiruvarur", "Vellore", "Viluppuram", "Virudhunagar")),
+            createState("telangana", "TG", "Telangana", "Hyderabad", "Study materials and model answers for TSPSC civil services exams.", "STATE", Arrays.asList("Adilabad", "Bhadradri Kothagudem", "Hanamkonda", "Hyderabad", "Jagtial", "Jangaon", "Jayashankar Bhupally", "Jogulamba Gadwal", "Kama Reddy", "Karimnagar", "Khammam", "Kumuram Bheem", "Mahabubabad", "Mahabubnagar", "Mancherial", "Medak", "Medchal-Malkajgiri", "Mulugu", "Nagarkurnool", "Nalgonda", "Narayanpet", "Nirmal", "Nizamabad", "Peddapalli", "Rajanna Sircilla", "Rangareddy", "Sangareddy", "Siddipet", "Suryapet", "Vikarabad", "Wanaparthy", "Warangal", "Yadadri Bhuvanagiri")),
+            createState("tripura", "TR", "Tripura", "Agartala", "Complete prep resources for TPSC and state government exams.", "STATE", Arrays.asList("Dhalai", "Gomati", "Khowai", "North Tripura", "Sepahijala", "South Tripura", "Unakoti", "West Tripura")),
+            createState("uttar-pradesh", "UP", "Uttar Pradesh", "Lucknow", "UPPSC civil service mains solved answers and booster notes.", "STATE", Arrays.asList("Agra", "Aligarh", "Ambedkar Nagar", "Amethi", "Amroha", "Auraiya", "Ayodhya", "Azamgarh", "Baghpat", "Bahraich", "Ballia", "Balrampur", "Banda", "Bara Banki", "Bareilly", "Basti", "Bhadohi", "Bijnor", "Budaun", "Bulandshahr", "Chandauli", "Chitrakoot", "Deoria", "Etah", "Etawah", "Farrukhabad", "Fatehpur", "Firozabad", "Gautam Buddha Nagar", "Ghaziabad", "Ghazipur", "Gonda", "Gorakhpur", "Hamirpur", "Hapur", "Hardoi", "Hathras", "Jalaun", "Jaunpur", "Jhansi", "Kannauj", "Kanpur Dehat", "Kanpur Nagar", "Kasganj", "Kaushambi", "Kheri", "Kushinagar", "Lalitpur", "Lucknow", "Maharajganj", "Mahoba", "Mainpuri", "Mathura", "Mau", "Meerut", "Mirzapur", "Moradabad", "Muzaffarnagar", "Pilibhit", "Pratapgarh", "Prayagraj", "Rae Bareli", "Rampur", "Saharanpur", "Sambhal", "Sant Kabir Nagar", "Shahjahanpur", "Shamli", "Shrawasti", "Siddharthnagar", "Sitapur", "Sonbhadra", "Sultanpur", "Unnao", "Varanasi")),
+            createState("uttarakhand", "UK", "Uttarakhand", "Dehradun", "Complete prep portal for UKPSC and state government exams.", "STATE", Arrays.asList("Almora", "Bageshwar", "Chamoli", "Champawat", "Dehradun", "Haridwar", "Nainital", "Pauri Garhwal", "Pithoragarh", "Rudraprayag", "Tehri Garhwal", "Udham Singh Nagar", "Uttarkashi")),
+            createState("west-bengal", "WB", "West Bengal", "Kolkata", "WBCS Mains solved textbooks and General Knowledge companion.", "STATE", Arrays.asList("Alipurduar", "Bankura", "Birbhum", "Cooch Behar", "Dakshin Dinajpur", "Darjeeling", "Hooghly", "Howrah", "Jalpaiguri", "Jhargram", "Kalimpong", "Kolkata", "Malda", "Murshidabad", "Nadia", "North 24 Parganas", "Paschim Bardhaman", "Paschim Medinipur", "Purba Bardhaman", "Purba Medinipur", "Purulia", "South 24 Parganas", "Uttar Dinajpur")),
+            
+            // UTs
+            createState("andaman-nicobar", "AN", "Andaman and Nicobar Islands", "Port Blair", "Study materials for Andaman and Nicobar Islands administration and related examinations.", "UT", Arrays.asList("Nicobar", "North and Middle Andaman", "South Andaman")),
+            createState("chandigarh", "CH", "Chandigarh", "Chandigarh", "Preparation material for Chandigarh Union Territory administration examinations.", "UT", Arrays.asList("Chandigarh")),
+            createState("dnh-dd", "DH", "Dadra and Nagar Haveli and Daman and Diu", "Daman", "Study resources for Dadra and Nagar Haveli and Daman and Diu administration exams.", "UT", Arrays.asList("Dadra and Nagar Haveli", "Daman", "Diu")),
+            createState("delhi", "DL", "Delhi (National Capital Territory)", "New Delhi", "Comprehensive resource for Delhi Subordinate Services Selection Board, Police, and other examinations.", "UT", Arrays.asList("Central Delhi", "East Delhi", "New Delhi", "North Delhi", "North East Delhi", "North West Delhi", "Shahdara", "South Delhi", "South East Delhi", "South West Delhi", "West Delhi")),
+            createState("jammu-kashmir", "JK", "Jammu and Kashmir", "Srinagar (Summer), Jammu (Winter)", "Complete study material for Jammu and Kashmir Public Service Commission and state examinations.", "UT", Arrays.asList("Anantnag", "Bandipora", "Baramulla", "Budgam", "Doda", "Ganderbal", "Jammu", "Kathua", "Kishtwar", "Kulgam", "Kupwara", "Mandy", "Poonch", "Pulwama", "Rajouri", "Ramban", "Reasi", "Samba", "Shopian", "Srinagar", "Udhampur")),
+            createState("ladakh", "LA", "Ladakh", "Leh", "Preparation materials for Ladakh Union Territory administration and related exams.", "UT", Arrays.asList("Kargil", "Leh")),
+            createState("lakshadweep", "LD", "Lakshadweep", "Kavaratti", "Study materials for Lakshadweep Union Territory administration examinations.", "UT", Arrays.asList("Lakshadweep")),
+            createState("puducherry", "PY", "Puducherry", "Puducherry", "Comprehensive resource for Puducherry Public Service Commission and state-level exams.", "UT", Arrays.asList("Karaikal", "Mahe", "Puducherry", "Yanam"))
+        );
+        stateRepo.saveAll(states);
+        log.info("Successfully seeded {} State/UT records into database", states.size());
+    }
+
+    private State createState(String id, String code, String name, String capital, String desc, String type, List<String> districts) {
+        State s = new State();
+        s.setId(id);
+        s.setCode(code);
+        s.setName(name);
+        s.setCapital(capital);
+        s.setDescription(desc);
+        s.setType(type);
+        s.setDistricts(districts);
+        s.setCreatedAt(new Date());
+        s.setUpdatedAt(new Date());
+        return s;
+    }
+
+    private void migrateImportedProducts() {
+        log.info("Running idempotent migration for imported products...");
+        List<Product> products = productRepo.findAll();
+        boolean changedAny = false;
+        for (Product p : products) {
+            boolean changed = false;
+            boolean isImported = Boolean.TRUE.equals(p.getImportedFromDrive()) || "Google Drive".equals(p.getSource());
+            
+            if (isImported) {
+                if (!Boolean.TRUE.equals(p.getImportedFromDrive())) {
+                    p.setImportedFromDrive(true);
+                    changed = true;
+                }
+                if (!p.isPublished()) {
+                    p.setPublished(true);
+                    changed = true;
+                }
+                if (p.getState() == null || p.getState().isEmpty()) {
+                    p.setState("general");
+                    changed = true;
+                }
+                if (p.getStateSlug() == null || p.getStateSlug().isEmpty()) {
+                    p.setStateSlug(Product.generateSlug(p.getState()));
+                    changed = true;
+                }
+                if (p.getDistrict() == null || p.getDistrict().isEmpty()) {
+                    p.setDistrict("general");
+                    changed = true;
+                }
+                if (p.getDistrictSlug() == null || p.getDistrictSlug().isEmpty()) {
+                    p.setDistrictSlug(Product.generateSlug(p.getDistrict()));
+                    changed = true;
+                }
+                if (p.getMimeType() == null || p.getMimeType().isEmpty()) {
+                    String mt = Product.determineMimeType(p.getFileName() != null ? p.getFileName() : p.getStorageKey());
+                    p.setMimeType(mt);
+                    changed = true;
+                }
+                if (p.getContentType() == null || p.getContentType().isEmpty()) {
+                    String ct = Product.determineContentType(p.getMimeType(), p.getFileName() != null ? p.getFileName() : p.getStorageKey());
+                    p.setContentType(ct);
+                    p.setType(ct);
+                    changed = true;
+                }
+                if (p.getOriginalFileName() == null || p.getOriginalFileName().isEmpty()) {
+                    p.setOriginalFileName(p.getFileName() != null ? p.getFileName() : p.getStorageKey());
+                    changed = true;
+                }
+                if (p.getDisplayTitle() == null || p.getDisplayTitle().isEmpty()) {
+                    p.setDisplayTitle(Product.stripExtension(p.getTitle() != null ? p.getTitle() : p.getOriginalFileName()));
+                    p.setTitle(p.getDisplayTitle());
+                    changed = true;
+                }
+                if (p.isFree() && (p.getPrice() == null || p.getPrice() != 0.0)) {
+                    p.setPrice(0.0);
+                    changed = true;
+                } else if (!p.isFree() && (p.getPrice() == null || p.getPrice() != 99.0)) {
+                    p.setPrice(99.0);
+                    changed = true;
+                }
+            } else {
+                if (p.getContentType() == null || p.getContentType().isEmpty()) {
+                    String mt = p.getMimeType() != null ? p.getMimeType() : Product.determineMimeType(p.getFileName() != null ? p.getFileName() : p.getStorageKey());
+                    String ct = Product.determineContentType(mt, p.getFileName() != null ? p.getFileName() : p.getStorageKey());
+                    p.setContentType(ct);
+                    p.setMimeType(mt);
+                    p.setType(ct);
+                    changed = true;
+                }
+                if (p.getOriginalFileName() == null || p.getOriginalFileName().isEmpty()) {
+                    p.setOriginalFileName(p.getFileName() != null ? p.getFileName() : p.getStorageKey());
+                    changed = true;
+                }
+                if (p.getDisplayTitle() == null || p.getDisplayTitle().isEmpty()) {
+                    p.setDisplayTitle(Product.stripExtension(p.getTitle() != null ? p.getTitle() : p.getOriginalFileName()));
+                    p.setTitle(p.getDisplayTitle());
+                    changed = true;
+                }
+            }
+
+            if (changed) {
+                productRepo.save(p);
+                changedAny = true;
+            }
+        }
+        if (changedAny) {
+            log.info("Idempotent migration completed successfully (updated products).");
+        } else {
+            log.info("Idempotent migration completed: all products are already up to date.");
+        }
     }
 }
