@@ -146,8 +146,17 @@ public class S3Service {
                 .contentType(contentType)
                 .build();
 
-        s3Client.putObject(putObjectRequest, 
-                RequestBody.fromInputStream(inputStream, size));
+        try {
+            if (size <= 0) {
+                // For Google Workspace exports, size is unknown (0). We must read the stream into memory.
+                byte[] bytes = inputStream.readAllBytes();
+                s3Client.putObject(putObjectRequest, software.amazon.awssdk.core.sync.RequestBody.fromBytes(bytes));
+            } else {
+                s3Client.putObject(putObjectRequest, software.amazon.awssdk.core.sync.RequestBody.fromInputStream(inputStream, size));
+            }
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Failed to read input stream for S3 upload", e);
+        }
 
         return s3Key;
     }
