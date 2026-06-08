@@ -1,6 +1,7 @@
 package com.bodhganga.bodhganga.repo;
 
 import com.bodhganga.bodhganga.entity.Product;
+import com.bodhganga.bodhganga.entity.IngestionStatus;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import java.util.List;
 
@@ -12,4 +13,15 @@ public interface ProductRepo extends MongoRepository<Product, String> {
     java.util.Optional<Product> findByStorageKey(String storageKey);
     List<Product> findByIsFreeTrueAndIsPublishedTrue();
     List<Product> findByImportedFromDrive(Boolean importedFromDrive);
+
+    // Hardened pipeline duplicate check queries
+    boolean existsByFileName(String fileName);
+    boolean existsByS3Key(String s3Key);
+    boolean existsByGoogleDriveFileId(String googleDriveFileId);
+
+    // Hardened pipeline stats queries
+    long countByImportedFromDriveTrue();
+    long countByIsPublishedTrue();
+    long countByIngestionStatus(IngestionStatus ingestionStatus);
+    long countByArchivedTrue();
 }

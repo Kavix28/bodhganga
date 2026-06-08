@@ -5,6 +5,7 @@ import com.bodhganga.bodhganga.entity.Courses;
 import com.bodhganga.bodhganga.entity.Product;
 import com.bodhganga.bodhganga.entity.State;
 import com.bodhganga.bodhganga.entity.User;
+import com.bodhganga.bodhganga.entity.IngestionStatus;
 import com.bodhganga.bodhganga.repo.BlogPostRepo;
 import com.bodhganga.bodhganga.repo.CourseRepo;
 import com.bodhganga.bodhganga.repo.ProductRepo;
@@ -503,6 +504,18 @@ public class DataLoader implements CommandLineRunner {
                     changed = true;
                 } else if (!p.isFree() && (p.getPrice() == null || p.getPrice() != 99.0)) {
                     p.setPrice(99.0);
+                    changed = true;
+                }
+                if (p.getIngestionStatus() == null) {
+                    p.setIngestionStatus(IngestionStatus.COMPLETED);
+                    changed = true;
+                }
+                if (p.getFileExtension() == null || p.getFileExtension().isEmpty()) {
+                    p.setFileExtension(Product.getFileExtension(p.getFileName() != null ? p.getFileName() : p.getStorageKey()));
+                    changed = true;
+                }
+                if (p.getUpdatedAt() == null) {
+                    p.setUpdatedAt(p.getCreatedAt() != null ? p.getCreatedAt() : new Date());
                     changed = true;
                 }
             } else {

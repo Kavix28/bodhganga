@@ -43,12 +43,21 @@ public class Product {
     private String source;
 
     private boolean isFree;
+
+    // Hardened pipeline fields
+    private String fileExtension;
+    private String googleDriveFileId;
+    private IngestionStatus ingestionStatus;
+    private Date updatedAt;
+    private boolean archived;
     
     public Product() {
         this.createdAt = new Date();
+        this.updatedAt = new Date();
         this.isPublished = false;
         this.importedFromDrive = false;
         this.isFree = false;
+        this.archived = false;
     }
 
     public boolean isFree() { return isFree; }
@@ -118,6 +127,30 @@ public class Product {
     public String getSource() { return source; }
     public void setSource(String source) { this.source = source; }
 
+    public String getFileExtension() { return fileExtension; }
+    public void setFileExtension(String fileExtension) { this.fileExtension = fileExtension; }
+
+    public String getGoogleDriveFileId() { return googleDriveFileId; }
+    public void setGoogleDriveFileId(String googleDriveFileId) { this.googleDriveFileId = googleDriveFileId; }
+
+    public IngestionStatus getIngestionStatus() { return ingestionStatus; }
+    public void setIngestionStatus(IngestionStatus ingestionStatus) { this.ingestionStatus = ingestionStatus; }
+
+    public Date getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Date updatedAt) { this.updatedAt = updatedAt; }
+
+    public boolean isArchived() { return archived; }
+    public void setArchived(boolean archived) { this.archived = archived; }
+
+    public static String getFileExtension(String fileName) {
+        if (fileName == null) return "";
+        int lastDot = fileName.lastIndexOf('.');
+        if (lastDot > 0) {
+            return fileName.substring(lastDot + 1).toLowerCase();
+        }
+        return "";
+    }
+
     public static String generateSlug(String name) {
         if (name == null || name.isBlank()) return "general";
         return name.toLowerCase()
@@ -132,7 +165,7 @@ public class Product {
         int lastDot = fileName.lastIndexOf('.');
         if (lastDot > 0) {
             String ext = fileName.substring(lastDot + 1).toLowerCase();
-            if (java.util.List.of("pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "png", "jpg", "jpeg", "mp3", "m4a", "wav", "mp4").contains(ext)) {
+            if (java.util.List.of("pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "png", "jpg", "jpeg", "webp", "mp3", "m4a", "wav", "zip", "txt", "mp4").contains(ext)) {
                 return fileName.substring(0, lastDot);
             }
         }
@@ -146,6 +179,9 @@ public class Product {
             if (mt.equals("application/msword") || mt.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document")) return "DOCUMENT";
             if (mt.equals("application/vnd.ms-excel") || mt.equals("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")) return "SPREADSHEET";
             if (mt.equals("application/vnd.ms-powerpoint") || mt.equals("application/vnd.openxmlformats-officedocument.presentationml.presentation")) return "PRESENTATION";
+            if (mt.equals("image/webp")) return "IMAGE";
+            if (mt.equals("application/zip") || mt.equals("application/x-zip-compressed")) return "ZIP";
+            if (mt.equals("text/plain")) return "TEXT";
             if (mt.startsWith("image/")) return "IMAGE";
             if (mt.startsWith("audio/")) return "AUDIO";
             if (mt.startsWith("video/")) return "VIDEO";
@@ -159,8 +195,10 @@ public class Product {
                     case "doc": case "docx": return "DOCUMENT";
                     case "xls": case "xlsx": return "SPREADSHEET";
                     case "ppt": case "pptx": return "PRESENTATION";
-                    case "png": case "jpg": case "jpeg": return "IMAGE";
+                    case "png": case "jpg": case "jpeg": case "webp": return "IMAGE";
                     case "mp3": case "m4a": case "wav": return "AUDIO";
+                    case "zip": return "ZIP";
+                    case "txt": return "TEXT";
                     case "mp4": return "VIDEO";
                 }
             }
@@ -183,9 +221,12 @@ public class Product {
                     case "pptx": return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
                     case "png": return "image/png";
                     case "jpg": case "jpeg": return "image/jpeg";
+                    case "webp": return "image/webp";
                     case "mp3": return "audio/mpeg";
-                    case "m4a": return "audio/m4a";
+                    case "m4a": return "audio/x-m4a";
                     case "wav": return "audio/wav";
+                    case "zip": return "application/zip";
+                    case "txt": return "text/plain";
                     case "mp4": return "video/mp4";
                 }
             }
