@@ -170,16 +170,36 @@ public class GoogleDriveSyncService {
 
     /**
      * Downloads a file from Google Drive as an InputStream.
+     * Automatically exports Google Workspace documents (Docs, Sheets, Slides) to PDF.
      *
-     * <p>Requires {@code supportsAllDrives(true)} for Shared Drive files.
+     * <p>Requires {@code supportsAllDrives(true)} for regular files.
      */
-    public InputStream downloadFile(String fileId) throws IOException {
+    public InputStream downloadFile(String fileId, String mimeType) throws IOException {
         if (!isConfigured()) return null;
-        log.info("[DRIVE] Downloading file — ID={}", fileId);
+        log.info("[DRIVE] Downloading file — ID={}, MimeType={}", fileId, mimeType);
+
+        if (mimeType != null && mimeType.startsWith("application/vnd.google-apps.")) {
+            if (mimeType.equals("application/vnd.google-apps.document") ||
+                mimeType.equals("application/vnd.google-apps.spreadsheet") ||
+                mimeType.equals("application/vnd.google-apps.presentation")) {
+                log.info("[DRIVE] Exporting Google Workspace document {} to PDF", fileId);
+                return driveService.files().export(fileId, "application/pdf").executeMediaAsInputStream();
+            } else {
+                throw new IOException("Unsupported Google Workspace document type for download: " + mimeType);
+            }
+        }
+
         return driveService.files().get(fileId)
                 // ─── FIX 4: Support Shared Drives for download ────────────────
                 .setSupportsAllDrives(true)
                 .executeMediaAsInputStream();
+    }
+
+    /**
+     * Backward-compatible delegate for downloadFile.
+     */
+    public InputStream downloadFile(String fileId) throws IOException {
+        return downloadFile(fileId, null);
     }
 
     /**

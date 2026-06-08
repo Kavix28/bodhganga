@@ -189,9 +189,22 @@ public class DriveToS3PipelineTask {
         filesProcessed.incrementAndGet();
         log.info("[INGESTION] CURRENT FILE - Name: {}", file.getName());
 
-        String fileExtension = Product.getFileExtension(file.getName());
+        String mimeType = file.getMimeType();
+        boolean isGoogleDoc = mimeType != null && (
+            mimeType.equals("application/vnd.google-apps.document") ||
+            mimeType.equals("application/vnd.google-apps.spreadsheet") ||
+            mimeType.equals("application/vnd.google-apps.presentation")
+        );
+        String targetMimeType = isGoogleDoc ? "application/pdf" : mimeType;
+
+        String fileName = file.getName();
+        if (isGoogleDoc && fileName != null && !fileName.toLowerCase().endsWith(".pdf")) {
+            fileName = fileName + ".pdf";
+        }
+
+        String fileExtension = Product.getFileExtension(fileName);
         if (!SUPPORTED_EXTENSIONS.contains(fileExtension)) {
-            log.info("Unsupported file extension: {} - skipping file: {}", fileExtension, file.getName());
+            log.info("Unsupported file extension: {} - skipping file: {}", fileExtension, fileName);
             filesSkipped.incrementAndGet();
             return;
         }
@@ -212,12 +225,12 @@ public class DriveToS3PipelineTask {
                 }
             }
         }
-        s3KeyBuilder.append(file.getName());
+        s3KeyBuilder.append(fileName);
         String s3Key = s3KeyBuilder.toString();
 
         // Check for duplicates before upload
         boolean duplicate = false;
-        if (file.getName() != null && productRepo.existsByFileName(file.getName())) {
+        if (fileName != null && productRepo.existsByFileName(fileName)) {
             duplicate = true;
         } else if (s3Key != null && productRepo.existsByS3Key(s3Key)) {
             duplicate = true;
@@ -272,8 +285,8 @@ public class DriveToS3PipelineTask {
             district = metadata.district;
         }
 
-        String fileMimeType = file.getMimeType() != null ? file.getMimeType() : Product.determineMimeType(file.getName());
-        String contentType = Product.determineContentType(fileMimeType, file.getName());
+        String fileMimeType = targetMimeType != null ? targetMimeType : Product.determineMimeType(fileName);
+        String contentType = Product.determineContentType(fileMimeType, fileName);
 
         log.info("[INGESTION] FILE TYPE - Type: {}", contentType);
         log.info("[INGESTION] FILE SIZE - Size: {}", size);
@@ -281,11 +294,11 @@ public class DriveToS3PipelineTask {
 
         // Create product record in Mongo with status PROCESSING first (generates ID)
         Product product = new Product();
-        String displayTitle = Product.stripExtension(file.getName());
+        String displayTitle = Product.stripExtension(fileName);
         product.setTitle(displayTitle);
         product.setDisplayTitle(displayTitle);
-        product.setOriginalFileName(file.getName());
-        product.setFileName(file.getName());
+        product.setOriginalFileName(fileName);
+        product.setFileName(fileName);
         product.setFileExtension(fileExtension);
         product.setType(contentType);
         product.setContentType(contentType);
@@ -310,7 +323,9 @@ public class DriveToS3PipelineTask {
         String productId = product.getId();
         log.info("[INGESTION] PRODUCT ID - Id: {}", productId);
 
-        try (InputStream inputStream = googleDriveSyncService.downloadFile(file.getId())) {
+        try (InputStream inputStream = isGoogleDoc
+                ? googleDriveSyncService.downloadFile(file.getId(), mimeType)
+                : googleDriveSyncService.downloadFile(file.getId())) {
             if (inputStream != null) {
                 // S3 Upload
                 String returnedKey = s3Service.uploadFileWithKey(inputStream, size, s3Key, fileMimeType);

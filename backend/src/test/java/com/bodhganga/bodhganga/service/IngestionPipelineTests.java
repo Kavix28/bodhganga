@@ -558,6 +558,55 @@ public class IngestionPipelineTests {
         inOrder.verify(googleDriveSyncService).moveFileToArchive(anyString(), anyString(), anyString());
     }
 
+    /**
+     * GOOGLE WORKSPACE DOCUMENT EXPORT TEST
+     *
+     * Verifies that Google Docs (which have no file extensions and use Google Apps mime types)
+     * are correctly detected, converted to PDF mimeType, appended with ".pdf" extension,
+     * downloaded/exported using the two-argument downloadFile, and stored in S3/MongoDB.
+     */
+    @Test
+    void testGoogleWorkspaceDocumentIngestion() throws Exception {
+        // Flat structure: source-folder -> Google Doc file
+        File docFile = mkFile("gdoc-file-id", "WorkspaceNotes", "application/vnd.google-apps.document", 0L);
+        docFile.setSize(null); // Explicitly null size
+
+        when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(docFile));
+
+        // When downloading/exporting, we expect it to request the document with its mimeType
+        byte[] pdfExportBytes = "%PDF-1.4 Mock Export Content".getBytes();
+        when(googleDriveSyncService.downloadFile("gdoc-file-id", "application/vnd.google-apps.document"))
+                .thenReturn(new ByteArrayInputStream(pdfExportBytes));
+
+        // S3 expectations: target file is WorkspaceNotes.pdf with application/pdf mimeType and size 0
+        String expectedS3Key = "WorkspaceNotes.pdf";
+        when(s3Service.uploadFileWithKey(any(), eq(0L), eq(expectedS3Key), eq("application/pdf")))
+                .thenReturn(expectedS3Key);
+        when(s3Service.getS3Url(expectedS3Key)).thenReturn("https://s3.example.com/" + expectedS3Key);
+
+        pipelineTask.syncDriveToS3(true);
+
+        List<Product> products = productRepo.findAll();
+        assertEquals(1, products.size(), "Google Doc ingestion should produce one product");
+
+        Product p = products.get(0);
+        assertEquals("WorkspaceNotes", p.getTitle());
+        assertEquals("WorkspaceNotes.pdf", p.getFileName());
+        assertEquals("pdf", p.getFileExtension());
+        assertEquals("PDF", p.getContentType());
+        assertEquals("application/pdf", p.getMimeType());
+        assertEquals(IngestionStatus.COMPLETED, p.getIngestionStatus());
+        assertTrue(p.isPublished());
+        assertTrue(p.isArchived());
+
+        verify(googleDriveSyncService, times(1))
+                .downloadFile("gdoc-file-id", "application/vnd.google-apps.document");
+        verify(s3Service, times(1))
+                .uploadFileWithKey(any(), eq(0L), eq(expectedS3Key), eq("application/pdf"));
+        verify(googleDriveSyncService, times(1))
+                .moveFileToArchive(eq("gdoc-file-id"), anyString(), eq("archive-folder-id"));
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // HELPERS
     // ─────────────────────────────────────────────────────────────────────────
