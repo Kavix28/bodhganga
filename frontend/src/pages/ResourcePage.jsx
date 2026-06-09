@@ -12,10 +12,9 @@ import api from '../services/api';
 import toast from 'react-hot-toast';
 import Breadcrumb from '../components/common/Breadcrumb';
 import ResourceCard from '../components/common/ResourceCard';
-import { indianStates } from '../data/states';
-import { unionTerritories } from '../data/unionTerritories';
 
 const ResourcePage = () => {
+  // stateSlug comes directly from the URL — never transformed
   const { stateSlug } = useParams();
   
   const [products, setProducts] = useState([]);
@@ -23,26 +22,59 @@ const ResourcePage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDistrictFilter, setSelectedDistrictFilter] = useState('All');
 
-  // Resolve state metadata dynamically
-  const stateMeta = useMemo(() => {
-    const allRegions = [...indianStates, ...unionTerritories];
-    return allRegions.find(s => s.id === stateSlug) || {
-      name: stateSlug.replace(/-/g, ' ').toUpperCase(),
-      code: 'State'
-    };
-  }, [stateSlug]);
+  // Resolve display name from backend-fetched available states — no hardcoded lookup
+  const [availableStates, setAvailableStates] = useState([]);
+  const [stateName, setStateName] = useState('');
 
   useEffect(() => {
+    fetchAvailableStates();
     fetchResources();
     window.scrollTo(0, 0);
   }, [stateSlug]);
 
+  // Fetch list of available states to resolve a human-readable display name
+  const fetchAvailableStates = async () => {
+    try {
+      const res = await api.get('/states/available');
+      // API returns: { states: [...] } or an array directly
+      const states = res?.states || res || [];
+      setAvailableStates(states);
+
+      // Try to find matching state entry for a proper display name
+      const match = states.find(
+        (s) =>
+          s.stateSlug === stateSlug ||
+          s.slug === stateSlug ||
+          s.id === stateSlug
+      );
+      if (match) {
+        setStateName(match.stateName || match.name || formatSlugToTitle(stateSlug));
+      } else {
+        setStateName(formatSlugToTitle(stateSlug));
+      }
+    } catch (err) {
+      console.warn('Could not fetch available states for display name resolution:', err);
+      // Graceful fallback — convert slug to readable title for UI only
+      setStateName(formatSlugToTitle(stateSlug));
+    }
+  };
+
+  // UI-only helper: converts "andhra-pradesh" → "Andhra Pradesh" for display
+  // This NEVER affects the API call — stateSlug is always used as-is for API requests
+  const formatSlugToTitle = (slug) => {
+    return slug
+      .split('-')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   const fetchResources = async () => {
     try {
       setLoading(true);
+      // Use raw URL param — exactly as received from the router, never transformed
       const res = await api.get(`/products/state/${stateSlug}`);
-      // The API response standard might wrap data in res.data or direct list
-      const rawProducts = res.data?.data || res.data || res || [];
+      // api.js interceptor returns response.data directly; handle both wrapped and bare arrays
+      const rawProducts = res?.data || (Array.isArray(res) ? res : []);
       setProducts(rawProducts);
     } catch (error) {
       console.error('Failed to load state resources:', error);
@@ -56,47 +88,47 @@ const ResourcePage = () => {
   // Extract unique district names for filtering
   const districtList = useMemo(() => {
     const districts = new Set();
-    products.forEach(p => {
-      if (p.districtName) {
-        districts.add(p.districtName);
-      }
+    products.forEach((p) => {
+      const district = p.districtName || p.districtSlug;
+      if (district) districts.add(district);
     });
     return ['All', ...Array.from(districts).sort()];
   }, [products]);
 
   // Filter products by search and district selection
   const filteredProducts = useMemo(() => {
-    return products.filter(p => {
+    return products.filter((p) => {
       // 1. Search Query Filter
       if (searchTerm.trim()) {
         const q = searchTerm.toLowerCase();
         const matchesTitle = p.title?.toLowerCase().includes(q);
         const matchesFileName = p.fileName?.toLowerCase().includes(q);
-        const matchesDistrict = p.districtName?.toLowerCase().includes(q);
+        const matchesDistrict =
+          p.districtName?.toLowerCase().includes(q) ||
+          p.districtSlug?.toLowerCase().includes(q);
         if (!matchesTitle && !matchesFileName && !matchesDistrict) return false;
       }
-      
+
       // 2. District Filter
       if (selectedDistrictFilter !== 'All') {
-        if (p.districtName !== selectedDistrictFilter) return false;
+        const district = p.districtName || p.districtSlug;
+        if (district !== selectedDistrictFilter) return false;
       }
 
       return true;
     });
   }, [products, searchTerm, selectedDistrictFilter]);
 
-  // Group filtered products by districtName
+  // Group filtered products by districtName (or districtSlug as fallback)
   const groupedProducts = useMemo(() => {
     const groups = {};
-    filteredProducts.forEach(p => {
-      const district = p.districtName || 'General';
-      if (!groups[district]) {
-        groups[district] = [];
-      }
+    filteredProducts.forEach((p) => {
+      const district = p.districtName || p.districtSlug || 'General';
+      if (!groups[district]) groups[district] = [];
       groups[district].push(p);
     });
-    
-    // Sort keys alphabetically but keep 'General' at the end or top
+
+    // Sort alphabetically, keep 'General' at the end
     return Object.keys(groups)
       .sort((a, b) => {
         if (a === 'General') return 1;
@@ -111,17 +143,17 @@ const ResourcePage = () => {
 
   return (
     <div className="min-h-screen bg-ivory-light">
-      
+
       {/* ── LUXURY HEADER BANNER ───────────────────────────────── */}
       <section className="bg-gradient-to-b from-emerald-dark to-emerald-950 text-white relative overflow-hidden py-16 px-6 border-b border-gold/15">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(201,169,97,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(201,169,97,0.03)_1px,transparent_1px)] bg-[size:3.5rem_3.5rem]" />
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald via-gold to-emerald" />
-        
+
         <div className="relative max-w-7xl mx-auto space-y-5">
           <div className="mb-2">
             <Breadcrumb items={[
               { label: 'Explore Regions', path: '/states' },
-              { label: stateMeta.name, path: `/states/${stateSlug}` },
+              { label: stateName || stateSlug, path: `/states/${stateSlug}` },
               { label: 'Study Resources', path: `/states/${stateSlug}/resources` }
             ]} />
           </div>
@@ -133,16 +165,17 @@ const ResourcePage = () => {
 
           <div className="space-y-2">
             <h1 className="text-4xl md:text-5xl font-bold font-serif tracking-tight">
-              {stateMeta.name} Study Materials
+              {stateName || stateSlug} Study Materials
             </h1>
             <p className="text-white/60 text-xs sm:text-sm max-w-3xl leading-relaxed">
-              Browse through hand-crafted syllabus files, documents, audio briefs, and worksheets indexed by administrative districts for {stateMeta.name} {stateMeta.type === 'UT' ? 'Union Territory' : 'State'} PSC preparation.
+              Browse through hand-crafted syllabus files, documents, audio briefs, and worksheets indexed
+              by administrative districts for {stateName || stateSlug} PSC preparation.
             </p>
           </div>
 
           <div className="pt-2">
-            <Link 
-              to={`/states/${stateSlug}`} 
+            <Link
+              to={`/states/${stateSlug}`}
               className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest text-gold hover:text-white transition-colors duration-200"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -160,6 +193,7 @@ const ResourcePage = () => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/50" />
             <input
               type="text"
+              id="resource-search"
               placeholder="Search resource title or district..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -172,11 +206,12 @@ const ResourcePage = () => {
             <div className="flex items-center gap-2">
               <SlidersHorizontal className="w-4 h-4 text-emerald/65" />
               <select
+                id="district-filter"
                 value={selectedDistrictFilter}
                 onChange={(e) => setSelectedDistrictFilter(e.target.value)}
                 className="py-2.5 px-4 rounded-xl border border-emerald/10 focus:border-emerald bg-white text-xs font-semibold outline-none cursor-pointer"
               >
-                {districtList.map(dist => (
+                {districtList.map((dist) => (
                   <option key={dist} value={dist}>
                     {dist === 'All' ? 'All Districts' : dist}
                   </option>
@@ -192,11 +227,11 @@ const ResourcePage = () => {
         {loading ? (
           // Loading Skeleton State
           <div className="space-y-10">
-            {[1, 2].map(section => (
+            {[1, 2].map((section) => (
               <div key={section} className="space-y-4">
                 <div className="h-6 bg-slate-200 rounded w-48 animate-pulse" />
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {[1, 2, 3, 4].map(idx => (
+                  {[1, 2, 3, 4].map((idx) => (
                     <div key={idx} className="bg-white rounded-2xl p-5 border border-slate-100 space-y-4 animate-pulse">
                       <div className="w-12 h-12 bg-slate-200 rounded-xl" />
                       <div className="space-y-2">
@@ -212,7 +247,7 @@ const ResourcePage = () => {
           </div>
         ) : Object.keys(groupedProducts).length > 0 ? (
           // Grouped Districts List
-          Object.keys(groupedProducts).map(districtName => (
+          Object.keys(groupedProducts).map((districtName) => (
             <div key={districtName} className="space-y-6">
               {/* Section Header */}
               <div className="flex items-center gap-2 border-b border-gold/15 pb-3">
@@ -221,20 +256,22 @@ const ResourcePage = () => {
                   {districtName} Region
                 </h2>
                 <span className="text-[10px] bg-emerald/5 border border-emerald/10 text-emerald-dark px-2.5 py-0.5 rounded-full font-bold">
-                  {groupedProducts[districtName].length} {groupedProducts[districtName].length === 1 ? 'file' : 'files'}
+                  {groupedProducts[districtName].length}{' '}
+                  {groupedProducts[districtName].length === 1 ? 'file' : 'files'}
                 </span>
               </div>
 
               {/* District Cards Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {groupedProducts[districtName].map(product => (
+                {groupedProducts[districtName].map((product) => (
                   <ResourceCard
                     key={product.id}
                     title={product.title}
                     fileName={product.fileName}
-                    fileType={product.fileType}
+                    fileType={product.fileType || product.fileExtension}
+                    mimeType={product.mimeType}
                     s3Url={product.s3Url}
-                    districtName={product.districtName}
+                    districtName={product.districtName || product.districtSlug}
                   />
                 ))}
               </div>
@@ -249,18 +286,20 @@ const ResourcePage = () => {
             <div className="space-y-2">
               <h3 className="text-lg font-serif font-bold text-emerald-950">No resources found</h3>
               <p className="text-slate-500 text-xs max-w-md mx-auto leading-relaxed">
-                We are currently indexing files for this region. Please check back later, or contact administration to request study materials for your district.
+                We are currently indexing files for this region. Please check back later, or
+                contact administration to request study materials for your district.
               </p>
             </div>
             {searchTerm || selectedDistrictFilter !== 'All' ? (
               <button
+                id="clear-filters-btn"
                 onClick={() => {
                   setSearchTerm('');
                   setSelectedDistrictFilter('All');
                 }}
                 className="btn-premium btn-premium-primary text-[10px] uppercase font-bold py-2.5 px-6 tracking-widest inline-block"
               >
-                Clear Search & Filters
+                Clear Search &amp; Filters
               </button>
             ) : (
               <Link
