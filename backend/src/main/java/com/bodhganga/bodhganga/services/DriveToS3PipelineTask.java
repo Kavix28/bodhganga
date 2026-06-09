@@ -79,20 +79,30 @@ public class DriveToS3PipelineTask {
         log.info("Archive folder id: {}", archiveFolderId);
 
         if (pipelineEnabled) {
+            boolean canRun = true;
             if (!driveConfigured) {
-                throw new IllegalStateException("Google Drive configuration missing or invalid but pipeline is enabled!");
+                log.warn("Google Drive configuration missing or invalid — pipeline will be DISABLED at runtime.");
+                canRun = false;
             }
             if (!s3Configured) {
-                throw new IllegalStateException("AWS S3 configuration missing or invalid but pipeline is enabled!");
+                log.warn("AWS S3 configuration missing or invalid — pipeline will be DISABLED at runtime.");
+                canRun = false;
             }
             if (!mongoConnected) {
-                throw new IllegalStateException("MongoDB connection is not established but pipeline is enabled!");
+                log.warn("MongoDB connection is not established — pipeline will be DISABLED at runtime.");
+                canRun = false;
             }
             if (sourceFolderId == null || sourceFolderId.isBlank()) {
-                throw new IllegalStateException("Source folder ID is missing but pipeline is enabled!");
+                log.warn("Source folder ID is missing — pipeline will be DISABLED at runtime.");
+                canRun = false;
             }
             if (archiveFolderId == null || archiveFolderId.isBlank()) {
-                throw new IllegalStateException("Archive folder ID is missing but pipeline is enabled!");
+                log.warn("Archive folder ID is missing — pipeline will be DISABLED at runtime.");
+                canRun = false;
+            }
+            if (!canRun) {
+                log.warn("Pipeline is enabled in config but prerequisites are not met. Pipeline will NOT run until all prerequisites are satisfied. The rest of the application will start normally.");
+                pipelineEnabled = false;
             }
         }
     }
