@@ -32,6 +32,7 @@ const BlogPost = lazy(() => import('./pages/BlogPost'));
 const States = lazy(() => import('./pages/States'));
 const UnionTerritories = lazy(() => import('./pages/UnionTerritories'));
 const StateDetail = lazy(() => import('./pages/StateDetail'));
+const ResourcePage = lazy(() => import('./pages/ResourcePage'));
 const QuestionBank = lazy(() => import('./pages/QuestionBank'));
 const Subjects = lazy(() => import('./pages/Subjects'));
 const NotFound = lazy(() => import('./pages/NotFound'));
@@ -97,6 +98,8 @@ function App() {
                                             <Route path="/union-territories" element={<ProtectedRoute><UnionTerritories /></ProtectedRoute>} />
                                             <Route path="/states/:id" element={<ProtectedRoute><StateDetail /></ProtectedRoute>} />
                                             <Route path="/union-territories/:id" element={<ProtectedRoute><StateDetail /></ProtectedRoute>} />
+                                            <Route path="/states/:stateSlug/resources" element={<ProtectedRoute><ResourcePage /></ProtectedRoute>} />
+                                            <Route path="/union-territories/:stateSlug/resources" element={<ProtectedRoute><ResourcePage /></ProtectedRoute>} />
                                             <Route path="/question-bank" element={<ProtectedRoute><QuestionBank /></ProtectedRoute>} />
                                             <Route path="/subjects" element={<ProtectedRoute><Subjects /></ProtectedRoute>} />
                                             <Route path="/store" element={<ProtectedRoute><Marketplace /></ProtectedRoute>} />

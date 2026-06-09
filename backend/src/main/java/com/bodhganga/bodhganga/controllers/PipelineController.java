@@ -4,6 +4,7 @@ import com.bodhganga.bodhganga.dto.ApiResponseDTO;
 import com.bodhganga.bodhganga.entity.IngestionStatus;
 import com.bodhganga.bodhganga.repo.ProductRepo;
 import com.bodhganga.bodhganga.services.DriveToS3PipelineTask;
+import com.bodhganga.bodhganga.services.PipelineTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -22,10 +23,12 @@ public class PipelineController {
     private static final Logger log = LoggerFactory.getLogger(PipelineController.class);
     private final DriveToS3PipelineTask driveToS3PipelineTask;
     private final ProductRepo productRepo;
+    private final PipelineTask pipelineTask;
 
-    public PipelineController(DriveToS3PipelineTask driveToS3PipelineTask, ProductRepo productRepo) {
+    public PipelineController(DriveToS3PipelineTask driveToS3PipelineTask, ProductRepo productRepo, PipelineTask pipelineTask) {
         this.driveToS3PipelineTask = driveToS3PipelineTask;
         this.productRepo = productRepo;
+        this.pipelineTask = pipelineTask;
     }
 
     /**
@@ -38,6 +41,7 @@ public class PipelineController {
         try {
             // Force the pipeline to run immediately bypass if pipelineEnabled is false in env
             driveToS3PipelineTask.syncDriveToS3(true);
+            pipelineTask.runPipeline(true);
             return ResponseEntity.ok(ApiResponseDTO.builder()
                     .success(true)
                     .message("Ingestion pipeline executed successfully")

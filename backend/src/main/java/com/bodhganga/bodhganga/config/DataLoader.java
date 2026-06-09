@@ -632,6 +632,7 @@ public class DataLoader implements CommandLineRunner {
         // Drop any existing conflicting index first (IndexOptionsConflict code 85) before re-creating.
         ensureUniqueSparseIndex("googleDriveFileId");
         ensureUniqueSparseIndex("s3Key");
+        ensureUniqueSparseIndex("sourceFileId");
     }
 
     /**

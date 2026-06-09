@@ -50,11 +50,19 @@ public class Product {
     private IngestionStatus ingestionStatus;
     private Date updatedAt;
     private boolean archived;
+
+    // Document Ingestion Refactor Fields
+    private String sourceFileId;
+    private String fileType;
+    private String stateName;
+    private String districtName;
+    private boolean published;
     
     public Product() {
         this.createdAt = new Date();
         this.updatedAt = new Date();
         this.isPublished = false;
+        this.published = false;
         this.importedFromDrive = false;
         this.isFree = false;
         this.archived = false;
@@ -81,7 +89,10 @@ public class Product {
     public String getStorageKey() { return storageKey; }
     public void setStorageKey(String storageKey) { this.storageKey = storageKey; }
     public boolean isPublished() { return isPublished; }
-    public void setPublished(boolean published) { isPublished = published; }
+    public void setPublished(boolean published) { 
+        this.isPublished = published; 
+        this.published = published;
+    }
     public Date getCreatedAt() { return createdAt; }
     public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
 
@@ -141,6 +152,24 @@ public class Product {
 
     public boolean isArchived() { return archived; }
     public void setArchived(boolean archived) { this.archived = archived; }
+
+    public String getSourceFileId() { return sourceFileId; }
+    public void setSourceFileId(String sourceFileId) { this.sourceFileId = sourceFileId; }
+
+    public String getFileType() { return fileType; }
+    public void setFileType(String fileType) { this.fileType = fileType; }
+
+    public String getStateName() { return stateName; }
+    public void setStateName(String stateName) { this.stateName = stateName; }
+
+    public String getDistrictName() { return districtName; }
+    public void setDistrictName(String districtName) { this.districtName = districtName; }
+
+    public boolean getPublished() { return published; }
+    public void setPublishedField(boolean published) {
+        this.published = published;
+        this.isPublished = published;
+    }
 
     public static String getFileExtension(String fileName) {
         if (fileName == null) return "";
