@@ -168,7 +168,7 @@ public class Product {
         int lastDot = fileName.lastIndexOf('.');
         if (lastDot > 0) {
             String ext = fileName.substring(lastDot + 1).toLowerCase();
-            if (java.util.List.of("pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "png", "jpg", "jpeg", "webp", "mp3", "m4a", "wav", "zip", "txt", "mp4").contains(ext)) {
+            if (java.util.List.of("pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "png", "jpg", "jpeg", "webp", "mp3", "m4a", "wav", "ogg", "aac", "flac", "zip", "txt", "mp4", "avi", "mkv", "mov").contains(ext)) {
                 return fileName.substring(0, lastDot);
             }
         }
@@ -199,10 +199,10 @@ public class Product {
                     case "xls": case "xlsx": return "SPREADSHEET";
                     case "ppt": case "pptx": return "PRESENTATION";
                     case "png": case "jpg": case "jpeg": case "webp": return "IMAGE";
-                    case "mp3": case "m4a": case "wav": return "AUDIO";
+                    case "mp3": case "m4a": case "wav": case "ogg": case "aac": case "flac": return "AUDIO";
                     case "zip": return "ZIP";
                     case "txt": return "TEXT";
-                    case "mp4": return "VIDEO";
+                    case "mp4": case "avi": case "mkv": case "mov": return "VIDEO";
                 }
             }
         }
@@ -228,8 +228,14 @@ public class Product {
                     case "mp3": return "audio/mpeg";
                     case "m4a": return "audio/x-m4a";
                     case "wav": return "audio/wav";
+                    case "ogg": return "audio/ogg";
+                    case "aac": return "audio/aac";
+                    case "flac": return "audio/flac";
                     case "zip": return "application/zip";
                     case "txt": return "text/plain";
+                    case "avi": return "video/x-msvideo";
+                    case "mkv": return "video/x-matroska";
+                    case "mov": return "video/quicktime";
                     case "mp4": return "video/mp4";
                 }
             }

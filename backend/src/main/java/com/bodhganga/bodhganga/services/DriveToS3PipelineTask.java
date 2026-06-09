@@ -36,7 +36,11 @@ public class DriveToS3PipelineTask {
     private final AtomicInteger filesSkipped = new AtomicInteger(0);
 
     private static final List<String> SUPPORTED_EXTENSIONS = List.of(
-        "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "png", "jpg", "jpeg", "webp", "mp3", "m4a", "wav", "zip", "txt"
+        "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
+        "png", "jpg", "jpeg", "webp",
+        "mp3", "m4a", "wav", "ogg", "aac", "flac",
+        "mp4", "avi", "mkv", "mov",
+        "zip", "txt"
     );
 
     public DriveToS3PipelineTask(GoogleDriveSyncService googleDriveSyncService, S3Service s3Service, ProductRepo productRepo, MongoTemplate mongoTemplate) {
