@@ -145,9 +145,20 @@ const Login = () => {
             return;
         }
 
+        // Single source of truth for MSG91 auth token
+        const MSG91_AUTH_TOKEN = import.meta.env.VITE_MSG91_AUTH_TOKEN || "520206TlW19nvH5k6a15f8a5P1";
+
+        if (!MSG91_AUTH_TOKEN) {
+            console.error("MSG91 tokenAuth is not configured.");
+            toast.error("OTP service is not configured. Please contact support.");
+            setOtpLoading(false);
+            return;
+        }
+
         // Configure MSG91 widget configuration dynamically
         const config = {
             widgetId: import.meta.env.VITE_MSG91_WIDGET_ID || "36657a734e31333338323730",
+            tokenAuth: MSG91_AUTH_TOKEN,
             identifier: formattedPhone,
             exposeMethods: true,
             success: (response) => {
@@ -158,19 +169,22 @@ const Login = () => {
                 }
             },
             failure: (error) => {
-                console.log("MSG91 failure", error);
+                console.error("MSG91 failure", error);
                 const errMsg = typeof error === 'string' ? error : (error?.message || "OTP process failed.");
                 toast.error(errMsg);
                 setOtpLoading(false);
             }
         };
 
-        config.tokenAuth = import.meta.env.VITE_MSG91_AUTH_TOKEN;
-
         window.configuration = config;
 
         // Open the MSG91 widget popup
-        window.initSendOTP(window.configuration);
+        try {
+            window.initSendOTP(window.configuration);
+        } catch (err) {
+            console.error("MSG91 initSendOTP threw an error:", err);
+            toast.error("Failed to open OTP verification. Please refresh and try again.");
+        }
         setOtpLoading(false);
     };
 

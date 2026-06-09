@@ -67,14 +67,24 @@ const VerifyMobileOtp = () => {
       try {
         if (!window.initSendOTP) {
           console.error("MSG91 SDK not loaded");
+          toast.error("OTP service is initializing. Please wait a moment.");
           return;
+        }
+
+        // Single source of truth for MSG91 auth token (same as Login.jsx)
+        const MSG91_AUTH_TOKEN = import.meta.env.VITE_MSG91_AUTH_TOKEN || "520206TlW19nvH5k6a15f8a5P1";
+
+        if (!MSG91_AUTH_TOKEN) {
+            console.error("MSG91 tokenAuth is not configured.");
+            toast.error("OTP service is not configured. Please contact support.");
+            return;
         }
 
         const mobile = `91${phone.replace(/\D/g, "")}`;
 
         window.initSendOTP({
-          widgetId: "36657a734e31333338323730",
-          tokenAuth: "520206TzveVH8e6a17f07cP1",
+          widgetId: import.meta.env.VITE_MSG91_WIDGET_ID || "36657a734e31333338323730",
+          tokenAuth: MSG91_AUTH_TOKEN,
           identifier: mobile,
 
           success: (data) => {
@@ -84,11 +94,14 @@ const VerifyMobileOtp = () => {
 
           failure: (error) => {
             console.error("MSG91 FAILURE:", error);
+            const errMsg = typeof error === 'string' ? error : (error?.message || "OTP process failed.");
+            toast.error(errMsg);
           }
         });
 
       } catch (err) {
         console.error("OTP INIT ERROR:", err);
+        toast.error("Failed to open OTP verification. Please refresh and try again.");
       }
     };
 
