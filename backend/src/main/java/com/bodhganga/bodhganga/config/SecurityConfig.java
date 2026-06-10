@@ -42,6 +42,7 @@ public class SecurityConfig {
                         // Public auth endpoints
                         .requestMatchers(
                                 "/api/auth/login",
+                                "/api/auth/register",
                                 "/api/auth/health",
                                 "/api/auth/admin/login",
                                 "/api/auth/**",

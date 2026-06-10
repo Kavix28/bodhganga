@@ -2,6 +2,7 @@ package com.bodhganga.bodhganga.service;
 
 import com.bodhganga.bodhganga.dto.ApiResponseDTO;
 import com.bodhganga.bodhganga.dto.SignupRequestDTO;
+import com.bodhganga.bodhganga.dto.RegisterRequestDTO;
 import com.bodhganga.bodhganga.repo.UserRepo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -139,5 +140,63 @@ public class OtpBypassSecurityTests {
         assertEquals(beforeCount + 1, afterCount, "User count must increase by 1");
         assertNotNull(response.getData(), "Response should return data");
         System.out.println("Test Case 5 PASSED.\n");
-    }
+     }
+
+     @Test
+     void testCase6_DirectRegistrationSuccess() {
+         System.out.println("=== TEST CASE 6: Direct Registration Success ===");
+         long beforeCount = userRepo.count();
+         System.out.println("Users count BEFORE: " + beforeCount);
+
+         RegisterRequestDTO dto = new RegisterRequestDTO();
+         dto.setName("Direct User");
+         dto.setPhoneNo("9999999999");
+         dto.setPassword("SecretPassword123");
+         dto.setCity("Mumbai");
+         dto.setState("Maharashtra");
+         dto.setEmail("direct@domain.com");
+
+         ApiResponseDTO response = authService.registerDirect(dto);
+
+         long afterCount = userRepo.count();
+         System.out.println("Users count AFTER: " + afterCount);
+
+         assertTrue(response.isSuccess(), "Direct registration should succeed");
+         assertEquals(beforeCount + 1, afterCount, "User count must increase by 1");
+         assertNotNull(response.getData(), "Response should return data containing token and user");
+         assertEquals("Account created successfully", response.getMessage());
+         System.out.println("Test Case 6 PASSED.\n");
+     }
+
+     @Test
+     void testCase7_DirectRegistrationDuplicatePhone() {
+         System.out.println("=== TEST CASE 7: Direct Registration Duplicate Phone ===");
+         RegisterRequestDTO dto1 = new RegisterRequestDTO();
+         dto1.setName("User One");
+         dto1.setPhoneNo("9999999999");
+         dto1.setPassword("SecretPassword123");
+         dto1.setCity("Mumbai");
+         dto1.setState("Maharashtra");
+
+         authService.registerDirect(dto1);
+         long beforeCount = userRepo.count();
+         System.out.println("Users count BEFORE (with 1 registered): " + beforeCount);
+
+         RegisterRequestDTO dto2 = new RegisterRequestDTO();
+         dto2.setName("User Two");
+         dto2.setPhoneNo("9999999999");
+         dto2.setPassword("AnotherPassword123");
+         dto2.setCity("Mumbai");
+         dto2.setState("Maharashtra");
+
+         ApiResponseDTO response = authService.registerDirect(dto2);
+
+         long afterCount = userRepo.count();
+         System.out.println("Users count AFTER: " + afterCount);
+
+         assertFalse(response.isSuccess(), "Direct registration with duplicate phone should fail");
+         assertEquals("Phone number already registered", response.getMessage());
+         assertEquals(beforeCount, afterCount, "User count must not change");
+         System.out.println("Test Case 7 PASSED.\n");
+     }
 }

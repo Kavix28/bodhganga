@@ -3,6 +3,7 @@ package com.bodhganga.bodhganga.controllers;
 import com.bodhganga.bodhganga.dto.ApiResponseDTO;
 import com.bodhganga.bodhganga.dto.LoginRequestDTO;
 import com.bodhganga.bodhganga.dto.SignupRequestDTO;
+import com.bodhganga.bodhganga.dto.RegisterRequestDTO;
 import com.bodhganga.bodhganga.service.AuthService;
 import com.bodhganga.bodhganga.repo.*;
 import jakarta.validation.Valid;
@@ -50,6 +51,36 @@ public class AuthController {
     public ResponseEntity<ApiResponseDTO> login(@Valid @RequestBody LoginRequestDTO dto) {
         ApiResponseDTO response = authService.login(dto);
         HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.UNAUTHORIZED;
+        return new ResponseEntity<>(response, status);
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<ApiResponseDTO> register(@Valid @RequestBody RegisterRequestDTO dto) {
+        // Normalize phone number to check if it already exists before doing everything else
+        String normalizedPhone = dto.getPhoneNo() != null ? dto.getPhoneNo().replaceAll("[^0-9]", "") : "";
+        if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
+            normalizedPhone = normalizedPhone.substring(2);
+        }
+
+        if (userRepo.existsByPhoneNo(normalizedPhone)) {
+            return new ResponseEntity<>(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("Phone number already registered")
+                    .build(), HttpStatus.CONFLICT);
+        }
+
+        // Check if email already exists if email is provided
+        if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
+            if (userRepo.existsByEmail(dto.getEmail())) {
+                return new ResponseEntity<>(ApiResponseDTO.builder()
+                        .success(false)
+                        .message("Email already registered")
+                        .build(), HttpStatus.CONFLICT);
+            }
+        }
+
+        ApiResponseDTO response = authService.registerDirect(dto);
+        HttpStatus status = response.isSuccess() ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST;
         return new ResponseEntity<>(response, status);
     }
 

@@ -33,6 +33,80 @@ public class AuthService {
         }
 
         /**
+         * Register user directly (without OTP verification, e.g. /api/auth/register)
+         */
+        public ApiResponseDTO registerDirect(RegisterRequestDTO dto) {
+                // Normalize phone number (remove non-digits, remove leading 91 if it's 12 digits total)
+                String phoneNo = dto.getPhoneNo();
+                String normalizedPhone = phoneNo != null ? phoneNo.replaceAll("[^0-9]", "") : "";
+                if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
+                        normalizedPhone = normalizedPhone.substring(2);
+                }
+
+                // Check if user with same phoneNo already exists
+                if (!normalizedPhone.isBlank() && userRepo.existsByPhoneNo(normalizedPhone)) {
+                        return ApiResponseDTO.builder()
+                                        .success(false)
+                                        .message("Phone number already registered")
+                                        .build();
+                }
+
+                // Double check if email already exists (only if a custom email is provided)
+                if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
+                        if (userRepo.existsByEmail(dto.getEmail())) {
+                                return ApiResponseDTO.builder()
+                                                .success(false)
+                                                .message("Email already registered")
+                                                .build();
+                        }
+                }
+
+                // Generate default email if not provided
+                String email = dto.getEmail();
+                if (email == null || email.isBlank()) {
+                        email = normalizedPhone + "@bodhganga.in";
+                }
+
+                // Create new user with hashed password
+                User user = User.builder()
+                                .name(dto.getName())
+                                .email(email)
+                                .phoneNo(normalizedPhone.isBlank() ? null : normalizedPhone)
+                                .hashedPassword(passwordEncoder.encode(dto.getPassword()))
+                                .city(dto.getCity())
+                                .state(dto.getState())
+                                .country("India") // default
+                                .role("USER")
+                                .isVerified(false) // requirement: isVerified=false
+                                .emailVerified(false)
+                                .phoneVerified(false)
+                                .isActive(true) // requirement: isActive=true
+                                .createdAt(new Date()) // requirement: createdAt=now
+                                .build();
+
+                log.info("Saving registered user: {}", user.getPhoneNo());
+                User savedUser = userRepo.save(user);
+
+                // Generate JWT token for auto-login
+                String jwtSubject = savedUser.getEmail() != null ? savedUser.getEmail() : savedUser.getPhoneNo();
+                String token = jwtUtil.generateToken(jwtSubject, savedUser.getId(), savedUser.getRole());
+
+                // Convert to response DTO
+                UserResponseDTO userResponse = mapToUserResponse(savedUser);
+
+                // Create response with token and user data
+                Map<String, Object> responseData = new HashMap<>();
+                responseData.put("token", token);
+                responseData.put("user", userResponse);
+
+                return ApiResponseDTO.builder()
+                                .success(true)
+                                .message("Account created successfully")
+                                .data(responseData)
+                                .build();
+        }
+
+        /**
          * User Signup - Register new user
          */
         /**
