@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 
@@ -25,7 +25,6 @@ export default function StatesPage() {
   useEffect(() => {
     api.get("/states/available")
       .then(res => {
-        // API returns a plain array directly
         const raw = res;
         let data = [];
         if (Array.isArray(raw)) {
@@ -33,7 +32,6 @@ export default function StatesPage() {
         } else if (Array.isArray(raw?.data)) {
           data = raw.data;
         }
-        console.log("[StatesPage] raw response:", JSON.stringify(raw)?.substring(0,200));
         console.log("[StatesPage] parsed states:", data.map(s => ({ id: s.id, name: s.name })));
         setUploadedStates(data);
       })
@@ -44,10 +42,10 @@ export default function StatesPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // API returns id like "andhra-pradesh" which matches toSlug("Andhra Pradesh")
-  const uploadedSlugs = new Set(uploadedStates.map(s => s.id || s.stateSlug || toSlug(s.name || "")));
-
-  console.log("[StatesPage] uploadedSlugs:", [...uploadedSlugs]);
+  const uploadedSlugs = useMemo(
+    () => new Set(uploadedStates.map(s => s.id || s.stateSlug || toSlug(s.name || ""))),
+    [uploadedStates]
+  );
 
   const filtered = ALL_INDIA_STATES.filter(name =>
     name.toLowerCase().includes(search.toLowerCase())
@@ -68,49 +66,44 @@ export default function StatesPage() {
         {loading ? (
           <div className="text-amber-400 animate-pulse">Loading...</div>
         ) : (
-          <>
-            {uploadedStates.length === 0 && (
-              <p className="text-red-400 text-sm mb-4">? Could not load state data from API.</p>
-            )}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {filtered.map(name => {
-                const slug = toSlug(name);
-                const uploaded = uploadedSlugs.has(slug);
-                const stateData = uploadedStates.find(s =>
-                  (s.id === slug) || (s.stateSlug === slug) || toSlug(s.name || "") === slug
-                );
-                return (
-                  <div
-                    key={name}
-                    onClick={() => uploaded && navigate("/states-browse/" + slug)}
-                    className={"bg-gray-900 border rounded-xl p-5 transition-all duration-200 " +
-                      (uploaded
-                        ? "border-gray-700 hover:border-amber-500 cursor-pointer hover:bg-gray-800"
-                        : "border-gray-800 opacity-60 cursor-default")}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <h2 className="text-base font-bold text-white">{name}</h2>
-                      {uploaded
-                        ? <span className="text-xs bg-amber-900 text-amber-400 px-2 py-0.5 rounded-full">Available</span>
-                        : <span className="text-xs bg-gray-800 text-gray-500 px-2 py-0.5 rounded-full">Coming Soon</span>
-                      }
-                    </div>
-                    {uploaded && stateData && (
-                      <p className="text-gray-500 text-xs mb-3">
-                        {stateData.districts?.length ?? 0} districts � {stateData.notesCount ?? 0} resources
-                      </p>
-                    )}
-                    {!uploaded && (
-                      <p className="text-gray-600 text-xs mb-3">Stay tuned � content coming soon</p>
-                    )}
-                    {uploaded && (
-                      <div className="text-amber-400 text-xs font-medium">Explore ?</div>
-                    )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filtered.map(name => {
+              const slug = toSlug(name);
+              const uploaded = uploadedSlugs.has(slug);
+              const stateData = uploadedStates.find(s =>
+                (s.id === slug) || (s.stateSlug === slug) || toSlug(s.name || "") === slug
+              );
+              return (
+                <div
+                  key={name}
+                  onClick={() => uploaded && navigate("/states-browse/" + slug)}
+                  className={"bg-gray-900 border rounded-xl p-5 transition-all duration-200 " +
+                    (uploaded
+                      ? "border-gray-700 hover:border-amber-500 cursor-pointer hover:bg-gray-800"
+                      : "border-gray-800 opacity-60 cursor-default")}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <h2 className="text-base font-bold text-white">{name}</h2>
+                    {uploaded
+                      ? <span className="text-xs bg-amber-900 text-amber-400 px-2 py-0.5 rounded-full">Available</span>
+                      : <span className="text-xs bg-gray-800 text-gray-500 px-2 py-0.5 rounded-full">Coming Soon</span>
+                    }
                   </div>
-                );
-              })}
-            </div>
-          </>
+                  {uploaded && stateData && (
+                    <p className="text-gray-500 text-xs mb-3">
+                      {stateData.districts?.length ?? 0} districts · {stateData.notesCount ?? 0} resources
+                    </p>
+                  )}
+                  {!uploaded && (
+                    <p className="text-gray-600 text-xs mb-3">Stay tuned — content coming soon</p>
+                  )}
+                  {uploaded && (
+                    <div className="text-amber-400 text-xs font-medium">Explore →</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>
