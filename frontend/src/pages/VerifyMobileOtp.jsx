@@ -109,16 +109,16 @@ const VerifyMobileOtp = () => {
     const handleVerifyToken = async (accessToken) => {
         setIsLoading(true);
         try {
-            const res = await api.post('/api/auth/msg91/verify', {
+            const res = await api.post('/auth/msg91/verify', {
                 accessToken,
                 phoneNumber: phone,
                 signupData,
             });
 
-            if (res?.success && res.data?.token) {
+            if (res?.token || res?.data?.token) {
                 localStorage.removeItem('signupData');
                 toast.success('Mobile number verified & registered successfully!');
-                login(res.data.token, res.data.user);
+                login(res?.token || res?.data?.token, res?.user || res?.data?.user);
                 navigate('/dashboard', { replace: true });
             } else {
                 throw new Error(res?.message || 'Authentication failed');
