@@ -1,320 +1,144 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { 
-  FolderOpen, 
-  Search, 
-  MapPin, 
-  ChevronLeft, 
-  BookOpen, 
-  SlidersHorizontal 
-} from 'lucide-react';
-import api from '../services/api';
-import toast from 'react-hot-toast';
-import Breadcrumb from '../components/common/Breadcrumb';
-import ResourceCard from '../components/common/ResourceCard';
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import api from "../services/api";
+import toast from "react-hot-toast";
 
-const ResourcePage = () => {
-  // stateSlug comes directly from the URL — never transformed
-  const { stateSlug } = useParams();
-  
-  const [products, setProducts] = useState([]);
+const FILE_ICONS = {
+  pdf:  { icon: "📄", color: "text-red-400",    label: "PDF" },
+  docx: { icon: "📝", color: "text-blue-400",   label: "DOCX" },
+  doc:  { icon: "📝", color: "text-blue-400",   label: "DOC" },
+  xlsx: { icon: "📊", color: "text-green-400",  label: "XLSX" },
+  xls:  { icon: "📊", color: "text-green-400",  label: "XLS" },
+  pptx: { icon: "📋", color: "text-orange-400", label: "PPTX" },
+  png:  { icon: "🖼️", color: "text-purple-400", label: "Image" },
+  jpg:  { icon: "🖼️", color: "text-purple-400", label: "Image" },
+  jpeg: { icon: "🖼️", color: "text-purple-400", label: "Image" },
+  webp: { icon: "🖼️", color: "text-purple-400", label: "Image" },
+  mp3:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
+  m4a:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
+  wav:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
+};
+
+function formatSize(bytes) {
+  if (!bytes) return null;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export default function ResourcesPage() {
+  const { stateSlug, districtSlug } = useParams();
+  const navigate = useNavigate();
+  const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDistrictFilter, setSelectedDistrictFilter] = useState('All');
-
-  // Resolve display name from backend-fetched available states — no hardcoded lookup
-  const [availableStates, setAvailableStates] = useState([]);
-  const [stateName, setStateName] = useState('');
+  const [districtName, setDistrictName] = useState("");
+  const [stateName, setStateName] = useState("");
+  const [redirect, setRedirect] = useState(null);
 
   useEffect(() => {
-    fetchAvailableStates();
-    fetchResources();
-    window.scrollTo(0, 0);
-  }, [stateSlug]);
+    const fetchData = async () => {
+      try {
+        const res = await api.get(
+          `/api/products/state/${stateSlug}/district/${districtSlug}`
+        );
+        const products = res.data?.data || [];
 
-  // Fetch list of available states to resolve a human-readable display name
-  const fetchAvailableStates = async () => {
-    try {
-      const res = await api.get('/states/available');
-      // API returns: { states: [...] } or an array directly
-      const states = res?.states || res || [];
-      setAvailableStates(states);
+        if (products.length > 0) {
+          setDistrictName(products[0].district || products[0].districtName || districtSlug);
+          setStateName(products[0].state || products[0].stateName || stateSlug);
+        }
 
-      // Try to find matching state entry for a proper display name
-      const match = states.find(
-        (s) =>
-          s.stateSlug === stateSlug ||
-          s.slug === stateSlug ||
-          s.id === stateSlug
-      );
-      if (match) {
-        setStateName(match.stateName || match.name || formatSlugToTitle(stateSlug));
-      } else {
-        setStateName(formatSlugToTitle(stateSlug));
+        const allFree = products.every(p => p.isFree === true);
+
+        if (!allFree) {
+          try {
+            const pRes = await api.get("/api/payment/district/purchased");
+            const purchased = pRes.data?.data || [];
+            if (!purchased.includes(districtSlug)) {
+              setRedirect({ to: `/store/${stateSlug}`, msg: "Please unlock this district to view resources" });
+              return;
+            }
+          } catch {
+            setRedirect({ to: "/login", msg: "Please log in to view these resources" });
+            return;
+          }
+        }
+
+        setResources(products);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.warn('Could not fetch available states for display name resolution:', err);
-      // Graceful fallback — convert slug to readable title for UI only
-      setStateName(formatSlugToTitle(stateSlug));
+    };
+    fetchData();
+  }, [stateSlug, districtSlug]);
+
+  useEffect(() => {
+    if (redirect) {
+      toast.error(redirect.msg);
+      navigate(redirect.to);
     }
-  };
+  }, [redirect, navigate]);
 
-  // UI-only helper: converts "andhra-pradesh" → "Andhra Pradesh" for display
-  // This NEVER affects the API call — stateSlug is always used as-is for API requests
-  const formatSlugToTitle = (slug) => {
-    return slug
-      .split('-')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  };
+  if (loading) return (
+    <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="text-amber-400 animate-pulse">Loading resources...</div>
+    </div>
+  );
 
-  const fetchResources = async () => {
-    try {
-      setLoading(true);
-      // Use raw URL param — exactly as received from the router, never transformed
-      const res = await api.get(`/products/state/${stateSlug}`);
-      // api.js interceptor returns response.data directly; handle both wrapped and bare arrays
-      const rawProducts = res?.data || (Array.isArray(res) ? res : []);
-      setProducts(rawProducts);
-    } catch (error) {
-      console.error('Failed to load state resources:', error);
-      toast.error('Failed to load regional resources');
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Extract unique district names for filtering
-  const districtList = useMemo(() => {
-    const districts = new Set();
-    products.forEach((p) => {
-      const district = p.districtName || p.districtSlug;
-      if (district) districts.add(district);
-    });
-    return ['All', ...Array.from(districts).sort()];
-  }, [products]);
-
-  // Filter products by search and district selection
-  const filteredProducts = useMemo(() => {
-    return products.filter((p) => {
-      // 1. Search Query Filter
-      if (searchTerm.trim()) {
-        const q = searchTerm.toLowerCase();
-        const matchesTitle = p.title?.toLowerCase().includes(q);
-        const matchesFileName = p.fileName?.toLowerCase().includes(q);
-        const matchesDistrict =
-          p.districtName?.toLowerCase().includes(q) ||
-          p.districtSlug?.toLowerCase().includes(q);
-        if (!matchesTitle && !matchesFileName && !matchesDistrict) return false;
-      }
-
-      // 2. District Filter
-      if (selectedDistrictFilter !== 'All') {
-        const district = p.districtName || p.districtSlug;
-        if (district !== selectedDistrictFilter) return false;
-      }
-
-      return true;
-    });
-  }, [products, searchTerm, selectedDistrictFilter]);
-
-  // Group filtered products by districtName (or districtSlug as fallback)
-  const groupedProducts = useMemo(() => {
-    const groups = {};
-    filteredProducts.forEach((p) => {
-      const district = p.districtName || p.districtSlug || 'General';
-      if (!groups[district]) groups[district] = [];
-      groups[district].push(p);
-    });
-
-    // Sort alphabetically, keep 'General' at the end
-    return Object.keys(groups)
-      .sort((a, b) => {
-        if (a === 'General') return 1;
-        if (b === 'General') return -1;
-        return a.localeCompare(b);
-      })
-      .reduce((acc, key) => {
-        acc[key] = groups[key];
-        return acc;
-      }, {});
-  }, [filteredProducts]);
+  if (redirect) return null;
 
   return (
-    <div className="min-h-screen bg-ivory-light">
-
-      {/* ── LUXURY HEADER BANNER ───────────────────────────────── */}
-      <section className="bg-gradient-to-b from-emerald-dark to-emerald-950 text-white relative overflow-hidden py-16 px-6 border-b border-gold/15">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(201,169,97,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(201,169,97,0.03)_1px,transparent_1px)] bg-[size:3.5rem_3.5rem]" />
-        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-emerald via-gold to-emerald" />
-
-        <div className="relative max-w-7xl mx-auto space-y-5">
-          <div className="mb-2">
-            <Breadcrumb items={[
-              { label: 'Explore Regions', path: '/states' },
-              { label: stateName || stateSlug, path: `/states/${stateSlug}` },
-              { label: 'Study Resources', path: `/states/${stateSlug}/resources` }
-            ]} />
-          </div>
-
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-gold/20">
-            <BookOpen className="w-3.5 h-3.5 text-gold animate-pulse" />
-            <span className="text-[9px] font-bold tracking-widest text-gold uppercase">Digital Repository</span>
-          </div>
-
-          <div className="space-y-2">
-            <h1 className="text-4xl md:text-5xl font-bold font-serif tracking-tight">
-              {stateName || stateSlug} Study Materials
-            </h1>
-            <p className="text-white/60 text-xs sm:text-sm max-w-3xl leading-relaxed">
-              Browse through hand-crafted syllabus files, documents, audio briefs, and worksheets indexed
-              by administrative districts for {stateName || stateSlug} PSC preparation.
-            </p>
-          </div>
-
-          <div className="pt-2">
-            <Link
-              to={`/states/${stateSlug}`}
-              className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-widest text-gold hover:text-white transition-colors duration-200"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span>Back to Region Hub</span>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* ── CONTROLS: SEARCH & DISTRICT FILTER ─────────────────── */}
-      <div className="max-w-7xl mx-auto px-6 pt-10 pb-4">
-        <div className="flex flex-col md:flex-row gap-4 justify-between items-stretch md:items-center bg-white p-4 rounded-2xl border border-emerald/10 shadow-sm">
-          {/* Search Box */}
-          <div className="relative flex-grow max-w-md">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/50" />
-            <input
-              type="text"
-              id="resource-search"
-              placeholder="Search resource title or district..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full py-2.5 pl-11 pr-4 rounded-xl border border-emerald/10 focus:border-emerald bg-ivory-light/35 text-xs font-semibold transition-all duration-300 focus:ring-4 focus:ring-emerald/5 outline-none"
-            />
-          </div>
-
-          {/* District Filter Dropdown */}
-          {districtList.length > 2 && (
-            <div className="flex items-center gap-2">
-              <SlidersHorizontal className="w-4 h-4 text-emerald/65" />
-              <select
-                id="district-filter"
-                value={selectedDistrictFilter}
-                onChange={(e) => setSelectedDistrictFilter(e.target.value)}
-                className="py-2.5 px-4 rounded-xl border border-emerald/10 focus:border-emerald bg-white text-xs font-semibold outline-none cursor-pointer"
-              >
-                {districtList.map((dist) => (
-                  <option key={dist} value={dist}>
-                    {dist === 'All' ? 'All Districts' : dist}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── RESOURCE GRID & LISTINGS ──────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-12">
-        {loading ? (
-          // Loading Skeleton State
-          <div className="space-y-10">
-            {[1, 2].map((section) => (
-              <div key={section} className="space-y-4">
-                <div className="h-6 bg-slate-200 rounded w-48 animate-pulse" />
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {[1, 2, 3, 4].map((idx) => (
-                    <div key={idx} className="bg-white rounded-2xl p-5 border border-slate-100 space-y-4 animate-pulse">
-                      <div className="w-12 h-12 bg-slate-200 rounded-xl" />
-                      <div className="space-y-2">
-                        <div className="h-4 bg-slate-200 rounded w-3/4" />
-                        <div className="h-3 bg-slate-200 rounded w-1/2" />
-                      </div>
-                      <div className="h-10 bg-slate-200 rounded-xl" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : Object.keys(groupedProducts).length > 0 ? (
-          // Grouped Districts List
-          Object.keys(groupedProducts).map((districtName) => (
-            <div key={districtName} className="space-y-6">
-              {/* Section Header */}
-              <div className="flex items-center gap-2 border-b border-gold/15 pb-3">
-                <MapPin className="w-4 h-4 text-gold-dark" />
-                <h2 className="text-lg font-serif font-bold text-emerald-950 uppercase tracking-wider">
-                  {districtName} Region
-                </h2>
-                <span className="text-[10px] bg-emerald/5 border border-emerald/10 text-emerald-dark px-2.5 py-0.5 rounded-full font-bold">
-                  {groupedProducts[districtName].length}{' '}
-                  {groupedProducts[districtName].length === 1 ? 'file' : 'files'}
-                </span>
-              </div>
-
-              {/* District Cards Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {groupedProducts[districtName].map((product) => (
-                  <ResourceCard
-                    key={product.id}
-                    title={product.title}
-                    fileName={product.fileName}
-                    fileType={product.fileType || product.fileExtension}
-                    mimeType={product.mimeType}
-                    s3Url={product.s3Url}
-                    districtName={product.districtName || product.districtSlug}
-                  />
-                ))}
-              </div>
-            </div>
-          ))
+    <div className="min-h-screen bg-gray-950 text-white px-4 py-10">
+      <div className="max-w-6xl mx-auto">
+        <button onClick={() => navigate(`/store/${stateSlug}`)}
+          className="text-gray-400 hover:text-amber-400 mb-6 flex items-center gap-1 text-sm">
+          ← Back to Districts
+        </button>
+        <h1 className="text-3xl font-bold text-amber-400 mb-1">{districtName}</h1>
+        <p className="text-gray-400 mb-8">
+          {stateName} · {resources.length} resource{resources.length !== 1 ? "s" : ""}
+        </p>
+        {resources.length === 0 ? (
+          <div className="text-gray-500 text-center py-20">No resources found.</div>
         ) : (
-          // Empty State
-          <div className="bg-white border border-emerald/10 rounded-3xl p-16 text-center max-w-xl mx-auto shadow-sm space-y-5">
-            <div className="mx-auto w-16 h-16 rounded-full bg-emerald/5 flex items-center justify-center">
-              <FolderOpen className="w-8 h-8 text-emerald" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-lg font-serif font-bold text-emerald-950">No resources found</h3>
-              <p className="text-slate-500 text-xs max-w-md mx-auto leading-relaxed">
-                We are currently indexing files for this region. Please check back later, or
-                contact administration to request study materials for your district.
-              </p>
-            </div>
-            {searchTerm || selectedDistrictFilter !== 'All' ? (
-              <button
-                id="clear-filters-btn"
-                onClick={() => {
-                  setSearchTerm('');
-                  setSelectedDistrictFilter('All');
-                }}
-                className="btn-premium btn-premium-primary text-[10px] uppercase font-bold py-2.5 px-6 tracking-widest inline-block"
-              >
-                Clear Search &amp; Filters
-              </button>
-            ) : (
-              <Link
-                to={`/states/${stateSlug}`}
-                className="btn-premium btn-premium-primary text-[10px] uppercase font-bold py-2.5 px-6 tracking-widest inline-block"
-              >
-                Return to Region Hub
-              </Link>
-            )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {resources.map(r => {
+              const ext = (r.fileExtension || "").toLowerCase();
+              const meta = FILE_ICONS[ext] || { icon: "📎", color: "text-gray-400", label: ext.toUpperCase() };
+              return (
+                <div key={r.id}
+                  className="bg-gray-900 border border-gray-800 rounded-xl p-5
+                             hover:border-amber-500 transition-all duration-200">
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="text-2xl">{meta.icon}</span>
+                    <span className={`text-xs font-bold uppercase ${meta.color} bg-gray-800 px-2 py-0.5 rounded`}>
+                      {meta.label}
+                    </span>
+                    {r.isFree && (
+                      <span className="text-xs bg-green-900 text-green-400 px-2 py-0.5 rounded-full ml-auto">
+                        Free
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-sm font-semibold text-white mb-1 line-clamp-2">
+                    {r.title || r.displayTitle || r.fileName}
+                  </h3>
+                  {r.fileSize && (
+                    <p className="text-xs text-gray-500 mb-3">{formatSize(r.fileSize)}</p>
+                  )}
+                  <a href={r.s3Url} target="_blank" rel="noopener noreferrer"
+                    className="block w-full text-center bg-amber-500 hover:bg-amber-400
+                               text-black font-semibold py-2 px-4 rounded-lg
+                               transition-colors text-sm mt-3">
+                    View / Download
+                  </a>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
-
     </div>
   );
-};
-
-export default ResourcePage;
+}
