@@ -50,7 +50,7 @@ export default function DistrictsPage() {
   }, [stateSlug]);
 
   const handleUnlock = async (district) => {
-    const token = localStorage.getItem("authToken") || localStorage.getItem("token");
+    const token = JSON.parse(localStorage.getItem("auth_token"));
     if (!token) { toast.error("Please log in to unlock"); navigate("/login"); return; }
     try {
       const orderRes = await api.post("/api/payment/create-order", {
