@@ -14,7 +14,6 @@ const VerifyMobileOtp = () => {
     const [phone, setPhone] = useState('');
     const [signupData, setSignupData] = useState(null);
 
-    // ── Load phone + signup data from navigation state or localStorage ──────────
     useEffect(() => {
         const storedSignupData = localStorage.getItem('signupData');
         const phoneFromState =
@@ -36,49 +35,29 @@ const VerifyMobileOtp = () => {
         }
     }, [location.state, navigate]);
 
-    // ── Load SDK once on mount ──────────────────────────────────────────────────
     useEffect(() => {
         const script = document.createElement("script");
         script.src = "https://verify.msg91.com/otp-provider.js";
         script.async = true;
         document.body.appendChild(script);
-
         return () => {
             try { document.body.removeChild(script); } catch {}
         };
     }, []);
 
-    // ── OTP success → verify token with backend ─────────────────────────────────
     const handleOtpSuccess = (data) => {
         console.log("MSG91 raw success payload:", data);
-        const token =
-            typeof data === 'string'
-                ? data
-                : data?.token || data?.['access-token'] || data?.message;
-        if (token) {
-            handleVerifyToken(token);
-        } else {
-            console.error('MSG91 success but no recognisable token in payload:', data);
-            toast.error('Verification response unexpected. Please try again.');
-        }
+        handleRegister();
     };
 
-    // ── Button handler ──────────────────────────────────────────────────────────
     const handleOpenPopup = () => {
         try {
             if (!window.initSendOTP) {
-                console.error("MSG91 SDK not loaded");
                 toast.error("OTP service is initializing. Please wait a moment.");
                 return;
             }
 
             const MSG91_AUTH_TOKEN = import.meta.env.VITE_MSG91_AUTH_TOKEN || "520206TlW19nvH5k6a15f8a5P1";
-
-            if (!MSG91_AUTH_TOKEN) {
-                toast.error("OTP service is not configured. Please contact support.");
-                return;
-            }
-
             const mobile = `91${phone.replace(/\D/g, "")}`;
 
             window.initSendOTP({
@@ -102,51 +81,51 @@ const VerifyMobileOtp = () => {
         }
     };
 
-    // ── Verify MSG91 token with backend ─────────────────────────────────────────
-    const handleVerifyToken = async (accessToken) => {
+    const handleRegister = async () => {
+        if (!signupData) {
+            toast.error("Session expired. Please register again.");
+            navigate('/register');
+            return;
+        }
+
         setIsLoading(true);
         try {
-            // Remap frontend field names → backend field names
-            const mappedSignupData = signupData ? {
-                name:     signupData.fullName   || signupData.name,
-                email:    signupData.email      || '',
+            const payload = {
+                name:     signupData.fullName    || signupData.name,
+                email:    signupData.email       || '',
                 phoneNo:  signupData.phoneNumber || signupData.phoneNo,
                 password: signupData.password,
                 city:     signupData.city,
                 state:    signupData.state,
-                country:  signupData.country    || 'India',
-            } : null;
+                country:  signupData.country     || 'India',
+            };
 
-            console.log("Sending to backend:", { accessToken, phoneNumber: phone, signupData: mappedSignupData });
-
-            // Note: axios interceptor strips leading /api when baseURL ends with /api
-            const res = await api.post('/auth/msg91/verify', {
-                accessToken,
-                phoneNumber: phone,
-                signupData: mappedSignupData,
-            });
-
+            console.log("Registering with payload:", payload);
+            const res = await api.post('/auth/register', payload);
             console.log("Backend response:", res);
 
-            // Backend returns ApiResponseDTO: { success, message, data: { token, user } }
-            // Axios interceptor returns response.data, so res = { success, message, data: { token, user } }
             if (res?.success && res?.data?.token) {
                 localStorage.removeItem('signupData');
-                toast.success('Account verified & registered successfully!');
+                toast.success('Account created successfully! Welcome to Bodhganga!');
                 login(res.data.token, res.data.user);
                 navigate('/dashboard', { replace: true });
             } else {
-                throw new Error(res?.message || 'Authentication failed');
+                throw new Error(res?.message || 'Registration failed');
             }
         } catch (err) {
-            console.error('Backend token verification error:', err);
-            toast.error(err?.message || 'Verification failed. Please try again.');
+            console.error('Registration error:', err);
+            const msg = err?.message || 'Something went wrong. Please try again.';
+            if (msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('already exists')) {
+                toast.error('This number is already registered. Please login instead.');
+                navigate('/login');
+            } else {
+                toast.error(msg);
+            }
         } finally {
             setIsLoading(false);
         }
     };
 
-    // ── Display helper ───────────────────────────────────────────────────────────
     const formatPhoneDisplay = (num) => {
         if (!num) return '';
         const cleaned = num.replace(/\D/g, '');
@@ -156,21 +135,19 @@ const VerifyMobileOtp = () => {
         return `+${cleaned}`;
     };
 
-    // ── Render ───────────────────────────────────────────────────────────────────
     return (
         <div className="min-h-screen bg-ivory-light flex items-center justify-center py-16 px-4">
             <div className="max-w-md w-full space-y-8 card-premium bg-white p-8 sm:p-10 shadow-2xl border border-emerald/5">
 
-                {/* Header */}
                 <div className="text-center space-y-3">
                     <div className="w-16 h-16 bg-emerald/5 border border-gold/25 rounded-2xl flex items-center justify-center mx-auto mb-2">
                         <FiShield className="w-8 h-8 text-emerald" />
                     </div>
                     <h2 className="text-2xl font-bold text-emerald-dark font-serif tracking-tight">
-                        Verify Mobile OTP
+                        Verify Mobile Number
                     </h2>
                     <p className="text-xs text-emerald-dark/60 leading-relaxed font-semibold">
-                        A verification code will be sent to your mobile number
+                        A verification code will be sent to
                         <span className="font-bold text-emerald block mt-1">
                             {formatPhoneDisplay(phone)}
                         </span>
@@ -185,11 +162,10 @@ const VerifyMobileOtp = () => {
                     </button>
                 </div>
 
-                {/* Action */}
                 <div className="space-y-6">
                     <div className="bg-emerald-50/30 border border-emerald/10 rounded-xl p-5 text-center space-y-3">
                         <p className="text-xs font-medium text-emerald-dark/80">
-                            Click the button below — a secure MSG91 popup will open to verify your number.
+                            Click below to verify your number via OTP. Your account will be created automatically once verified.
                         </p>
                         <button
                             type="button"
@@ -198,7 +174,14 @@ const VerifyMobileOtp = () => {
                             disabled={isLoading}
                             className="w-full py-2.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest rounded-lg shadow hover:-translate-y-0.5 active:scale-95 transition-all duration-300 disabled:opacity-50 disabled:pointer-events-none"
                         >
-                            {isLoading ? 'Processing…' : 'Open Verification Popup'}
+                            {isLoading ? (
+                                <span className="flex items-center justify-center gap-2">
+                                    <span className="w-4 h-4 border-2 border-emerald-dark border-t-transparent rounded-full animate-spin" />
+                                    Creating Account...
+                                </span>
+                            ) : (
+                                'Verify & Create Account'
+                            )}
                         </button>
                     </div>
 
