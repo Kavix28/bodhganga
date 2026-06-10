@@ -8,11 +8,9 @@ import { useCart } from '../../context/CartContext';
 import Logo from './Logo';
 
 const navLinks = [
-    { path: '/states',            label: 'States & UTs',  icon: MapPin,        public: true },
-    { path: '/courses',           label: 'Courses',        icon: BookOpen,      public: true },
-    { path: '/store',             label: 'Store',          icon: ShoppingBag,   public: true },
-    { path: '/free-resources',    label: 'Free Resources', icon: Sparkles,      public: true },
-    { path: '/blog',              label: 'Blog',           icon: null,          public: true },
+    { path: '/states-browse',    label: 'States & UTs',   icon: MapPin,    public: true },
+    { path: '/courses',          label: 'Courses',         icon: BookOpen,  public: true },
+    { path: '/blog',             label: 'Blog',            icon: null,      public: true },
 ];
 
 const aboutLinks = [
@@ -38,7 +36,6 @@ const Navbar = () => {
         return () => window.removeEventListener('scroll', onScroll);
     }, []);
 
-    // Close mobile menu on route change
     useEffect(() => { setMobileOpen(false); setUserMenuOpen(false); setAboutMenuOpen(false); }, [location.pathname]);
 
     const isActive = (path) => {
@@ -73,11 +70,10 @@ const Navbar = () => {
 
     return (
         <header className={`sticky top-0 z-50 transition-all duration-500 ${
-            scrolled 
-                ? 'bg-emerald-dark/95 backdrop-blur-xl border-b border-gold/15 shadow-2xl' 
+            scrolled
+                ? 'bg-emerald-dark/95 backdrop-blur-xl border-b border-gold/15 shadow-2xl'
                 : 'bg-emerald-dark border-b border-gold/5'
         }`}>
-            {/* Heritage subtle top border line */}
             <div className="h-1 bg-gradient-to-r from-emerald via-gold to-emerald" />
 
             <nav className="max-w-7xl mx-auto px-6 lg:px-8">
@@ -113,7 +109,7 @@ const Navbar = () => {
                             </Link>
                         ))}
 
-                        {/* ABOUT Dropdown Link */}
+                        {/* ABOUT Dropdown */}
                         <div className="relative">
                             <button
                                 onClick={() => setAboutMenuOpen(!aboutMenuOpen)}
@@ -160,7 +156,6 @@ const Navbar = () => {
 
                     {/* Right Actions */}
                     <div className="hidden md:flex items-center gap-4">
-                        {/* Cart icon with badge */}
                         <Link to="/cart" onClick={(e) => handleLinkClick(e, '/cart')} className="relative p-2.5 text-white/70 hover:text-gold hover:bg-white/5 rounded-xl border border-transparent hover:border-gold/15 transition-all duration-300" title="Shopping Cart">
                             <ShoppingCart className="w-5 h-5" />
                             {cartCount > 0 && (
@@ -256,9 +251,7 @@ const Navbar = () => {
                             <Link key={link.path} to={link.path}
                                 onClick={(e) => {
                                     handleLinkClick(e, link.path);
-                                    if (link.isScroll) {
-                                        handleScrollClick(e, link.path);
-                                    }
+                                    if (link.isScroll) handleScrollClick(e, link.path);
                                     setMobileOpen(false);
                                 }}
                                 className={`flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 ${
@@ -273,7 +266,6 @@ const Navbar = () => {
                                 <LayoutDashboard className="w-4 h-4" /> Dashboard
                             </Link>
                         )}
-                        {/* Mobile About section */}
                         <div className="border-t border-gold/15 pt-3 mt-3">
                             <div className="px-4 py-1 text-[10px] text-gold/60 font-black uppercase tracking-widest">
                                 About Academy
@@ -312,7 +304,7 @@ const Navbar = () => {
                                 <div className="flex flex-col gap-3 px-2">
                                     <Link to="/login" className="text-center py-3 text-xs font-bold uppercase tracking-wider text-white hover:text-gold border border-transparent">Sign In</Link>
                                     <Link to="/register" className="text-center py-4 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-bold text-xs uppercase tracking-widest rounded-xl shadow-lg">
-                                        Get Started — Free
+                                        Get Started – Free
                                     </Link>
                                 </div>
                             )}

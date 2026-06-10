@@ -13,7 +13,6 @@ import Loader from './components/common/Loader';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import { isAdminAuthenticated } from './utils/adminAuth';
 import AuthGateModal from './components/common/AuthGateModal';
-// Auto-run backend health check on app load
 import './utils/healthCheck';
 
 // Lazy loaded Pages
@@ -47,10 +46,15 @@ const OrderHistory = lazy(() => import('./pages/OrderHistory'));
 const Library = lazy(() => import('./pages/Library'));
 const FreeResources = lazy(() => import('./pages/FreeResources'));
 
-// New Store Pages
+// Old Store Pages (kept so old /store URLs redirect cleanly)
 const StatePage = lazy(() => import('./pages/StatePage'));
 const DistrictPage = lazy(() => import('./pages/DistrictPage'));
 const ResourcesPage = lazy(() => import('./pages/ResourcesPage'));
+
+// New States → Districts → Resources flow
+const StatesPage = lazy(() => import('./pages/StatesPage'));
+const DistrictsPage = lazy(() => import('./pages/DistrictsPage'));
+const DistrictResourcesPage = lazy(() => import('./pages/DistrictResourcesPage'));
 
 // Admin Pages
 const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'));
@@ -97,20 +101,27 @@ function App() {
                                             <Route path="/founder" element={<Founder />} />
                                             <Route path="/mission-vision" element={<MissionVision />} />
                                             <Route path="/about-india" element={<AboutIndia />} />
+
+                                            {/* Old states/UTs routes — kept for backward compat */}
                                             <Route path="/states" element={<ProtectedRoute><States /></ProtectedRoute>} />
                                             <Route path="/union-territories" element={<ProtectedRoute><UnionTerritories /></ProtectedRoute>} />
                                             <Route path="/states/:id" element={<ProtectedRoute><StateDetail /></ProtectedRoute>} />
                                             <Route path="/union-territories/:id" element={<ProtectedRoute><StateDetail /></ProtectedRoute>} />
                                             <Route path="/states/:stateSlug/resources" element={<ProtectedRoute><ResourcePage /></ProtectedRoute>} />
                                             <Route path="/union-territories/:stateSlug/resources" element={<ProtectedRoute><ResourcePage /></ProtectedRoute>} />
+
+                                            {/* NEW: States → Districts → Resources (with Free/Paid tabs) */}
+                                            <Route path="/states-browse" element={<StatesPage />} />
+                                            <Route path="/states-browse/:stateSlug" element={<DistrictsPage />} />
+                                            <Route path="/states-browse/:stateSlug/:districtSlug" element={<DistrictResourcesPage />} />
+
+                                            {/* Old store URLs → redirect to new flow */}
+                                            <Route path="/store" element={<Navigate to="/states-browse" replace />} />
+                                            <Route path="/store/:stateSlug" element={<Navigate to="/states-browse" replace />} />
+                                            <Route path="/store/:stateSlug/:districtSlug" element={<Navigate to="/states-browse" replace />} />
+
                                             <Route path="/question-bank" element={<ProtectedRoute><QuestionBank /></ProtectedRoute>} />
                                             <Route path="/subjects" element={<ProtectedRoute><Subjects /></ProtectedRoute>} />
-
-                                            {/* Store Routes — new State → District → Resources flow */}
-                                            <Route path="/store" element={<StatePage />} />
-                                            <Route path="/store/:stateSlug" element={<DistrictPage />} />
-                                            <Route path="/store/:stateSlug/:districtSlug" element={<ResourcesPage />} />
-
                                             <Route path="/blog" element={<Blog />} />
                                             <Route path="/blog/:slug" element={<BlogPost />} />
                                             <Route path="/register" element={<Register />} />
@@ -119,9 +130,7 @@ function App() {
                                             <Route path="/forgot-password" element={<ForgotPassword />} />
                                             <Route path="/error" element={<ErrorPage />} />
                                             <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
-                                            <Route path="/orders" element={
-                                                <ProtectedRoute><OrderHistory /></ProtectedRoute>
-                                            } />
+                                            <Route path="/orders" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
                                             <Route path="/library" element={<ProtectedRoute><Library /></ProtectedRoute>} />
                                             <Route path="/free-resources" element={<ProtectedRoute><FreeResources /></ProtectedRoute>} />
                                             <Route path="/checkout" element={<ProtectedRoute><NotFound /></ProtectedRoute>} />
@@ -141,48 +150,13 @@ function App() {
                                             </Route>
 
                                             {/* Protected User Routes */}
-                                            <Route
-                                                path="/dashboard"
-                                                element={
-                                                    <ProtectedRoute>
-                                                        <Dashboard />
-                                                    </ProtectedRoute>
-                                                }
-                                            />
-                                            <Route
-                                                path="/courses"
-                                                element={
-                                                    <ProtectedRoute>
-                                                        <Courses />
-                                                    </ProtectedRoute>
-                                                }
-                                            />
-                                            <Route
-                                                path="/courses/:id"
-                                                element={
-                                                    <ProtectedRoute>
-                                                        <CourseDetail />
-                                                    </ProtectedRoute>
-                                                }
-                                            />
-                                            <Route
-                                                path="/courses/:courseId/player"
-                                                element={
-                                                    <ProtectedRoute>
-                                                        <CoursePlayer />
-                                                    </ProtectedRoute>
-                                                }
-                                            />
-                                            <Route
-                                                path="/profile"
-                                                element={
-                                                    <ProtectedRoute>
-                                                        <Profile />
-                                                    </ProtectedRoute>
-                                                }
-                                            />
+                                            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                                            <Route path="/courses" element={<ProtectedRoute><Courses /></ProtectedRoute>} />
+                                            <Route path="/courses/:id" element={<ProtectedRoute><CourseDetail /></ProtectedRoute>} />
+                                            <Route path="/courses/:courseId/player" element={<ProtectedRoute><CoursePlayer /></ProtectedRoute>} />
+                                            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
-                                            {/* 404 Route */}
+                                            {/* 404 */}
                                             <Route path="/404" element={<NotFound />} />
                                             <Route path="*" element={<Navigate to="/404" replace />} />
                                         </Routes>
@@ -202,18 +176,8 @@ function App() {
                                     color: '#1f2937',
                                     boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
                                 },
-                                success: {
-                                    iconTheme: {
-                                        primary: '#10b981',
-                                        secondary: '#fff',
-                                    },
-                                },
-                                error: {
-                                    iconTheme: {
-                                        primary: '#ef4444',
-                                        secondary: '#fff',
-                                    },
-                                },
+                                success: { iconTheme: { primary: '#10b981', secondary: '#fff' } },
+                                error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
                             }}
                         />
                     </Router>
