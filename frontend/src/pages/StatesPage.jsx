@@ -26,14 +26,14 @@ export default function StatesPage() {
     api.get("/states/available")
       .then(res => {
         // API returns a plain array directly
-        const raw = res.data;
+        const raw = res;
         let data = [];
         if (Array.isArray(raw)) {
           data = raw;
         } else if (Array.isArray(raw?.data)) {
           data = raw.data;
         }
-        console.log("[StatesPage] raw response:", raw);
+        console.log("[StatesPage] raw response:", JSON.stringify(raw)?.substring(0,200));
         console.log("[StatesPage] parsed states:", data.map(s => ({ id: s.id, name: s.name })));
         setUploadedStates(data);
       })
