@@ -56,7 +56,7 @@ export default function DistrictsPage() {
       const orderRes = await api.post("/api/payment/create-order", {
         amountPaise: 9900, districtSlug: district.districtSlug, stateSlug
       });
-      const { orderId, amount, currency, keyId } = orderRes.data.data;
+      const { orderId, amount, currency, keyId } = orderRes?.data || orderRes;
       const options = {
         key: keyId, amount, currency,
         name: "Bodhganga",
