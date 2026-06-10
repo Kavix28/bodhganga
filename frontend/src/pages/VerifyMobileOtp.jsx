@@ -44,12 +44,13 @@ const VerifyMobileOtp = () => {
         document.body.appendChild(script);
 
         return () => {
-            document.body.removeChild(script);
+            try { document.body.removeChild(script); } catch {}
         };
     }, []);
 
-    // ── OTP success → verify token with backend ──────────────────────────────────
+    // ── OTP success → verify token with backend ─────────────────────────────────
     const handleOtpSuccess = (data) => {
+        console.log("MSG91 raw success payload:", data);
         const token =
             typeof data === 'string'
                 ? data
@@ -64,61 +65,75 @@ const VerifyMobileOtp = () => {
 
     // ── Button handler ──────────────────────────────────────────────────────────
     const handleOpenPopup = () => {
-      try {
-        if (!window.initSendOTP) {
-          console.error("MSG91 SDK not loaded");
-          toast.error("OTP service is initializing. Please wait a moment.");
-          return;
+        try {
+            if (!window.initSendOTP) {
+                console.error("MSG91 SDK not loaded");
+                toast.error("OTP service is initializing. Please wait a moment.");
+                return;
+            }
+
+            const MSG91_AUTH_TOKEN = import.meta.env.VITE_MSG91_AUTH_TOKEN || "520206TlW19nvH5k6a15f8a5P1";
+
+            if (!MSG91_AUTH_TOKEN) {
+                toast.error("OTP service is not configured. Please contact support.");
+                return;
+            }
+
+            const mobile = `91${phone.replace(/\D/g, "")}`;
+
+            window.initSendOTP({
+                widgetId: import.meta.env.VITE_MSG91_WIDGET_ID || "36657a734e31333338323730",
+                tokenAuth: MSG91_AUTH_TOKEN,
+                identifier: mobile,
+                success: (data) => {
+                    console.log("MSG91 SUCCESS:", data);
+                    handleOtpSuccess(data);
+                },
+                failure: (error) => {
+                    console.error("MSG91 FAILURE:", error);
+                    const errMsg = typeof error === 'string' ? error : (error?.message || "OTP process failed.");
+                    toast.error(errMsg);
+                }
+            });
+
+        } catch (err) {
+            console.error("OTP INIT ERROR:", err);
+            toast.error("Failed to open OTP verification. Please refresh and try again.");
         }
-
-        // Single source of truth for MSG91 auth token (same as Login.jsx)
-        const MSG91_AUTH_TOKEN = import.meta.env.VITE_MSG91_AUTH_TOKEN || "520206TlW19nvH5k6a15f8a5P1";
-
-        if (!MSG91_AUTH_TOKEN) {
-            console.error("MSG91 tokenAuth is not configured.");
-            toast.error("OTP service is not configured. Please contact support.");
-            return;
-        }
-
-        const mobile = `91${phone.replace(/\D/g, "")}`;
-
-        window.initSendOTP({
-          widgetId: import.meta.env.VITE_MSG91_WIDGET_ID || "36657a734e31333338323730",
-          tokenAuth: MSG91_AUTH_TOKEN,
-          identifier: mobile,
-
-          success: (data) => {
-            console.log("MSG91 SUCCESS:", data);
-            handleOtpSuccess(data);
-          },
-
-          failure: (error) => {
-            console.error("MSG91 FAILURE:", error);
-            const errMsg = typeof error === 'string' ? error : (error?.message || "OTP process failed.");
-            toast.error(errMsg);
-          }
-        });
-
-      } catch (err) {
-        console.error("OTP INIT ERROR:", err);
-        toast.error("Failed to open OTP verification. Please refresh and try again.");
-      }
     };
 
-    // ── Verify MSG91 token with backend ──────────────────────────────────────────
+    // ── Verify MSG91 token with backend ─────────────────────────────────────────
     const handleVerifyToken = async (accessToken) => {
         setIsLoading(true);
         try {
+            // Remap frontend field names → backend field names
+            const mappedSignupData = signupData ? {
+                name:     signupData.fullName   || signupData.name,
+                email:    signupData.email      || '',
+                phoneNo:  signupData.phoneNumber || signupData.phoneNo,
+                password: signupData.password,
+                city:     signupData.city,
+                state:    signupData.state,
+                country:  signupData.country    || 'India',
+            } : null;
+
+            console.log("Sending to backend:", { accessToken, phoneNumber: phone, signupData: mappedSignupData });
+
+            // Note: axios interceptor strips leading /api when baseURL ends with /api
             const res = await api.post('/auth/msg91/verify', {
                 accessToken,
                 phoneNumber: phone,
-                signupData,
+                signupData: mappedSignupData,
             });
 
-            if (res?.token || res?.data?.token) {
+            console.log("Backend response:", res);
+
+            // Backend returns ApiResponseDTO: { success, message, data: { token, user } }
+            // Axios interceptor returns response.data, so res = { success, message, data: { token, user } }
+            if (res?.success && res?.data?.token) {
                 localStorage.removeItem('signupData');
-                toast.success('Mobile number verified & registered successfully!');
-                login(res?.token || res?.data?.token, res?.user || res?.data?.user);
+                toast.success('Account verified & registered successfully!');
+                login(res.data.token, res.data.user);
                 navigate('/dashboard', { replace: true });
             } else {
                 throw new Error(res?.message || 'Authentication failed');
