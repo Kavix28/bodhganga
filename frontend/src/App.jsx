@@ -47,13 +47,17 @@ const OrderHistory = lazy(() => import('./pages/OrderHistory'));
 const Library = lazy(() => import('./pages/Library'));
 const FreeResources = lazy(() => import('./pages/FreeResources'));
 
+// New Store Pages
+const StatePage = lazy(() => import('./pages/StatePage'));
+const DistrictPage = lazy(() => import('./pages/DistrictPage'));
+const ResourcesPage = lazy(() => import('./pages/ResourcesPage'));
+
 // Admin Pages
 const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'));
 const AdminLayout = lazy(() => import('./layouts/AdminLayout'));
 const AdminDashboardPage = lazy(() => import('./pages/admin/Dashboard'));
 const AdminStates = lazy(() => import('./pages/admin/AdminStates'));
 const AdminBlogs = lazy(() => import('./pages/admin/AdminBlogs'));
-const Marketplace = lazy(() => import('./pages/Marketplace'));
 const AdminMarketplace = lazy(() => import('./pages/admin/AdminMarketplace'));
 const AdminPDFManager = lazy(() => import('./pages/admin/AdminPDFManager'));
 const AdminOrders = lazy(() => import('./pages/admin/AdminOrders'));
@@ -79,7 +83,6 @@ function App() {
                     <CartProvider>
                     <Router>
                         <div className="min-h-screen flex flex-col">
-                            {/* Only show regular navbar for non-admin routes or when admin is not logged in */}
                             {(!isAdminRoute || (isAdminRoute && !isAdminLoggedIn)) && <Navbar />}
                             <AuthGateModal />
 
@@ -102,8 +105,12 @@ function App() {
                                             <Route path="/union-territories/:stateSlug/resources" element={<ProtectedRoute><ResourcePage /></ProtectedRoute>} />
                                             <Route path="/question-bank" element={<ProtectedRoute><QuestionBank /></ProtectedRoute>} />
                                             <Route path="/subjects" element={<ProtectedRoute><Subjects /></ProtectedRoute>} />
-                                            <Route path="/store" element={<ProtectedRoute><Marketplace /></ProtectedRoute>} />
-                                            <Route path="/store/state/:slug" element={<ProtectedRoute><Marketplace /></ProtectedRoute>} />
+
+                                            {/* Store Routes — new State → District → Resources flow */}
+                                            <Route path="/store" element={<StatePage />} />
+                                            <Route path="/store/:stateSlug" element={<DistrictPage />} />
+                                            <Route path="/store/:stateSlug/:districtSlug" element={<ResourcesPage />} />
+
                                             <Route path="/blog" element={<Blog />} />
                                             <Route path="/blog/:slug" element={<BlogPost />} />
                                             <Route path="/register" element={<Register />} />
@@ -183,11 +190,9 @@ function App() {
                                 </ErrorBoundary>
                             </main>
 
-                            {/* Only show footer for non-admin routes or when admin is not logged in */}
                             {(!isAdminRoute || (isAdminRoute && !isAdminLoggedIn)) && <Footer />}
                         </div>
 
-                        {/* Toast Notifications */}
                         <Toaster
                             position="top-right"
                             toastOptions={{
