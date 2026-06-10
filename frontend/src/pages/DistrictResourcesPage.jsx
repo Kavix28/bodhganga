@@ -39,7 +39,7 @@ export default function DistrictResourcesPage() {
     const fetchData = async () => {
       try {
         const res = await api.get(`/api/products/state/${stateSlug}/district/${districtSlug}`);
-        const products = res.data?.data || [];
+        const products = Array.isArray(res) ? res : (res?.data || []);
         setAllResources(products);
         if (products.length > 0) {
           setDistrictName(products[0].district || products[0].districtName || districtSlug);

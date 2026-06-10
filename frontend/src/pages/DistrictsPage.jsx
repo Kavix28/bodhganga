@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import toast from "react-hot-toast";
@@ -16,7 +16,7 @@ export default function DistrictsPage() {
     const fetchData = async () => {
       try {
         const res = await api.get("/api/products/state/" + stateSlug);
-        const products = res.data?.data || [];
+        const products = Array.isArray(res) ? res : (res?.data || []);
         const map = {};
         products.forEach(p => {
           const slug = p.districtSlug;
@@ -124,7 +124,7 @@ export default function DistrictsPage() {
                       ? <span className="text-xs bg-green-900 text-green-400 px-2 py-0.5 rounded-full">Free</span>
                       : unlocked
                         ? <span className="text-xs bg-amber-900 text-amber-400 px-2 py-0.5 rounded-full">Unlocked</span>
-                        : <span className="text-xl">🔒</span>
+                        : <span className="text-xl">??</span>
                     }
                   </div>
                   <div className="flex gap-3 text-xs text-gray-500 mb-4">
