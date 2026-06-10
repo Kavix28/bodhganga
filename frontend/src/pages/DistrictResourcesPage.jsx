@@ -13,6 +13,7 @@ const FILE_ICONS = {
   png:  { icon: "🖼️", color: "text-purple-400", label: "Image" },
   jpg:  { icon: "🖼️", color: "text-purple-400", label: "Image" },
   jpeg: { icon: "🖼️", color: "text-purple-400", label: "Image" },
+  webp: { icon: "🖼️", color: "text-purple-400", label: "Image" },
   m4a:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
   mp3:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
   wav:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
@@ -24,6 +25,115 @@ function formatSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function ResourceModal({ resource, onClose }) {
+  const ext = (resource.fileExtension || "").toLowerCase();
+  const url = resource.s3Url;
+  const title = resource.displayTitle || resource.title || resource.fileName;
+
+  const officeExts = ["docx", "doc", "xlsx", "xls", "pptx", "ppt"];
+  const imageExts = ["png", "jpg", "jpeg", "webp"];
+  const audioExts = ["mp3", "m4a", "wav"];
+
+  const renderContent = () => {
+    if (ext === "pdf") {
+      return (
+        <iframe
+          src={url}
+          className="w-full h-full rounded-lg"
+          title={title}
+        />
+      );
+    }
+    if (imageExts.includes(ext)) {
+      return (
+        <div className="w-full h-full flex items-center justify-center overflow-auto">
+          <img src={url} alt={title} className="max-w-full max-h-full object-contain rounded-lg" />
+        </div>
+      );
+    }
+    if (audioExts.includes(ext)) {
+      return (
+        <div className="w-full h-full flex flex-col items-center justify-center gap-6">
+          <div className="text-6xl">🎵</div>
+          <p className="text-white font-semibold text-center px-4">{title}</p>
+          <audio controls className="w-full max-w-md" src={url}>
+            Your browser does not support audio playback.
+          </audio>
+        </div>
+      );
+    }
+    if (officeExts.includes(ext)) {
+      const officeUrl = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(url)}`;
+      return (
+        <iframe
+          src={officeUrl}
+          className="w-full h-full rounded-lg"
+          title={title}
+        />
+      );
+    }
+    // Fallback
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center gap-4">
+        <div className="text-6xl">📎</div>
+        <p className="text-gray-400">Preview not available for this file type.</p>
+        <a
+          href={url}
+          download
+          className="bg-amber-500 hover:bg-amber-400 text-black font-bold py-2 px-6 rounded-lg"
+        >
+          Download File
+        </a>
+      </div>
+    );
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-5xl h-[90vh] flex flex-col shadow-2xl">
+        {/* Modal Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700 flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="text-xl flex-shrink-0">
+              {FILE_ICONS[ext]?.icon || "📎"}
+            </span>
+            <div className="min-w-0">
+              <h3 className="text-white font-semibold text-sm truncate">{title}</h3>
+              {resource.fileSize && (
+                <p className="text-gray-500 text-xs">{formatSize(resource.fileSize)}</p>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+            <a
+              href={url}
+              download
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold rounded-lg transition-colors"
+            >
+              ⬇ Download
+            </a>
+            <button
+              onClick={onClose}
+              className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors text-lg leading-none"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+        {/* Modal Body */}
+        <div className="flex-1 overflow-hidden p-4">
+          {renderContent()}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DistrictResourcesPage() {
   const { stateSlug, districtSlug } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -33,12 +143,13 @@ export default function DistrictResourcesPage() {
   const [districtName, setDistrictName] = useState("");
   const [stateName, setStateName] = useState("");
   const [purchased, setPurchased] = useState(false);
+  const [selectedResource, setSelectedResource] = useState(null);
   const activeTab = searchParams.get("tab") || "free";
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await api.get(`/api/products/state/${stateSlug}/district/${districtSlug}`);
+        const res = await api.get(`/products/state/${stateSlug}/district/${districtSlug}`);
         const products = Array.isArray(res) ? res : (res?.data || []);
         setAllResources(products);
         if (products.length > 0) {
@@ -46,8 +157,8 @@ export default function DistrictResourcesPage() {
           setStateName(products[0].state || products[0].stateName || stateSlug);
         }
         try {
-          const pRes = await api.get("/api/payment/district/purchased");
-          const list = pRes.data?.data || [];
+          const pRes = await api.get("/payment/district/purchased");
+          const list = Array.isArray(pRes) ? pRes : (pRes?.data || []);
           setPurchased(list.includes(districtSlug));
         } catch { /* not logged in */ }
       } catch (e) {
@@ -58,6 +169,13 @@ export default function DistrictResourcesPage() {
     };
     fetchData();
   }, [stateSlug, districtSlug]);
+
+  // Close modal on Escape key
+  useEffect(() => {
+    const handler = (e) => { if (e.key === "Escape") setSelectedResource(null); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   const freeResources = allResources.filter(r => r.free || r.isFree || r.price === 0);
   const paidResources = allResources.filter(r => !r.free && !r.isFree && r.price > 0);
@@ -71,8 +189,12 @@ export default function DistrictResourcesPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white px-4 py-10">
+      {selectedResource && (
+        <ResourceModal resource={selectedResource} onClose={() => setSelectedResource(null)} />
+      )}
+
       <div className="max-w-6xl mx-auto">
-        <button onClick={() => navigate(`/states/${stateSlug}`)}
+        <button onClick={() => navigate(`/states-browse/${stateSlug}`)}
           className="text-gray-400 hover:text-amber-400 mb-6 flex items-center gap-1 text-sm">
           ← Back to Districts
         </button>
@@ -106,7 +228,7 @@ export default function DistrictResourcesPage() {
             <h3 className="text-xl font-bold text-white mb-2">Unlock {districtName}</h3>
             <p className="text-gray-400 mb-6">Get access to all {paidResources.length} paid resources for just ₹99</p>
             <button
-              onClick={() => navigate(`/states/${stateSlug}`)}
+              onClick={() => navigate(`/states-browse/${stateSlug}`)}
               className="bg-amber-500 hover:bg-amber-400 text-black font-bold py-3 px-8 rounded-lg transition-colors">
               Unlock for ₹99
             </button>
@@ -135,10 +257,11 @@ export default function DistrictResourcesPage() {
                       {r.displayTitle || r.title || r.fileName}
                     </h3>
                     {r.fileSize && <p className="text-xs text-gray-500 mb-3">{formatSize(r.fileSize)}</p>}
-                    <a href={r.s3Url} target="_blank" rel="noopener noreferrer"
+                    <button
+                      onClick={() => setSelectedResource(r)}
                       className="block w-full text-center bg-amber-500 hover:bg-amber-400 text-black font-semibold py-2 px-4 rounded-lg transition-colors text-sm mt-3">
-                      View / Download
-                    </a>
+                      View
+                    </button>
                   </div>
                 );
               })}
