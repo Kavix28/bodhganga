@@ -76,6 +76,11 @@ const queryClient = new QueryClient({
     },
 });
 
+function ChatWidgetWrapper() {
+  const { isAuthenticated, token } = useAuth();
+  return <ChatWidget isLoggedIn={isAuthenticated} token={token} />;
+}
+
 function App() {
     const isAdminRoute = window.location.pathname.startsWith('/admin');
     const isAdminLoggedIn = isAdminAuthenticated();
@@ -157,6 +162,7 @@ function App() {
                                             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
                                             {/* 404 */}
+                                            <Route path="/ai-companion" element={<ProtectedRoute><AiCompanionPage /></ProtectedRoute>} />
                                             <Route path="/404" element={<NotFound />} />
                                             <Route path="*" element={<Navigate to="/404" replace />} />
                                         </Routes>
@@ -181,6 +187,7 @@ function App() {
                             }}
                         />
                     </Router>
+                    <ChatWidgetWrapper />
                     </CartProvider>
                 </AuthProvider>
             </SpaceThemeProvider>
