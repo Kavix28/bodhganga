@@ -130,7 +130,7 @@ const AdminPdfUploadModal = ({ isOpen = true, onClose, onSuccess, onUploadSucces
                 price: isPaid ? parseFloat(price) : 0.0
             };
 
-            const response = await api.post('/api/admin/import-pdf-from-drive', payload);
+            const response = await api.post('/admin/import-pdf-from-drive', payload);
             
             clearTimeout(uploadTimeout);
             clearTimeout(saveTimeout);
@@ -482,3 +482,4 @@ const AdminPdfUploadModal = ({ isOpen = true, onClose, onSuccess, onUploadSucces
 };
 
 export default AdminPdfUploadModal;
+
