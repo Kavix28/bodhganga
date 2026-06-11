@@ -1057,7 +1057,6 @@ const Landing = () => {
                     </div>
                 </div>
             </section>
-            <TickerStrip />
 
             {/* ── FOOTER HERO CTA ────────────────────────────────────── */}
             <section className="py-24 bg-emerald-dark relative overflow-hidden px-6 text-center border-t border-gold/15 mb-16 md:mb-0">
