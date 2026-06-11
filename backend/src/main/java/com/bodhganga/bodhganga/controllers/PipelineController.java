@@ -41,7 +41,6 @@ public class PipelineController {
         try {
             // Force the pipeline to run immediately bypass if pipelineEnabled is false in env
             driveToS3PipelineTask.syncDriveToS3(true);
-            pipelineTask.runPipeline(true);
             return ResponseEntity.ok(ApiResponseDTO.builder()
                     .success(true)
                     .message("Ingestion pipeline executed successfully")
