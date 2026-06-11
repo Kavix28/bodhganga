@@ -104,10 +104,10 @@ const VerifyMobileOtp = () => {
             const res = await api.post('/auth/register', payload);
             console.log("Backend response:", res);
 
-            if (res?.success && res?.data?.token) {
+            if (res?.success && res?.token || res?.data?.token) {
                 localStorage.removeItem('signupData');
                 toast.success('Account created successfully! Welcome to Bodhganga!');
-                login(res.data.token, res.data.user);
+                login(res?.token || res?.data?.token, res?.user || res?.data?.user);
                 navigate('/dashboard', { replace: true });
             } else {
                 throw new Error(res?.message || 'Registration failed');
