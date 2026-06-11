@@ -9,7 +9,7 @@ import api from './api';
  * @returns {Promise}
  */
 export const login = async (emailOrPhone, password) => {
-    return api.post('/api/auth/login', { emailOrPhone, password });
+    return api.post('/auth/login', { emailOrPhone, password });
 };
 
 /**
