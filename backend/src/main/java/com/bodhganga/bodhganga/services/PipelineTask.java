@@ -46,7 +46,6 @@ public class PipelineTask {
     /**
      * Scheduled sync task running every 10 minutes.
      */
-    @Scheduled(fixedDelay = 600000)
     public void runPipeline() {
         runPipeline(false);
     }

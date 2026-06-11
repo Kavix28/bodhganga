@@ -1,5 +1,4 @@
 package com.bodhganga.bodhganga.controllers;
-
 import com.bodhganga.bodhganga.dto.ApiResponseDTO;
 import com.bodhganga.bodhganga.entity.IngestionStatus;
 import com.bodhganga.bodhganga.repo.ProductRepo;
@@ -12,25 +11,20 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
 import java.util.HashMap;
 import java.util.Map;
-
 @RestController
 @RequestMapping("/api/admin/pipeline")
 public class PipelineController {
-
     private static final Logger log = LoggerFactory.getLogger(PipelineController.class);
     private final DriveToS3PipelineTask driveToS3PipelineTask;
     private final ProductRepo productRepo;
     private final PipelineTask pipelineTask;
-
     public PipelineController(DriveToS3PipelineTask driveToS3PipelineTask, ProductRepo productRepo, PipelineTask pipelineTask) {
         this.driveToS3PipelineTask = driveToS3PipelineTask;
         this.productRepo = productRepo;
         this.pipelineTask = pipelineTask;
     }
-
     /**
      * POST /api/admin/pipeline/run
      * Manually triggers the Google Drive to S3 ingestion pipeline.
@@ -41,7 +35,6 @@ public class PipelineController {
         try {
             // Force the pipeline to run immediately bypass if pipelineEnabled is false in env
             driveToS3PipelineTask.syncDriveToS3(true);
-            pipelineTask.runPipeline(true);
             return ResponseEntity.ok(ApiResponseDTO.builder()
                     .success(true)
                     .message("Ingestion pipeline executed successfully")
@@ -54,7 +47,6 @@ public class PipelineController {
                     .build());
         }
     }
-
     /**
      * GET /api/admin/pipeline/status
      * Returns details of the last/current run.
@@ -70,7 +62,6 @@ public class PipelineController {
         response.put("filesSkipped", driveToS3PipelineTask.getFilesSkipped());
         return ResponseEntity.ok(response);
     }
-
     /**
      * GET /api/admin/pipeline/stats
      * Returns cumulative catalog metrics.
