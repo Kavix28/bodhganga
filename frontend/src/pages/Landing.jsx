@@ -310,35 +310,7 @@ const Landing = () => {
     return (
         <div className="min-h-screen bg-ivory-light overflow-x-hidden text-emerald-dark select-none relative font-sans">
             
-            {/* ── HORIZONTAL SCROLLING BRAND TICKER ──────────────────── */}
-            <div className="bg-emerald-950 border-b border-gold/15 py-2.5 overflow-hidden relative z-40 flex items-center">
-                <div className="w-full flex items-center relative">
-                    {/* Glowing indicator dot on the left */}
-                    <div className="absolute left-4 z-50 flex items-center bg-emerald-950/90 pr-3 pl-1 backdrop-blur-sm">
-                        <span className="flex h-2.5 w-2.5 relative">
-                            <span 
-                                className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
-                                style={{ backgroundColor: 'rgba(212,175,55,0.6)' }}
-                            />
-                            <span 
-                                className="relative inline-flex rounded-full h-2.5 w-2.5 shadow-[0_0_8px_rgba(212,175,55,0.6)]" 
-                                style={{ backgroundColor: 'rgba(212,175,55,0.6)' }}
-                            />
-                        </span>
-                    </div>
-
-                    {/* Scrolling Marquee text */}
-                    <div className="w-full overflow-hidden flex select-none">
-                        <div className="animate-marquee-l2r flex whitespace-nowrap text-xs font-bold uppercase tracking-widest text-gold-glow-soft gap-16">
-                            {[...Array(8)].map((_, idx) => (
-                                <span key={idx} className="flex items-center gap-2">
-                                    India Unlocked 🇮🇳 — Decoding India, District by District
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <TickerStrip />
 
             {/* ── HERO BANNER SECTION ────────────────────────────────── */}
             <section className="relative min-h-[92vh] flex items-center justify-center overflow-hidden bg-gradient-to-b from-emerald-dark via-emerald-dark to-emerald-950 px-6 border-b border-gold/15">
