@@ -8,7 +8,7 @@ export default function StatePage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.get("/api/states/available")
+    api.get("/states/available")
       .then(res => {
         const data = res.data?.data || res.data;
         setStates(Array.isArray(data) ? data : []);

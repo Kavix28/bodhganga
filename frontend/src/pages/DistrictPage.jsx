@@ -14,7 +14,7 @@ export default function DistrictPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await api.get(`/api/products/state/${stateSlug}`);
+        const res = await api.get(`/products/state/${stateSlug}`);
         const products = res.data?.data || [];
 
         const map = {};
@@ -37,7 +37,7 @@ export default function DistrictPage() {
         if (grouped.length > 0) setStateName(grouped[0].stateName);
 
         try {
-          const pRes = await api.get("/api/payment/district/purchased");
+          const pRes = await api.get("/payment/district/purchased");
           setPurchasedSlugs(pRes.data?.data || []);
         } catch {
           // not logged in, ignore
@@ -60,7 +60,7 @@ export default function DistrictPage() {
     }
 
     try {
-      const orderRes = await api.post("/api/payment/create-order", {
+      const orderRes = await api.post("/payment/create-order", {
         amountPaise: 9900,
         districtSlug: district.districtSlug,
         stateSlug
@@ -77,7 +77,7 @@ export default function DistrictPage() {
         order_id: orderId,
         handler: async (response) => {
           try {
-            await api.post("/api/payment/verify", {
+            await api.post("/payment/verify", {
               razorpayOrderId: response.razorpay_order_id,
               razorpayPaymentId: response.razorpay_payment_id,
               razorpaySignature: response.razorpay_signature,

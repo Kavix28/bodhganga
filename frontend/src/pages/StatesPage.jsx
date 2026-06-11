@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 
@@ -91,14 +91,14 @@ export default function StatesPage() {
                   </div>
                   {uploaded && stateData && (
                     <p className="text-gray-500 text-xs mb-3">
-                      {stateData.districts?.length ?? 0} districts · {stateData.notesCount ?? 0} resources
+                      {stateData.districts?.length ?? 0} districts � {stateData.notesCount ?? 0} resources
                     </p>
                   )}
                   {!uploaded && (
-                    <p className="text-gray-600 text-xs mb-3">Stay tuned — content coming soon</p>
+                    <p className="text-gray-600 text-xs mb-3">Stay tuned � content coming soon</p>
                   )}
                   {uploaded && (
-                    <div className="text-amber-400 text-xs font-medium">Explore →</div>
+                    <div className="text-amber-400 text-xs font-medium">Explore ?</div>
                   )}
                 </div>
               );

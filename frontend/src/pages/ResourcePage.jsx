@@ -38,7 +38,7 @@ export default function ResourcesPage() {
     const fetchData = async () => {
       try {
         const res = await api.get(
-          `/api/products/state/${stateSlug}/district/${districtSlug}`
+          `/products/state/${stateSlug}/district/${districtSlug}`
         );
         const products = res.data?.data || [];
 
@@ -51,7 +51,7 @@ export default function ResourcesPage() {
 
         if (!allFree) {
           try {
-            const pRes = await api.get("/api/payment/district/purchased");
+            const pRes = await api.get("/payment/district/purchased");
             const purchased = pRes.data?.data || [];
             if (!purchased.includes(districtSlug)) {
               setRedirect({ to: `/store/${stateSlug}`, msg: "Please unlock this district to view resources" });
