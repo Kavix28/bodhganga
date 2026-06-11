@@ -73,7 +73,12 @@ export const getAuthToken = () => {
  * @param {string} token
  */
 export const setAuthToken = (token) => {
-    setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+    try {
+        // Store raw string directly, not JSON.stringify'd, to avoid double-encoding
+        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, JSON.stringify(token));
+    } catch (error) {
+        console.error('Error saving auth token:', error);
+    }
 };
 
 /**
@@ -121,5 +126,6 @@ export const clearAuthData = () => {
     removeAuthToken();
     removeUserData();
 };
+
 
 
