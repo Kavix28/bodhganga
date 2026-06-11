@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import TickerStrip from '../components/common/TickerStrip';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { 
@@ -1167,3 +1168,4 @@ const Landing = () => {
 };
 
 export default Landing;
+
