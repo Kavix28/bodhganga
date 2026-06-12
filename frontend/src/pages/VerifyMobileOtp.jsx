@@ -60,7 +60,7 @@ const VerifyMobileOtp = () => {
             const MSG91_AUTH_TOKEN = import.meta.env.VITE_MSG91_AUTH_TOKEN || "520206TlW19nvH5k6a15f8a5P1";
             const mobile = `91${phone.replace(/\D/g, "")}`;
 
-            window.initSendOTP({
+            const config = {
                 widgetId: import.meta.env.VITE_MSG91_WIDGET_ID || "36657a734e31333338323730",
                 tokenAuth: MSG91_AUTH_TOKEN,
                 identifier: mobile,
@@ -73,7 +73,10 @@ const VerifyMobileOtp = () => {
                     const errMsg = typeof error === 'string' ? error : (error?.message || "OTP process failed.");
                     toast.error(errMsg);
                 }
-            });
+            };
+
+            window.configuration = config;
+            window.initSendOTP(window.configuration);
 
         } catch (err) {
             console.error("OTP INIT ERROR:", err);

@@ -160,7 +160,6 @@ const Login = () => {
             widgetId: import.meta.env.VITE_MSG91_WIDGET_ID || "36657a734e31333338323730",
             tokenAuth: MSG91_AUTH_TOKEN,
             identifier: formattedPhone,
-            exposeMethods: true,
             success: (response) => {
                 console.log("MSG91 success", response);
                 const token = typeof response === 'string' ? response : (response?.message || response?.['access-token'] || response?.token);
