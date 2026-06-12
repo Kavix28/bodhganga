@@ -14,6 +14,8 @@ import ErrorBoundary from './components/common/ErrorBoundary';
 import { isAdminAuthenticated } from './utils/adminAuth';
 import AuthGateModal from './components/common/AuthGateModal';
 import './utils/healthCheck';
+import ChatWidget from './components/ChatWidget';
+import { useAuth } from './hooks/useAuth';
 
 // Lazy loaded Pages
 const Landing = lazy(() => import('./pages/Landing'));
@@ -45,6 +47,7 @@ const Cart = lazy(() => import('./pages/Cart'));
 const OrderHistory = lazy(() => import('./pages/OrderHistory'));
 const Library = lazy(() => import('./pages/Library'));
 const FreeResources = lazy(() => import('./pages/FreeResources'));
+const AiCompanionPage = lazy(() => import('./pages/AiCompanionPage'));
 
 // Old Store Pages (kept so old /store URLs redirect cleanly)
 const StatePage = lazy(() => import('./pages/StatePage'));
