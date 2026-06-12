@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import api from "../../services/api";
 
 export default function TickerStrip() {
@@ -20,17 +20,17 @@ export default function TickerStrip() {
   if (stats.states === 0) return null;
 
   const items = [
-    `? ${stats.states} ${stats.states === 1 ? "State" : "States"} Covered`,
-    `? ${stats.districts} ${stats.districts === 1 ? "District" : "Districts"} Covered`,
-    `? ${stats.resources}+ Study Resources`,
-    ...stats.stateNames.map(n => `? ${n}`),
-    `? More States & Districts Coming Soon`,
+    `• ${stats.states} ${stats.states === 1 ? "State" : "States"} Covered`,
+    `• ${stats.districts} ${stats.districts === 1 ? "District" : "Districts"} Covered`,
+    `• ${stats.resources}+ Study Resources`,
+    ...stats.stateNames.map(n => `• ${n}`),
+    `• More States & Districts Coming Soon`,
     // repeat for seamless loop
-    `? ${stats.states} ${stats.states === 1 ? "State" : "States"} Covered`,
-    `? ${stats.districts} ${stats.districts === 1 ? "District" : "Districts"} Covered`,
-    `? ${stats.resources}+ Study Resources`,
-    ...stats.stateNames.map(n => `? ${n}`),
-    `? More States & Districts Coming Soon`,
+    `• ${stats.states} ${stats.states === 1 ? "State" : "States"} Covered`,
+    `• ${stats.districts} ${stats.districts === 1 ? "District" : "Districts"} Covered`,
+    `• ${stats.resources}+ Study Resources`,
+    ...stats.stateNames.map(n => `• ${n}`),
+    `• More States & Districts Coming Soon`,
   ].join("     ");
 
   return (
