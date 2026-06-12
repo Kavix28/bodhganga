@@ -261,7 +261,7 @@ const Login = () => {
                         </button>
                         <button
                             type="button"
-                            onClick={() => setLoginMethod('otp')}
+                            onClick={() => setLoginMethod('otp')} style={{display:'none'}}
                             className={`flex-1 pb-3 text-xs font-bold uppercase tracking-widest transition-all duration-300 border-b-2 ${
                                 loginMethod === 'otp'
                                     ? 'border-gold text-emerald-dark'
