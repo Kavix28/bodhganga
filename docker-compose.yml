@@ -47,12 +47,14 @@ services:
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_REGION: ${AWS_REGION:-ap-south-1}
-      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-bodhganga-prod}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-bodhganga-pdf-storage-prod}
       SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:80,http://localhost:5173}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
       GOOGLE_DRIVE_PIPELINE_ENABLED: ${GOOGLE_DRIVE_PIPELINE_ENABLED:-false}
       GOOGLE_DRIVE_CREDENTIALS_PATH: /app/google-credentials.json
       GOOGLE_DRIVE_SOURCE_FOLDER_ID: ${GOOGLE_DRIVE_SOURCE_FOLDER_ID:-}

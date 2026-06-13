@@ -100,7 +100,7 @@ public class DataLoader implements CommandLineRunner {
     private void ensureAdminUser() {
         String adminEmail = "admin@bodhganga.in";
         String targetPhone = "9958277244";
-        String targetPassword = "indiadistricst@800";
+        String targetPassword = "BodhGanga@2026";
 
         userRepo.findByEmail(adminEmail).ifPresentOrElse(
             user -> {

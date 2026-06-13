@@ -210,12 +210,13 @@ public class DriveToS3PipelineTask {
         //                bodhganga/{state}/{district}/paid/{files}
         // Legacy:        bodhganga/{state}/{district}/Free Resources/{files}
         //                bodhganga/{state}/{district}/{files}  → treated as paid
+        boolean hasTierFolder = false;
         boolean isFree = false;
         for (String folder : folderPath) {
-            if (isFreeFolder(folder)) { isFree = true; break; }
+            if (isFreeFolder(folder)) { isFree = true; hasTierFolder = true; break; }
+            if (isPaidFolder(folder)) { isFree = false; hasTierFolder = true; break; }
         }
-        // If no free/paid folder found explicitly, default to paid
-        boolean isPaid = !isFree;
+        // If no free/paid folder found explicitly, default to paid (for NEW records only)
         double price = isFree ? 0.0 : 99.0;
 
         // ── Extract state and district from folder path ────────────────────────
@@ -266,8 +267,12 @@ public class DriveToS3PipelineTask {
             existing.setDistrict(normalizeName(district));
             existing.setStateSlug(stateSlug);
             existing.setDistrictSlug(districtSlug);
-            existing.setFree(isFree);
-            existing.setPrice(price);
+            // Only overwrite free/price if the Drive structure explicitly declares a tier
+            // (free/paid/Free Resources folder). Otherwise preserve existing manual settings.
+            if (hasTierFolder) {
+                existing.setFree(isFree);
+                existing.setPrice(price);
+            }
             if (existing.getS3Key() == null || existing.getS3Key().isEmpty()) {
                 existing.setS3Key(s3Key);
                 existing.setStorageKey(s3Key);

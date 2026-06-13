@@ -61,6 +61,12 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/products/**").permitAll()
 
                         // Payment — webhook and check-purchase are public, order/verify require auth
+                        .requestMatchers("/api/ai/general").permitAll()
+                        .requestMatchers("/api/ai/study").authenticated()
+                        .requestMatchers("/api/ai/**").permitAll()
+                        // AI companion - general is public, study requires auth
+                        .requestMatchers("/api/ai/general").permitAll()
+                        .requestMatchers("/api/ai/study").authenticated()
                         .requestMatchers("/api/payment/webhook", "/api/payment/check-purchase/**").permitAll()
                         .requestMatchers("/api/payment/**").authenticated()
 
