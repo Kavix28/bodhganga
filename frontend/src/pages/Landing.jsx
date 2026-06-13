@@ -361,7 +361,7 @@ const Landing = () => {
                             <div className="space-y-4">
                                 <div className="inline-block">
                                     <div className="inline-flex items-center gap-3 px-7 py-3.5 md:px-9 md:py-4.5 rounded-full bg-emerald-950/40 border border-gold/35 backdrop-blur-md shadow-[0_0_15px_rgba(201,169,97,0.1)] shimmer-badge">
-                                        <span className="text-lg md:text-xl">ðŸ‡®ðŸ‡³</span>
+                                        <span className="text-lg md:text-xl">🇮🇳</span>
                                         <span className="text-sm sm:text-base md:text-xl lg:text-2xl font-bold tracking-wide text-gradient-gold uppercase leading-normal">
                                             India’s First Digital District Encyclopedia
                                         </span>
@@ -449,7 +449,7 @@ const Landing = () => {
                         <div className="lg:col-span-5 w-full flex flex-col gap-6 mt-10 lg:mt-0 mx-auto px-4 sm:px-0">
                             {/* Text Block repositioned above the image, aligned horizontally with the image */}
                             <div className="w-full max-w-[340px] sm:max-w-[380px] md:max-w-[420px] lg:max-w-none lg:w-[460px] mx-auto text-left space-y-1">
-                                <div className="text-[10px] sm:text-xs tracking-[0.25em] font-extrabold uppercase text-gold">India Unlocked ðŸ‡®ðŸ‡³</div>
+                                <div className="text-[10px] sm:text-xs tracking-[0.25em] font-extrabold uppercase text-gold">India Unlocked 🇮🇳</div>
                                 <div className="text-[9px] sm:text-[10px] text-white/50 font-bold uppercase tracking-wider">Decoding India, District by District</div>
                                 <h3 className="text-lg sm:text-2xl font-semibold font-serif text-white tracking-tight leading-tight pt-1">{slides[currentSlide].title}</h3>
                                 <p className="text-xs sm:text-sm opacity-90 text-white/70 font-semibold uppercase tracking-wider">{slides[currentSlide].label}</p>
@@ -497,10 +497,10 @@ const Landing = () => {
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                         {[
-                            { value: <Counter target={stats.totalNotes} suffix="+" />, label: 'Exhaustive PDFs', icon: 'ðŸ“–' },
+                            { value: <Counter target={stats.totalNotes} suffix="+" />, label: 'Exhaustive PDFs', icon: '📖' },
                             { value: <Counter target={stats.totalNotes * 6} suffix="+" />, label: 'Mock MCQs', icon: 'â“' },
-                            { value: <Counter target={36} />, label: 'Mapped Territories', icon: 'ðŸ—ºï¸' },
-                            { value: <Counter target={stats.totalUsers * 4} suffix="+" />, label: 'Active Learners', icon: 'ðŸŽ“' },
+                            { value: <Counter target={36} />, label: 'Mapped Territories', icon: '🗺️' },
+                            { value: <Counter target={stats.totalUsers * 4} suffix="+" />, label: 'Active Learners', icon: '🎓' },
                         ].map((stat, i) => (
                             <div key={i} className="text-center space-y-1">
                                 <div className="text-2xl mb-1">{stat.icon}</div>
@@ -695,7 +695,7 @@ const Landing = () => {
                         <div className="card-premium relative bg-slate-900/60 backdrop-blur-xl border border-gold/25 rounded-3xl p-8 lg:p-10 shadow-2xl flex flex-col justify-between group hover:border-gold transition-all duration-300">
                             <div className="space-y-6">
                                 <div className="w-14 h-14 bg-gradient-to-br from-gold to-gold-dark rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-300">
-                                    <span className="text-2xl text-emerald-dark">ðŸŽ¯</span>
+                                    <span className="text-2xl text-emerald-dark">🎯</span>
                                 </div>
                                 <h3 className="text-2xl font-bold font-serif text-white tracking-tight">Our Mission</h3>
                                 <div className="space-y-4 text-slate-300 text-sm sm:text-base leading-relaxed">
@@ -713,7 +713,7 @@ const Landing = () => {
                         <div className="card-premium relative bg-slate-900/60 backdrop-blur-xl border border-gold/25 rounded-3xl p-8 lg:p-10 shadow-2xl flex flex-col justify-between group hover:border-gold transition-all duration-300">
                             <div className="space-y-6">
                                 <div className="w-14 h-14 bg-gradient-to-br from-gold to-gold-dark rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-300">
-                                    <span className="text-2xl text-emerald-dark">ðŸ‘ï¸</span>
+                                    <span className="text-2xl text-emerald-dark">👁️</span>
                                 </div>
                                 <h3 className="text-2xl font-bold font-serif text-white tracking-tight">Our Vision</h3>
                                 <div className="space-y-4 text-slate-300 text-sm sm:text-base leading-relaxed">
