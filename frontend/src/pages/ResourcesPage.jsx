@@ -4,19 +4,19 @@ import api from "../services/api";
 import toast from "react-hot-toast";
 
 const FILE_ICONS = {
-  pdf:  { icon: "📄", color: "text-red-400",    label: "PDF" },
-  docx: { icon: "📝", color: "text-blue-400",   label: "DOCX" },
-  doc:  { icon: "📝", color: "text-blue-400",   label: "DOC" },
-  xlsx: { icon: "📊", color: "text-green-400",  label: "XLSX" },
-  xls:  { icon: "📊", color: "text-green-400",  label: "XLS" },
-  pptx: { icon: "📋", color: "text-orange-400", label: "PPTX" },
-  png:  { icon: "🖼️", color: "text-purple-400", label: "Image" },
-  jpg:  { icon: "🖼️", color: "text-purple-400", label: "Image" },
-  jpeg: { icon: "🖼️", color: "text-purple-400", label: "Image" },
-  webp: { icon: "🖼️", color: "text-purple-400", label: "Image" },
-  mp3:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
-  m4a:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
-  wav:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
+  pdf:  { icon: "??", color: "text-red-400",    label: "PDF" },
+  docx: { icon: "??", color: "text-blue-400",   label: "DOCX" },
+  doc:  { icon: "??", color: "text-blue-400",   label: "DOC" },
+  xlsx: { icon: "??", color: "text-green-400",  label: "XLSX" },
+  xls:  { icon: "??", color: "text-green-400",  label: "XLS" },
+  pptx: { icon: "??", color: "text-orange-400", label: "PPTX" },
+  png:  { icon: "???", color: "text-purple-400", label: "Image" },
+  jpg:  { icon: "???", color: "text-purple-400", label: "Image" },
+  jpeg: { icon: "???", color: "text-purple-400", label: "Image" },
+  webp: { icon: "???", color: "text-purple-400", label: "Image" },
+  mp3:  { icon: "??", color: "text-pink-400",   label: "Audio" },
+  m4a:  { icon: "??", color: "text-pink-400",   label: "Audio" },
+  wav:  { icon: "??", color: "text-pink-400",   label: "Audio" },
 };
 
 function formatSize(bytes) {
@@ -38,7 +38,7 @@ export default function ResourcesPage() {
     const fetchData = async () => {
       try {
         const res = await api.get(
-          `/products/state/${stateSlug}/district/${districtSlug}`
+          `/api/products/state/${stateSlug}/district/${districtSlug}`
         );
         const products = res.data?.data || [];
 
@@ -93,11 +93,11 @@ export default function ResourcesPage() {
       <div className="max-w-6xl mx-auto">
         <button onClick={() => navigate(`/store/${stateSlug}`)}
           className="text-gray-400 hover:text-amber-400 mb-6 flex items-center gap-1 text-sm">
-          ← Back to Districts
+          ? Back to Districts
         </button>
         <h1 className="text-3xl font-bold text-amber-400 mb-1">{districtName}</h1>
         <p className="text-gray-400 mb-8">
-          {stateName} · {resources.length} resource{resources.length !== 1 ? "s" : ""}
+          {stateName} � {resources.length} resource{resources.length !== 1 ? "s" : ""}
         </p>
         {resources.length === 0 ? (
           <div className="text-gray-500 text-center py-20">No resources found.</div>
@@ -105,7 +105,7 @@ export default function ResourcesPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {resources.map(r => {
               const ext = (r.fileExtension || "").toLowerCase();
-              const meta = FILE_ICONS[ext] || { icon: "📎", color: "text-gray-400", label: ext.toUpperCase() };
+              const meta = FILE_ICONS[ext] || { icon: "??", color: "text-gray-400", label: ext.toUpperCase() };
               return (
                 <div key={r.id}
                   className="bg-gray-900 border border-gray-800 rounded-xl p-5

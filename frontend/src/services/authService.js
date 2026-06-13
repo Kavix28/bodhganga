@@ -9,7 +9,7 @@ import api from './api';
  * @returns {Promise}
  */
 export const login = async (emailOrPhone, password) => {
-    return api.post('/api/auth/login', { emailOrPhone, password });
+    return api.post('/auth/login', { emailOrPhone, password });
 };
 
 /**
@@ -19,7 +19,7 @@ export const login = async (emailOrPhone, password) => {
  * @returns {Promise}
  */
 export const verifyMsg91 = async (accessToken, phoneNumber) => {
-    return api.post('/api/auth/msg91/verify', { accessToken, phoneNumber });
+    return api.post('/auth/msg91/verify', { accessToken, phoneNumber });
 };
 
 /**
@@ -28,7 +28,7 @@ export const verifyMsg91 = async (accessToken, phoneNumber) => {
  * @returns {Promise}
  */
 export const forgotPasswordMobileRequest = async (phoneNo) => {
-    return api.post('/api/auth/forgot-password/mobile/request', { phoneNo });
+    return api.post('/auth/forgot-password/mobile/request', { phoneNo });
 };
 
 /**
@@ -37,7 +37,7 @@ export const forgotPasswordMobileRequest = async (phoneNo) => {
  * @returns {Promise}
  */
 export const forgotPasswordMobileVerify = async (accessToken) => {
-    return api.post('/api/auth/forgot-password/mobile/verify', { accessToken });
+    return api.post('/auth/forgot-password/mobile/verify', { accessToken });
 };
 
 /**
@@ -47,7 +47,7 @@ export const forgotPasswordMobileVerify = async (accessToken) => {
  * @returns {Promise}
  */
 export const resetPasswordMobile = async (accessToken, password) => {
-    return api.post('/api/auth/reset-password/mobile', { accessToken, password });
+    return api.post('/auth/reset-password/mobile', { accessToken, password });
 };
 
 /**

@@ -80,10 +80,12 @@ const ForgotPassword = () => {
             }
 
             // Configure MSG91 widget configuration dynamically
+            const MSG91_AUTH_TOKEN = import.meta.env.VITE_MSG91_AUTH_TOKEN || "520206TlW19nvH5k6a15f8a5P1";
+
             const config = {
                 widgetId: import.meta.env.VITE_MSG91_WIDGET_ID || "36657a734e31333338323730",
+                tokenAuth: MSG91_AUTH_TOKEN,
                 identifier: formattedPhone,
-                exposeMethods: true,
                 success: (response) => {
                     console.log("MSG91 success", response);
                     const token = typeof response === 'string' ? response : (response?.message || response?.['access-token'] || response?.token);
@@ -98,8 +100,6 @@ const ForgotPassword = () => {
                     setLoading(false);
                 }
             };
-
-            config.tokenAuth = import.meta.env.VITE_MSG91_AUTH_TOKEN;
 
             window.configuration = config;
 

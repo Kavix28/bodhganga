@@ -56,15 +56,29 @@ export const clearStorage = () => {
  * @returns {string | null}
  */
 export const getAuthToken = () => {
-    return getItem(STORAGE_KEYS.AUTH_TOKEN);
-};
+    try {
+        const raw = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        // Handle double-encoded tokens (stored as "\"token\"" instead of "token")
+        if (typeof parsed === 'string') return parsed.replace(/^"|"$/g, '');
+        return null;
+    } catch {
+        return null;
+    }
+};;
 
 /**
  * Set auth token in localStorage
  * @param {string} token
  */
 export const setAuthToken = (token) => {
-    setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+    try {
+        // Store raw string directly, not JSON.stringify'd, to avoid double-encoding
+        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, JSON.stringify(token));
+    } catch (error) {
+        console.error('Error saving auth token:', error);
+    }
 };
 
 /**
@@ -79,8 +93,16 @@ export const removeAuthToken = () => {
  * @returns {object | null}
  */
 export const getUserData = () => {
-    return getItem(STORAGE_KEYS.USER_DATA);
-};
+    try {
+        const raw = localStorage.getItem(STORAGE_KEYS.USER_DATA);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (typeof parsed === 'string') return JSON.parse(parsed);
+        return parsed;
+    } catch {
+        return null;
+    }
+};;
 
 /**
  * Set user data in localStorage
@@ -104,3 +126,6 @@ export const clearAuthData = () => {
     removeAuthToken();
     removeUserData();
 };
+
+
+

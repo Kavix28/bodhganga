@@ -160,7 +160,6 @@ const Login = () => {
             widgetId: import.meta.env.VITE_MSG91_WIDGET_ID || "36657a734e31333338323730",
             tokenAuth: MSG91_AUTH_TOKEN,
             identifier: formattedPhone,
-            exposeMethods: true,
             success: (response) => {
                 console.log("MSG91 success", response);
                 const token = typeof response === 'string' ? response : (response?.message || response?.['access-token'] || response?.token);
@@ -262,7 +261,7 @@ const Login = () => {
                         </button>
                         <button
                             type="button"
-                            onClick={() => setLoginMethod('otp')}
+                            onClick={() => setLoginMethod('otp')} style={{display:'none'}}
                             className={`flex-1 pb-3 text-xs font-bold uppercase tracking-widest transition-all duration-300 border-b-2 ${
                                 loginMethod === 'otp'
                                     ? 'border-gold text-emerald-dark'
@@ -409,3 +408,4 @@ const Login = () => {
 };
 
 export default Login;
+

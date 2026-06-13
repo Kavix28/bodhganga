@@ -20,7 +20,7 @@ const ADMIN_USER_KEY = 'admin_user';
  */
 export const authenticateAdmin = async (emailOrPhone, password) => {
     try {
-        const response = await api.post('/api/auth/admin/login', { emailOrPhone, password });
+        const response = await api.post('/auth/admin/login', { emailOrPhone, password });
         // Response from ApiResponseDTO: { success, message, data: { token, user } }
         if (response.success && response.data?.token) {
             sessionStorage.setItem(ADMIN_TOKEN_KEY, response.data.token);

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+﻿import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { 
@@ -14,7 +14,7 @@ import { API_BASE_URL } from '../utils/constants';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 
-// ── Animated Counter Component ─────────────────────────────────────
+// â”€â”€ Animated Counter Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const Counter = ({ target, suffix = '', duration = 1500 }) => {
     const [count, setCount] = useState(0);
     const elementRef = useRef(null);
@@ -285,7 +285,7 @@ const Landing = () => {
             id: item.id,
             title: item.title,
             state: item.state || "Civil Services",
-            price: `₹${item.price || 99.0}`,
+            price: `â‚¹${item.price || 99.0}`,
             discount: item.discount || "80% OFF",
             rating: item.rating || (4.7 + (idx * 0.1)),
             sales: item.sales || `${Math.floor(Math.random() * 800) + 400} sold`,
@@ -309,29 +309,26 @@ const Landing = () => {
     return (
         <div className="min-h-screen bg-ivory-light overflow-x-hidden text-emerald-dark select-none relative font-sans">
             
-            {/* ── HORIZONTAL SCROLLING BRAND TICKER ──────────────────── */}
+            {/* -- HORIZONTAL SCROLLING BRAND TICKER -- */}
             <div className="bg-emerald-950 border-b border-gold/15 py-2.5 overflow-hidden relative z-40 flex items-center">
                 <div className="w-full flex items-center relative">
-                    {/* Glowing indicator dot on the left */}
                     <div className="absolute left-4 z-50 flex items-center bg-emerald-950/90 pr-3 pl-1 backdrop-blur-sm">
                         <span className="flex h-2.5 w-2.5 relative">
-                            <span 
+                            <span
                                 className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
                                 style={{ backgroundColor: 'rgba(212,175,55,0.6)' }}
                             />
-                            <span 
-                                className="relative inline-flex rounded-full h-2.5 w-2.5 shadow-[0_0_8px_rgba(212,175,55,0.6)]" 
+                            <span
+                                className="relative inline-flex rounded-full h-2.5 w-2.5 shadow-[0_0_8px_rgba(212,175,55,0.6)]"
                                 style={{ backgroundColor: 'rgba(212,175,55,0.6)' }}
                             />
                         </span>
                     </div>
-
-                    {/* Scrolling Marquee text */}
                     <div className="w-full overflow-hidden flex select-none">
                         <div className="animate-marquee-l2r flex whitespace-nowrap text-xs font-bold uppercase tracking-widest text-gold-glow-soft gap-16">
                             {[...Array(8)].map((_, idx) => (
                                 <span key={idx} className="flex items-center gap-2">
-                                    India Unlocked 🇮🇳 — Decoding India, District by District
+                                    India Unlocked — Decoding India, District by District
                                 </span>
                             ))}
                         </div>
@@ -339,7 +336,7 @@ const Landing = () => {
                 </div>
             </div>
 
-            {/* ── HERO BANNER SECTION ────────────────────────────────── */}
+            {/* â”€â”€ HERO BANNER SECTION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <section className="relative min-h-[92vh] flex items-center justify-center overflow-hidden bg-gradient-to-b from-emerald-dark via-emerald-dark to-emerald-950 px-6 border-b border-gold/15">
                 {/* Premium Top Gold Accent Line & Moving Dot */}
                 <div className="absolute top-0 left-0 right-0 h-[1px] bg-[rgba(212,175,55,0.25)] flex items-center pointer-events-none z-20">
@@ -364,13 +361,13 @@ const Landing = () => {
                             <div className="space-y-4">
                                 <div className="inline-block">
                                     <div className="inline-flex items-center gap-3 px-7 py-3.5 md:px-9 md:py-4.5 rounded-full bg-emerald-950/40 border border-gold/35 backdrop-blur-md shadow-[0_0_15px_rgba(201,169,97,0.1)] shimmer-badge">
-                                        <span className="text-lg md:text-xl">🇮🇳</span>
+                                        <span className="text-lg md:text-xl">ðŸ‡®ðŸ‡³</span>
                                         <span className="text-sm sm:text-base md:text-xl lg:text-2xl font-bold tracking-wide text-gradient-gold uppercase leading-normal">
-                                            India’s First Digital District Encyclopedia
+                                            Indiaâ€™s First Digital District Encyclopedia
                                         </span>
                                     </div>
                                     <div className="mt-3.5 pl-6 md:pl-8 text-xs md:text-sm font-bold tracking-widest text-gold/80 uppercase font-sans">
-                                        NDDE — National Digital District Encyclopedia
+                                        NDDE â€” National Digital District Encyclopedia
                                     </div>
                                 </div>
                             </div>
@@ -381,7 +378,7 @@ const Landing = () => {
                                     <span className="text-gradient-gold">District by District.</span>
                                 </h1>
                                 <p className="text-lg text-gold font-serif leading-relaxed max-w-3xl">
-                                    BodhGanga Academy presents NDDE (National Digital District Encyclopedia) — a research-backed educational initiative designed to decode India district by district through the unique concept of Horizontal Integration.
+                                    BodhGanga Academy presents NDDE (National Digital District Encyclopedia) â€” a research-backed educational initiative designed to decode India district by district through the unique concept of Horizontal Integration.
                                 </p>
                                 <div className="space-y-4 text-white/75 text-sm sm:text-base leading-relaxed max-w-3xl font-medium">
                                     <p>
@@ -400,13 +397,13 @@ const Landing = () => {
                             <div className="space-y-4 pt-2">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-white/95 text-xs sm:text-sm font-bold tracking-wider">
                                     <div className="flex items-center gap-2.5 bg-white/5 px-4 py-3 rounded-xl border border-white/5">
-                                        <span className="text-gold">📌</span> Structured & Research-Backed Content
+                                        <span className="text-gold">ðŸ“Œ</span> Structured & Research-Backed Content
                                     </div>
                                     <div className="flex items-center gap-2.5 bg-white/5 px-4 py-3 rounded-xl border border-white/5">
-                                        <span className="text-gold">📌</span> District-Wise Integrated Learning
+                                        <span className="text-gold">ðŸ“Œ</span> District-Wise Integrated Learning
                                     </div>
                                     <div className="flex items-center gap-2.5 bg-white/5 px-4 py-3 rounded-xl border border-white/5 sm:col-span-2">
-                                        <span className="text-gold">📌</span> India Unlocked — District by District
+                                        <span className="text-gold">ðŸ“Œ</span> India Unlocked â€” District by District
                                     </div>
                                 </div>
                                 <div className="pt-3">
@@ -421,7 +418,7 @@ const Landing = () => {
                                     onClick={handleCTA}
                                     className="group flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-bold text-xs uppercase tracking-widest rounded-2xl shadow-xl shadow-gold/10 hover:shadow-gold/25 hover:-translate-y-0.5 transition-all duration-300"
                                 >
-                                    {isAuthenticated ? 'Go to Dashboard' : 'Enroll Now — Free'}
+                                    {isAuthenticated ? 'Go to Dashboard' : 'Enroll Now â€” Free'}
                                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                                 </button>
                                 <Link 
@@ -452,7 +449,7 @@ const Landing = () => {
                         <div className="lg:col-span-5 w-full flex flex-col gap-6 mt-10 lg:mt-0 mx-auto px-4 sm:px-0">
                             {/* Text Block repositioned above the image, aligned horizontally with the image */}
                             <div className="w-full max-w-[340px] sm:max-w-[380px] md:max-w-[420px] lg:max-w-none lg:w-[460px] mx-auto text-left space-y-1">
-                                <div className="text-[10px] sm:text-xs tracking-[0.25em] font-extrabold uppercase text-gold">India Unlocked 🇮🇳</div>
+                                <div className="text-[10px] sm:text-xs tracking-[0.25em] font-extrabold uppercase text-gold">India Unlocked ðŸ‡®ðŸ‡³</div>
                                 <div className="text-[9px] sm:text-[10px] text-white/50 font-bold uppercase tracking-wider">Decoding India, District by District</div>
                                 <h3 className="text-lg sm:text-2xl font-semibold font-serif text-white tracking-tight leading-tight pt-1">{slides[currentSlide].title}</h3>
                                 <p className="text-xs sm:text-sm opacity-90 text-white/70 font-semibold uppercase tracking-wider">{slides[currentSlide].label}</p>
@@ -495,15 +492,15 @@ const Landing = () => {
                 </div>
             </section>
 
-            {/* ── STATS STRIP ────────────────────────────────────────── */}
+            {/* â”€â”€ STATS STRIP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <section className="bg-white border-b border-emerald/5 py-10 shadow-sm relative z-20">
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                         {[
-                            { value: <Counter target={stats.totalNotes} suffix="+" />, label: 'Exhaustive PDFs', icon: '📖' },
-                            { value: <Counter target={stats.totalNotes * 6} suffix="+" />, label: 'Mock MCQs', icon: '❓' },
-                            { value: <Counter target={36} />, label: 'Mapped Territories', icon: '🗺️' },
-                            { value: <Counter target={stats.totalUsers * 4} suffix="+" />, label: 'Active Learners', icon: '🎓' },
+                            { value: <Counter target={stats.totalNotes} suffix="+" />, label: 'Exhaustive PDFs', icon: 'ðŸ“–' },
+                            { value: <Counter target={stats.totalNotes * 6} suffix="+" />, label: 'Mock MCQs', icon: 'â“' },
+                            { value: <Counter target={36} />, label: 'Mapped Territories', icon: 'ðŸ—ºï¸' },
+                            { value: <Counter target={stats.totalUsers * 4} suffix="+" />, label: 'Active Learners', icon: 'ðŸŽ“' },
                         ].map((stat, i) => (
                             <div key={i} className="text-center space-y-1">
                                 <div className="text-2xl mb-1">{stat.icon}</div>
@@ -515,21 +512,21 @@ const Landing = () => {
                 </div>
             </section>
  
-            {/* ── TRUSTED BY ASPIRANTS BANNER ───────────────────────────── */}
+            {/* â”€â”€ TRUSTED BY ASPIRANTS BANNER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <div className="bg-emerald-950/95 py-6 border-b border-gold/15 overflow-hidden relative z-20">
                 <div className="max-w-7xl mx-auto px-6 text-center space-y-3">
                     <p className="text-[10px] text-gold font-bold uppercase tracking-widest leading-none">TRUSTED BY ASPIRANTS NATIONWIDE IN EVERY MAJOR PSC STATE</p>
                     <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 pt-2">
                         {['UPSC CSE', 'BPSC (BIHAR)', 'MPSC (MAHARASHTRA)', 'UPPSC (UTTAR PRADESH)', 'RAS (RAJASTHAN)', 'MPPSC (MADHYA PRADESH)', 'KPSC (KARNATAKA)'].map((p, idx) => (
                             <span key={idx} className="px-4 py-1.5 bg-white/5 border border-gold/10 hover:border-gold/30 text-white font-extrabold text-[10px] uppercase tracking-wider rounded-xl transition-all duration-300">
-                                🛡️ {p}
+                                ðŸ›¡ï¸ {p}
                             </span>
                         ))}
                     </div>
                 </div>
             </div>
 
-            {/* ── ABOUT BODHGANGA ACADEMY ──────────────────────────────── */}
+            {/* â”€â”€ ABOUT BODHGANGA ACADEMY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <section 
                 id="about" 
                 ref={aboutSectionRef}
@@ -577,17 +574,17 @@ const Landing = () => {
                                 BodhGanga Academy is a research-driven educational platform built to help learners understand India in its truest grassroots form.
                             </p>
                             <p className="font-bold text-emerald-dark text-center text-base sm:text-lg">
-                                India is not just a nation of states—it is a nation of districts.
+                                India is not just a nation of statesâ€”it is a nation of districts.
                             </p>
                             <div className="space-y-4 pt-2">
                                 <p>
                                     Every district carries its own geography, history, culture, economy, ecology, governance structure, and historical identity.
                                 </p>
                                 <p>
-                                    Traditional education often explains India only at the national or state level. BodhGanga Academy bridges this gap through NDDE — National Digital District Encyclopedia — a pioneering long-term initiative dedicated to documenting every district of India in a structured, multi-dimensional, and digitally accessible format.
+                                    Traditional education often explains India only at the national or state level. BodhGanga Academy bridges this gap through NDDE â€” National Digital District Encyclopedia â€” a pioneering long-term initiative dedicated to documenting every district of India in a structured, multi-dimensional, and digitally accessible format.
                                 </p>
                                 <p>
-                                    Through district-wise lectures, infographics, revision modules, analytical frameworks, and integrated knowledge systems, BodhGanga is building India’s most comprehensive district-based learning ecosystem.
+                                    Through district-wise lectures, infographics, revision modules, analytical frameworks, and integrated knowledge systems, BodhGanga is building Indiaâ€™s most comprehensive district-based learning ecosystem.
                                 </p>
                             </div>
                         </div>
@@ -595,7 +592,7 @@ const Landing = () => {
                 </div>
             </section>
 
-            {/* ── ABOUT THE FOUNDER ────────────────────────────────────── */}
+            {/* â”€â”€ ABOUT THE FOUNDER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <section className="py-24 bg-ivory-light px-6 border-b border-emerald/5 relative z-20">
                 <div className="max-w-7xl mx-auto">
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
@@ -611,7 +608,7 @@ const Landing = () => {
 
                             <div className="space-y-5 text-emerald-dark/85 text-sm sm:text-base leading-relaxed font-medium">
                                 <p className="text-lg text-emerald font-serif font-semibold leading-relaxed">
-                                    Prateek Bhargava is an educator, researcher, and the founder of BodhGanga Academy and the National Digital District Encyclopedia (NDDE) — India’s First Digital District Encyclopedia.
+                                    Prateek Bhargava is an educator, researcher, and the founder of BodhGanga Academy and the National Digital District Encyclopedia (NDDE) â€” Indiaâ€™s First Digital District Encyclopedia.
                                 </p>
                                 <p>
                                     Alongside his educational initiatives, he has been serving as Deputy Manager at MTNL (Department of Telecommunication) since 2009.
@@ -620,29 +617,29 @@ const Landing = () => {
                                     Having personally experienced the competitive examination ecosystem, he developed a strong vision to create educational resources that go beyond rote memorization and fragmented learning.
                                 </p>
                                 <p>
-                                    This vision led to the creation of NDDE — a structured, research-backed digital initiative documenting every district of India through Horizontal Integration.
+                                    This vision led to the creation of NDDE â€” a structured, research-backed digital initiative documenting every district of India through Horizontal Integration.
                                 </p>
 
                                 <div className="space-y-3 pt-3">
                                     <p className="font-bold text-xs uppercase tracking-wider text-emerald-dark">Under his leadership, BodhGanga Academy continues building:</p>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm font-semibold text-emerald-dark/95">
                                         <div className="flex items-center gap-2.5 bg-white/70 px-4 py-2.5 rounded-xl border border-emerald/5 shadow-sm">
-                                            <span className="text-gold">✨</span> district-wise comprehensive lectures
+                                            <span className="text-gold">âœ¨</span> district-wise comprehensive lectures
                                         </div>
                                         <div className="flex items-center gap-2.5 bg-white/70 px-4 py-2.5 rounded-xl border border-emerald/5 shadow-sm">
-                                            <span className="text-gold">✨</span> exam-oriented notes
+                                            <span className="text-gold">âœ¨</span> exam-oriented notes
                                         </div>
                                         <div className="flex items-center gap-2.5 bg-white/70 px-4 py-2.5 rounded-xl border border-emerald/5 shadow-sm">
-                                            <span className="text-gold">✨</span> MCQ banks
+                                            <span className="text-gold">âœ¨</span> MCQ banks
                                         </div>
                                         <div className="flex items-center gap-2.5 bg-white/70 px-4 py-2.5 rounded-xl border border-emerald/5 shadow-sm">
-                                            <span className="text-gold">✨</span> revision frameworks
+                                            <span className="text-gold">âœ¨</span> revision frameworks
                                         </div>
                                         <div className="flex items-center gap-2.5 bg-white/70 px-4 py-2.5 rounded-xl border border-emerald/5 shadow-sm">
-                                            <span className="text-gold">✨</span> infographics
+                                            <span className="text-gold">âœ¨</span> infographics
                                         </div>
                                         <div className="flex items-center gap-2.5 bg-white/70 px-4 py-2.5 rounded-xl border border-emerald/5 shadow-sm">
-                                            <span className="text-gold">✨</span> cultural & environmental archives
+                                            <span className="text-gold">âœ¨</span> cultural & environmental archives
                                         </div>
                                     </div>
                                 </div>
@@ -650,7 +647,7 @@ const Landing = () => {
 
                             {/* Core belief block */}
                             <div className="mt-8 p-6 bg-emerald/5 border-l-4 border-gold rounded-r-2xl shadow-sm">
-                                <span className="text-gold text-2xl font-serif leading-none">“</span>
+                                <span className="text-gold text-2xl font-serif leading-none">â€œ</span>
                                 <p className="text-base font-serif italic text-emerald-dark font-semibold -mt-2 leading-relaxed">
                                     To truly understand India, one must understand its districts.
                                 </p>
@@ -677,7 +674,7 @@ const Landing = () => {
                 </div>
             </section>
 
-            {/* ── MISSION & VISION SECTION ──────────────────────────────── */}
+            {/* â”€â”€ MISSION & VISION SECTION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <section className="py-24 bg-gradient-to-b from-emerald-950 to-emerald-dark text-white px-6 relative overflow-hidden border-b border-gold/15 z-20">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(201,169,97,0.01)_1px,transparent_1px),linear-gradient(to_bottom,rgba(201,169,97,0.01)_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none" />
                 <div className="absolute top-1/2 left-1/4 w-[500px] h-[300px] bg-gold/5 rounded-full blur-[120px] pointer-events-none" />
@@ -698,7 +695,7 @@ const Landing = () => {
                         <div className="card-premium relative bg-slate-900/60 backdrop-blur-xl border border-gold/25 rounded-3xl p-8 lg:p-10 shadow-2xl flex flex-col justify-between group hover:border-gold transition-all duration-300">
                             <div className="space-y-6">
                                 <div className="w-14 h-14 bg-gradient-to-br from-gold to-gold-dark rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-300">
-                                    <span className="text-2xl text-emerald-dark">🎯</span>
+                                    <span className="text-2xl text-emerald-dark">ðŸŽ¯</span>
                                 </div>
                                 <h3 className="text-2xl font-bold font-serif text-white tracking-tight">Our Mission</h3>
                                 <div className="space-y-4 text-slate-300 text-sm sm:text-base leading-relaxed">
@@ -706,7 +703,7 @@ const Landing = () => {
                                         To build the most comprehensive research-backed district-wise digital knowledge platform ever created for India.
                                     </p>
                                     <p>
-                                        Through NDDE, we aim to present India’s districts as complete living systems—helping students, educators, and citizens explore the country through an integrated multidimensional learning framework.
+                                        Through NDDE, we aim to present Indiaâ€™s districts as complete living systemsâ€”helping students, educators, and citizens explore the country through an integrated multidimensional learning framework.
                                     </p>
                                 </div>
                             </div>
@@ -716,7 +713,7 @@ const Landing = () => {
                         <div className="card-premium relative bg-slate-900/60 backdrop-blur-xl border border-gold/25 rounded-3xl p-8 lg:p-10 shadow-2xl flex flex-col justify-between group hover:border-gold transition-all duration-300">
                             <div className="space-y-6">
                                 <div className="w-14 h-14 bg-gradient-to-br from-gold to-gold-dark rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-300">
-                                    <span className="text-2xl text-emerald-dark">👁️</span>
+                                    <span className="text-2xl text-emerald-dark">ðŸ‘ï¸</span>
                                 </div>
                                 <h3 className="text-2xl font-bold font-serif text-white tracking-tight">Our Vision</h3>
                                 <div className="space-y-4 text-slate-300 text-sm sm:text-base leading-relaxed">
@@ -733,7 +730,7 @@ const Landing = () => {
                 </div>
             </section>
 
-            {/* ── BRANDS & BENEFITS ───────────────────────────────────── */}
+            {/* â”€â”€ BRANDS & BENEFITS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <section className="py-24 bg-ivory-light px-6">
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-16 space-y-4">
@@ -761,7 +758,7 @@ const Landing = () => {
                 </div>
             </section>
 
-            {/* ── FEATURED STATES & UTS SHOWCASE ──────────────────────── */}
+            {/* â”€â”€ FEATURED STATES & UTS SHOWCASE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <section className="py-24 bg-gradient-to-b from-emerald-950 to-slate-950 text-white px-6 relative overflow-hidden border-y border-gold/15">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(201,169,97,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(201,169,97,0.02)_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none" />
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[250px] bg-emerald-500/5 rounded-full blur-[100px] pointer-events-none" />
@@ -841,7 +838,7 @@ const Landing = () => {
                 </div>
             </section>
 
-            {/* ── FREE RESOURCES SHELF ─────────────────────────────────── */}
+            {/* â”€â”€ FREE RESOURCES SHELF â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <section className="py-20 bg-ivory-light border-b border-emerald/5 px-6">
                 <div className="max-w-7xl mx-auto">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-12 gap-4">
@@ -877,7 +874,7 @@ const Landing = () => {
                                         <div className="space-y-2">
                                             <div className="flex gap-2 text-[8px] font-black uppercase text-gold">
                                                 <span>{product.state || 'All India'}</span>
-                                                {product.district && <span>· {product.district}</span>}
+                                                {product.district && <span>Â· {product.district}</span>}
                                             </div>
                                             <h3 className="font-serif font-bold text-emerald-dark text-sm group-hover:text-gold transition-colors line-clamp-2">
                                                 {product.title}
@@ -910,7 +907,7 @@ const Landing = () => {
                 </div>
             </section>
 
-            {/* ── YOUTUBE PREVIEW SHOWCASE ──────────────────────────────── */}
+            {/* â”€â”€ YOUTUBE PREVIEW SHOWCASE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <section className="py-24 bg-slate-950 border-b border-gold/15 px-6 relative overflow-hidden">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(201,169,97,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(201,169,97,0.02)_1px,transparent_1px)] bg-[size:4.5rem_4.5rem]" />
                 <div className="absolute top-1/2 right-1/4 w-[500px] h-[500px] bg-emerald-light/5 rounded-full blur-[140px] pointer-events-none" />
@@ -974,7 +971,7 @@ const Landing = () => {
                 </div>
             </section>
 
-            {/* ── BESTSELLERS STUDY NOTES SHELF ───────────────────────── */}
+            {/* â”€â”€ BESTSELLERS STUDY NOTES SHELF â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <section className="py-20 bg-white border-y border-emerald/5 px-6">
                 <div className="max-w-7xl mx-auto">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-12 gap-4">
@@ -1026,7 +1023,7 @@ const Landing = () => {
                 </div>
             </section>
 
-            {/* ── TOPPERS & SOCIAL VALIDATION ──────────────────────────── */}
+            {/* â”€â”€ TOPPERS & SOCIAL VALIDATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <section className="py-24 bg-gradient-to-b from-ivory to-white px-6">
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-20 space-y-4">
@@ -1049,7 +1046,7 @@ const Landing = () => {
                                     </div>
                                     <div className="text-left">
                                         <div className="font-bold text-emerald-dark text-xs">{t.name}</div>
-                                        <div className="text-[9px] text-gold font-bold uppercase tracking-wider mt-0.5">{t.exam} · {t.rank}</div>
+                                        <div className="text-[9px] text-gold font-bold uppercase tracking-wider mt-0.5">{t.exam} Â· {t.rank}</div>
                                     </div>
                                 </div>
                             </div>
@@ -1058,7 +1055,7 @@ const Landing = () => {
                 </div>
             </section>
 
-            {/* ── FAQ SECTION ────────────────────────────────────────── */}
+            {/* â”€â”€ FAQ SECTION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <section className="py-24 bg-ivory-light px-6">
                 <div className="max-w-4xl mx-auto">
                     <div className="text-center mb-16 space-y-4">
@@ -1085,7 +1082,7 @@ const Landing = () => {
                 </div>
             </section>
 
-            {/* ── FOOTER HERO CTA ────────────────────────────────────── */}
+            {/* â”€â”€ FOOTER HERO CTA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <section className="py-24 bg-emerald-dark relative overflow-hidden px-6 text-center border-t border-gold/15 mb-16 md:mb-0">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(201,169,97,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(201,169,97,0.02)_1px,transparent_1px)] bg-[size:3.5rem_3.5rem]" />
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gold/5 rounded-full blur-[130px] pointer-events-none" />
@@ -1103,7 +1100,7 @@ const Landing = () => {
                             onClick={handleCTA}
                             className="group flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-bold text-xs uppercase tracking-widest rounded-2xl shadow-xl shadow-gold/10 hover:shadow-gold/25 hover:-translate-y-0.5 transition-all duration-300"
                         >
-                            {isAuthenticated ? 'Go to Dashboard' : 'Enroll Now — Free'}
+                            {isAuthenticated ? 'Go to Dashboard' : 'Enroll Now â€” Free'}
                             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                         </button>
                         <Link 
@@ -1117,7 +1114,7 @@ const Landing = () => {
                 </div>
             </section>
 
-            {/* ── STICKY FOOTER ACTION BUTTON BAR ────────────────────── */}
+            {/* â”€â”€ STICKY FOOTER ACTION BUTTON BAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             {scrolled && (
                 <div className="sticky-cta-bar flex items-center justify-between animate-fade-in block md:hidden z-[9999]">
                     <div className="text-left pr-4">
@@ -1133,7 +1130,7 @@ const Landing = () => {
                 </div>
             )}
 
-            {/* ── VIDEO PLAYER MODAL ────────────────────────────────────── */}
+            {/* â”€â”€ VIDEO PLAYER MODAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             {selectedVideo && (
                 <div className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4 animate-fade-in">
                     <div className="relative w-full max-w-4xl bg-emerald-950 border border-gold/30 rounded-3xl overflow-hidden shadow-2xl">
@@ -1141,7 +1138,7 @@ const Landing = () => {
                             onClick={() => setSelectedVideo(null)}
                             className="absolute top-4 right-4 bg-emerald/10 hover:bg-emerald/30 border border-gold/30 text-white font-bold px-3 py-1 rounded-full text-xs uppercase z-[10000]"
                         >
-                            ✕ Close
+                            âœ• Close
                         </button>
                         
                         <div className="aspect-video w-full">
@@ -1167,3 +1164,5 @@ const Landing = () => {
 };
 
 export default Landing;
+
+

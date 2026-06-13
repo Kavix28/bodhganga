@@ -23,7 +23,7 @@ const AdminPDFManager = () => {
     const fetchProducts = async () => {
         setLoading(true);
         try {
-            const response = await api.get('/api/products');
+            const response = await api.get('/products');
             // Support both response formats
             const allProducts = response?.data || response || [];
             // Filter to only display PDF items in this PDF manager
@@ -326,3 +326,4 @@ const AdminPDFManager = () => {
 };
 
 export default AdminPDFManager;
+
