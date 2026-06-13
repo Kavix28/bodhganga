@@ -624,22 +624,22 @@ const Landing = () => {
                                     <p className="font-bold text-xs uppercase tracking-wider text-emerald-dark">Under his leadership, BodhGanga Academy continues building:</p>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm font-semibold text-emerald-dark/95">
                                         <div className="flex items-center gap-2.5 bg-white/70 px-4 py-2.5 rounded-xl border border-emerald/5 shadow-sm">
-                                            <span className="text-gold">âœ¨</span> district-wise comprehensive lectures
+                                            <span className="text-gold">✨</span> district-wise comprehensive lectures
                                         </div>
                                         <div className="flex items-center gap-2.5 bg-white/70 px-4 py-2.5 rounded-xl border border-emerald/5 shadow-sm">
-                                            <span className="text-gold">âœ¨</span> exam-oriented notes
+                                            <span className="text-gold">✨</span> exam-oriented notes
                                         </div>
                                         <div className="flex items-center gap-2.5 bg-white/70 px-4 py-2.5 rounded-xl border border-emerald/5 shadow-sm">
-                                            <span className="text-gold">âœ¨</span> MCQ banks
+                                            <span className="text-gold">✨</span> MCQ banks
                                         </div>
                                         <div className="flex items-center gap-2.5 bg-white/70 px-4 py-2.5 rounded-xl border border-emerald/5 shadow-sm">
-                                            <span className="text-gold">âœ¨</span> revision frameworks
+                                            <span className="text-gold">✨</span> revision frameworks
                                         </div>
                                         <div className="flex items-center gap-2.5 bg-white/70 px-4 py-2.5 rounded-xl border border-emerald/5 shadow-sm">
-                                            <span className="text-gold">âœ¨</span> infographics
+                                            <span className="text-gold">✨</span> infographics
                                         </div>
                                         <div className="flex items-center gap-2.5 bg-white/70 px-4 py-2.5 rounded-xl border border-emerald/5 shadow-sm">
-                                            <span className="text-gold">âœ¨</span> cultural & environmental archives
+                                            <span className="text-gold">✨</span> cultural & environmental archives
                                         </div>
                                     </div>
                                 </div>
@@ -1138,7 +1138,7 @@ const Landing = () => {
                             onClick={() => setSelectedVideo(null)}
                             className="absolute top-4 right-4 bg-emerald/10 hover:bg-emerald/30 border border-gold/30 text-white font-bold px-3 py-1 rounded-full text-xs uppercase z-[10000]"
                         >
-                            âœ• Close
+                            ✕ Close
                         </button>
                         
                         <div className="aspect-video w-full">
