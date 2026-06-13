@@ -519,7 +519,7 @@ const Landing = () => {
                     <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 pt-2">
                         {['UPSC CSE', 'BPSC (BIHAR)', 'MPSC (MAHARASHTRA)', 'UPPSC (UTTAR PRADESH)', 'RAS (RAJASTHAN)', 'MPPSC (MADHYA PRADESH)', 'KPSC (KARNATAKA)'].map((p, idx) => (
                             <span key={idx} className="px-4 py-1.5 bg-white/5 border border-gold/10 hover:border-gold/30 text-white font-extrabold text-[10px] uppercase tracking-wider rounded-xl transition-all duration-300">
-                                ðŸ›¡ï¸ {p}
+                                🛡️ {p}
                             </span>
                         ))}
                     </div>
