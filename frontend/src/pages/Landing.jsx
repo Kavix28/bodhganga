@@ -397,13 +397,13 @@ const Landing = () => {
                             <div className="space-y-4 pt-2">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-white/95 text-xs sm:text-sm font-bold tracking-wider">
                                     <div className="flex items-center gap-2.5 bg-white/5 px-4 py-3 rounded-xl border border-white/5">
-                                        <span className="text-gold">ðŸ“Œ</span> Structured & Research-Backed Content
+                                        <span className="text-gold">📌</span> Structured & Research-Backed Content
                                     </div>
                                     <div className="flex items-center gap-2.5 bg-white/5 px-4 py-3 rounded-xl border border-white/5">
-                                        <span className="text-gold">ðŸ“Œ</span> District-Wise Integrated Learning
+                                        <span className="text-gold">📌</span> District-Wise Integrated Learning
                                     </div>
                                     <div className="flex items-center gap-2.5 bg-white/5 px-4 py-3 rounded-xl border border-white/5 sm:col-span-2">
-                                        <span className="text-gold">ðŸ“Œ</span> India Unlocked — District by District
+                                        <span className="text-gold">📌</span> India Unlocked — District by District
                                     </div>
                                 </div>
                                 <div className="pt-3">
