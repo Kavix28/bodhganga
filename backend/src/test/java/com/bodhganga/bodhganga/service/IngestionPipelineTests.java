@@ -243,7 +243,7 @@ public class IngestionPipelineTests {
         String loginUrl = "http://localhost:" + port + "/api/auth/login";
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        String requestBody = "{\"emailOrPhone\":\"9958277244\",\"password\":\"indiadistricst@800\"}";
+        String requestBody = "{\"emailOrPhone\":\"9958277244\",\"password\":\"BodhGanga@2026\"}";
         HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
         ResponseEntity<java.util.Map> loginResponse = restTemplate.postForEntity(loginUrl, entity, java.util.Map.class);
