@@ -647,7 +647,7 @@ const Landing = () => {
 
                             {/* Core belief block */}
                             <div className="mt-8 p-6 bg-emerald/5 border-l-4 border-gold rounded-r-2xl shadow-sm">
-                                <span className="text-gold text-2xl font-serif leading-none">â€œ</span>
+                                <span className="text-gold text-2xl font-serif leading-none">“</span>
                                 <p className="text-base font-serif italic text-emerald-dark font-semibold -mt-2 leading-relaxed">
                                     To truly understand India, one must understand its districts.
                                 </p>
