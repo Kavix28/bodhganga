@@ -285,7 +285,7 @@ const Landing = () => {
             id: item.id,
             title: item.title,
             state: item.state || "Civil Services",
-            price: `â‚¹${item.price || 99.0}`,
+            price: `₹${item.price || 99.0}`,
             discount: item.discount || "80% OFF",
             rating: item.rating || (4.7 + (idx * 0.1)),
             sales: item.sales || `${Math.floor(Math.random() * 800) + 400} sold`,
@@ -363,11 +363,11 @@ const Landing = () => {
                                     <div className="inline-flex items-center gap-3 px-7 py-3.5 md:px-9 md:py-4.5 rounded-full bg-emerald-950/40 border border-gold/35 backdrop-blur-md shadow-[0_0_15px_rgba(201,169,97,0.1)] shimmer-badge">
                                         <span className="text-lg md:text-xl">ðŸ‡®ðŸ‡³</span>
                                         <span className="text-sm sm:text-base md:text-xl lg:text-2xl font-bold tracking-wide text-gradient-gold uppercase leading-normal">
-                                            Indiaâ€™s First Digital District Encyclopedia
+                                            India’s First Digital District Encyclopedia
                                         </span>
                                     </div>
                                     <div className="mt-3.5 pl-6 md:pl-8 text-xs md:text-sm font-bold tracking-widest text-gold/80 uppercase font-sans">
-                                        NDDE â€” National Digital District Encyclopedia
+                                        NDDE — National Digital District Encyclopedia
                                     </div>
                                 </div>
                             </div>
@@ -378,7 +378,7 @@ const Landing = () => {
                                     <span className="text-gradient-gold">District by District.</span>
                                 </h1>
                                 <p className="text-lg text-gold font-serif leading-relaxed max-w-3xl">
-                                    BodhGanga Academy presents NDDE (National Digital District Encyclopedia) â€” a research-backed educational initiative designed to decode India district by district through the unique concept of Horizontal Integration.
+                                    BodhGanga Academy presents NDDE (National Digital District Encyclopedia) — a research-backed educational initiative designed to decode India district by district through the unique concept of Horizontal Integration.
                                 </p>
                                 <div className="space-y-4 text-white/75 text-sm sm:text-base leading-relaxed max-w-3xl font-medium">
                                     <p>
@@ -403,7 +403,7 @@ const Landing = () => {
                                         <span className="text-gold">ðŸ“Œ</span> District-Wise Integrated Learning
                                     </div>
                                     <div className="flex items-center gap-2.5 bg-white/5 px-4 py-3 rounded-xl border border-white/5 sm:col-span-2">
-                                        <span className="text-gold">ðŸ“Œ</span> India Unlocked â€” District by District
+                                        <span className="text-gold">ðŸ“Œ</span> India Unlocked — District by District
                                     </div>
                                 </div>
                                 <div className="pt-3">
@@ -418,7 +418,7 @@ const Landing = () => {
                                     onClick={handleCTA}
                                     className="group flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-bold text-xs uppercase tracking-widest rounded-2xl shadow-xl shadow-gold/10 hover:shadow-gold/25 hover:-translate-y-0.5 transition-all duration-300"
                                 >
-                                    {isAuthenticated ? 'Go to Dashboard' : 'Enroll Now â€” Free'}
+                                    {isAuthenticated ? 'Go to Dashboard' : 'Enroll Now — Free'}
                                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                                 </button>
                                 <Link 
@@ -574,17 +574,17 @@ const Landing = () => {
                                 BodhGanga Academy is a research-driven educational platform built to help learners understand India in its truest grassroots form.
                             </p>
                             <p className="font-bold text-emerald-dark text-center text-base sm:text-lg">
-                                India is not just a nation of statesâ€”it is a nation of districts.
+                                India is not just a nation of states—it is a nation of districts.
                             </p>
                             <div className="space-y-4 pt-2">
                                 <p>
                                     Every district carries its own geography, history, culture, economy, ecology, governance structure, and historical identity.
                                 </p>
                                 <p>
-                                    Traditional education often explains India only at the national or state level. BodhGanga Academy bridges this gap through NDDE â€” National Digital District Encyclopedia â€” a pioneering long-term initiative dedicated to documenting every district of India in a structured, multi-dimensional, and digitally accessible format.
+                                    Traditional education often explains India only at the national or state level. BodhGanga Academy bridges this gap through NDDE — National Digital District Encyclopedia — a pioneering long-term initiative dedicated to documenting every district of India in a structured, multi-dimensional, and digitally accessible format.
                                 </p>
                                 <p>
-                                    Through district-wise lectures, infographics, revision modules, analytical frameworks, and integrated knowledge systems, BodhGanga is building Indiaâ€™s most comprehensive district-based learning ecosystem.
+                                    Through district-wise lectures, infographics, revision modules, analytical frameworks, and integrated knowledge systems, BodhGanga is building India’s most comprehensive district-based learning ecosystem.
                                 </p>
                             </div>
                         </div>
@@ -608,7 +608,7 @@ const Landing = () => {
 
                             <div className="space-y-5 text-emerald-dark/85 text-sm sm:text-base leading-relaxed font-medium">
                                 <p className="text-lg text-emerald font-serif font-semibold leading-relaxed">
-                                    Prateek Bhargava is an educator, researcher, and the founder of BodhGanga Academy and the National Digital District Encyclopedia (NDDE) â€” Indiaâ€™s First Digital District Encyclopedia.
+                                    Prateek Bhargava is an educator, researcher, and the founder of BodhGanga Academy and the National Digital District Encyclopedia (NDDE) — India’s First Digital District Encyclopedia.
                                 </p>
                                 <p>
                                     Alongside his educational initiatives, he has been serving as Deputy Manager at MTNL (Department of Telecommunication) since 2009.
@@ -617,7 +617,7 @@ const Landing = () => {
                                     Having personally experienced the competitive examination ecosystem, he developed a strong vision to create educational resources that go beyond rote memorization and fragmented learning.
                                 </p>
                                 <p>
-                                    This vision led to the creation of NDDE â€” a structured, research-backed digital initiative documenting every district of India through Horizontal Integration.
+                                    This vision led to the creation of NDDE — a structured, research-backed digital initiative documenting every district of India through Horizontal Integration.
                                 </p>
 
                                 <div className="space-y-3 pt-3">
@@ -703,7 +703,7 @@ const Landing = () => {
                                         To build the most comprehensive research-backed district-wise digital knowledge platform ever created for India.
                                     </p>
                                     <p>
-                                        Through NDDE, we aim to present Indiaâ€™s districts as complete living systemsâ€”helping students, educators, and citizens explore the country through an integrated multidimensional learning framework.
+                                        Through NDDE, we aim to present India’s districts as complete living systems—helping students, educators, and citizens explore the country through an integrated multidimensional learning framework.
                                     </p>
                                 </div>
                             </div>
@@ -874,7 +874,7 @@ const Landing = () => {
                                         <div className="space-y-2">
                                             <div className="flex gap-2 text-[8px] font-black uppercase text-gold">
                                                 <span>{product.state || 'All India'}</span>
-                                                {product.district && <span>Â· {product.district}</span>}
+                                                {product.district && <span>· {product.district}</span>}
                                             </div>
                                             <h3 className="font-serif font-bold text-emerald-dark text-sm group-hover:text-gold transition-colors line-clamp-2">
                                                 {product.title}
@@ -1046,7 +1046,7 @@ const Landing = () => {
                                     </div>
                                     <div className="text-left">
                                         <div className="font-bold text-emerald-dark text-xs">{t.name}</div>
-                                        <div className="text-[9px] text-gold font-bold uppercase tracking-wider mt-0.5">{t.exam} Â· {t.rank}</div>
+                                        <div className="text-[9px] text-gold font-bold uppercase tracking-wider mt-0.5">{t.exam} · {t.rank}</div>
                                     </div>
                                 </div>
                             </div>
@@ -1100,7 +1100,7 @@ const Landing = () => {
                             onClick={handleCTA}
                             className="group flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-bold text-xs uppercase tracking-widest rounded-2xl shadow-xl shadow-gold/10 hover:shadow-gold/25 hover:-translate-y-0.5 transition-all duration-300"
                         >
-                            {isAuthenticated ? 'Go to Dashboard' : 'Enroll Now â€” Free'}
+                            {isAuthenticated ? 'Go to Dashboard' : 'Enroll Now — Free'}
                             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                         </button>
                         <Link 
