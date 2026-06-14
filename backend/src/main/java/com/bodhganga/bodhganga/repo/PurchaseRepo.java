@@ -8,4 +8,5 @@ import java.util.Optional;
 public interface PurchaseRepo extends MongoRepository<Purchase, String> {
     List<Purchase> findByUserId(String userId);
     Optional<Purchase> findByUserIdAndProductId(String userId, String productId);
+    List<Purchase> findByUserIdAndDistrictSlugNotNull(String userId);
 }

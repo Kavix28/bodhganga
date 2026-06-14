@@ -17,6 +17,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -284,6 +286,20 @@ public class PaymentController {
                         resolvedProductName = prodOpt.get().getTitle();
                     }
                     unlockProduct(user.getId(), productId, req.razorpayOrderId());
+
+                // Save districtSlug if this is a district unlock payment
+                String districtSlug = req.districtSlug();
+                String stateSlug = req.stateSlug();
+                if (districtSlug != null && !districtSlug.isBlank()) {
+                    Purchase districtPurchase = new Purchase();
+                    districtPurchase.setUserId(user.getId());
+                    districtPurchase.setDistrictSlug(districtSlug);
+                    districtPurchase.setStateSlug(stateSlug);
+                    districtPurchase.setOrderId(req.razorpayOrderId());
+                    districtPurchase.setAmountPaid(99.0);
+                    purchaseRepo.save(districtPurchase);
+                    log.info("District unlocked: userId={}, districtSlug={}", user.getId(), districtSlug);
+                }
                 } else {
                     log.warn("Unable to resolve productId for purchase record. OrderId: {}", req.razorpayOrderId());
                 }
@@ -308,6 +324,37 @@ public class PaymentController {
             log.error("Payment verification error: {}", e.getMessage());
             return ResponseEntity.status(500).body(ApiResponseDTO.builder()
                     .success(false).message("Payment verification error.").build());
+        }
+    }
+
+    /**
+     * GET /api/payment/district/purchased
+     * Returns list of districtSlugs the current user has unlocked.
+     */
+    @GetMapping("/district/purchased")
+    public ResponseEntity<ApiResponseDTO> getPurchasedDistricts(Authentication authentication) {
+        try {
+            if (authentication == null || "anonymousUser".equals(authentication.getName())) {
+                return ResponseEntity.status(401).body(ApiResponseDTO.builder()
+                        .success(false).message("Authentication required.").build());
+            }
+            User user = userRepo.findByEmail(authentication.getName())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            List<Purchase> purchases = purchaseRepo.findByUserId(user.getId());
+
+            List<String> districtSlugs = purchases.stream()
+                    .map(Purchase::getDistrictSlug)
+                    .filter(d -> d != null && !d.isBlank())
+                    .distinct()
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(ApiResponseDTO.builder()
+                    .success(true).data(districtSlugs).build());
+        } catch (Exception e) {
+            log.error("Error fetching purchased districts: {}", e.getMessage());
+            return ResponseEntity.status(500).body(ApiResponseDTO.builder()
+                    .success(false).message("Error fetching purchases.").build());
         }
     }
 
@@ -676,6 +723,8 @@ public class PaymentController {
         @NotBlank String razorpayPaymentId,
         @NotBlank String razorpaySignature,
         String courseId,
-        String productId
+        String productId,
+        String districtSlug,
+        String stateSlug
     ) {}
 }
