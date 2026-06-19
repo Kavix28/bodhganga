@@ -244,6 +244,7 @@ public class PaymentController {
                     .orElseThrow(() -> new RuntimeException("User not found: " + authentication.getName()));
 
             String resolvedProductName = "Digital Study Notes";
+            Double resolvedAmount = null;
             
             // Check if there is a course Payment record for this order
             Optional<Payment> paymentOpt = paymentRepo.findByOrderId(req.razorpayOrderId());
@@ -254,6 +255,7 @@ public class PaymentController {
                 paymentRepo.save(p);
 
                 unlockCourse(user.getId(), p.getCourseId(), req.razorpayOrderId());
+                resolvedAmount = p.getAmount();
 
                 Optional<Courses> courseOpt = courseRepo.findById(p.getCourseId());
                 if (courseOpt.isPresent()) {
@@ -284,6 +286,7 @@ public class PaymentController {
                     Optional<Product> prodOpt = productRepo.findById(productId);
                     if (prodOpt.isPresent()) {
                         resolvedProductName = prodOpt.get().getTitle();
+                        resolvedAmount = prodOpt.get().getPrice();
                     }
                     unlockProduct(user.getId(), productId, req.razorpayOrderId());
 
@@ -307,7 +310,7 @@ public class PaymentController {
 
             // Send confirmation email
             try {
-                emailService.sendOrderConfirmation(user.getEmail(), req.razorpayOrderId(), resolvedProductName);
+                emailService.sendOrderConfirmation(user.getEmail(), req.razorpayOrderId(), resolvedProductName, resolvedAmount);
             } catch (Exception ex) {
                 log.error("Failed to send order confirmation email: {}", ex.getMessage());
             }
@@ -572,7 +575,7 @@ public class PaymentController {
 
             // Send confirmation email
             try {
-                emailService.sendOrderConfirmation(user.getEmail(), freeOrderId, product.getTitle());
+                emailService.sendOrderConfirmation(user.getEmail(), freeOrderId, product.getTitle(), 0.0);
             } catch (Exception ex) {
                 log.error("Failed to send order confirmation email for free resource: {}", ex.getMessage());
             }
@@ -636,6 +639,7 @@ public class PaymentController {
 
                         // Send confirmation email
                         try {
+                            final Double courseAmount = p.getAmount();
                             userRepo.findById(p.getUserId()).ifPresent(user -> {
                                 String courseTitle = "Course";
                                 Optional<Courses> courseOpt = courseRepo.findById(p.getCourseId());
@@ -643,7 +647,7 @@ public class PaymentController {
                                     courseTitle = courseOpt.get().getCourseTitle();
                                 }
                                 try {
-                                    emailService.sendOrderConfirmation(user.getEmail(), orderId, courseTitle);
+                                    emailService.sendOrderConfirmation(user.getEmail(), orderId, courseTitle, courseAmount);
                                 } catch (Exception ex) {
                                     log.error("Failed to send course order confirmation email: {}", ex.getMessage());
                                 }
@@ -674,15 +678,17 @@ public class PaymentController {
                             final String finalOrderId = orderId;
                             userRepo.findByEmail(userEmail).ifPresent(user -> {
                                 String resolvedProductName = "Digital Study Notes";
+                                Double productAmount = null;
                                 Optional<Product> prodOpt = productRepo.findById(finalProdId);
                                 if (prodOpt.isPresent()) {
                                     resolvedProductName = prodOpt.get().getTitle();
+                                    productAmount = prodOpt.get().getPrice();
                                 }
                                 unlockProduct(user.getId(), finalProdId, finalOrderId);
                                 
                                 // Send order confirmation email from webhook
                                 try {
-                                    emailService.sendOrderConfirmation(user.getEmail(), finalOrderId, resolvedProductName);
+                                    emailService.sendOrderConfirmation(user.getEmail(), finalOrderId, resolvedProductName, productAmount);
                                 } catch (Exception ex) {
                                     log.error("Failed to send webhook order confirmation email: {}", ex.getMessage());
                                 }

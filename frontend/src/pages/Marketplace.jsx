@@ -331,7 +331,8 @@ const Marketplace = () => {
                         const verifyRes = await api.post('/payment/verify', {
                             razorpayOrderId: response.razorpay_order_id,
                             razorpayPaymentId: response.razorpay_payment_id,
-                            razorpaySignature: response.razorpay_signature
+                            razorpaySignature: response.razorpay_signature,
+                            productId: product.id
                         });
                         
                         if (verifyRes.success) {
@@ -365,14 +366,10 @@ const Marketplace = () => {
 
         } catch (err) {
             console.error('Purchase error:', err);
-            if (err.status === 550 || err.status === 503 || err.message?.includes('not configured')) {
-                console.warn('Payment gateway not configured. Falling back to mock success.');
-                setPurchaseSuccess(product);
-                setTimeout(() => {
-                    setPurchaseSuccess(false);
-                }, 4000);
+            if (err.status === 503 || err.message?.includes('not configured')) {
+                toast.error('Payment gateway is currently unavailable. Please try again later.');
             } else {
-                alert(err.message || 'Failed to initiate purchase');
+                toast.error(err.message || 'Failed to initiate purchase');
             }
         }
     };

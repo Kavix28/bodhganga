@@ -138,15 +138,8 @@ const BuyButton = ({
         } catch (error) {
             console.error('Payment error:', error);
             // Handle fallback for local/test configuration issues (e.g. 503 or missing Razorpay keys)
-            if (error.status === 503 || error.status === 550 || error.message?.includes('not configured')) {
-                console.warn('Payment gateway not configured. Simulating mock success.');
-                // For mock verification/enrollment on local systems where Razorpay credentials aren't active,
-                // we can call a mock endpoint or directly set isPurchased. But wait, in production it must be secure.
-                // We show demo success as requested by previous codebase configuration.
-                toast.success('Demo Mode: Purchase completed successfully!');
-                if (onSuccess) {
-                    onSuccess({ mockSuccess: true });
-                }
+            if (error.status === 503 || error.message?.includes('not configured')) {
+                toast.error('Payment gateway is currently unavailable. Please try again later.');
             } else {
                 toast.error(error.message || 'Failed to process payment');
                 if (onFailure) onFailure(error.message);
