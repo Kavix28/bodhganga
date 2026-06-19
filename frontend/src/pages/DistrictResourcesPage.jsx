@@ -226,11 +226,11 @@ export default function DistrictResourcesPage() {
           <div className="text-center py-16 border border-gray-800 rounded-xl bg-gray-900">
             <div className="text-5xl mb-4">🔒</div>
             <h3 className="text-xl font-bold text-white mb-2">Unlock {districtName}</h3>
-            <p className="text-gray-400 mb-6">Get access to all {paidResources.length} paid resources for just ₹99</p>
+            <p className="text-gray-400 mb-6">Get access to all {paidResources.length} paid resources for just ₹1</p>
             <button
               onClick={() => navigate(`/states-browse/${stateSlug}`)}
               className="bg-amber-500 hover:bg-amber-400 text-black font-bold py-3 px-8 rounded-lg transition-colors">
-              Unlock for ₹99
+              Unlock for ₹1
             </button>
           </div>
         )}

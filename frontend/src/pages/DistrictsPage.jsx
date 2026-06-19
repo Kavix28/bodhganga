@@ -18,7 +18,7 @@ function ReceiptModal({ receipt, onClose }) {
         {/* Receipt Body */}
         <div className="px-6 py-5 space-y-3">
           <div className="text-center mb-4">
-            <span className="text-3xl font-bold text-emerald-800">₹99</span>
+            <span className="text-3xl font-bold text-emerald-800">₹1</span>
             <p className="text-gray-500 text-xs mt-1">District Study Pack Unlocked</p>
           </div>
 
@@ -45,7 +45,7 @@ function ReceiptModal({ receipt, onClose }) {
             </div>
             <div className="flex justify-between border-t pt-2 mt-2">
               <span className="text-gray-500">Amount Paid</span>
-              <span className="font-bold text-emerald-700">₹99.00</span>
+              <span className="font-bold text-emerald-700">₹1.00</span>
             </div>
           </div>
 
@@ -174,7 +174,7 @@ export default function DistrictsPage() {
     if (!token) { toast.error("Please log in to unlock"); navigate("/login"); return; }
     try {
       const orderRes = await api.post("/payment/create-order", {
-        amountPaise: 9900, districtSlug: district.districtSlug, stateSlug
+        amountPaise: 100, districtSlug: district.districtSlug, stateSlug
       });
       const { orderId, amount, currency, keyId } = orderRes?.data || orderRes;
       const options = {
@@ -305,7 +305,7 @@ export default function DistrictsPage() {
                         <button
                           onClick={() => handleUnlock(district)}
                           className="w-full bg-gray-800 hover:bg-gray-700 border border-amber-500 text-amber-400 font-semibold py-2 px-4 rounded-lg text-sm transition-colors">
-                          Unlock District — ₹99
+                          Unlock District — ₹1
                         </button>
                       )
                     )}

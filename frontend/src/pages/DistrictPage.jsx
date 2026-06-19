@@ -61,7 +61,7 @@ export default function DistrictPage() {
 
     try {
       const orderRes = await api.post("/payment/create-order", {
-        amountPaise: 9900,
+        amountPaise: 100,
         districtSlug: district.districtSlug,
         stateSlug
       });
@@ -155,7 +155,7 @@ export default function DistrictPage() {
                     <button
                       onClick={() => handleUnlock(district)}
                       className="w-full bg-gray-800 hover:bg-gray-700 border border-amber-500 text-amber-400 font-semibold py-2 px-4 rounded-lg transition-colors text-sm">
-                      Unlock District – ₹99
+                      Unlock District – ₹1
                     </button>
                   )}
                 </div>
