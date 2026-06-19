@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import toast from "react-hot-toast";
@@ -40,7 +40,7 @@ export default function ResourcesPage() {
         const res = await api.get(
           `/api/products/state/${stateSlug}/district/${districtSlug}`
         );
-        const products = res.data?.data || [];
+        const products = res?.data || [];
 
         if (products.length > 0) {
           setDistrictName(products[0].district || products[0].districtName || districtSlug);
@@ -52,7 +52,7 @@ export default function ResourcesPage() {
         if (!allFree) {
           try {
             const pRes = await api.get("/payment/district/purchased");
-            const purchased = pRes.data?.data || [];
+            const purchased = pRes?.data || [];
             if (!purchased.includes(districtSlug)) {
               setRedirect({ to: `/store/${stateSlug}`, msg: "Please unlock this district to view resources" });
               return;
@@ -97,7 +97,7 @@ export default function ResourcesPage() {
         </button>
         <h1 className="text-3xl font-bold text-amber-400 mb-1">{districtName}</h1>
         <p className="text-gray-400 mb-8">
-          {stateName} � {resources.length} resource{resources.length !== 1 ? "s" : ""}
+          {stateName} · {resources.length} resource{resources.length !== 1 ? "s" : ""}
         </p>
         {resources.length === 0 ? (
           <div className="text-gray-500 text-center py-20">No resources found.</div>
@@ -142,3 +142,5 @@ export default function ResourcesPage() {
     </div>
   );
 }
+
+

@@ -289,22 +289,32 @@ public class PaymentController {
                         resolvedAmount = prodOpt.get().getPrice();
                     }
                     unlockProduct(user.getId(), productId, req.razorpayOrderId());
+                }
 
                 // Save districtSlug if this is a district unlock payment
+                // This must run OUTSIDE the productId check — district purchases have no productId
                 String districtSlug = req.districtSlug();
                 String stateSlug = req.stateSlug();
                 if (districtSlug != null && !districtSlug.isBlank()) {
-                    Purchase districtPurchase = new Purchase();
-                    districtPurchase.setUserId(user.getId());
-                    districtPurchase.setDistrictSlug(districtSlug);
-                    districtPurchase.setStateSlug(stateSlug);
-                    districtPurchase.setOrderId(req.razorpayOrderId());
-                    districtPurchase.setAmountPaid(99.0);
-                    purchaseRepo.save(districtPurchase);
-                    log.info("District unlocked: userId={}, districtSlug={}", user.getId(), districtSlug);
-                }
-                } else {
-                    log.warn("Unable to resolve productId for purchase record. OrderId: {}", req.razorpayOrderId());
+                    // Avoid duplicate district purchases
+                    List<Purchase> existingDistrictPurchases = purchaseRepo.findByUserId(user.getId());
+                    boolean alreadyUnlocked = existingDistrictPurchases.stream()
+                            .anyMatch(p -> districtSlug.equals(p.getDistrictSlug()));
+                    if (!alreadyUnlocked) {
+                        Purchase districtPurchase = new Purchase();
+                        districtPurchase.setUserId(user.getId());
+                        districtPurchase.setDistrictSlug(districtSlug);
+                        districtPurchase.setStateSlug(stateSlug);
+                        districtPurchase.setOrderId(req.razorpayOrderId());
+                        districtPurchase.setAmountPaid(resolvedAmount != null ? resolvedAmount : 1.0);
+                        purchaseRepo.save(districtPurchase);
+                        log.info("District unlocked: userId={}, districtSlug={}", user.getId(), districtSlug);
+                        resolvedProductName = "District Pack: " + districtSlug;
+                    } else {
+                        log.info("District already unlocked: userId={}, districtSlug={}", user.getId(), districtSlug);
+                    }
+                } else if (productId == null || productId.isBlank()) {
+                    log.warn("Unable to resolve productId or districtSlug for purchase record. OrderId: {}", req.razorpayOrderId());
                 }
             }
 

@@ -15,7 +15,7 @@ export default function DistrictPage() {
     const fetchData = async () => {
       try {
         const res = await api.get(`/products/state/${stateSlug}`);
-        const products = res.data?.data || [];
+        const products = res?.data || [];
 
         const map = {};
         products.forEach(p => {
@@ -38,7 +38,7 @@ export default function DistrictPage() {
 
         try {
           const pRes = await api.get("/payment/district/purchased");
-          setPurchasedSlugs(pRes.data?.data || []);
+          setPurchasedSlugs(pRes?.data || []);
         } catch {
           // not logged in, ignore
         }

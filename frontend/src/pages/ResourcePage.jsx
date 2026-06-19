@@ -40,7 +40,7 @@ export default function ResourcesPage() {
         const res = await api.get(
           `/products/state/${stateSlug}/district/${districtSlug}`
         );
-        const products = res.data?.data || [];
+        const products = res?.data || [];
 
         if (products.length > 0) {
           setDistrictName(products[0].district || products[0].districtName || districtSlug);
@@ -52,7 +52,7 @@ export default function ResourcesPage() {
         if (!allFree) {
           try {
             const pRes = await api.get("/payment/district/purchased");
-            const purchased = pRes.data?.data || [];
+            const purchased = pRes?.data || [];
             if (!purchased.includes(districtSlug)) {
               setRedirect({ to: `/store/${stateSlug}`, msg: "Please unlock this district to view resources" });
               return;

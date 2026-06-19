@@ -134,8 +134,27 @@ public class PdfController {
 
                 if (prodOpt.isPresent()) {
                     Product product = prodOpt.get();
-                    Optional<Purchase> purchaseOpt = purchaseRepo.findByUserIdAndProductId(user.getId(), product.getId());
-                    if (purchaseOpt.isEmpty()) {
+                    boolean isAccessible = product.isFree() || (product.getPrice() != null && product.getPrice() == 0.0);
+                    
+                    if (!isAccessible) {
+                        // Check if user purchased the specific product/course
+                        Optional<Purchase> purchaseOpt = purchaseRepo.findByUserIdAndProductId(user.getId(), product.getId());
+                        if (purchaseOpt.isPresent()) {
+                            isAccessible = true;
+                        }
+                    }
+                    
+                    if (!isAccessible && product.getDistrictSlug() != null && !product.getDistrictSlug().isBlank()) {
+                        // Check if user purchased the district
+                        List<Purchase> userPurchases = purchaseRepo.findByUserId(user.getId());
+                        boolean districtPurchased = userPurchases.stream()
+                                .anyMatch(p -> product.getDistrictSlug().equals(p.getDistrictSlug()));
+                        if (districtPurchased) {
+                            isAccessible = true;
+                        }
+                    }
+
+                    if (!isAccessible) {
                         return ResponseEntity.status(403).body(ApiResponseDTO.builder()
                                 .success(false).message("You do not own this document. Please claim or purchase it.").build());
                     }
@@ -148,8 +167,25 @@ public class PdfController {
                             .collect(java.util.stream.Collectors.toList());
                     if (!matches.isEmpty()) {
                         Product product = matches.get(0);
-                        Optional<Purchase> purchaseOpt = purchaseRepo.findByUserIdAndProductId(user.getId(), product.getId());
-                        if (purchaseOpt.isEmpty()) {
+                        boolean isAccessible = product.isFree() || (product.getPrice() != null && product.getPrice() == 0.0);
+                        
+                        if (!isAccessible) {
+                            Optional<Purchase> purchaseOpt = purchaseRepo.findByUserIdAndProductId(user.getId(), product.getId());
+                            if (purchaseOpt.isPresent()) {
+                                isAccessible = true;
+                            }
+                        }
+                        
+                        if (!isAccessible && product.getDistrictSlug() != null && !product.getDistrictSlug().isBlank()) {
+                            List<Purchase> userPurchases = purchaseRepo.findByUserId(user.getId());
+                            boolean districtPurchased = userPurchases.stream()
+                                    .anyMatch(p -> product.getDistrictSlug().equals(p.getDistrictSlug()));
+                            if (districtPurchased) {
+                                isAccessible = true;
+                            }
+                        }
+
+                        if (!isAccessible) {
                             return ResponseEntity.status(403).body(ApiResponseDTO.builder()
                                     .success(false).message("You do not own this document. Please claim or purchase it.").build());
                         }
