@@ -137,7 +137,8 @@ public class PaymentController {
 
         try {
             String userEmail = authentication.getName();
-            User user = userRepo.findByEmail(userEmail)
+            User user = userRepo.findByEmailIgnoreCase(userEmail.trim())
+                    .or(() -> userRepo.findByPhoneNo(userEmail.trim()))
                     .orElseThrow(() -> new RuntimeException("User not found: " + userEmail));
 
             int amountPaise = 0;
@@ -240,7 +241,8 @@ public class PaymentController {
                     req.razorpayOrderId(), req.razorpayPaymentId(), authentication.getName());
 
             // Fetch user from DB
-            User user = userRepo.findByEmail(authentication.getName())
+            User user = userRepo.findByEmailIgnoreCase(authentication.getName().trim())
+                    .or(() -> userRepo.findByPhoneNo(authentication.getName().trim()))
                     .orElseThrow(() -> new RuntimeException("User not found: " + authentication.getName()));
 
             String resolvedProductName = "Digital Study Notes";

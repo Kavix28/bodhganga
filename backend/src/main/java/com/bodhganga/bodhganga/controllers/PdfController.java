@@ -123,7 +123,8 @@ public class PdfController {
                     new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN"));
 
             if (!isAdmin) {
-                com.bodhganga.bodhganga.entity.User user = userRepo.findByEmail(authentication.getName())
+                com.bodhganga.bodhganga.entity.User user = userRepo.findByEmailIgnoreCase(authentication.getName().trim())
+                        .or(() -> userRepo.findByPhoneNo(authentication.getName().trim()))
                         .orElseThrow(() -> new RuntimeException("User not found"));
 
                 // Try to find the product matching this key in DB
