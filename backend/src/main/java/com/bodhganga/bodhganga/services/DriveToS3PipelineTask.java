@@ -255,66 +255,48 @@ public class DriveToS3PipelineTask {
             }
         }
 
-        if (existing != null) {
-            log.info("[INGESTION] Updating existing record for: {}", fileName);
-            if (existing.getGoogleDriveFileId() == null || existing.getGoogleDriveFileId().isEmpty())
-                existing.setGoogleDriveFileId(file.getId());
-            String displayTitle = Product.stripExtension(fileName);
-            existing.setTitle(displayTitle);
-            existing.setDisplayTitle(displayTitle);
-            existing.setMimeType(fileMimeType);
-            existing.setState(normalizeName(state));
-            existing.setDistrict(normalizeName(district));
-            existing.setStateSlug(stateSlug);
-            existing.setDistrictSlug(districtSlug);
-            // Only overwrite free/price if the Drive structure explicitly declares a tier
-            // (free/paid/Free Resources folder). Otherwise preserve existing manual settings.
-            if (hasTierFolder) {
-                existing.setFree(isFree);
-                existing.setPrice(price);
-            }
-            if (existing.getS3Key() == null || existing.getS3Key().isEmpty()) {
-                existing.setS3Key(s3Key);
-                existing.setStorageKey(s3Key);
-            }
-            existing.setS3Url(s3Service.getS3Url(existing.getS3Key()));
-            existing.setPublished(true);
-            existing.setImportedFromDrive(true);
-            existing.setIngestionStatus(IngestionStatus.COMPLETED);
-            existing.setUpdatedAt(new Date());
-            productRepo.save(existing);
-            filesSkipped.incrementAndGet();
-            return;
+        Product product = existing;
+        if (product != null) {
+            log.info("[INGESTION] Found existing record for: {}", fileName);
+            if (product.getGoogleDriveFileId() == null || product.getGoogleDriveFileId().isEmpty())
+                product.setGoogleDriveFileId(file.getId());
+        } else {
+            product = new Product();
+            product.setOriginalFileName(fileName);
+            product.setFileName(fileName);
+            product.setFileExtension(fileExtension);
+            product.setImportedFromDrive(true);
+            product.setCreatedAt(new Date());
+            log.info("[INGESTION] Creating new product record for: {}", fileName);
         }
 
-        // ── Create new product record ──────────────────────────────────────────
-        Product product = new Product();
+        // ── Update Product Metadata ──────────────────────────────────────────
         String displayTitle = Product.stripExtension(fileName);
         product.setTitle(displayTitle);
         product.setDisplayTitle(displayTitle);
-        product.setOriginalFileName(fileName);
-        product.setFileName(fileName);
-        product.setFileExtension(fileExtension);
         product.setType(contentType);
         product.setContentType(contentType);
         product.setMimeType(fileMimeType);
         product.setFileSize(size);
-        product.setImportedFromDrive(true);
-        product.setPublished(true);
-        product.setPrice(price);
-        product.setFree(isFree);
-        product.setCategory(isFree ? "Free Resources" : "Paid Resources");
         product.setState(normalizeName(state));
         product.setStateSlug(stateSlug);
         product.setDistrict(normalizeName(district));
         product.setDistrictSlug(districtSlug);
-        product.setGoogleDriveFileId(file.getId());
         product.setSource("Google Drive");
+        product.setPublished(true);
         product.setIngestionStatus(IngestionStatus.PROCESSING);
-        product.setCreatedAt(new Date());
         product.setUpdatedAt(new Date());
+
+        // Only overwrite free/price if the Drive structure explicitly declares a tier
+        // (free/paid/Free Resources folder). Otherwise preserve existing manual settings.
+        if (hasTierFolder || existing == null) {
+            product.setFree(isFree);
+            product.setPrice(price);
+            product.setCategory(isFree ? "Free Resources" : "Paid Resources");
+        }
+
+        // Save preliminary state
         product = productRepo.save(product);
-        log.info("[INGESTION] Created product: {}", product.getId());
 
         // ── Upload to S3 ───────────────────────────────────────────────────────
         try (InputStream inputStream = isGoogleDoc
@@ -338,7 +320,11 @@ public class DriveToS3PipelineTask {
                     productRepo.save(product);
                     log.info("[INGESTION] Archived: {}", fileName);
                 }
-                filesUploaded.incrementAndGet();
+                if (existing != null) {
+                    filesSkipped.incrementAndGet(); // Counted as update rather than brand new upload
+                } else {
+                    filesUploaded.incrementAndGet();
+                }
             } else {
                 throw new java.io.IOException("Failed to download from Google Drive: " + fileName);
             }
