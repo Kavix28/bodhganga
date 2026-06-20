@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useSEO } from '../hooks/useSEO';
 import { 
@@ -61,10 +61,10 @@ const Ndde = () => {
     ];
 
     const thematicArchives = [
-        { title: "Legends & Historical Personalities", desc: "Local rulers, freedom fighters, social reformers, and legendary historical figures.", icon: "👥" },
-        { title: "National Movements & Wars", desc: "Grassroots freedom struggles, regional revolts, military posts, and unsung local heroes.", icon: "⚔️" },
-        { title: "Festivals & Cultural Traditions", desc: "Local fairs, classical and folk dance forms, regional music heritage, and seasonal rituals.", icon: "🎪" },
-        { title: "Tribal Communities of India", desc: "Socio-cultural mapping, dialects, customs, and geographical settlements of indigenous communities.", icon: "🏛️" }
+        { title: "Legends & Historical Personalities", desc: "Local rulers, freedom fighters, social reformers, and legendary historical figures.", icon: "ðŸ‘¥" },
+        { title: "National Movements & Wars", desc: "Grassroots freedom struggles, regional revolts, military posts, and unsung local heroes.", icon: "âš”ï¸" },
+        { title: "Festivals & Cultural Traditions", desc: "Local fairs, classical and folk dance forms, regional music heritage, and seasonal rituals.", icon: "ðŸŽª" },
+        { title: "Tribal Communities of India", desc: "Socio-cultural mapping, dialects, customs, and geographical settlements of indigenous communities.", icon: "ðŸ›ï¸" }
     ];
 
     return (
@@ -80,7 +80,7 @@ const Ndde = () => {
                 }}
             />
 
-            {/* ── HERO BANNER ────────────────────────────────────────── */}
+            {/* â”€â”€ HERO BANNER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <section className="relative min-h-[50vh] flex items-center justify-center bg-gradient-to-b from-emerald-dark via-emerald-dark to-emerald-950 px-6 border-b border-gold/15 py-24 text-center overflow-hidden">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(201,169,97,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(201,169,97,0.02)_1px,transparent_1px)] bg-[size:4.5rem_4.5rem]" />
                 <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-gold/5 rounded-full blur-[140px] pointer-events-none" />
@@ -110,20 +110,20 @@ const Ndde = () => {
                         variants={itemVariants}
                         className="text-base sm:text-xl text-gold-glow-soft font-serif max-w-3xl mx-auto leading-relaxed italic"
                     >
-                        "NDDE is National Digital District Encyclopedia – India’s First Digital District Encyclopedia"
+                        "NDDE is National Digital District Encyclopedia ”“ India’s First Digital District Encyclopedia"
                     </motion.p>
                 </motion.div>
             </section>
 
-            {/* ── STATS HUB ───────────────────────────────────────────── */}
+            {/* â”€â”€ STATS HUB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <section className="bg-white border-b border-emerald/5 py-10 shadow-sm relative z-10">
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                         {[
-                            { value: "780+", label: 'Districts Documented', icon: '🗺️' },
-                            { value: "36", label: 'States & UTs Covered', icon: '🇮🇳' },
-                            { value: "8+", label: 'Thematic Archives', icon: '📚' },
-                            { value: "10+", label: 'Knowledge Dimensions', icon: '🔍' },
+                            { value: "780+", label: 'Districts Documented', icon: 'ðŸ—ºï¸' },
+                            { value: "36", label: 'States & UTs Covered', icon: 'ðŸ‡®ðŸ‡³' },
+                            { value: "8+", label: 'Thematic Archives', icon: 'ðŸ“š' },
+                            { value: "10+", label: 'Knowledge Dimensions', icon: 'ðŸ”' },
                         ].map((stat, i) => (
                             <div key={i} className="text-center space-y-1">
                                 <div className="text-2xl mb-1">{stat.icon}</div>
@@ -135,7 +135,7 @@ const Ndde = () => {
                 </div>
             </section>
 
-            {/* ── WHAT IS NDDE ────────────────────────────────────────── */}
+            {/* â”€â”€ WHAT IS NDDE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <section className="py-20 max-w-5xl mx-auto px-6 relative z-10">
                 <motion.div 
                     initial="hidden"
@@ -155,7 +155,7 @@ const Ndde = () => {
                                 The **National Digital District Encyclopedia (NDDE)** is a long-term national knowledge initiative aimed at documenting every district of India in a structured, systematic, and accessible digital format.
                             </p>
                             <p>
-                                The project addresses a critical knowledge gap: while India is extensively studied at the national and state levels, districts—the primary units of administration, culture, and development—remain scattered, fragmented, or undocumented in a unified manner.
+                                The project addresses a critical knowledge gap: while India is extensively studied at the national and state levels, districts””the primary units of administration, culture, and development””remain scattered, fragmented, or undocumented in a unified manner.
                             </p>
                             <p>
                                 This initiative brings together district-level geography, history, culture, economy, tribes, governance, and national movements into a single, coherent knowledge framework.
@@ -192,7 +192,7 @@ const Ndde = () => {
                 </motion.div>
             </section>
 
-            {/* ── STRUCTURE OF THE ENCYCLOPEDIA ─────────────────────────── */}
+            {/* â”€â”€ STRUCTURE OF THE ENCYCLOPEDIA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <section className="py-20 bg-white border-y border-emerald/5 px-6 relative z-10">
                 <div className="max-w-5xl mx-auto text-left space-y-8">
                     <div className="text-center space-y-4">
@@ -268,7 +268,7 @@ const Ndde = () => {
                 </div>
             </section>
 
-            {/* ── INTENDED IMPACT ────────────────────────────────────── */}
+            {/* â”€â”€ INTENDED IMPACT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <section className="py-20 max-w-5xl mx-auto px-6 relative z-10">
                 <div className="text-center mb-12 space-y-4">
                     <span className="text-[10px] font-bold text-gold uppercase tracking-widest">Our Strategic Value</span>
@@ -299,7 +299,7 @@ const Ndde = () => {
                 </div>
             </section>
 
-            {/* ── VISION & WHY IT MATTERS ─────────────────────────────── */}
+            {/* â”€â”€ VISION & WHY IT MATTERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <section className="py-20 bg-gradient-to-b from-emerald-950 to-emerald-dark text-white border-t border-gold/15 px-6 relative overflow-hidden z-10">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(201,169,97,0.01)_1px,transparent_1px),linear-gradient(to_bottom,rgba(201,169,97,0.01)_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none" />
                 <div className="max-w-4xl mx-auto space-y-12">
@@ -320,19 +320,19 @@ const Ndde = () => {
                         <h2 className="text-3xl sm:text-4xl font-serif text-white font-bold">Why This Matters</h2>
                         <div className="w-16 h-1 bg-gold rounded-full mx-auto" />
                         <p className="text-base sm:text-xl text-gold font-serif leading-relaxed italic max-w-2xl mx-auto">
-                            "India is not just a country of states—it is a nation of districts. Understanding districts is essential to understanding India itself."
+                            "India is not just a country of states””it is a nation of districts. Understanding districts is essential to understanding India itself."
                         </p>
                     </div>
                 </div>
             </section>
 
-            {/* ── INDIA UNLOCKED BANNER ───────────────────────────────── */}
+            {/* â”€â”€ INDIA UNLOCKED BANNER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <section className="bg-gradient-to-r from-emerald-dark via-emerald-950 to-emerald-dark py-14 border-b border-gold/15 text-center relative overflow-hidden z-10">
                 <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-[rgba(212,175,55,0.2)]" />
                 <div className="max-w-4xl mx-auto px-6 space-y-3">
                     <p className="text-[10px] text-gold font-bold uppercase tracking-[0.25em] leading-none mb-1">Decentralizing Knowledge</p>
                     <h2 className="text-2xl sm:text-4xl font-serif text-white font-bold leading-tight">
-                        India Unlocked — District by District
+                        India Unlocked ”” District by District
                     </h2>
                     <p className="text-xs text-white/60 max-w-xl mx-auto leading-relaxed">
                         To truly understand India, one must understand its districts. Join us in exploring the physical, historical, and economic wealth of India's grassroots.

@@ -10,7 +10,7 @@ function ReceiptModal({ receipt, onClose }) {
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl" id="receipt-modal">
         {/* Receipt Header */}
         <div className="bg-emerald-800 rounded-t-2xl px-6 py-5 text-center">
-          <div className="text-2xl mb-1">🎓</div>
+          <div className="text-2xl mb-1">ðŸŽ“</div>
           <h2 className="text-white font-bold text-lg">Payment Successful!</h2>
           <p className="text-emerald-200 text-xs mt-1">Bodhganga Academy</p>
         </div>
@@ -59,12 +59,12 @@ function ReceiptModal({ receipt, onClose }) {
           <button
             onClick={onClose}
             className="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl transition-colors text-sm">
-            View Resources →
+            View Resources â†’
           </button>
           <button
             onClick={handlePrint}
             className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-xl transition-colors text-sm">
-            🖨 Print Receipt
+            ðŸ–¨ Print Receipt
           </button>
         </div>
       </div>
@@ -77,8 +77,8 @@ function ContactSupportModal({ onClose, districtName }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-md shadow-2xl">
         <div className="px-6 py-5 border-b border-gray-700 flex justify-between items-center">
-          <h2 className="text-white font-bold">Payment Failed — Contact Support</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white text-xl">✕</button>
+          <h2 className="text-white font-bold">Payment Failed â€” Contact Support</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-white text-xl">âœ•</button>
         </div>
         <div className="px-6 py-5 space-y-4">
           <p className="text-gray-400 text-sm">
@@ -86,7 +86,7 @@ function ContactSupportModal({ onClose, districtName }) {
           </p>
           <div className="bg-gray-800 rounded-xl p-4 space-y-3">
             <div className="flex items-center gap-3">
-              <span className="text-xl">📧</span>
+              <span className="text-xl">ðŸ“§</span>
               <div>
                 <p className="text-xs text-gray-500">Email Support</p>
                 <a href="mailto:support@bodhganga.in" className="text-amber-400 font-semibold text-sm hover:underline">
@@ -95,7 +95,7 @@ function ContactSupportModal({ onClose, districtName }) {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-xl">💬</span>
+              <span className="text-xl">ðŸ’¬</span>
               <div>
                 <p className="text-xs text-gray-500">WhatsApp Support</p>
                 <a href="https://wa.me/919999999999" target="_blank" rel="noopener noreferrer"
@@ -134,34 +134,48 @@ export default function DistrictsPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await api.get("/products/state/" + stateSlug);
-        const products = Array.isArray(res) ? res : (res?.data || []);
-        const map = {};
+        // Use the authoritative district aggregation endpoint - never miss a district
+        const distRes = await api.get("/states/" + stateSlug + "/districts");
+        const distList = Array.isArray(distRes) ? distRes : (distRes?.data || []);
+
+        // Also fetch products to compute free/paid counts per district
+        const prodRes = await api.get("/products/state/" + stateSlug);
+        const products = Array.isArray(prodRes) ? prodRes : (prodRes?.data || []);
+
+        // Build free/paid count map keyed by districtSlug
+        const countMap = {};
         products.forEach(p => {
           const slug = p.districtSlug;
           if (!slug) return;
-          if (!map[slug]) {
-            map[slug] = {
-              districtSlug: slug,
-              districtName: p.district || p.districtName || slug,
-              stateName: p.state || p.stateName || stateSlug,
-              freeCount: 0,
-              paidCount: 0,
-            };
-          }
-          if (p.free || p.isFree || p.price === 0) map[slug].freeCount++;
-          else map[slug].paidCount++;
+          if (!countMap[slug]) countMap[slug] = { freeCount: 0, paidCount: 0 };
+          if (p.free || p.isFree || p.price === 0) countMap[slug].freeCount++;
+          else countMap[slug].paidCount++;
         });
-        const grouped = Object.values(map);
-        setDistricts(grouped);
-        if (grouped.length > 0) setStateName(grouped[0].stateName);
+
+        // Merge: district list drives structure, products drive counts
+        const merged = distList.map(d => ({
+          districtSlug: d.districtSlug,
+          districtName: d.district,
+          stateName: stateSlug,
+          freeCount: countMap[d.districtSlug]?.freeCount ?? 0,
+          paidCount: countMap[d.districtSlug]?.paidCount ?? 0,
+        }));
+
+        setDistricts(merged);
+
+        // Derive readable state name from first product
+        if (products.length > 0) {
+          setStateName(products[0].state || products[0].stateName || stateSlug);
+        }
+
+        // Fetch purchased slugs (requires auth, fail silently)
         try {
           const pRes = await api.get("/payment/district/purchased");
           const list = Array.isArray(pRes) ? pRes : (pRes?.data || []);
           setPurchasedSlugs(list);
         } catch {}
       } catch (e) {
-        console.error(e);
+        console.error("Failed to load districts:", e);
       } finally {
         setLoading(false);
       }
@@ -253,7 +267,7 @@ export default function DistrictsPage() {
       <div className="max-w-6xl mx-auto">
         <button onClick={() => navigate("/states-browse")}
           className="text-gray-400 hover:text-amber-400 mb-6 flex items-center gap-1 text-sm">
-          ← Back to States
+          â† Back to States
         </button>
         <h1 className="text-3xl font-bold text-amber-400 mb-1">{stateName}</h1>
         <p className="text-gray-400 mb-6">Select a district to access study material</p>
@@ -299,7 +313,7 @@ export default function DistrictsPage() {
                         <button
                           onClick={() => navigate("/states-browse/" + stateSlug + "/" + district.districtSlug + "?tab=paid")}
                           className="w-full bg-amber-500 hover:bg-amber-400 text-black font-semibold py-2 px-4 rounded-lg text-sm transition-colors">
-                          View Paid Resources →
+                          View Paid Resources â†’
                         </button>
                       ) : (
                         <button

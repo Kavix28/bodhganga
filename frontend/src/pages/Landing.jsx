@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { 
@@ -7,6 +7,7 @@ import {
     Sparkles, ShieldCheck, Flame, Users, BookOpenCheck 
 } from 'lucide-react';
 import Logo from '../components/common/Logo';
+import HomepageSlideshow from '../components/common/HomepageSlideshow';
 import indiaMap from '../assets/images/india-map.webp';
 import { indianStates } from '../data/states';
 import { unionTerritories } from '../data/unionTerritories';
@@ -64,52 +65,8 @@ const Landing = () => {
         }
     }, [isAuthenticated, openAuthModal, location.state, navigate]);
 
-    const [currentSlide, setCurrentSlide] = useState(0);
     const aboutSectionRef = useRef(null);
     const [aboutVisible, setAboutVisible] = useState(false);
-
-    // Eagerly resolve and load all images inside c:\PROJECTS\bodhganga\frontend\Slide_show
-    const imageModules = import.meta.glob('../../Slide_show/*.{png,jpg,jpeg,webp}', { eager: true });
-    const slideshowImages = Object.values(imageModules).map(module => module.default || module);
-
-    const slideMetadata = [
-        { title: "National Digital District Encyclopedia", label: "India's First Digital District Encyclopedia" },
-        { title: "Horizontal Integration Framework", label: "Connecting History, Geography, and Economy" },
-        { title: "Comprehensive District Mapping", label: "Unlocking Local & Regional Knowledge" },
-        { title: "High-Yield Study Notes & Guides", label: "Bilingual Premium Content" },
-        { title: "Structured Academic Archive", label: "Designed for UPSC, State PSC & Serious Aspirants" },
-        { title: "Interactive Mock MCQs", label: "Practice-Oriented Revision Tools" },
-        { title: "Cultural & Geographical Studies", label: "Preserving India's Heritage District by District" },
-        { title: "Empowering Grassroots Learners", label: "BodhGanga Academic Excellence" }
-    ];
-
-    // Fallback images if Slide_show is empty
-    const fallbackImages = [
-        "https://images.unsplash.com/photo-1596422846543-75c6fc18a523?auto=format&fit=crop&w=800&q=80",
-        "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&w=800&q=80",
-        "https://images.unsplash.com/photo-1532375811450-42fe120c9f4d?auto=format&fit=crop&w=800&q=80",
-        "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80",
-        "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=800&q=80"
-    ];
-
-    const displayImages = slideshowImages.length > 0 ? slideshowImages : fallbackImages;
-
-    const slides = displayImages.map((image, index) => {
-        const metadata = slideMetadata[index % slideMetadata.length] || { title: "Decoding India", label: "District by District" };
-        return {
-            image,
-            title: metadata.title,
-            label: metadata.label
-        };
-    });
-
-    useEffect(() => {
-        if (displayImages.length === 0) return;
-        const slideTimer = setInterval(() => {
-            setCurrentSlide((prev) => (prev + 1) % displayImages.length);
-        }, 4000);
-        return () => clearInterval(slideTimer);
-    }, [displayImages.length]);
 
     // Handle hash scrolling on page load/hash change
     useEffect(() => {
@@ -446,47 +403,8 @@ const Landing = () => {
                         </div>
 
                         {/* Premium Interactive Slideshow */}
-                        <div className="lg:col-span-5 w-full flex flex-col gap-6 mt-10 lg:mt-0 mx-auto px-4 sm:px-0">
-                            {/* Text Block repositioned above the image, aligned horizontally with the image */}
-                            <div className="w-full max-w-[340px] sm:max-w-[380px] md:max-w-[420px] lg:max-w-none lg:w-[460px] mx-auto text-left space-y-1">
-                                <div className="text-[10px] sm:text-xs tracking-[0.25em] font-extrabold uppercase text-gold">India Unlocked 🇮🇳</div>
-                                <div className="text-[9px] sm:text-[10px] text-white/50 font-bold uppercase tracking-wider">Decoding India, District by District</div>
-                                <h3 className="text-lg sm:text-2xl font-semibold font-serif text-white tracking-tight leading-tight pt-1">{slides[currentSlide].title}</h3>
-                                <p className="text-xs sm:text-sm opacity-90 text-white/70 font-semibold uppercase tracking-wider">{slides[currentSlide].label}</p>
-                            </div>
-
-                            <div className="relative mx-auto w-full max-w-[340px] sm:max-w-[380px] md:max-w-[420px] lg:max-w-none lg:w-[460px] h-[420px] sm:h-[500px] md:h-[560px] lg:h-[640px] rounded-[28px] overflow-hidden shadow-2xl border border-gold/25 glow-emerald-card group bg-gradient-to-b from-emerald-900 to-emerald-950 flex items-center justify-center">
-                                {/* Slides */}
-                                {slides.map((slide, idx) => (
-                                    <div
-                                        key={idx}
-                                        className={`absolute inset-0 w-full h-full overflow-hidden rounded-[28px] bg-gradient-to-b from-emerald-900 to-emerald-950 flex items-center justify-center transition-opacity duration-1000 ease-in-out ${
-                                            currentSlide === idx ? 'opacity-100' : 'opacity-0 pointer-events-none'
-                                        }`}
-                                    >
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent rounded-[28px] z-10 pointer-events-none" />
-                                        <img
-                                            src={slide.image}
-                                            alt={slide.label}
-                                            className="w-full h-full object-cover object-top rounded-[28px] transition-all duration-700"
-                                        />
-                                    </div>
-                                ))}
-                                
-                                {/* Navigation dots in gold */}
-                                <div className="absolute top-6 right-6 z-20 flex gap-2">
-                                    {slides.map((_, idx) => (
-                                        <button
-                                            key={idx}
-                                            onClick={() => setCurrentSlide(idx)}
-                                            className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                                                currentSlide === idx ? 'bg-gold w-5' : 'bg-white/40 hover:bg-white/70'
-                                            }`}
-                                            aria-label={`Go to slide ${idx + 1}`}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
+                        <div className="lg:col-span-5 w-full flex flex-col gap-6 mt-10 lg:mt-0 mx-auto px-4 sm:px-0 animate-fade-in">
+                            <HomepageSlideshow />
                         </div>
                     </div>
                 </div>

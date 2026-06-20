@@ -275,3 +275,60 @@
   transform: translateX(120%);
   transition: transform 1.8s ease-out;
 }
+
+/* Swiper Pagination & Navigation Custom Premium Styling */
+.homepage-swiper .swiper-pagination-bullet {
+  background: rgba(255, 255, 255, 0.4) !important;
+  opacity: 1 !important;
+  width: 8px !important;
+  height: 8px !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.homepage-swiper .swiper-pagination-bullet-active {
+  background: #D4AF37 !important; /* Gold active color */
+  width: 20px !important;
+  border-radius: 4px !important;
+}
+
+.homepage-swiper .swiper-button-next,
+.homepage-swiper .swiper-button-prev {
+  color: #D4AF37 !important;
+  background: rgba(6, 32, 20, 0.75) !important;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.homepage-swiper:hover .swiper-button-next,
+.homepage-swiper:hover .swiper-button-prev {
+  opacity: 1;
+  visibility: visible;
+}
+
+.homepage-swiper .swiper-button-next:hover,
+.homepage-swiper .swiper-button-prev:hover {
+  background: rgba(6, 32, 20, 0.95) !important;
+  border-color: #D4AF37 !important;
+  transform: scale(1.08);
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.25) !important;
+}
+
+.homepage-swiper .swiper-button-next::after,
+.homepage-swiper .swiper-button-prev::after {
+  font-size: 16px !important;
+  font-weight: 900 !important;
+}
+
+.homepage-swiper .swiper-pagination {
+  bottom: 20px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 20 !important;
+}
