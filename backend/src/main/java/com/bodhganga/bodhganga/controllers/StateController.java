@@ -31,36 +31,40 @@ public class StateController {
 
     /**
      * GET /api/states/available
-     * Show only states that have notes/documents (isPublished == true)
+     * Returns all states that have at least one published product.
+     *
+     * CRITICAL FIX: No longer requires a State document to exist in the states collection.
+     * Derived directly from the products aggregation so any ingested state always appears.
      */
     @GetMapping("/available")
-    public ResponseEntity<List<State>> getAvailableStates() {
-        // Find all unique stateSlugs of published products
+    public ResponseEntity<List<java.util.Map<String, Object>>> getAvailableStates() {
         Aggregation agg = Aggregation.newAggregation(
-            Aggregation.match(Criteria.where("isPublished").is(true).and("stateSlug").exists(true).ne(null).ne("").ne("general")),
-            Aggregation.group("stateSlug"),
-            Aggregation.project().and("_id").as("stateSlug").andExclude("_id")
+            Aggregation.match(
+                Criteria.where("isPublished").is(true)
+                    .and("stateSlug").exists(true).ne(null).ne("").ne("general")
+            ),
+            Aggregation.group("stateSlug")
+                .first("state").as("name")
+                .count().as("notesCount"),
+            Aggregation.project("name", "notesCount")
+                .and("_id").as("id")
+                .andExclude("_id"),
+            Aggregation.sort(org.springframework.data.domain.Sort.Direction.ASC, "name")
         );
 
-        AggregationResults<org.bson.Document> results = mongoTemplate.aggregate(agg, "products", org.bson.Document.class);
-        List<String> activeSlugs = results.getMappedResults().stream()
-                .map(doc -> doc.getString("stateSlug"))
-                .filter(slug -> slug != null && !slug.isEmpty())
-                .toList();
+        AggregationResults<org.bson.Document> results =
+            mongoTemplate.aggregate(agg, "products", org.bson.Document.class);
 
-        // Load states matching these slugs
-        List<State> states = stateRepo.findAllById(activeSlugs);
-        
-        // Populate product counts
-        for (State state : states) {
-            long count = mongoTemplate.count(
-                org.springframework.data.mongodb.core.query.Query.query(
-                    Criteria.where("isPublished").is(true).and("stateSlug").is(state.getId())
-                ),
-                Product.class
-            );
-            state.setNotesCount((int) count);
-        }
+        List<java.util.Map<String, Object>> states = results.getMappedResults().stream()
+            .map(doc -> {
+                java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+                m.put("id", doc.getString("id"));
+                m.put("stateSlug", doc.getString("id"));
+                m.put("name", doc.getString("name"));
+                m.put("notesCount", doc.get("notesCount"));
+                return m;
+            })
+            .collect(java.util.stream.Collectors.toList());
 
         return ResponseEntity.ok(states);
     }

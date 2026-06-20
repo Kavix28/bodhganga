@@ -14,6 +14,12 @@ import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequ
 import java.io.IOException;
 import java.time.Duration;
 import java.util.UUID;
+import java.util.List;
+import java.util.stream.Collectors;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.S3Object;
+
 
 @Service
 public class S3Service {
@@ -170,5 +176,44 @@ public class S3Service {
 
     public String getBucketName() {
         return bucketName;
+    }
+
+    /**
+     * List ALL object keys in the S3 bucket using full pagination.
+     * AWS returns max 1,000 objects per page — this loops through all pages.
+     */
+    public List<String> listObjects() {
+        List<String> allKeys = new java.util.ArrayList<>();
+        String continuationToken = null;
+        int pageCount = 0;
+
+        do {
+            ListObjectsV2Request.Builder builder = ListObjectsV2Request.builder().bucket(bucketName).maxKeys(1000);
+            if (continuationToken != null) {
+                builder.continuationToken(continuationToken);
+            }
+            ListObjectsV2Response response = s3Client.listObjectsV2(builder.build());
+            pageCount++;
+
+            response.contents().stream().map(S3Object::key).forEach(allKeys::add);
+
+            continuationToken = response.isTruncated() ? response.nextContinuationToken() : null;
+
+        } while (continuationToken != null);
+
+        return allKeys;
+    }
+
+    /**
+     * Check if a specific object key exists in S3 (avoids loading full list).
+     */
+    public boolean objectExists(String s3Key) {
+        try {
+            s3Client.headObject(software.amazon.awssdk.services.s3.model.HeadObjectRequest.builder()
+                    .bucket(bucketName).key(s3Key).build());
+            return true;
+        } catch (software.amazon.awssdk.services.s3.model.NoSuchKeyException e) {
+            return false;
+        }
     }
 }

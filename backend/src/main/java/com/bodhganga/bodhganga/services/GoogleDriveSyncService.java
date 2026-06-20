@@ -241,4 +241,113 @@ public class GoogleDriveSyncService {
 
         log.info("[DRIVE] moveFileToArchive SUCCESS — FileID={} moved to ArchiveFolder={}", fileId, archiveFolderId);
     }
+
+    /**
+     * Find a folder under parentId or create it if not exists.
+     */
+    public String findOrCreateFolder(String parentId, String folderName) throws IOException {
+        String query = "'" + parentId + "' in parents and name='" + folderName.replace("'", "\\'") + "' and mimeType='application/vnd.google-apps.folder' and trashed=false";
+        FileList result = driveService.files().list()
+                .setQ(query)
+                .setSpaces("drive")
+                .setFields("files(id)")
+                .setSupportsAllDrives(true)
+                .setIncludeItemsFromAllDrives(true)
+                .execute();
+
+        List<File> files = result.getFiles();
+        if (files != null && !files.isEmpty()) {
+            return files.get(0).getId();
+        }
+
+        // Create folder
+        File folderMetadata = new File();
+        folderMetadata.setName(folderName);
+        folderMetadata.setMimeType("application/vnd.google-apps.folder");
+        folderMetadata.setParents(Collections.singletonList(parentId));
+
+        File folder = driveService.files().create(folderMetadata)
+                .setFields("id")
+                .setSupportsAllDrives(true)
+                .execute();
+        return folder.getId();
+    }
+
+    /**
+     * Move a folder or file by updating parents.
+     */
+    public void moveFolderOrFile(String itemId, String sourceParentId, String targetParentId) throws IOException {
+        driveService.files().update(itemId, null)
+                .setAddParents(targetParentId)
+                .setRemoveParents(sourceParentId)
+                .setSupportsAllDrives(true)
+                .execute();
+    }
+
+    /**
+     * Recursively merge sourceFolder contents into targetFolder and delete sourceFolder.
+     */
+    public void mergeFolders(String sourceFolderId, String targetFolderId) throws IOException {
+        List<File> items = listFilesInFolder(sourceFolderId);
+        for (File item : items) {
+            String mimeType = item.getMimeType();
+            if ("application/vnd.google-apps.folder".equals(mimeType)) {
+                String subTargetFolderId = findOrCreateFolder(targetFolderId, item.getName());
+                mergeFolders(item.getId(), subTargetFolderId);
+            } else {
+                moveFolderOrFile(item.getId(), sourceFolderId, targetFolderId);
+            }
+        }
+        driveService.files().delete(sourceFolderId).setSupportsAllDrives(true).execute();
+    }
+
+    /**
+     * Move or merge a district folder into the archived state folder.
+     */
+    public String archiveDistrictFolder(String sourceDistrictFolderId, String sourceDistrictFolderName, String sourceStateFolderName, String sourceStateFolderId, String archiveRootFolderId) throws IOException {
+        log.info("[DRIVE] Archiving district folder: {} (State: {})", sourceDistrictFolderName, sourceStateFolderName);
+        String archivedStateFolderId = findOrCreateFolder(archiveRootFolderId, sourceStateFolderName);
+
+        String query = "'" + archivedStateFolderId + "' in parents and name='" + sourceDistrictFolderName.replace("'", "\\'") + "' and mimeType='application/vnd.google-apps.folder' and trashed=false";
+        FileList result = driveService.files().list()
+                .setQ(query)
+                .setSpaces("drive")
+                .setFields("files(id)")
+                .setSupportsAllDrives(true)
+                .setIncludeItemsFromAllDrives(true)
+                .execute();
+
+        List<File> existing = result.getFiles();
+        if (existing == null || existing.isEmpty()) {
+            moveFolderOrFile(sourceDistrictFolderId, sourceStateFolderId, archivedStateFolderId);
+            log.info("[DRIVE] Successfully moved entire district folder {} to archived state folder", sourceDistrictFolderName);
+            return sourceDistrictFolderId; // The source ID is now the archived ID
+        } else {
+            String archivedDistrictFolderId = existing.get(0).getId();
+            mergeFolders(sourceDistrictFolderId, archivedDistrictFolderId);
+            log.info("[DRIVE] Successfully merged district folder {} into archived district folder", sourceDistrictFolderName);
+            return archivedDistrictFolderId;
+        }
+    }
+
+    /**
+     * Upload a JSON manifest file to a specific Drive folder.
+     */
+    public String uploadManifest(String parentId, String fileName, String jsonContent) throws IOException {
+        File fileMetadata = new File();
+        fileMetadata.setName(fileName);
+        fileMetadata.setParents(Collections.singletonList(parentId));
+        fileMetadata.setMimeType("application/json");
+
+        com.google.api.client.http.InputStreamContent mediaContent =
+                new com.google.api.client.http.InputStreamContent("application/json",
+                        new java.io.ByteArrayInputStream(jsonContent.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+
+        File file = driveService.files().create(fileMetadata, mediaContent)
+                .setFields("id")
+                .setSupportsAllDrives(true)
+                .execute();
+        return file.getId();
+    }
 }
+

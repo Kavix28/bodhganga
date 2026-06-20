@@ -56,6 +56,19 @@ public class ProductController {
     }
 
     /**
+     * Public API to get products by district slug
+     */
+    @GetMapping("/district/{districtSlug}")
+    public ResponseEntity<ApiResponseDTO> getProductsByDistrict(@PathVariable String districtSlug) {
+        List<Product> products = productRepo.findByDistrictSlugAndIsPublishedTrue(districtSlug);
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+                .success(true)
+                .data(products)
+                .build());
+    }
+
+
+    /**
      * Get single product by id
      */
     @GetMapping("/{id}")

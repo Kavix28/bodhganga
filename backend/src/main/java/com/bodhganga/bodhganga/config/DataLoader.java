@@ -291,7 +291,7 @@ public class DataLoader implements CommandLineRunner {
             createBlogPost(
                 "Sanskrit: The Language of the Gods",
                 "sanskrit-language-of-gods",
-                "Sanskrit is not just a language — it is the foundation of Indian civilization. Discover its scientific structure, influence on modern languages, and revival in contemporary India.",
+                "Sanskrit is not just a language â€” it is the foundation of Indian civilization. Discover its scientific structure, influence on modern languages, and revival in contemporary India.",
                 "Sanskrit",
                 "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800",
                 "Prof. Lakshmi Devi",
@@ -409,7 +409,7 @@ public class DataLoader implements CommandLineRunner {
             createState("manipur", "MN", "Manipur", "Imphal", "Study materials for Manipur Public Service Commission and state-level examinations.", "STATE", Arrays.asList("Bishnupur", "Chandel", "Churachandpur", "Imphal East", "Imphal West", "Jiribam", "Kakching", "Kamjong", "Kangpokpi", "Noney", "Pherzawl", "Senapati", "Tamenglong", "Tengnoupal", "Thoubal", "Ukhrul")),
             createState("meghalaya", "ML", "Meghalaya", "Shillong", "Preparation portal for Meghalaya Public Service Commission and sub-ordinate exams.", "STATE", Arrays.asList("East Garo Hills", "East Jaintia Hills", "East Khasi Hills", "Eastern West Khasi Hills", "North Garo Hills", "Ri Bhoi", "South Garo Hills", "South West Garo Hills", "South West Khasi Hills", "West Garo Hills", "West Jaintia Hills", "West Khasi Hills")),
             createState("mizoram", "MZ", "Mizoram", "Aizawl", "Study notes and resources for Mizoram Public Service Commission examinations.", "STATE", Arrays.asList("Aizawl", "Champhai", "Hnahthial", "Khawzawl", "Kolasib", "Lawngtlai", "Lunglei", "Mamit", "Saiha", "Saitual", "Serchhip")),
-            createState("nagaland", "NL", "Nagaland", "Kohima", "Complete prep guide for Nagaland Public Service Commission examinations.", "STATE", Arrays.asList("Chümoukedim", "Dimapur", "Kiphire", "Kohima", "Longleng", "Mokokchung", "Mon", "Niuland", "Noklak", "Peren", "Phek", "Shamator", "Tseminyü", "Tuensang", "Wokha", "Zunheboto")),
+            createState("nagaland", "NL", "Nagaland", "Kohima", "Complete prep guide for Nagaland Public Service Commission examinations.", "STATE", Arrays.asList("ChÃ¼moukedim", "Dimapur", "Kiphire", "Kohima", "Longleng", "Mokokchung", "Mon", "Niuland", "Noklak", "Peren", "Phek", "Shamator", "TseminyÃ¼", "Tuensang", "Wokha", "Zunheboto")),
             createState("odisha", "OR", "Odisha", "Bhubaneswar", "Comprehensive prep material for OPSC and Odisha State Government exams.", "STATE", Arrays.asList("Angul", "Balangir", "Balasore", "Bargarh", "Bhadrak", "Boudh", "Cuttack", "Deogarh", "Dhenkanal", "Gajapati", "Ganjam", "Jagatsinghpur", "Jajpur", "Jharsuguda", "Kalahandi", "Kandhamal", "Kendrapara", "Kendujhar", "Khordha", "Koraput", "Malkangiri", "Mayurbhanj", "Nabarangpur", "Nayagarh", "Nuapada", "Puri", "Rayagada", "Sambalpur", "Subarnapur", "Sundargarh")),
             createState("punjab", "PB", "Punjab", "Chandigarh", "Complete study material for PPSC and Punjab state examinations.", "STATE", Arrays.asList("Amritsar", "Barnala", "Bathinda", "Faridkot", "Fatehgarh Sahib", "Fazilka", "Ferozepur", "Gurdaspur", "Hoshiarpur", "Jalandhar", "Kapurthala", "Ludhiana", "Malerkotla", "Mansa", "Moga", "Muktsar", "Pathankot", "Patiala", "Rupnagar", "Sahibzada Ajit Singh Nagar", "Sangrur", "Shahid Bhagat Singh Nagar", "Sri Muktsar Sahib", "Tarn Taran")),
             createState("rajasthan", "RJ", "Rajasthan", "Jaipur", "RAS Prelims and Mains study textbooks and question bank modules.", "STATE", Arrays.asList("Ajmer", "Alwar", "Banswara", "Baran", "Barmer", "Bharatpur", "Bhilwara", "Bikaner", "Bundi", "Chittorgarh", "Churu", "Dausa", "Dholpur", "Dungarpur", "Hanumangarh", "Jaipur", "Jaisalmer", "Jalore", "Jhalawar", "Jhunjhunu", "Jodhpur", "Karauli", "Kota", "Nagaur", "Pali", "Pratapgarh", "Rajsamand", "Sawai Modhopur", "Sikar", "Sirohi", "Sri Ganganagar", "Tonk", "Udaipur")),
@@ -451,7 +451,7 @@ public class DataLoader implements CommandLineRunner {
 
     private void migrateImportedProducts() {
         log.info("Running duplicate resolution and migration script for imported products...");
-        List<Product> products = productRepo.findAll();
+        List<Product> products = productRepo.findByImportedFromDrive(true); // FIXED: was findAll()
         
         // Group by googleDriveFileId
         java.util.Map<String, java.util.List<Product>> byDriveId = new java.util.HashMap<>();
@@ -543,12 +543,14 @@ public class DataLoader implements CommandLineRunner {
             }
         }
 
-        // Refresh all remaining products list and backfill metadata, setting published=true on all imported
-        List<Product> remainingProducts = productRepo.findAll();
+        // Backfill metadata on imported-from-Drive products and auto-publish any that are still unpublished
+        // FIXED: Only load imported products that need backfill — not the entire collection
+        // This avoids OOM at scale (was productRepo.findAll())
+        List<Product> remainingProducts = productRepo.findByImportedFromDrive(true);
         boolean changedAny = false;
         for (Product p : remainingProducts) {
             boolean changed = false;
-            boolean isImported = Boolean.TRUE.equals(p.getImportedFromDrive()) || "Google Drive".equals(p.getSource());
+            boolean isImported = true; // Already filtered to importedFromDrive=true
             
             if (isImported) {
                 if (!Boolean.TRUE.equals(p.getImportedFromDrive())) {

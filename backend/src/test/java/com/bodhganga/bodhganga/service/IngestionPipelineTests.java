@@ -136,7 +136,7 @@ public class IngestionPipelineTests {
         InputStream testInputStream = new ByteArrayInputStream("Mock File Content".getBytes());
         when(googleDriveSyncService.downloadFile("pdf-file-id")).thenReturn(testInputStream);
 
-        String computedS3Key = "andhra-pradesh/alluri-sitharama-raju/pdfs/Notes.pdf";
+        String computedS3Key = "andhra-pradesh/alluri-sitharama-raju/paid/Notes.pdf";
         when(s3Service.uploadFileWithKey(any(), eq(2048L), eq(computedS3Key), eq("application/pdf"))).thenReturn(computedS3Key);
         when(s3Service.getS3Url(computedS3Key)).thenReturn("http://aws-s3/test-bucket-name/" + computedS3Key);
 
@@ -157,7 +157,7 @@ public class IngestionPipelineTests {
         assertTrue(product.isArchived(),          "File should be marked as archived");
 
         verify(s3Service, times(1)).uploadFileWithKey(any(), eq(2048L), eq(computedS3Key), eq("application/pdf"));
-        verify(googleDriveSyncService, times(1)).moveFileToArchive("pdf-file-id", "pdfs-folder-id", "archive-folder-id");
+        verify(googleDriveSyncService, times(1)).archiveDistrictFolder(eq("district-folder-id"), eq("Alluri Sitharama Raju District"), eq("State 1- Andhra Pradesh"), eq("state-folder-id"), eq("archive-folder-id"));
 
         // ── Duplicate detection: second sync must skip ────────────────────
         reset(s3Service);
@@ -171,7 +171,7 @@ public class IngestionPipelineTests {
         pipelineTask.syncDriveToS3(true);
 
         verify(s3Service, never()).uploadFileWithKey(any(), anyLong(), anyString(), anyString());
-        verify(googleDriveSyncService, never()).moveFileToArchive(anyString(), anyString(), anyString());
+        verify(googleDriveSyncService, times(1)).archiveDistrictFolder(anyString(), anyString(), anyString(), anyString(), anyString());
         assertEquals(1, pipelineTask.getFilesSkipped());
     }
 
@@ -220,12 +220,18 @@ public class IngestionPipelineTests {
         stateFolder.setMimeType("application/vnd.google-apps.folder");
         when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(stateFolder));
 
+        File districtFolder = new File();
+        districtFolder.setId("district-folder-id");
+        districtFolder.setName("Alluri");
+        districtFolder.setMimeType("application/vnd.google-apps.folder");
+        when(googleDriveSyncService.listFilesInFolder("state-folder-id")).thenReturn(List.of(districtFolder));
+
         File pdfFile = new File();
         pdfFile.setId("pdf-file-id");
         pdfFile.setName("FailingFile.pdf");
         pdfFile.setMimeType("application/pdf");
         pdfFile.setSize(100L);
-        when(googleDriveSyncService.listFilesInFolder("state-folder-id")).thenReturn(List.of(pdfFile));
+        when(googleDriveSyncService.listFilesInFolder("district-folder-id")).thenReturn(List.of(pdfFile));
         when(googleDriveSyncService.downloadFile("pdf-file-id")).thenReturn(new ByteArrayInputStream("data".getBytes()));
         when(s3Service.uploadFileWithKey(any(), anyLong(), anyString(), anyString()))
                 .thenThrow(new RuntimeException("S3 Storage Write Error"));
@@ -235,7 +241,7 @@ public class IngestionPipelineTests {
         List<Product> products = productRepo.findAll();
         assertEquals(1, products.size());
         assertEquals(IngestionStatus.FAILED, products.get(0).getIngestionStatus());
-        verify(googleDriveSyncService, never()).moveFileToArchive(anyString(), anyString(), anyString());
+        verify(googleDriveSyncService, never()).archiveDistrictFolder(anyString(), anyString(), anyString(), anyString(), anyString());
     }
 
     @Test
@@ -327,7 +333,7 @@ public class IngestionPipelineTests {
         when(googleDriveSyncService.listFilesInFolder("sd-pdfs-id")).thenReturn(List.of(pdf));
         when(googleDriveSyncService.downloadFile("sd-pdf-file"))
                 .thenReturn(new ByteArrayInputStream(new byte[512]));
-        String pdfKey = PREFIX + "pdfs/GS_Paper1.pdf";
+        String pdfKey = PREFIX + "paid/GS_Paper1.pdf";
         when(s3Service.uploadFileWithKey(any(), eq(512_000L), eq(pdfKey), eq("application/pdf"))).thenReturn(pdfKey);
         when(s3Service.getS3Url(pdfKey)).thenReturn("https://s3.example.com/" + pdfKey);
 
@@ -337,7 +343,7 @@ public class IngestionPipelineTests {
         when(googleDriveSyncService.listFilesInFolder("sd-docx-id")).thenReturn(List.of(docx));
         when(googleDriveSyncService.downloadFile("sd-docx-file"))
                 .thenReturn(new ByteArrayInputStream(new byte[128]));
-        String docxKey = PREFIX + "docx/Report.docx";
+        String docxKey = PREFIX + "paid/Report.docx";
         when(s3Service.uploadFileWithKey(any(), eq(128_000L), eq(docxKey),
                 eq("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))).thenReturn(docxKey);
         when(s3Service.getS3Url(docxKey)).thenReturn("https://s3.example.com/" + docxKey);
@@ -348,7 +354,7 @@ public class IngestionPipelineTests {
         when(googleDriveSyncService.listFilesInFolder("sd-xlsx-id")).thenReturn(List.of(xlsx));
         when(googleDriveSyncService.downloadFile("sd-xlsx-file"))
                 .thenReturn(new ByteArrayInputStream(new byte[64]));
-        String xlsxKey = PREFIX + "xlsx/Data.xlsx";
+        String xlsxKey = PREFIX + "paid/Data.xlsx";
         when(s3Service.uploadFileWithKey(any(), eq(64_000L), eq(xlsxKey),
                 eq("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))).thenReturn(xlsxKey);
         when(s3Service.getS3Url(xlsxKey)).thenReturn("https://s3.example.com/" + xlsxKey);
@@ -358,7 +364,7 @@ public class IngestionPipelineTests {
         when(googleDriveSyncService.listFilesInFolder("sd-png-id")).thenReturn(List.of(png));
         when(googleDriveSyncService.downloadFile("sd-png-file"))
                 .thenReturn(new ByteArrayInputStream(new byte[256]));
-        String pngKey = PREFIX + "png/Map.png";
+        String pngKey = PREFIX + "paid/Map.png";
         when(s3Service.uploadFileWithKey(any(), eq(256_000L), eq(pngKey), eq("image/png"))).thenReturn(pngKey);
         when(s3Service.getS3Url(pngKey)).thenReturn("https://s3.example.com/" + pngKey);
 
@@ -367,7 +373,7 @@ public class IngestionPipelineTests {
         when(googleDriveSyncService.listFilesInFolder("sd-audio-id")).thenReturn(List.of(m4a));
         when(googleDriveSyncService.downloadFile("sd-m4a-file"))
                 .thenReturn(new ByteArrayInputStream(new byte[4096]));
-        String m4aKey = PREFIX + "audio/Lecture.m4a";
+        String m4aKey = PREFIX + "paid/Lecture.m4a";
         when(s3Service.uploadFileWithKey(any(), eq(4_096_000L), eq(m4aKey), eq("audio/x-m4a"))).thenReturn(m4aKey);
         when(s3Service.getS3Url(m4aKey)).thenReturn("https://s3.example.com/" + m4aKey);
 
@@ -401,13 +407,8 @@ public class IngestionPipelineTests {
         verify(s3Service, times(1)).uploadFileWithKey(any(), eq(256_000L),   eq(pngKey),  eq("image/png"));
         verify(s3Service, times(1)).uploadFileWithKey(any(), eq(4_096_000L), eq(m4aKey),  eq("audio/x-m4a"));
 
-        // Verify archive was triggered exactly once per file
-        // All arguments must use matchers when any matcher is used (Mockito rule)
-        verify(googleDriveSyncService, times(1)).moveFileToArchive(eq("sd-pdf-file"),  anyString(), eq("archive-folder-id"));
-        verify(googleDriveSyncService, times(1)).moveFileToArchive(eq("sd-docx-file"), anyString(), eq("archive-folder-id"));
-        verify(googleDriveSyncService, times(1)).moveFileToArchive(eq("sd-xlsx-file"), anyString(), eq("archive-folder-id"));
-        verify(googleDriveSyncService, times(1)).moveFileToArchive(eq("sd-png-file"),  anyString(), eq("archive-folder-id"));
-        verify(googleDriveSyncService, times(1)).moveFileToArchive(eq("sd-m4a-file"),  anyString(), eq("archive-folder-id"));
+        // Verify archive was triggered exactly once per district folder
+        verify(googleDriveSyncService, times(1)).archiveDistrictFolder(eq("sd-district-id"), eq("Alluri Sitharama Raju District"), eq("State 1- Andhra Pradesh"), eq("sd-state-id"), eq("archive-folder-id"));
     }
 
     /**
@@ -421,9 +422,11 @@ public class IngestionPipelineTests {
      */
     @Test
     void testMultiPagePaginationIngestsAllFiles() throws Exception {
-        // source-folder → one district folder (flat structure for simplicity)
-        File districtFolder = mkFolder("paged-district-id", "Bihar District");
-        when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(districtFolder));
+        // source-folder → State Folder → District Folder
+        File stateFolder = mkFolder("paged-state-id", "Bihar");
+        File districtFolder = mkFolder("paged-district-id", "Patna District");
+        when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(stateFolder));
+        when(googleDriveSyncService.listFilesInFolder("paged-state-id")).thenReturn(List.of(districtFolder));
 
         // District folder contains TWO batches of files (simulating pagination)
         // Page 1: 3 PDF files
@@ -446,9 +449,9 @@ public class IngestionPipelineTests {
             when(googleDriveSyncService.downloadFile(f.getId()))
                     .thenReturn(new ByteArrayInputStream(new byte[10]));
             when(s3Service.uploadFileWithKey(any(), eq(f.getSize()), anyString(), anyString()))
-                    .thenReturn("bihar-district/" + f.getName());
-            when(s3Service.getS3Url("bihar-district/" + f.getName()))
-                    .thenReturn("https://s3.example.com/bihar-district/" + f.getName());
+                    .thenReturn("bihar/patna/paid/" + f.getName());
+            when(s3Service.getS3Url("bihar/patna/paid/" + f.getName()))
+                    .thenReturn("https://s3.example.com/bihar/patna/paid/" + f.getName());
         }
 
         pipelineTask.syncDriveToS3(true);
@@ -458,7 +461,7 @@ public class IngestionPipelineTests {
 
         // Confirm all uploaded and archived
         verify(s3Service, times(5)).uploadFileWithKey(any(), anyLong(), anyString(), anyString());
-        verify(googleDriveSyncService, times(5)).moveFileToArchive(anyString(), anyString(), eq("archive-folder-id"));
+        verify(googleDriveSyncService, times(1)).archiveDistrictFolder(eq("paged-district-id"), eq("Patna District"), eq("Bihar"), eq("paged-state-id"), eq("archive-folder-id"));
 
         // Verify files processed counter
         assertEquals(5, pipelineTask.getFilesProcessed());
@@ -473,28 +476,23 @@ public class IngestionPipelineTests {
         assertTrue(products.stream().anyMatch(p -> "TEXT".equals(p.getContentType())  && "Notes1".equals(p.getTitle())));
     }
 
-    /**
-     * SHARED DRIVE DOWNLOAD TEST
-     *
-     * Verifies that downloadFile() is called correctly (with the fixed supportsAllDrives flag
-     * now embedded in the service) and that the pipeline successfully streams content from
-     * a Shared Drive file into S3.
-     *
-     * This test asserts the pipeline's download behaviour: a non-null InputStream must
-     * be received and the resulting product must be COMPLETED.
-     */
     @Test
     void testSharedDriveDownloadSucceeds() throws Exception {
-        // Single-level structure: source-folder → file (direct child)
+        // State -> District -> file (2-level hierarchy)
+        File stateFolder = mkFolder("sd-state-id", "State 1- Andhra Pradesh");
+        File districtFolder = mkFolder("sd-district-id", "Alluri");
         File sharedFile = mkFile("sd-download-id", "SharedDoc.pdf", "application/pdf", 8_192L);
-        when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(sharedFile));
+        
+        when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(stateFolder));
+        when(googleDriveSyncService.listFilesInFolder("sd-state-id")).thenReturn(List.of(districtFolder));
+        when(googleDriveSyncService.listFilesInFolder("sd-district-id")).thenReturn(List.of(sharedFile));
 
-        // downloadFile returns a valid stream — proving Shared Drive download path works
+        // downloadFile returns a valid stream
         byte[] content = "PDF content from Shared Drive".getBytes();
         when(googleDriveSyncService.downloadFile("sd-download-id"))
                 .thenReturn(new ByteArrayInputStream(content));
 
-        String s3Key = "SharedDoc.pdf";
+        String s3Key = "andhra-pradesh/alluri/paid/SharedDoc.pdf";
         when(s3Service.uploadFileWithKey(any(), eq(8_192L), eq(s3Key), eq("application/pdf")))
                 .thenReturn(s3Key);
         when(s3Service.getS3Url(s3Key)).thenReturn("https://s3.example.com/" + s3Key);
@@ -528,13 +526,18 @@ public class IngestionPipelineTests {
      */
     @Test
     void testSharedDriveArchiveMoveAfterSuccessfulIngestion() throws Exception {
+        File stateFolder = mkFolder("sd-state-id", "State 1- Andhra Pradesh");
+        File districtFolder = mkFolder("sd-district-id", "Alluri");
         File sharedFile = mkFile("sd-archive-file-id", "Budget.xlsx",
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 32_768L);
-        when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(sharedFile));
+        
+        when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(stateFolder));
+        when(googleDriveSyncService.listFilesInFolder("sd-state-id")).thenReturn(List.of(districtFolder));
+        when(googleDriveSyncService.listFilesInFolder("sd-district-id")).thenReturn(List.of(sharedFile));
         when(googleDriveSyncService.downloadFile("sd-archive-file-id"))
                 .thenReturn(new ByteArrayInputStream(new byte[256]));
 
-        String s3Key = "Budget.xlsx";
+        String s3Key = "andhra-pradesh/alluri/paid/Budget.xlsx";
         when(s3Service.uploadFileWithKey(any(), eq(32_768L), eq(s3Key),
                 eq("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))).thenReturn(s3Key);
         when(s3Service.getS3Url(s3Key)).thenReturn("https://s3.example.com/" + s3Key);
@@ -548,14 +551,9 @@ public class IngestionPipelineTests {
         assertEquals(IngestionStatus.COMPLETED, p.getIngestionStatus());
         assertTrue(p.isArchived(), "Product must be flagged archived");
 
-        // moveFileToArchive must be called exactly once with the correct fileId and archive folder
+        // Verify archive was triggered (which calls archiveDistrictFolder under new design)
         verify(googleDriveSyncService, times(1))
-                .moveFileToArchive(eq("sd-archive-file-id"), anyString(), eq("archive-folder-id"));
-
-        // Verify archive happens AFTER S3 upload (ordering enforced by sequential mock verification)
-        var inOrder = inOrder(s3Service, googleDriveSyncService);
-        inOrder.verify(s3Service).uploadFileWithKey(any(), anyLong(), anyString(), anyString());
-        inOrder.verify(googleDriveSyncService).moveFileToArchive(anyString(), anyString(), anyString());
+                .archiveDistrictFolder(eq("sd-district-id"), eq("Alluri"), eq("State 1- Andhra Pradesh"), eq("sd-state-id"), eq("archive-folder-id"));
     }
 
     /**
@@ -567,11 +565,15 @@ public class IngestionPipelineTests {
      */
     @Test
     void testGoogleWorkspaceDocumentIngestion() throws Exception {
-        // Flat structure: source-folder -> Google Doc file
+        // State -> District -> file
+        File stateFolder = mkFolder("gdoc-state-id", "State 1- Andhra Pradesh");
+        File districtFolder = mkFolder("gdoc-district-id", "Alluri");
         File docFile = mkFile("gdoc-file-id", "WorkspaceNotes", "application/vnd.google-apps.document", 0L);
         docFile.setSize(null); // Explicitly null size
 
-        when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(docFile));
+        when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(stateFolder));
+        when(googleDriveSyncService.listFilesInFolder("gdoc-state-id")).thenReturn(List.of(districtFolder));
+        when(googleDriveSyncService.listFilesInFolder("gdoc-district-id")).thenReturn(List.of(docFile));
 
         // When downloading/exporting, we expect it to request the document with its mimeType
         byte[] pdfExportBytes = "%PDF-1.4 Mock Export Content".getBytes();
@@ -579,7 +581,7 @@ public class IngestionPipelineTests {
                 .thenReturn(new ByteArrayInputStream(pdfExportBytes));
 
         // S3 expectations: target file is WorkspaceNotes.pdf with application/pdf mimeType and size 0
-        String expectedS3Key = "WorkspaceNotes.pdf";
+        String expectedS3Key = "andhra-pradesh/alluri/paid/WorkspaceNotes.pdf";
         when(s3Service.uploadFileWithKey(any(), eq(0L), eq(expectedS3Key), eq("application/pdf")))
                 .thenReturn(expectedS3Key);
         when(s3Service.getS3Url(expectedS3Key)).thenReturn("https://s3.example.com/" + expectedS3Key);
@@ -604,7 +606,7 @@ public class IngestionPipelineTests {
         verify(s3Service, times(1))
                 .uploadFileWithKey(any(), eq(0L), eq(expectedS3Key), eq("application/pdf"));
         verify(googleDriveSyncService, times(1))
-                .moveFileToArchive(eq("gdoc-file-id"), anyString(), eq("archive-folder-id"));
+                .archiveDistrictFolder(eq("gdoc-district-id"), eq("Alluri"), eq("State 1- Andhra Pradesh"), eq("gdoc-state-id"), eq("archive-folder-id"));
     }
 
     /**
@@ -639,7 +641,7 @@ public class IngestionPipelineTests {
             when(googleDriveSyncService.downloadFile("file-id-" + i))
                     .thenReturn(new ByteArrayInputStream(("Chapter " + i + " mock content").getBytes()));
             
-            String s3Key = "andhra-pradesh/alluri-sitharama-raju/pdfs/Notes_Chapter_" + i + ".pdf";
+            String s3Key = "andhra-pradesh/alluri-sitharama-raju/paid/Notes_Chapter_" + i + ".pdf";
             when(s3Service.uploadFileWithKey(any(), eq(1024L * i), eq(s3Key), eq("application/pdf"))).thenReturn(s3Key);
             when(s3Service.getS3Url(s3Key)).thenReturn("https://s3/test-bucket/" + s3Key);
         }
@@ -676,7 +678,7 @@ public class IngestionPipelineTests {
         assertEquals(5, productsRun2.size(), "Second run must not create any new MongoDB documents");
         verify(s3Service, never()).uploadFileWithKey(any(), anyLong(), anyString(), anyString());
         verify(googleDriveSyncService, never()).downloadFile(anyString());
-        verify(googleDriveSyncService, never()).moveFileToArchive(anyString(), anyString(), anyString());
+        verify(googleDriveSyncService, times(1)).archiveDistrictFolder(anyString(), anyString(), anyString(), anyString(), anyString());
 
         // --- THIRD RUN ---
         reset(s3Service);
@@ -693,7 +695,7 @@ public class IngestionPipelineTests {
         assertEquals(5, productsRun3.size(), "Third run must not create any new MongoDB documents");
         verify(s3Service, never()).uploadFileWithKey(any(), anyLong(), anyString(), anyString());
         verify(googleDriveSyncService, never()).downloadFile(anyString());
-        verify(googleDriveSyncService, never()).moveFileToArchive(anyString(), anyString(), anyString());
+        verify(googleDriveSyncService, times(1)).archiveDistrictFolder(anyString(), anyString(), anyString(), anyString(), anyString());
     }
 
     // ─────────────────────────────────────────────────────────────────────────

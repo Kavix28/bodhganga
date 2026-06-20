@@ -13,6 +13,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+@Deprecated
+// =============================================================================
+// LEGACY PIPELINE — DISABLED. DriveToS3PipelineTask is the single active pipeline.
+// This class is kept for reference only. @Scheduled removed to prevent dual-ingestion.
+// TODO: Delete after production validation of DriveToS3PipelineTask.
+// =============================================================================
 @Component
 public class PipelineTask {
     private static final Logger log = LoggerFactory.getLogger(PipelineTask.class);
@@ -212,3 +218,4 @@ public class PipelineTask {
         }
     }
 }
+
