@@ -7,7 +7,7 @@ import { useCart } from '../../context/CartContext';
 import Logo from './Logo';
 
 const navLinks = [
-    { path: '/states-browse', label: 'States & UTs', icon: MapPin, public: true },
+    { path: '/state', label: 'States & UTs', icon: MapPin, public: true },
     { path: '/courses',       label: 'Courses',       icon: BookOpen, public: true },
     { path: '/blog',          label: 'Blog',          icon: null, public: true },
 ];
