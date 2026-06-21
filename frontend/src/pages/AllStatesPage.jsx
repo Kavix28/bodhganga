@@ -55,6 +55,52 @@ const GRADIENTS = [
   ["#2d1b69", "#6d28d9"],  // violet
 ];
 
+const S3_BASE = "https://bodhganga-pdf-storage-prod.s3.eu-north-1.amazonaws.com/state-covers";
+
+const STATE_IMAGE_MAP = {
+  "andhra-pradesh":            "AndhraPradesh-image.png",
+  "arunachal-pradesh":         "Arunahcal Pradesh-image.png",
+  "assam":                     "Assam-image.png",
+  "bihar":                     "Bihar-image.png",
+  "chhattisgarh":              "Chhattisgarh.png",
+  "goa":                       "Goa-image.png",
+  "gujarat":                   "Gujarat-image.png",
+  "haryana":                   "Haryana-image.png",
+  "himachal-pradesh":          "Himachal Pradesh-image.png",
+  "jharkhand":                 "Jharkhand-image.png",
+  "karnataka":                 "Karnataka-image.png",
+  "kerala":                    "Kerala-image.png",
+  "madhya-pradesh":            "Madhya Pradesh-image.png",
+  "maharashtra":               "Maharashtra-image.png",
+  "manipur":                   "Manipur-image.png",
+  "meghalaya":                 "Meghalaya-image.png",
+  "mizoram":                   "Mizoram-image.png",
+  "nagaland":                  "Nagaland-image.png",
+  "odisha":                    "Odisha-image.png",
+  "punjab":                    "Punjab-image.png",
+  "rajasthan":                 "Rajasthan-image.png",
+  "sikkim":                    "Sikkim-image.png",
+  "tamil-nadu":                "Tamil Nadu-image.png",
+  "telangana":                 "Telanagana-image.png",
+  "tripura":                   "Tripura-image.png",
+  "uttar-pradesh":             "Uttar Pradesh-image.png",
+  "uttarakhand":               "Uttarakhand-image.png",
+  "west-bengal":               "West Bengal-image.png",
+  "delhi":                     "Delhi-image.png",
+  "jammu-and-kashmir":         "Jammu & Kashmir-image.png",
+  "ladakh":                    "Ladakh-image.png",
+  "puducherry":                "Puducherry-image.png",
+  "chandigarh":                "Chandigarh-image.png",
+  "lakshadweep":               "Lakshadweep-image.png",
+  "andaman-and-nicobar-islands": null,
+};
+
+function getStateImage(slug) {
+  const file = STATE_IMAGE_MAP[slug];
+  if (!file) return null;
+  return `${S3_BASE}/${encodeURIComponent(file)}`;
+}
+
 function getGradient(name) {
   const idx = name.charCodeAt(0) % GRADIENTS.length;
   return GRADIENTS[idx];
@@ -83,7 +129,7 @@ function StateCard({ region, isActive, productCount, onClick }) {
       {/* Card background */}
       <div
         className="h-28 flex items-center justify-center relative"
-        style={{ background: `linear-gradient(135deg, ${g1}, ${g2})` }}
+        style={getStateImage(region.slug) ? { backgroundImage: `url(${getStateImage(region.slug)})`, backgroundSize: "cover", backgroundPosition: "center" } : { background: `linear-gradient(135deg, ${g1}, ${g2})` }}
       >
         {/* Big initial watermark */}
         <span className="absolute text-7xl font-black text-white/10 select-none pointer-events-none">
