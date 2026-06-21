@@ -46,15 +46,9 @@ const Cart = () => {
         if (cartData.items.length === 0) return;
         setCheckingOut(true);
         try {
-            // For each item, create individual orders (existing flow supports single-item)
-            // Multi-item cart: we process first item as primary and unlock rest on webhook
-            const firstItem = cartData.items[0];
-            const isCoure = firstItem.productType === 'COURSE';
-
             const orderPayload = {
                 amountPaise: Math.round(total * 100),
-                productId: isCoure ? undefined : firstItem.productId,
-                courseId: isCoure ? firstItem.productId : undefined,
+                isCart: true
             };
 
             const orderRes = await api.post('/payment/create-order', orderPayload);
@@ -74,14 +68,12 @@ const Cart = () => {
                         const verifyRes = await api.post('/payment/verify', {
                             razorpayOrderId: response.razorpay_order_id,
                             razorpayPaymentId: response.razorpay_payment_id,
-                            razorpaySignature: response.razorpay_signature,
-                            courseId: isCoure ? firstItem.productId : undefined,
-                            productId: isCoure ? undefined : firstItem.productId,
+                            razorpaySignature: response.razorpay_signature
                         });
                         if (verifyRes?.success) {
                             await clearCart();
                             await refreshCount();
-                            toast.success('Payment successful! Your course is unlocked.');
+                            toast.success('Payment successful! Your courses and items are unlocked.');
                             navigate('/orders');
                         } else {
                             toast.error('Payment verification failed.');

@@ -1,6 +1,6 @@
-import { BookOpen, Clock, Star, Heart, Users } from 'lucide-react';
+import { BookOpen, Clock, Star, Heart, Users, ShoppingCart } from 'lucide-react';
 
-const CourseCard = ({ course, isFavorite, onFavorite, onClick }) => {
+const CourseCard = ({ course, isFavorite, onFavorite, onClick, onAddToCart }) => {
     const title = course.courseTitle || course.title || 'Untitled Course';
     const category = course.courseCategory || 'General';
     const price = course.coursePrice ?? course.price;
@@ -81,9 +81,22 @@ const CourseCard = ({ course, isFavorite, onFavorite, onClick }) => {
                             <span className="text-xl font-bold text-emerald-light">Free</span>
                         )}
                     </div>
-                    <span className="text-xs font-bold text-gold hover:text-gold-dark flex items-center gap-1 transition-colors">
-                        Learn More <span className="group-hover:translate-x-1 transition-transform inline-block">→</span>
-                    </span>
+                    <div className="flex items-center gap-2.5">
+                        <button
+                            onClick={e => {
+                                e.stopPropagation();
+                                onAddToCart?.(course);
+                            }}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-emerald/10 hover:bg-emerald text-emerald hover:text-white rounded-lg text-[10px] uppercase tracking-wider font-extrabold transition-all border border-emerald/10"
+                            title="Add to Cart"
+                        >
+                            <ShoppingCart className="w-3.5 h-3.5" />
+                            Add
+                        </button>
+                        <span className="text-xs font-bold text-gold hover:text-gold-dark flex items-center gap-1 transition-colors">
+                            Learn More <span className="group-hover:translate-x-1 transition-transform inline-block">→</span>
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>

@@ -33,7 +33,57 @@ export const getCart = async () => {
     }
     // Build guest cart with basic structure
     const items = getGuestCart();
-    return { items, count: items.length, subtotal: 0 };
+    if (items.length === 0) {
+        return { items: [], count: 0, subtotal: 0 };
+    }
+    try {
+        const coursesRes = await api.get('/courses/list?size=50');
+        const courses = coursesRes?.data?.courses || coursesRes?.courses || (Array.isArray(coursesRes?.data) ? coursesRes.data : []);
+        
+        let products = [];
+        if (items.some(i => i.productType === 'PRODUCT')) {
+            try {
+                const productsRes = await api.get('/products');
+                products = productsRes?.data?.products || productsRes?.products || (Array.isArray(productsRes?.data) ? productsRes.data : []);
+            } catch (err) {
+                console.warn('Failed to fetch guest products:', err);
+            }
+        }
+        
+        const enrichedItems = items.map(item => {
+            if (item.productType === 'COURSE') {
+                const c = courses.find(course => course.id === item.productId);
+                if (c) {
+                    return {
+                        ...item,
+                        title: c.courseTitle || c.title,
+                        price: c.coursePrice ?? c.price ?? 0,
+                        thumbnail: c.thumbnailUrl,
+                        instructor: c.instructorName,
+                        category: c.courseCategory,
+                    };
+                }
+            } else {
+                const p = products.find(prod => prod.id === item.productId);
+                if (p) {
+                    return {
+                        ...item,
+                        title: p.title,
+                        price: p.price ?? 0,
+                        thumbnail: p.previewUrl,
+                        type: p.type,
+                    };
+                }
+            }
+            return item;
+        });
+        
+        const subtotal = enrichedItems.reduce((sum, item) => sum + (typeof item.price === 'number' ? item.price : 0), 0);
+        return { items: enrichedItems, count: enrichedItems.length, subtotal };
+    } catch (e) {
+        console.error('Failed to enrich guest cart:', e);
+        return { items, count: items.length, subtotal: 0 };
+    }
 };
 
 /**

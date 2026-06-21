@@ -141,19 +141,44 @@ public class PaymentController {
                     .or(() -> userRepo.findByPhoneNo(userEmail.trim()))
                     .orElseThrow(() -> new RuntimeException("User not found: " + userEmail));
 
+            boolean isCart = req.isCart() != null && req.isCart();
             int amountPaise = 0;
             String productId = req.productId();
-            String courseId = req.courseId();
+            final String finalCourseId = req.courseId();
+            String courseId = finalCourseId;
 
-            if (courseId != null && !courseId.trim().isEmpty()) {
+            if (isCart) {
+                List<CartItem> cartItems = cartItemRepo.findByUserId(user.getId());
+                if (cartItems.isEmpty()) {
+                    return ResponseEntity.badRequest().body(ApiResponseDTO.builder()
+                            .success(false).message("Cart is empty").build());
+                }
+                double subtotal = 0.0;
+                for (CartItem item : cartItems) {
+                    if ("COURSE".equals(item.getProductType())) {
+                        Optional<Courses> c = courseRepo.findById(item.getProductId());
+                        if (c.isPresent()) {
+                            subtotal += c.get().getCoursePrice();
+                        }
+                    } else {
+                        Optional<Product> p = productRepo.findById(item.getProductId());
+                        if (p.isPresent()) {
+                            subtotal += p.get().getPrice();
+                        }
+                    }
+                }
+                double total = subtotal * 1.18;
+                amountPaise = (int) Math.round(total * 100);
+                courseId = "CART";
+            } else if (courseId != null && !courseId.trim().isEmpty()) {
                 Courses course = courseRepo.findById(courseId)
-                        .orElseThrow(() -> new RuntimeException("Course not found: " + courseId));
+                        .orElseThrow(() -> new RuntimeException("Course not found: " + finalCourseId));
                 amountPaise = (int) Math.round(course.getCoursePrice() * 100);
             } else if (req.amountPaise() != null) {
                 amountPaise = req.amountPaise();
             } else {
                 return ResponseEntity.badRequest().body(ApiResponseDTO.builder()
-                        .success(false).message("Invalid request: courseId or amountPaise is required.").build());
+                        .success(false).message("Invalid request: courseId, amountPaise, or isCart is required.").build());
             }
 
             RazorpayClient client = new RazorpayClient(razorpayKeyId, razorpayKeySecret);
@@ -256,12 +281,26 @@ public class PaymentController {
                 p.setPaymentId(req.razorpayPaymentId());
                 paymentRepo.save(p);
 
-                unlockCourse(user.getId(), p.getCourseId(), req.razorpayOrderId());
-                resolvedAmount = p.getAmount();
+                if ("CART".equals(p.getCourseId())) {
+                    List<CartItem> cartItems = cartItemRepo.findByUserId(user.getId());
+                    for (CartItem item : cartItems) {
+                        if ("COURSE".equals(item.getProductType())) {
+                            unlockCourse(user.getId(), item.getProductId(), req.razorpayOrderId());
+                        } else {
+                            unlockProduct(user.getId(), item.getProductId(), req.razorpayOrderId());
+                        }
+                    }
+                    cartItemRepo.deleteByUserId(user.getId());
+                    resolvedProductName = "BodhGanga Cart Purchase (" + cartItems.size() + " items)";
+                    resolvedAmount = p.getAmount();
+                } else {
+                    unlockCourse(user.getId(), p.getCourseId(), req.razorpayOrderId());
+                    resolvedAmount = p.getAmount();
 
-                Optional<Courses> courseOpt = courseRepo.findById(p.getCourseId());
-                if (courseOpt.isPresent()) {
-                    resolvedProductName = courseOpt.get().getCourseTitle();
+                    Optional<Courses> courseOpt = courseRepo.findById(p.getCourseId());
+                    if (courseOpt.isPresent()) {
+                        resolvedProductName = courseOpt.get().getCourseTitle();
+                    }
                 }
             } else {
                 // Notes/product payment
@@ -647,25 +686,52 @@ public class PaymentController {
                         p.setPaymentId(paymentId);
                         paymentRepo.save(p);
 
-                        unlockCourse(p.getUserId(), p.getCourseId(), orderId);
+                        if ("CART".equals(p.getCourseId())) {
+                            List<CartItem> cartItems = cartItemRepo.findByUserId(p.getUserId());
+                            for (CartItem item : cartItems) {
+                                if ("COURSE".equals(item.getProductType())) {
+                                    unlockCourse(p.getUserId(), item.getProductId(), orderId);
+                                } else {
+                                    unlockProduct(p.getUserId(), item.getProductId(), orderId);
+                                }
+                            }
+                            cartItemRepo.deleteByUserId(p.getUserId());
 
-                        // Send confirmation email
-                        try {
-                            final Double courseAmount = p.getAmount();
-                            userRepo.findById(p.getUserId()).ifPresent(user -> {
-                                String courseTitle = "Course";
-                                Optional<Courses> courseOpt = courseRepo.findById(p.getCourseId());
-                                if (courseOpt.isPresent()) {
-                                    courseTitle = courseOpt.get().getCourseTitle();
-                                }
-                                try {
-                                    emailService.sendOrderConfirmation(user.getEmail(), orderId, courseTitle, courseAmount);
-                                } catch (Exception ex) {
-                                    log.error("Failed to send course order confirmation email: {}", ex.getMessage());
-                                }
-                            });
-                        } catch (Exception ex) {
-                            log.error("Failed to process webhook email sending: {}", ex.getMessage());
+                            // Send confirmation email
+                            try {
+                                final Double cartAmount = p.getAmount();
+                                userRepo.findById(p.getUserId()).ifPresent(user -> {
+                                    String cartTitle = "Cart Purchase (" + cartItems.size() + " items)";
+                                    try {
+                                        emailService.sendOrderConfirmation(user.getEmail(), orderId, cartTitle, cartAmount);
+                                    } catch (Exception ex) {
+                                        log.error("Failed to send cart order confirmation email: {}", ex.getMessage());
+                                    }
+                                });
+                            } catch (Exception ex) {
+                                log.error("Failed to process webhook email sending for cart: {}", ex.getMessage());
+                            }
+                        } else {
+                            unlockCourse(p.getUserId(), p.getCourseId(), orderId);
+
+                            // Send confirmation email
+                            try {
+                                final Double courseAmount = p.getAmount();
+                                userRepo.findById(p.getUserId()).ifPresent(user -> {
+                                    String courseTitle = "Course";
+                                    Optional<Courses> courseOpt = courseRepo.findById(p.getCourseId());
+                                    if (courseOpt.isPresent()) {
+                                        courseTitle = courseOpt.get().getCourseTitle();
+                                    }
+                                    try {
+                                        emailService.sendOrderConfirmation(user.getEmail(), orderId, courseTitle, courseAmount);
+                                    } catch (Exception ex) {
+                                        log.error("Failed to send course order confirmation email: {}", ex.getMessage());
+                                    }
+                                });
+                            } catch (Exception ex) {
+                                log.error("Failed to process webhook email sending: {}", ex.getMessage());
+                            }
                         }
                     }
                 } else {
@@ -733,7 +799,8 @@ public class PaymentController {
     public record CreateOrderRequest(
         Integer amountPaise,
         String productId,
-        String courseId
+        String courseId,
+        Boolean isCart
     ) {}
 
     public record VerifyPaymentRequest(

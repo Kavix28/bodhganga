@@ -9,11 +9,13 @@ import { useFavorites } from '../hooks/useFavorites';
 import SkeletonLoader from '../components/common/SkeletonLoader';
 import CourseCard from '../components/ui/CourseCard';
 import EmptyState from '../components/ui/EmptyState';
+import { useCart } from '../context/CartContext';
 
 const Courses = () => {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const { isFavorite, toggleFavorite } = useFavorites('courses');
+    const { addToCart } = useCart();
 
     const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
     const debouncedSearch = useDebounce(searchQuery, 400);
@@ -123,6 +125,7 @@ const Courses = () => {
                                 isFavorite={isFavorite(course.id)}
                                 onFavorite={() => toggleFavorite(course.id)}
                                 onClick={id => navigate(`/courses/${id}`)}
+                                onAddToCart={c => addToCart(c.id, 'COURSE', c.courseTitle || c.title)}
                             />
                         ))}
                     </div>
