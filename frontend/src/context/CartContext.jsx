@@ -31,13 +31,15 @@ export const CartProvider = ({ children }) => {
         }
     }, []); // Only on mount
 
-    const addToCart = useCallback(async (productId, productType = 'COURSE', productName = '') => {
+    const addToCart = useCallback(async (itemOrId, productType = 'COURSE', productName = '') => {
         setLoading(true);
         try {
-            const result = await svcAdd(productId, productType);
+            const result = await svcAdd(itemOrId, productType);
             setCartCount(Number(result?.cartCount) || 0);
             await refreshCount(); // Ensure accurate count
-            toast.success(`${productName || 'Item'} added to cart!`);
+            
+            const name = typeof itemOrId === 'object' ? itemOrId.name : productName;
+            toast.success(`${name || 'Item'} added to cart!`);
             return true;
         } catch (err) {
             if (err?.message?.includes('already own')) {

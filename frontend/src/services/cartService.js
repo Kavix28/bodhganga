@@ -33,7 +33,12 @@ export const getCart = async () => {
     }
     // Build guest cart with basic structure
     const items = getGuestCart();
-    if (items.length === 0) {
+    let bundles = [];
+    try {
+        bundles = JSON.parse(localStorage.getItem('bundleCart') || '[]');
+    } catch (e) {}
+
+    if (items.length === 0 && bundles.length === 0) {
         return { items: [], count: 0, subtotal: 0 };
     }
     try {
@@ -78,11 +83,13 @@ export const getCart = async () => {
             return item;
         });
         
-        const subtotal = enrichedItems.reduce((sum, item) => sum + (typeof item.price === 'number' ? item.price : 0), 0);
-        return { items: enrichedItems, count: enrichedItems.length, subtotal };
+        const allItems = [...enrichedItems, ...bundles];
+        const subtotal = allItems.reduce((sum, item) => sum + (typeof item.price === 'number' ? item.price : 0), 0);
+        return { items: allItems, count: allItems.length, subtotal };
     } catch (e) {
         console.error('Failed to enrich guest cart:', e);
-        return { items, count: items.length, subtotal: 0 };
+        const allItems = [...items, ...bundles];
+        return { items: allItems, count: allItems.length, subtotal: bundles.reduce((sum, item) => sum + (item.price || 0), 0) };
     }
 };
 
@@ -93,7 +100,11 @@ export const getCartCount = async () => {
     if (isLoggedIn()) {
         return api.get('/cart/count').then(r => r?.data ?? 0).catch(() => 0);
     }
-    return getGuestCart().length;
+    let bundles = [];
+    try {
+        bundles = JSON.parse(localStorage.getItem('bundleCart') || '[]');
+    } catch (e) {}
+    return getGuestCart().length + bundles.length;
 };
 
 /**
@@ -101,17 +112,48 @@ export const getCartCount = async () => {
  * @param {string} productId
  * @param {string} productType  'COURSE' | 'PRODUCT'
  */
-export const addToCart = async (productId, productType = 'COURSE') => {
-    if (isLoggedIn()) {
-        return api.post('/cart/add', { productId, productType }).then(r => r?.data);
+export const addToCart = async (productIdOrItem, productType = 'COURSE') => {
+    let itemObj = null;
+    let productId = null;
+    let type = productType;
+
+    if (typeof productIdOrItem === 'object' && productIdOrItem !== null) {
+        itemObj = productIdOrItem;
+        productId = itemObj.productId;
+        type = itemObj.type || productType;
+    } else {
+        productId = productIdOrItem;
     }
+
+    if (isLoggedIn()) {
+        const payload = itemObj ? itemObj : { productId, productType: type };
+        return api.post('/cart/add', payload).then(r => r?.data);
+    }
+    
     // Guest mode
+    if (type === 'BUNDLE') {
+        let bundles = [];
+        try {
+            bundles = JSON.parse(localStorage.getItem('bundleCart') || '[]');
+        } catch(e) {}
+        if (!bundles.find(i => i.productId === productId)) {
+            bundles.push({ ...itemObj, addedAt: new Date().toISOString() });
+            localStorage.setItem('bundleCart', JSON.stringify(bundles));
+        }
+        const cart = getGuestCart();
+        return { cartCount: cart.length + bundles.length };
+    }
+
     const cart = getGuestCart();
     if (!cart.find(i => i.productId === productId)) {
-        cart.push({ productId, productType, addedAt: new Date().toISOString() });
+        cart.push({ productId, productType: type, addedAt: new Date().toISOString() });
         setGuestCart(cart);
     }
-    return { cartCount: cart.length };
+    let bundles = [];
+    try {
+        bundles = JSON.parse(localStorage.getItem('bundleCart') || '[]');
+    } catch(e) {}
+    return { cartCount: cart.length + bundles.length };
 };
 
 /**
@@ -124,7 +166,17 @@ export const removeFromCart = async (productId) => {
     }
     const cart = getGuestCart().filter(i => i.productId !== productId);
     setGuestCart(cart);
-    return { cartCount: cart.length };
+    
+    let bundles = [];
+    try {
+        bundles = JSON.parse(localStorage.getItem('bundleCart') || '[]');
+    } catch(e) {}
+    const newBundles = bundles.filter(i => i.productId !== productId);
+    if (newBundles.length !== bundles.length) {
+        localStorage.setItem('bundleCart', JSON.stringify(newBundles));
+    }
+    
+    return { cartCount: cart.length + newBundles.length };
 };
 
 /**
@@ -135,6 +187,7 @@ export const clearCart = async () => {
         return api.delete('/cart/clear').then(r => r?.data);
     }
     setGuestCart([]);
+    localStorage.removeItem('bundleCart');
     return { cartCount: 0 };
 };
 
@@ -143,10 +196,17 @@ export const clearCart = async () => {
  */
 export const mergeGuestCart = async () => {
     const guestItems = getGuestCart();
-    if (guestItems.length === 0) return;
+    let bundles = [];
     try {
-        await api.post('/cart/merge', { items: guestItems });
+        bundles = JSON.parse(localStorage.getItem('bundleCart') || '[]');
+    } catch(e) {}
+
+    const allItems = [...guestItems, ...bundles];
+    if (allItems.length === 0) return;
+    try {
+        await api.post('/cart/merge', { items: allItems });
         setGuestCart([]); // Clear guest cart after merge
+        localStorage.removeItem('bundleCart');
     } catch (e) {
         console.warn('Cart merge failed:', e);
     }
