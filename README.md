@@ -1,6 +1,6 @@
 # BodhGanga Academy
 
-> India's premier platform for government exam preparation — covering all 28 States and 8 Union Territories.
+> India's premier platform for government exam preparation — covering all 28 States and 8 Union Territories
 
 [![CI](https://github.com/your-org/bodhganga/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/bodhganga/actions)
 ![Java](https://img.shields.io/badge/Java-17-orange)
