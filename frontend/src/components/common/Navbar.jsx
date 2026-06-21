@@ -1,7 +1,7 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { FiUser, FiLogOut, FiMenu, FiX, FiChevronDown } from 'react-icons/fi';
-import { BookOpen, MapPin, LayoutDashboard, ShoppingCart, Receipt } from 'lucide-react';
+import { BookOpen, MapPin, LayoutDashboard, ShoppingCart, Receipt, Heart } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useCart } from '../../context/CartContext';
 import Logo from './Logo';
@@ -151,6 +151,9 @@ const Navbar = () => {
                                         <Link to="/library" className="flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 hover:text-gold transition-colors">
                                             <BookOpen className="w-4 h-4" /> My Library
                                         </Link>
+                                        <Link to="/wishlist" className="flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 hover:text-gold transition-colors">
+                                            <Heart className="w-4 h-4" /> My Wishlist
+                                        </Link>
                                         <Link to="/dashboard" className="flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 hover:text-gold transition-colors">
                                             <LayoutDashboard className="w-4 h-4" /> Dashboard
                                         </Link>
@@ -224,13 +227,16 @@ const Navbar = () => {
                         <div className="border-t border-gold/10 pt-4 mt-4">
                             {isAuthenticated ? (
                                 <>
-                                    <div className="px-4 py-2 text-[10px] text-gold/60 font-bold uppercase tracking-widest">{user?.name} · {user?.role}</div>
+                                    <div className="px-4 py-2 text-[10px] text-gold/60 font-bold uppercase tracking-widest">{user?.name} Â· {user?.role}</div>
                                     <Link to="/profile" onClick={() => setMobileOpen(false)} className="flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 border border-transparent">
                                         <FiUser className="w-4 h-4" /> My Profile
                                     </Link>
                                     <Link to="/library" onClick={() => setMobileOpen(false)} className="flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 border border-transparent">
                                         <BookOpen className="w-4 h-4" /> My Library
                                     </Link>
+<Link to="/wishlist" onClick={() => setMobileOpen(false)} className="flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 border border-transparent">
+    <Heart className="w-4 h-4" /> My Wishlist
+</Link>
                                     <Link to="/orders" onClick={() => setMobileOpen(false)} className="flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 border border-transparent">
                                         <Receipt className="w-4 h-4" /> My Orders
                                     </Link>
@@ -247,7 +253,7 @@ const Navbar = () => {
                             ) : (
                                 <div className="flex flex-col gap-3 px-2">
                                     <Link to="/login" className="text-center py-3 text-xs font-bold uppercase tracking-wider text-white hover:text-gold">Sign In</Link>
-                                    <Link to="/register" className="text-center py-4 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-bold text-xs uppercase tracking-widest rounded-xl shadow-lg">Get Started – Free</Link>
+                                    <Link to="/register" className="text-center py-4 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-bold text-xs uppercase tracking-widest rounded-xl shadow-lg">Get Started Â– Free</Link>
                                 </div>
                             )}
                         </div>

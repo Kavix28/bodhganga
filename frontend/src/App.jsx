@@ -48,6 +48,7 @@ const OrderHistory     = lazy(() => import('./pages/OrderHistory'));
 const Library          = lazy(() => import('./pages/Library'));
 const FreeResources    = lazy(() => import('./pages/FreeResources'));
 const AiCompanionPage  = lazy(() => import('./pages/AiCompanionPage'));
+const Wishlist         = lazy(() => import('./pages/Wishlist'));
 
 // Old Store Pages (kept so old /store URLs redirect cleanly)
 const StatePage        = lazy(() => import('./pages/StatePage'));
@@ -149,6 +150,7 @@ function App() {
                                             <Route path="/question-bank"  element={<ProtectedRoute><QuestionBank /></ProtectedRoute>} />
                                             <Route path="/subjects"       element={<ProtectedRoute><Subjects /></ProtectedRoute>} />
                                             <Route path="/cart"           element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+                                            <Route path="/wishlist"       element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
                                             <Route path="/orders"         element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
                                             <Route path="/library"        element={<ProtectedRoute><Library /></ProtectedRoute>} />
                                             <Route path="/free-resources" element={<ProtectedRoute><FreeResources /></ProtectedRoute>} />

@@ -24,5 +24,5 @@ export const useFavorites = (namespace = 'items') => {
 
     const isFavorite = useCallback((id) => favorites.has(id), [favorites]);
 
-    return { isFavorite, toggleFavorite };
+    return { isFavorite, toggleFavorite, favorites };
 };
