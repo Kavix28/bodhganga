@@ -24,6 +24,8 @@ const VerifyMobileOtp  = lazy(() => import('./pages/VerifyMobileOtp'));
 const Login            = lazy(() => import('./pages/Login'));
 const ForgotPassword   = lazy(() => import('./pages/ForgotPassword'));
 const Dashboard        = lazy(() => import('./pages/Dashboard'));
+const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
+const StudentDiscussion = lazy(() => import('./pages/StudentDiscussion'));
 const Courses          = lazy(() => import('./pages/Courses'));
 const CourseDetail     = lazy(() => import('./pages/CourseDetail'));
 const CoursePlayer     = lazy(() => import('./pages/CoursePlayer'));
@@ -122,6 +124,8 @@ function App() {
                                             <Route path="/login"          element={<Login />} />
                                             <Route path="/forgot-password" element={<ForgotPassword />} />
                                             <Route path="/error"          element={<ErrorPage />} />
+                                            <Route path="/dev/dashboard"  element={<StudentDashboard />} />
+                                            <Route path="/dev/discussion" element={<StudentDiscussion />} />
 
                                             {/* ── Old states/UTs routes — kept for backward compat ── */}
                                             <Route path="/states"         element={<ProtectedRoute><States /></ProtectedRoute>} />
@@ -157,6 +161,8 @@ function App() {
                                             <Route path="/checkout"       element={<ProtectedRoute><NotFound /></ProtectedRoute>} />
                                             <Route path="/payment"        element={<ProtectedRoute><NotFound /></ProtectedRoute>} />
                                             <Route path="/dashboard"      element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                                            <Route path="/student/dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
+                                            <Route path="/student/discussion" element={<ProtectedRoute><StudentDiscussion /></ProtectedRoute>} />
                                             <Route path="/courses"        element={<ProtectedRoute><Courses /></ProtectedRoute>} />
                                             <Route path="/courses/:id"    element={<ProtectedRoute><CourseDetail /></ProtectedRoute>} />
                                             <Route path="/courses/:courseId/player" element={<ProtectedRoute><CoursePlayer /></ProtectedRoute>} />
