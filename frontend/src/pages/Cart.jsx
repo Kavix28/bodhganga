@@ -22,7 +22,8 @@ const Cart = () => {
             const data = await getCart();
             setCartData(data || { items: [], count: 0, subtotal: 0 });
         } catch {
-            toast.error('Failed to load cart');
+            // silently fall back to empty cart on permission errors
+            setCartData({ items: [], count: 0, subtotal: 0 });
         } finally {
             setLoading(false);
         }
