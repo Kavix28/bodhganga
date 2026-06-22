@@ -23,40 +23,35 @@ function StateCard({ state, onClick }) {
   return (
     <div
       onClick={onClick}
-      className="rounded-xl overflow-hidden border border-gray-700 hover:border-amber-500 cursor-pointer hover:shadow-lg hover:shadow-amber-500/10 transition-all duration-200 group"
+      className="rounded-xl overflow-hidden border border-gray-700 hover:border-amber-500 cursor-pointer hover:shadow-lg hover:shadow-amber-500/10 transition-all duration-200 group relative"
     >
-      <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
-        {!imgErr ? (
-          <img
-            src={`${S3}/${slug}.jpg`}
-            alt={name}
-            onError={() => setImgErr(true)}
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-        ) : (
-          <div
-            className={`absolute inset-0 bg-gradient-to-br ${grad} flex items-center justify-center`}
-          >
-            <span className="text-4xl font-bold text-white/20 font-serif">
-              {name.charAt(0)}
-            </span>
-          </div>
-        )}
-        <div className="absolute top-2 right-2">
-          <span className="text-xs bg-amber-500 text-black px-2 py-0.5 rounded-full font-bold shadow">
-            Available
+      {!imgErr ? (
+        <img
+          src={`${S3}/${slug}.jpg`}
+          alt={name}
+          onError={() => setImgErr(true)}
+          className="w-full object-contain block"
+        />
+      ) : (
+        <div className={`w-full h-48 bg-gradient-to-br ${grad} flex items-center justify-center`}>
+          <span className="text-4xl font-bold text-white/20 font-serif">
+            {name.charAt(0)}
           </span>
         </div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+      )}
+      <div className="absolute top-2 right-2">
+        <span className="text-xs bg-amber-500 text-black px-2 py-0.5 rounded-full font-bold shadow">
+          Available
+        </span>
       </div>
-      <div className="bg-gray-900 px-4 py-3">
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-4 py-3">
         <div className="flex justify-between items-center">
           <h2 className="text-sm font-bold text-white">{name}</h2>
           <span className="text-amber-400 text-xs group-hover:translate-x-0.5 transition-transform">
             &rarr;
           </span>
         </div>
-        <p className="text-gray-500 text-xs mt-0.5">
+        <p className="text-white/60 text-xs mt-0.5">
           {state.notesCount != null ? `${state.notesCount} resources` : ""}
         </p>
       </div>
