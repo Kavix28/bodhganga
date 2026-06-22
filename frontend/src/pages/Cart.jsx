@@ -46,57 +46,77 @@ const Cart = () => {
         if (cartData.items.length === 0) return;
         setCheckingOut(true);
         try {
-            const orderPayload = {
-                amountPaise: Math.round(total * 100),
-                isCart: true
-            };
-
-            const orderRes = await api.post('/payment/create-order', orderPayload);
-            if (!orderRes?.success) throw new Error(orderRes?.message || 'Order creation failed');
-
+            const bundleItems = cartData.items.filter(i => i.type === "BUNDLE");
+            const orderPayload = bundleItems.length > 0
+                ? { amountPaise: Math.round(total * 100), isCart: false }
+                : { amountPaise: Math.round(total * 100), isCart: true };
+            const orderRes = await api.post("/payment/create-order", orderPayload);
+            if (!orderRes?.success) throw new Error(orderRes?.message || "Order creation failed");
             const { orderId, amount, currency, keyId } = orderRes.data;
-
             const options = {
                 key: keyId,
                 amount,
                 currency,
-                name: 'BodhGanga',
-                description: `Cart Checkout (${cartData.items.length} item${cartData.items.length > 1 ? 's' : ''})`,
+                name: "BodhGanga",
+                description: bundleItems.length > 0
+                    ? `District Bundle (${bundleItems.length} district${bundleItems.length > 1 ? "s" : ""})`
+                    : `Cart Checkout (${cartData.items.length} items)`,
                 order_id: orderId,
                 handler: async (response) => {
                     try {
-                        const verifyRes = await api.post('/payment/verify', {
-                            razorpayOrderId: response.razorpay_order_id,
-                            razorpayPaymentId: response.razorpay_payment_id,
-                            razorpaySignature: response.razorpay_signature
-                        });
-                        if (verifyRes?.success) {
-                            await clearCart();
-                            await refreshCount();
-                            toast.success('Payment successful! Your courses and items are unlocked.');
-                            navigate('/orders');
+                        if (bundleItems.length > 0) {
+                            for (const bundle of bundleItems) {
+                                if (bundle.files && bundle.files.length > 0) {
+                                    for (const file of bundle.files) {
+                                        await api.post("/payment/verify", {
+                                            razorpayOrderId: response.razorpay_order_id,
+                                            razorpayPaymentId: response.razorpay_payment_id,
+                                            razorpaySignature: response.razorpay_signature,
+                                            productId: file._id || file.id
+                                        });
+                                    }
+                                } else {
+                                    await api.post("/payment/verify", {
+                                        razorpayOrderId: response.razorpay_order_id,
+                                        razorpayPaymentId: response.razorpay_payment_id,
+                                        razorpaySignature: response.razorpay_signature,
+                                        productId: bundle.districtSlug
+                                    });
+                                }
+                            }
+                            localStorage.removeItem("bundleCart");
                         } else {
-                            toast.error('Payment verification failed.');
+                            const verifyRes = await api.post("/payment/verify", {
+                                razorpayOrderId: response.razorpay_order_id,
+                                razorpayPaymentId: response.razorpay_payment_id,
+                                razorpaySignature: response.razorpay_signature
+                            });
+                            if (!verifyRes?.success) {
+                                toast.error("Payment verification failed.");
+                                return;
+                            }
                         }
+                        await clearCart();
+                        await refreshCount();
+                        toast.success("Payment successful! Your district notes are unlocked.");
+                        navigate("/orders");
                     } catch {
-                        toast.error('Payment verification error. Contact support.');
+                        toast.error("Payment verification error. Contact support.");
                     }
                 },
                 prefill: {},
-                theme: { color: '#C9A961' },
+                theme: { color: "#C9A961" },
                 modal: { ondismiss: () => setCheckingOut(false) },
             };
-
             if (!window.Razorpay) {
-                toast.error('Payment gateway not loaded. Refresh the page and try again.');
+                toast.error("Payment gateway not loaded. Refresh the page and try again.");
                 setCheckingOut(false);
                 return;
             }
-
             const rzp = new window.Razorpay(options);
             rzp.open();
         } catch (err) {
-            toast.error(err?.message || 'Checkout failed. Please try again.');
+            toast.error(err?.message || "Checkout failed. Please try again.");
             setCheckingOut(false);
         }
     };
