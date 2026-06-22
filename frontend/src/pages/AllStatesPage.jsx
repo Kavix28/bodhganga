@@ -55,7 +55,7 @@ const GRADIENTS = [
   ["#2d1b69", "#6d28d9"],  // violet
 ];
 
-const S3_BASE = "https://bodhganga-pdf-storage-prod.s3.eu-north-1.amazonaws.com/state-covers";
+
 
 const STATE_IMAGE_MAP = {
   "andhra-pradesh":            "AndhraPradesh-image.png",
