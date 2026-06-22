@@ -385,6 +385,12 @@ const Landing = () => {
                                     <Globe className="w-4 h-4 text-gold" />
                                     Explore 36 Regions
                                 </Link>
+                                <Link
+                                    to="/explore"
+                                    className="flex items-center justify-center gap-2.5 px-8 py-4 bg-white/5 border border-amber-400/30 hover:border-amber-400/60 text-amber-400 font-bold text-xs uppercase tracking-widest rounded-2xl backdrop-blur-md hover:bg-amber-400/10 transition-all duration-300"
+                                >
+                                    Explore Coverage Map
+                                </Link>
                             </div>
 
                             {/* Trust signals */}
