@@ -77,13 +77,7 @@ function ResourceModal({ resource, onClose }) {
       <div className="w-full h-full flex flex-col items-center justify-center gap-4">
         <div className="text-6xl">📎</div>
         <p className="text-gray-400">Preview not available for this file type.</p>
-        <a
-          href={url}
-          download
-          className="bg-amber-500 hover:bg-amber-400 text-black font-bold py-2 px-6 rounded-lg"
-        >
-          Download File
-        </a>
+        
       </div>
     );
   };
@@ -108,15 +102,7 @@ function ResourceModal({ resource, onClose }) {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0 ml-4">
-            <a
-              href={url}
-              download
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold rounded-lg transition-colors"
-            >
-              ⬇ Download
-            </a>
+            
             <button
               onClick={onClose}
               className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors text-lg leading-none"
@@ -272,4 +258,5 @@ export default function DistrictResourcesPage() {
     </div>
   );
 }
+
 
