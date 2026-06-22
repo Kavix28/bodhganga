@@ -125,7 +125,7 @@ export const addToCart = async (productIdOrItem, productType = 'COURSE') => {
         productId = productIdOrItem;
     }
 
-    if (isLoggedIn()) {
+    if (isLoggedIn() && type !== 'BUNDLE') {
         const payload = itemObj ? itemObj : { productId, productType: type };
         return api.post('/cart/add', payload).then(r => r?.data);
     }
