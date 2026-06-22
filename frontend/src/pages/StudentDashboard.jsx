@@ -79,12 +79,12 @@ const ActivityTooltip = ({ active, payload, label }) => {
 
 const StudentDashboard = () => {
     return (
-        <div className="min-h-screen bg-[#0f2518] text-[#e8e0d0] font-sans pb-16">
+        <div className="min-h-screen bg-[#e5e7eb] text-[#374151] font-sans pb-16">
             
             {/* ── 1. Welcome Header Banner ─────────────────────────────────── */}
-            <header className="bg-gradient-to-r from-[#1a3a2a] to-[#0f2518] border-b border-[#C9A84C]/20 py-8 px-6 md:px-12 relative overflow-hidden">
+            <header className="bg-[#0f2518] border-b border-[#C9A84C]/20 py-8 px-6 md:px-12 relative overflow-hidden">
                 <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(#C9A84C_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10 text-[#e8e0d0]">
                     <div className="space-y-2">
                         <h1 className="text-3xl md:text-4xl font-bold font-serif text-[#C9A84C]">
                             Namaste, {WELCOME_INFO.name} 🙏
@@ -98,7 +98,7 @@ const StudentDashboard = () => {
                         <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-[#C9A84C] to-[#8A7032] flex items-center justify-center text-[#0f2518] font-serif font-black text-lg shadow-md">
                             {WELCOME_INFO.initials}
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-1 text-left">
                             <div className="flex items-center gap-2">
                                 <span className="text-xs font-bold text-[#C9A84C] uppercase tracking-widest">Aspirant Workspace</span>
                                 <button className="p-1 hover:bg-[#C9A84C]/10 rounded-lg transition-colors group">
@@ -118,13 +118,13 @@ const StudentDashboard = () => {
                 {/* ── 2. Stats Row ────────────────────────────────────────────── */}
                 <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     {STATS_CARDS.map((stat) => (
-                        <div key={stat.id} className="bg-[#1a3a2a] border border-[#C9A84C]/20 border-t-2 border-t-[#C9A84C] rounded-2xl p-6 hover:-translate-y-1 hover:shadow-lg hover:border-[#C9A84C]/45 transition-all duration-300 flex flex-col justify-between h-32 relative overflow-hidden group">
+                        <div key={stat.id} className="bg-[#1a3a2a] border border-[#C9A84C]/20 border-t-2 border-t-[#C9A84C] rounded-2xl p-6 hover:-translate-y-1 hover:shadow-lg hover:border-[#C9A84C]/45 transition-all duration-300 flex flex-col justify-between h-32 relative overflow-hidden group shadow-md">
                             <div className="absolute inset-0 bg-[#C9A84C]/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                             <div className="flex items-center justify-between">
                                 <span className="text-[11px] text-[#a0a0a0] font-bold uppercase tracking-wider">{stat.label}</span>
                                 <span className="text-xl">{stat.emoji}</span>
                             </div>
-                            <div className="text-3xl font-extrabold text-[#ffffff] font-serif tracking-tight mt-3">
+                            <div className="text-3xl font-extrabold text-white font-serif tracking-tight mt-3">
                                 {stat.value}
                             </div>
                         </div>
@@ -140,23 +140,23 @@ const StudentDashboard = () => {
                         {/* ── 3. Course Progress Grid ────────────────────────── */}
                         <section className="space-y-4">
                             <div className="flex items-center justify-between">
-                                <h2 className="text-xl font-bold font-serif text-[#C9A84C] uppercase tracking-wide">
+                                <h2 className="text-xl font-bold font-serif text-[#0f2518] uppercase tracking-wide">
                                     My Courses
                                 </h2>
-                                <Link to="/courses" className="text-xs font-bold text-[#C9A84C] hover:underline flex items-center gap-1">
+                                <Link to="/courses" className="text-xs font-bold text-[#0f2518] hover:underline flex items-center gap-1">
                                     View Syllabus Catalog <ArrowRight className="w-3 h-3" />
                                 </Link>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {MY_COURSES.map((course) => (
-                                    <div key={course.id} className="bg-[#1a3a2a] border border-[#C9A84C]/20 rounded-2xl p-5 flex flex-col justify-between hover:border-[#C9A84C]/45 transition-all duration-300 group">
+                                    <div key={course.id} className="bg-[#1a3a2a] border border-[#C9A84C]/20 rounded-2xl p-5 flex flex-col justify-between hover:border-[#C9A84C]/45 transition-all duration-300 group shadow-lg text-[#e8e0d0]">
                                         <div className="space-y-2">
                                             <div className="flex justify-between items-start gap-2">
-                                                <h3 className="font-bold text-[#ffffff] text-base font-serif tracking-wide leading-tight group-hover:text-[#C9A84C] transition-colors">
+                                                <h3 className="font-bold text-white text-base font-serif tracking-wide leading-tight group-hover:text-[#C9A84C] transition-colors">
                                                     {course.title}
                                                 </h3>
-                                                <span className="bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/20 text-[9px] uppercase font-bold px-2 py-0.5 rounded-full flex-shrink-0">
+                                                <span className="bg-[#C9A84C]/10 text-[#C9A84C] border border-[#C9A84C]/25 text-[9px] uppercase font-bold px-2 py-0.5 rounded-full flex-shrink-0">
                                                     {course.category}
                                                 </span>
                                             </div>
@@ -181,7 +181,7 @@ const StudentDashboard = () => {
 
                                         <Link 
                                             to={`/courses/${course.id}/player`} 
-                                            className="w-full py-2 border border-[#C9A84C] text-[#C9A84C] hover:bg-[#C9A84C] hover:text-[#0f2518] font-bold text-xs uppercase tracking-widest rounded-lg transition-all duration-300 flex items-center justify-center gap-1.5 active:scale-95"
+                                            className="w-full py-2 border border-[#C9A84C] text-[#C9A84C] hover:bg-[#C9A84C] hover:text-[#0f2518] font-bold text-xs uppercase tracking-widest rounded-lg transition-all duration-300 flex items-center justify-center gap-1.5 active:scale-95 shadow-sm"
                                         >
                                             Continue Learning →
                                         </Link>
@@ -192,7 +192,7 @@ const StudentDashboard = () => {
 
                         {/* ── 4. Weekly Study Activity Chart ─────────────────────── */}
                         <section className="space-y-4">
-                            <h2 className="text-xl font-bold font-serif text-[#C9A84C] uppercase tracking-wide">
+                            <h2 className="text-xl font-bold font-serif text-[#0f2518] uppercase tracking-wide">
                                 This Week's Activity
                             </h2>
                             <div className="bg-[#1a3a2a] border border-[#C9A84C]/20 rounded-2xl p-6 shadow-lg">
@@ -228,7 +228,7 @@ const StudentDashboard = () => {
 
                         {/* ── 5. Test Results Table ────────────────────────── */}
                         <section className="space-y-4">
-                            <h2 className="text-xl font-bold font-serif text-[#C9A84C] uppercase tracking-wide">
+                            <h2 className="text-xl font-bold font-serif text-[#0f2518] uppercase tracking-wide">
                                 Recent Results
                             </h2>
                             <div className="bg-[#1a3a2a] border border-[#C9A84C]/20 rounded-2xl overflow-hidden shadow-lg">
@@ -276,7 +276,7 @@ const StudentDashboard = () => {
 
                         {/* ── 6. Achievement Badges ───────────────────────────────── */}
                         <section className="space-y-4">
-                            <h2 className="text-xl font-bold font-serif text-[#C9A84C] uppercase tracking-wide">
+                            <h2 className="text-xl font-bold font-serif text-[#0f2518] uppercase tracking-wide">
                                 Achievements
                             </h2>
                             <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-[#C9A84C]/30 scrollbar-track-transparent">
@@ -290,7 +290,7 @@ const StudentDashboard = () => {
                                         <div className="space-y-3 relative z-10">
                                             <div className="text-4xl">{item.emoji}</div>
                                             <div className="space-y-1">
-                                                <h4 className="font-bold text-sm text-[#ffffff] font-serif tracking-wide">
+                                                <h4 className="font-bold text-sm text-white font-serif tracking-wide">
                                                     {item.title}
                                                 </h4>
                                                 <p className="text-[10px] text-[#a0a0a0] leading-normal font-medium">
@@ -334,7 +334,7 @@ const StudentDashboard = () => {
                                         <div className="flex gap-2">
                                             <span className="w-2 h-2 rounded-full bg-[#C9A84C] mt-1.5 flex-shrink-0 animate-pulse" />
                                             <div className="space-y-1">
-                                                <h4 className="text-sm font-bold text-[#ffffff] leading-tight font-serif">
+                                                <h4 className="text-sm font-bold text-white leading-tight font-serif">
                                                     {item.name}
                                                 </h4>
                                                 <p className="text-xs text-[#a0a0a0] font-semibold">
@@ -357,7 +357,7 @@ const StudentDashboard = () => {
                         </aside>
 
                         {/* Extra motivational banner */}
-                        <div className="bg-gradient-to-br from-[#1a3a2a] to-[#0f2518] border border-[#C9A84C]/25 rounded-2xl p-6 text-center space-y-4 relative overflow-hidden shadow-lg">
+                        <div className="bg-[#1a3a2a] border border-[#C9A84C]/25 rounded-2xl p-6 text-center space-y-4 relative overflow-hidden shadow-lg text-[#e8e0d0]">
                             <div className="absolute inset-0 opacity-[0.02] bg-[radial-gradient(#C9A84C_1px,transparent_1px)] [background-size:12px_12px]" />
                             <div className="w-12 h-12 bg-[#C9A84C]/10 border border-[#C9A84C]/20 rounded-full flex items-center justify-center mx-auto text-[#C9A84C]">
                                 <Award className="w-6 h-6" />

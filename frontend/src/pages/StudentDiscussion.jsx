@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Plus, Send, X, MessageSquare, Heart, ChevronDown, ChevronUp, User, ShieldAlert, Award } from 'lucide-react';
+import { Search, Plus, Send, X, MessageSquare, Heart, ChevronDown, ChevronUp, Award } from 'lucide-react';
 
 // ── Initial Mock Data ─────────────────────────────────────────────
 const INITIAL_COURSES = [
@@ -282,10 +282,10 @@ const StudentDiscussion = () => {
     });
 
     return (
-        <div className="min-h-screen bg-[#0f2518] text-[#e8e0d0] font-sans pb-16">
+        <div className="min-h-screen bg-[#e5e7eb] text-[#374151] font-sans pb-16">
             
             {/* ── Header Section ────────────────────────────────────────── */}
-            <header className="bg-gradient-to-r from-[#1a3a2a] to-[#0f2518] border-b border-[#C9A84C]/20 py-8 px-6 md:px-12 relative overflow-hidden">
+            <header className="bg-[#0f2518] border-b border-[#C9A84C]/20 py-8 px-6 md:px-12 relative overflow-hidden">
                 <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(#C9A84C_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
                 <div className="max-w-7xl mx-auto space-y-6 relative z-10">
                     <div className="space-y-1">
@@ -396,7 +396,7 @@ const StudentDiscussion = () => {
                             <section className="space-y-6">
                                 {/* Header of list panel */}
                                 <div className="flex justify-between items-center">
-                                    <h2 className="text-lg font-bold font-serif text-[#C9A84C] uppercase tracking-wide">
+                                    <h2 className="text-lg font-bold font-serif text-[#0f2518] uppercase tracking-wide">
                                         {selectedCourse ? selectedCourse : 'All Discussions'}
                                     </h2>
                                     <button
@@ -420,7 +420,7 @@ const StudentDiscussion = () => {
                                                 <div 
                                                     key={thread.id} 
                                                     onClick={() => handleToggleExpand(thread.id)}
-                                                    className="bg-[#1a3a2a] border-l-4 border-l-[#C9A84C] border border-[#C9A84C]/25 rounded-2xl p-5 hover:bg-[#1f4230] transition-colors cursor-pointer space-y-4 shadow-lg"
+                                                    className="bg-[#1a3a2a] border-l-4 border-l-[#C9A84C] border border-[#C9A84C]/25 rounded-2xl p-5 hover:bg-[#1f4230] transition-colors cursor-pointer space-y-4 shadow-lg text-[#e8e0d0]"
                                                 >
                                                     {/* Thread Header info */}
                                                     <div className="flex items-center justify-between text-xs text-[#a0a0a0]">
@@ -448,7 +448,7 @@ const StudentDiscussion = () => {
                                                                 {thread.preview}
                                                             </p>
                                                         ) : (
-                                                            <p className="text-xs text-white/90 leading-relaxed whitespace-pre-wrap pt-2 border-t border-[#C9A84C]/10">
+                                                            <p className="text-xs text-white/95 leading-relaxed whitespace-pre-wrap pt-2 border-t border-[#C9A84C]/10">
                                                                 {thread.content}
                                                             </p>
                                                         )}
@@ -482,7 +482,7 @@ const StudentDiscussion = () => {
                                                                             <div className={`rounded-xl p-3 text-xs ${
                                                                                 reply.own 
                                                                                     ? 'bg-[#C9A84C] text-[#0f2518]' 
-                                                                                    : 'bg-[#0f2518] text-white/95 border border-[#C9A84C]/15'
+                                                                                    : 'bg-[#0f2518] text-white/95 border border-[#C9A84C]/10'
                                                                             }`}>
                                                                                 {!reply.own && <p className="font-extrabold text-[9px] mb-1 opacity-70">{reply.author}</p>}
                                                                                 <p className="leading-relaxed">{reply.text}</p>
@@ -550,11 +550,11 @@ const StudentDiscussion = () => {
                         {activeTab === 'mentor' && (
                             <section className="space-y-6">
                                 {/* Banner Info */}
-                                <div className="bg-[#1a3a2a] border border-[#C9A84C]/25 rounded-2xl p-5 flex items-start gap-4 shadow-lg">
+                                <div className="bg-[#1a3a2a] border border-[#C9A84C]/25 rounded-2xl p-5 flex items-start gap-4 shadow-lg text-[#e8e0d0]">
                                     <div className="p-3 bg-[#C9A84C]/10 border border-[#C9A84C]/25 rounded-xl text-[#C9A84C] flex-shrink-0">
                                         <Award className="w-6 h-6" />
                                     </div>
-                                    <div className="space-y-1">
+                                    <div className="space-y-1 text-left">
                                         <h3 className="font-bold text-sm font-serif text-[#C9A84C] uppercase tracking-wide">
                                             🎓 Direct line to your course mentors
                                         </h3>
@@ -567,12 +567,12 @@ const StudentDiscussion = () => {
 
                                 {/* Questions List */}
                                 <div className="space-y-4">
-                                    <h2 className="text-lg font-bold font-serif text-[#C9A84C] uppercase tracking-wide">
+                                    <h2 className="text-lg font-bold font-serif text-[#0f2518] uppercase tracking-wide">
                                         Your Q&A History
                                     </h2>
 
                                     {filteredMentorQuestions.map((q) => (
-                                        <div key={q.id} className="bg-[#1a3a2a] border border-[#C9A84C]/20 rounded-2xl p-5 space-y-4 shadow-lg">
+                                        <div key={q.id} className="bg-[#1a3a2a] border border-[#C9A84C]/20 rounded-2xl p-5 space-y-4 shadow-lg text-[#e8e0d0]">
                                             <div className="flex justify-between items-start gap-2">
                                                 <div className="flex items-center gap-2">
                                                     <div className="w-7 h-7 rounded-full bg-[#C9A84C]/10 flex items-center justify-center text-[#C9A84C] font-mono text-xs font-bold">
@@ -615,7 +615,7 @@ const StudentDiscussion = () => {
                                 </div>
 
                                 {/* Ask a Question Box */}
-                                <form onSubmit={handleAskMentor} className="bg-[#1a3a2a] border border-[#C9A84C]/20 rounded-2xl p-6 space-y-4 shadow-lg">
+                                <form onSubmit={handleAskMentor} className="bg-[#1a3a2a] border border-[#C9A84C]/20 rounded-2xl p-6 space-y-4 shadow-lg text-[#e8e0d0]">
                                     <h3 className="font-bold text-base font-serif text-[#C9A84C] uppercase tracking-wide">
                                         Ask a New Question
                                     </h3>
@@ -677,7 +677,7 @@ const StudentDiscussion = () => {
                     {/* Modal Box */}
                     <form 
                         onSubmit={handleCreateThread}
-                        className="relative z-10 w-full max-w-xl bg-[#1a3a2a] border border-[#C9A84C]/30 rounded-2xl p-6 space-y-4 shadow-2xl"
+                        className="relative z-10 w-full max-w-xl bg-[#1a3a2a] border border-[#C9A84C]/30 rounded-2xl p-6 space-y-4 shadow-2xl text-[#e8e0d0]"
                     >
                         <div className="flex justify-between items-center border-b border-[#C9A84C]/15 pb-3">
                             <h3 className="font-bold text-lg font-serif text-[#C9A84C] uppercase tracking-wide">
