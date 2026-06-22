@@ -29,7 +29,14 @@ const isLoggedIn = () => !!getAuthToken() || !!sessionStorage.getItem('admin_jwt
  */
 export const getCart = async () => {
     if (isLoggedIn()) {
-        return api.get('/cart').then(r => r?.data || { items: [], count: 0, subtotal: 0 });
+        let bundles = [];
+        try {
+            bundles = JSON.parse(localStorage.getItem('bundleCart') || '[]');
+        } catch (e) {}
+        const backendCart = await api.get('/cart').then(r => r?.data || { items: [], count: 0, subtotal: 0 }).catch(() => ({ items: [], count: 0, subtotal: 0 }));
+        const allItems = [...(backendCart.items || []), ...bundles];
+        const subtotal = allItems.reduce((sum, i) => sum + (i.price || 0), 0);
+        return { items: allItems, count: allItems.length, subtotal };
     }
     // Build guest cart with basic structure
     const items = getGuestCart();
