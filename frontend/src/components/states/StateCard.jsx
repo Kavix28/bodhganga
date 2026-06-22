@@ -4,7 +4,44 @@ import { BookOpen, Video, Users, MapPin, ArrowRight, Shield } from 'lucide-react
 
 const StateCard = ({ state }) => {
     const path = state.type === 'UT' ? `/union-territories/${state.id}` : `/states/${state.id}`;
-    const imageUrl = state.images?.[0] || state.thumbnail || `https://picsum.photos/400/250?random=${state.id}`;
+    const stateImageMap = {
+  'andhra-pradesh': new URL('../../assets/states/andhra-pradesh-image.png', import.meta.url).href,
+  'arunachal-pradesh': new URL('../../assets/states/arunachal-pradesh-image.png', import.meta.url).href,
+  'assam': new URL('../../assets/states/assam-image.png', import.meta.url).href,
+  'bihar': new URL('../../assets/states/bihar-image.png', import.meta.url).href,
+  'chhattisgarh': new URL('../../assets/states/chhattisgarh-image.png', import.meta.url).href,
+  'goa': new URL('../../assets/states/goa-image.png', import.meta.url).href,
+  'gujarat': new URL('../../assets/states/gujarat-image.png', import.meta.url).href,
+  'haryana': new URL('../../assets/states/haryana-image.png', import.meta.url).href,
+  'himachal-pradesh': new URL('../../assets/states/himachal-pradesh-image.png', import.meta.url).href,
+  'jharkhand': new URL('../../assets/states/jharkhand-image.png', import.meta.url).href,
+  'karnataka': new URL('../../assets/states/karnataka-image.png', import.meta.url).href,
+  'kerala': new URL('../../assets/states/kerala-image.png', import.meta.url).href,
+  'madhya-pradesh': new URL('../../assets/states/madhya-pradesh-image.png', import.meta.url).href,
+  'maharashtra': new URL('../../assets/states/maharashtra-image.png', import.meta.url).href,
+  'manipur': new URL('../../assets/states/manipur-image.png', import.meta.url).href,
+  'meghalaya': new URL('../../assets/states/meghalaya-image.png', import.meta.url).href,
+  'mizoram': new URL('../../assets/states/mizoram-image.png', import.meta.url).href,
+  'nagaland': new URL('../../assets/states/nagaland-image.png', import.meta.url).href,
+  'odisha': new URL('../../assets/states/odisha-image.png', import.meta.url).href,
+  'punjab': new URL('../../assets/states/punjab-image.png', import.meta.url).href,
+  'rajasthan': new URL('../../assets/states/rajasthan-image.png', import.meta.url).href,
+  'sikkim': new URL('../../assets/states/sikkim-image.png', import.meta.url).href,
+  'tamil-nadu': new URL('../../assets/states/tamil-nadu-image.png', import.meta.url).href,
+  'telangana': new URL('../../assets/states/telangana-image.png', import.meta.url).href,
+  'tripura': new URL('../../assets/states/tripura-image.png', import.meta.url).href,
+  'uttar-pradesh': new URL('../../assets/states/uttar-pradesh-image.png', import.meta.url).href,
+  'uttarakhand': new URL('../../assets/states/uttarakhand-image.png', import.meta.url).href,
+  'west-bengal': new URL('../../assets/states/west-bengal-image.png', import.meta.url).href,
+  'delhi': new URL('../../assets/states/delhi-image.png', import.meta.url).href,
+  'jammu-kashmir': new URL('../../assets/states/jammu-kashmir-image.png', import.meta.url).href,
+  'ladakh': new URL('../../assets/states/ladakh-image.png', import.meta.url).href,
+  'chandigarh': new URL('../../assets/states/chandigarh-image.png', import.meta.url).href,
+  'puducherry': new URL('../../assets/states/puducherry-image.png', import.meta.url).href,
+  'lakshadweep': new URL('../../assets/states/lakshadweep-image.png', import.meta.url).href,
+  'andaman-nicobar': new URL('../../assets/states/andaman-image.png', import.meta.url).href,
+};
+const imageUrl = stateImageMap[state.id] || state.images?.[0] || state.thumbnail || `https://bodhganga-pdf-storage-prod.s3.eu-north-1.amazonaws.com/state-images/${state.id}.jpg`;
     
     // Aesthetic fallbacks
     const examName = state.exams?.[0] || `${state.code}PSC`;
