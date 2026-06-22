@@ -34,8 +34,7 @@ export const getCart = async () => {
             bundles = JSON.parse(localStorage.getItem('bundleCart') || '[]');
         } catch (e) {}
         const backendCart = await api.get('/cart').then(r => r?.data || { items: [], count: 0, subtotal: 0 }).catch(() => ({ items: [], count: 0, subtotal: 0 }));
-        const allItems = [...(backendCart.items || []), ...bundles];
-        const subtotal = allItems.reduce((sum, i) => sum + (i.price || 0), 0);
+        const allItems = [...(backendCart.items || []), ...bundles.map(b => ({ ...b, title: b.name || b.district }))];        const subtotal = allItems.reduce((sum, i) => sum + (i.price || 0), 0);
         return { items: allItems, count: allItems.length, subtotal };
     }
     // Build guest cart with basic structure
