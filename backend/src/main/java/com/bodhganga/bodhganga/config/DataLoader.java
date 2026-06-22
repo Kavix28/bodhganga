@@ -82,13 +82,7 @@ public class DataLoader implements CommandLineRunner {
             log.info("Blog posts already exist in database. Skipping blog seed.");
         }
 
-        // Seed products
-        if (productRepo.count() == 0) {
-            log.info("Loading sample products...");
-            seedProducts();
-        } else {
-            log.info("Products already exist in database. Skipping product seed.");
-        }
+        // Sample product seeding disabled — products managed via Google Drive pipeline
 
         // Run idempotent product migration
         migrateImportedProducts();
