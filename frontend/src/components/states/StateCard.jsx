@@ -21,12 +21,12 @@ const StateCard = ({ state }) => {
             className="card-premium flex flex-col group h-full relative bg-white border border-emerald/5 hover:border-gold/30 hover:shadow-lg transition-all duration-300 glow-emerald-card"
         >
             {/* Thumbnail Banner */}
-            <div className="relative w-full h-44 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-2xl overflow-hidden mb-4 border border-emerald/5 shadow-inner">
+            <div className="relative w-full bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-2xl overflow-hidden mb-4 border border-emerald/5 shadow-inner">
                 <img 
                     src={imageUrl} 
                     alt={state.name} 
                     loading="lazy" 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 brightness-[0.9] group-hover:brightness-100" 
+                    className="w-full object-contain group-hover:scale-105 transition-transform duration-700 brightness-[0.9] group-hover:brightness-100" 
                 />
                 
                 {/* State/UT Badge */}
@@ -92,3 +92,5 @@ const StateCard = ({ state }) => {
 };
 
 export default StateCard;
+
+
