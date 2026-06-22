@@ -61,6 +61,7 @@ const DistrictsPage          = lazy(() => import('./pages/DistrictsPage'));
 const DistrictResourcesPage  = lazy(() => import('./pages/DistrictResourcesPage'));
 
 // NEW: All-India states page → districts → products  (/state/...)
+const ExplorePage = lazy(() => import('./pages/ExplorePage'));
 const AllStatesPage              = lazy(() => import('./pages/AllStatesPage'));
 const StateDistrictsPage         = lazy(() => import('./pages/StateDistrictsPage'));
 const StateDistrictProductsPage  = lazy(() => import('./pages/StateDistrictProductsPage'));
@@ -142,7 +143,7 @@ function App() {
                                             <Route path="/store/:stateSlug/:districtSlug"  element={<Navigate to="/states-browse" replace />} />
 
                                             {/* ── NEW: All-India States page (/state) ──────── */}
-                                            <Route path="/state"                                                       element={<AllStatesPage />} />
+                                            <Route path="/explore" element={<ExplorePage />} />`n                                            <Route path="/state"                                                       element={<AllStatesPage />} />
                                             <Route path="/state/:stateSlug/districts"                                  element={<StateDistrictsPage />} />
                                             <Route path="/state/:stateSlug/district/:districtSlug/products"            element={<StateDistrictProductsPage />} />
 
