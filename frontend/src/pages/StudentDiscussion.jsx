@@ -1,3 +1,12 @@
+// BACKEND INTEGRATION POINTS:
+// 1. Replace DUMMY_THREADS with: GET /api/discussion/threads?courseId={id}
+// 2. Post new thread: POST /api/discussion/threads
+// 3. Post reply: POST /api/discussion/threads/:id/reply
+// 4. Replace DUMMY_MENTOR_QA with: GET /api/discussion/mentor-questions?courseId={id}
+// 5. Post mentor question: POST /api/discussion/mentor-questions
+// Note: These discussion endpoints need to be created in the Spring Boot backend
+// All API calls should use the JWT token from AuthContext
+
 import { useState } from 'react';
 import { Search, Plus, Send, X, MessageSquare, Heart, ChevronDown, ChevronUp, Award } from 'lucide-react';
 
@@ -10,6 +19,7 @@ const INITIAL_COURSES = [
     { name: 'Essay Writing Mastery', unread: 0 }
 ];
 
+// BACKEND INTEGRATION POINT: 1. Replace INITIAL_THREADS with GET /api/discussion/threads?courseId={id}
 const INITIAL_THREADS = [
     {
         id: 1,
@@ -93,6 +103,7 @@ const INITIAL_THREADS = [
     }
 ];
 
+// BACKEND INTEGRATION POINT: 4. Replace INITIAL_MENTOR_QUESTIONS with GET /api/discussion/mentor-questions?courseId={id}
 const INITIAL_MENTOR_QUESTIONS = [
     {
         id: 1,
@@ -197,6 +208,7 @@ const StudentDiscussion = () => {
 
     const handlePostReply = (threadId) => {
         if (!replyText.trim()) return;
+        // BACKEND INTEGRATION POINT: 3. Post reply: POST /api/discussion/threads/:id/reply
         setThreads(threads.map(t => {
             if (t.id === threadId) {
                 return {
@@ -220,6 +232,7 @@ const StudentDiscussion = () => {
     const handleCreateThread = (e) => {
         e.preventDefault();
         if (!newThreadTitle.trim() || !newThreadContent.trim()) return;
+        // BACKEND INTEGRATION POINT: 2. Post new thread: POST /api/discussion/threads
 
         const newThread = {
             id: Date.now(),
@@ -249,6 +262,7 @@ const StudentDiscussion = () => {
     const handleAskMentor = (e) => {
         e.preventDefault();
         if (!askMentorText.trim()) return;
+        // BACKEND INTEGRATION POINT: 5. Post mentor question: POST /api/discussion/mentor-questions
 
         const newQuestion = {
             id: Date.now(),

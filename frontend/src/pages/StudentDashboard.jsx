@@ -1,3 +1,11 @@
+// BACKEND INTEGRATION POINTS:
+// 1. Replace DUMMY_STATS with: GET /api/dashboard/stats (requires JWT auth header)
+// 2. Replace DUMMY_COURSES with: GET /api/courses/my-courses (requires JWT auth header)
+// 3. Replace DUMMY_RESULTS with: GET /api/student/results (requires JWT auth header)
+// 4. Replace DUMMY_SCHEDULE with: GET /api/student/schedule (requires JWT auth header)
+// 5. Weekly hours chart: GET /api/student/weekly-hours (endpoint to be created)
+// All API calls should use the JWT token from AuthContext
+
 import { Link } from 'react-router-dom';
 import {
     BookOpen, CheckCircle, Clock, Trophy, Bell, Lock, ArrowRight,
@@ -15,6 +23,7 @@ const WELCOME_INFO = {
     lastLogin: 'Today, 9:45 AM'
 };
 
+// BACKEND INTEGRATION POINT: 1. Replace with GET /api/dashboard/stats
 const STATS_CARDS = [
     { id: 'enrolled', emoji: '📚', value: '5', label: 'Courses Enrolled' },
     { id: 'completed', emoji: '✅', value: '2', label: 'Courses Completed' },
@@ -22,6 +31,7 @@ const STATS_CARDS = [
     { id: 'score', emoji: '🏆', value: '78%', label: 'Average Score' }
 ];
 
+// BACKEND INTEGRATION POINT: 2. Replace with GET /api/courses/my-courses
 const MY_COURSES = [
     { id: 1, title: 'UPSC Prelims GS Paper 1', category: 'UPSC', mentor: 'Dr. Ramesh Sharma', progress: 68 },
     { id: 2, title: 'Indian History Deep Dive', category: 'UPSC', mentor: 'Prof. Meera Iyer', progress: 45 },
@@ -29,6 +39,7 @@ const MY_COURSES = [
     { id: 4, title: 'Current Affairs Monthly', category: 'State PSC', mentor: 'Neha Gupta', progress: 30 }
 ];
 
+// BACKEND INTEGRATION POINT: 5. Replace with GET /api/student/weekly-hours
 const WEEKLY_ACTIVITY = [
     { day: 'Mon', hours: 3 },
     { day: 'Tue', hours: 5 },
@@ -39,6 +50,7 @@ const WEEKLY_ACTIVITY = [
     { day: 'Sun', hours: 3 }
 ];
 
+// BACKEND INTEGRATION POINT: 3. Replace with GET /api/student/results
 const TEST_RESULTS = [
     { id: 1, name: 'UPSC GS Paper 1 Full Length Mock', course: 'UPSC Prelims GS Paper 1', score: '136/200', date: 'June 20, 2026', result: 'PASS' },
     { id: 2, name: 'Modern Indian History Sectional', course: 'Indian History Deep Dive', score: '78/100', date: 'June 18, 2026', result: 'PASS' },
@@ -56,6 +68,7 @@ const ACHIEVEMENTS = [
     { emoji: '💡', title: 'Knowledge Seeker', desc: 'Read 20 references from archive', locked: true }
 ];
 
+// BACKEND INTEGRATION POINT: 4. Replace with GET /api/student/schedule
 const UPCOMING_CLASSES = [
     { id: 1, name: 'Indian Polity: Basic Structure', mentor: 'M. Laxmikanth Sir', time: 'Tomorrow, 10:00 AM' },
     { id: 2, name: 'UPSC Geography: Monsoon Patterns', mentor: 'Savindra Singh Sir', time: 'June 24, 02:00 PM' },
