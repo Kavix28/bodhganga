@@ -56,22 +56,15 @@ api.interceptors.response.use(
                     ...data,
                 });
             }
-
-            // Handle 403 Forbidden - Access denied
-            // Handle 403 Forbidden - Access denied
+            // Handle 403 Forbidden - Access denied (no toast)
             if (status === 403) {
-                const url = error.config?.url || '';
-                if (!url.includes('/cart')) {
-                    import('react-hot-toast').then(({ default: toast }) => {
-                        toast.error('Access denied. You do not have permission to access this resource.');
-                    });
-                }
                 return Promise.reject({
                     message: 'Access denied. You do not have permission to access this resource.',
                     code: ERROR_CODES.FORBIDDEN,
                     status: 403,
                     ...data,
                 });
+            }
             }
 
             // Return error data from server
