@@ -65,7 +65,6 @@ api.interceptors.response.use(
                     ...data,
                 });
             }
-            }
 
             // Return error data from server
             return Promise.reject({
