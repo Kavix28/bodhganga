@@ -27,7 +27,7 @@ function formatSize(bytes) {
 
 function ResourceModal({ resource, onClose }) {
   const ext = (resource.fileExtension || "").toLowerCase();
-  const url = resource.s3Url;
+  const url = resource.s3Url ? resource.s3Url.split('/').map((part, i) => i < 3 ? part : encodeURIComponent(part)).join('/') : null;
   const title = resource.displayTitle || resource.title || resource.fileName;
 
   const officeExts = ["docx", "doc", "xlsx", "xls", "pptx", "ppt"];
@@ -272,3 +272,4 @@ export default function DistrictResourcesPage() {
     </div>
   );
 }
+
