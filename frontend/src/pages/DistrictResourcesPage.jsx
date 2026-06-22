@@ -26,6 +26,7 @@ function formatSize(bytes) {
 }
 
 function ResourceModal({ resource, onClose }) {
+  const [iframeLoading, setIframeLoading] = React.useState(true);
   const ext = (resource.fileExtension || "").toLowerCase();
   const url = resource.s3Url ? resource.s3Url.split('/').map((part, i) => i < 3 ? part : encodeURIComponent(part)).join('/') : null;
   const title = resource.displayTitle || resource.title || resource.fileName;
@@ -258,5 +259,6 @@ export default function DistrictResourcesPage() {
     </div>
   );
 }
+
 
 
