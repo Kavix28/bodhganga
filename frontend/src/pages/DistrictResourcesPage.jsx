@@ -37,14 +37,24 @@ function ResourceModal({ resource, onClose }) {
 
   const renderContent = () => {
     if (ext === "pdf") {
-      return (
-        <iframe
-          src={url}
-          className="w-full h-full rounded-lg"
-          title={title}
-        />
-      );
-    }
+  const googleUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+  return (
+    <div className="relative w-full h-full">
+      {iframeLoading && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 rounded-lg z-10">
+          <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-gray-400 text-sm">Loading document...</p>
+        </div>
+      )}
+      <iframe
+        src={googleUrl}
+        className="w-full h-full rounded-lg"
+        title={title}
+        onLoad={() => setIframeLoading(false)}
+      />
+    </div>
+  );
+}
     if (imageExts.includes(ext)) {
       return (
         <div className="w-full h-full flex items-center justify-center overflow-auto">
