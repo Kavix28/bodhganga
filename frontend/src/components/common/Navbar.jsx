@@ -116,8 +116,8 @@ const Navbar = () => {
                             </Link>
                         )}
                     </div>
-                    <Link to="/state"
-    className="hidden md:inline-flex px-5 py-2.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-bold text-xs uppercase tracking-widest rounded-xl shadow-lg hover:shadow-gold/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300">
+                    <Link to="/state" onClick={() => setMobileOpen(false)}
+    className="flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-gold to-gold-dark text-emerald-dark">
     Explore Now
 </Link>
 
