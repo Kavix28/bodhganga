@@ -3,6 +3,43 @@ import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 
 const S3 = "https://bodhganga-pdf-storage-prod.s3.eu-north-1.amazonaws.com/state-images";
+const STATE_IMGS = {
+  "andhra-pradesh": "/src/assets/states/andhra-pradesh-image.png",
+  "arunachal-pradesh": "/src/assets/states/arunachal-pradesh-image.png",
+  "assam": "/src/assets/states/assam-image.png",
+  "bihar": "/src/assets/states/bihar-image.png",
+  "chhattisgarh": "/src/assets/states/chhattisgarh-image.png",
+  "goa": "/src/assets/states/goa-image.png",
+  "gujarat": "/src/assets/states/gujarat-image.png",
+  "haryana": "/src/assets/states/haryana-image.png",
+  "himachal-pradesh": "/src/assets/states/himachal-pradesh-image.png",
+  "jharkhand": "/src/assets/states/jharkhand-image.png",
+  "karnataka": "/src/assets/states/karnataka-image.png",
+  "kerala": "/src/assets/states/kerala-image.png",
+  "madhya-pradesh": "/src/assets/states/madhya-pradesh-image.png",
+  "maharashtra": "/src/assets/states/maharashtra-image.png",
+  "manipur": "/src/assets/states/manipur-image.png",
+  "meghalaya": "/src/assets/states/meghalaya-image.png",
+  "mizoram": "/src/assets/states/mizoram-image.png",
+  "nagaland": "/src/assets/states/nagaland-image.png",
+  "odisha": "/src/assets/states/odisha-image.png",
+  "punjab": "/src/assets/states/punjab-image.png",
+  "rajasthan": "/src/assets/states/rajasthan-image.png",
+  "sikkim": "/src/assets/states/sikkim-image.png",
+  "tamil-nadu": "/src/assets/states/tamil-nadu-image.png",
+  "telangana": "/src/assets/states/telangana-image.png",
+  "tripura": "/src/assets/states/tripura-image.png",
+  "uttar-pradesh": "/src/assets/states/uttar-pradesh-image.png",
+  "uttarakhand": "/src/assets/states/uttarakhand-image.png",
+  "west-bengal": "/src/assets/states/west-bengal-image.png",
+  "delhi": "/src/assets/states/delhi-image.png",
+  "jammu-kashmir": "/src/assets/states/jammu-kashmir-image.png",
+  "ladakh": "/src/assets/states/ladakh-image.png",
+  "chandigarh": "/src/assets/states/chandigarh-image.png",
+  "puducherry": "/src/assets/states/puducherry-image.png",
+  "lakshadweep": "/src/assets/states/lakshadweep-image.png",
+  "andaman-nicobar": "/src/assets/states/andaman-image.png",
+};
 const GRADS = [
   "from-emerald-900 to-teal-800",
   "from-amber-900 to-orange-800",
@@ -27,7 +64,7 @@ function StateCard({ state, onClick }) {
     >
       {!imgErr ? (
         <img
-          src={`${S3}/${slug}.jpg`}
+          src={STATE_IMGS[slug] || `${S3}/${slug}-image.png`}
           alt={name}
           onError={() => setImgErr(true)}
           className="w-full object-contain block"
@@ -139,4 +176,6 @@ export default function StatesPage() {
     </div>
   );
 }
+
+
 
