@@ -58,12 +58,12 @@ const imageUrl = stateImageMap[state.id] || state.images?.[0] || state.thumbnail
             className="card-premium flex flex-col group h-full relative bg-white border border-emerald/5 hover:border-gold/30 hover:shadow-lg transition-all duration-300 glow-emerald-card"
         >
             {/* Thumbnail Banner */}
-            <div className="relative w-full rounded-2xl overflow-hidden mb-4 border border-emerald/5 shadow-inner" style={{aspectRatio: '16/9'}}>
+            <div className="relative w-full rounded-2xl overflow-hidden mb-4 border border-emerald/5 shadow-inner" style={{aspectRatio: '4/3'}}>
                 <img 
                     src={imageUrl} 
                     alt={state.name} 
                     loading="lazy" 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 brightness-[0.9] group-hover:brightness-100" 
+                    className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700 brightness-[0.9] group-hover:brightness-100" 
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                 {state.code && (
@@ -126,6 +126,8 @@ const imageUrl = stateImageMap[state.id] || state.images?.[0] || state.thumbnail
 };
 
 export default StateCard;
+
+
 
 
 
