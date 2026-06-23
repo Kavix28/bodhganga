@@ -137,7 +137,7 @@ const REGIONS_FILTER = ["All", "North", "South", "East", "West", "Central", "Nor
 const TYPE_FILTERS = [
   { id: "all", label: "All Regions (35)" },
   { id: "STATE", label: "28 States" },
-  { id: "UT", label: "7 UTs" },
+  { id: "UT", label: "8 UTs" },
 ];
 
 function StateCard({ region, isActive, productCount, onClick }) {
@@ -352,6 +352,7 @@ export default function AllStatesPage() {
     </div>
   );
 }
+
 
 
 
