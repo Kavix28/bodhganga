@@ -95,7 +95,7 @@ const States = () => {
                         Select your state to explore district-wise study material — notes, maps, MCQs and more curated for every major PSC examination.
                     </p>
                     <div className="flex gap-2 bg-white/5 p-1 rounded-xl border border-white/10 self-start inline-flex mt-4">
-                        {[{id:'all',label:'All Regions'},{id:'states',label:'28 States'},{id:'uts',label:'7 UTs'}].map(tab => (
+                        {[{id:'all',label:'All Regions'},{id:'states',label:'28 States'},{id:'uts',label:'8 UTs'}].map(tab => (
                             <button key={tab.id} onClick={() => setActiveTypeTab(tab.id)}
                                 className={`px-4 py-2 text-[9px] font-extrabold uppercase tracking-widest rounded-lg transition-all duration-300 ${activeTypeTab === tab.id ? 'bg-gold text-emerald-dark shadow-md' : 'text-white/70 hover:text-white'}`}>
                                 {tab.label}
@@ -169,4 +169,5 @@ const States = () => {
 };
 
 export default States;
+
 
