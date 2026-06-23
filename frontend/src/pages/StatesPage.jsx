@@ -102,7 +102,7 @@ function StateCard({ state, onClick }) {
           src={STATE_IMGS[slug] || `${S3}/${slug}-image.png`}
           alt={name}
           onError={() => setImgErr(true)}
-          className="w-full object-contain block"
+          className="w-full h-auto block"
         />
       ) : (
         <div className={`w-full h-48 bg-gradient-to-br ${grad} flex items-center justify-center`}>
@@ -211,6 +211,7 @@ export default function StatesPage() {
     </div>
   );
 }
+
 
 
 
