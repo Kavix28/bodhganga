@@ -37,7 +37,7 @@ import imgChandigarh from '../../assets/states/chandigarh-image.png';
 import imgPuducherry from '../../assets/states/puducherry-image.png';
 import imgLakshadweep from '../../assets/states/lakshadweep-image.png';
 import imgAndaman from '../../assets/states/andaman-image.png';
-import imgDnhDd from '../../assets/states/Dadra& Nagar Haveli and Daman & Diu-image.png';
+import imgDnhDd from '../../assets/states/dnh-dd-image.png';
 
 const STATE_IMGS = {
   'andhra-pradesh': imgAndhraPradesh,
@@ -131,6 +131,7 @@ const StateCard = ({ state }) => {
 };
 
 export default StateCard;
+
 
 
 
