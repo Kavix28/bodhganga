@@ -43,7 +43,7 @@ const States = () => {
         try {
             setIsLoading(true);
             const res = await api.get('/states/available');
-            setDbData(res || []);
+            setDbData(res?.data || res || []);
         } catch (error) {
             console.error("Failed to load states:", error);
             setDbData([]);
@@ -176,6 +176,7 @@ const States = () => {
 };
 
 export default States;
+
 
 
 
