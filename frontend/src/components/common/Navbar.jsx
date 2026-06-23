@@ -117,9 +117,9 @@ const Navbar = () => {
                         )}
                     </div>
                     <Link to="/state"
-                            className="px-5 py-2.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-bold text-xs uppercase tracking-widest rounded-xl shadow-lg hover:shadow-gold/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300">
-                            Explore Now
-                        </Link>
+    className="hidden md:inline-flex px-5 py-2.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-bold text-xs uppercase tracking-widest rounded-xl shadow-lg hover:shadow-gold/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300">
+    Explore Now
+</Link>
 
                     {/* Right Actions */}
                     <div className="hidden md:flex items-center gap-4">
