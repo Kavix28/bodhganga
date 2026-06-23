@@ -111,6 +111,7 @@ const ALL_REGIONS = [
   { name: "Chandigarh", slug: "chandigarh", type: "UT", region: "North" },
   { name: "Lakshadweep", slug: "lakshadweep", type: "UT", region: "South" },
   { name: "Andaman & Nicobar Islands", slug: "andaman-and-nicobar-islands", type: "UT", region: "East" },
+  { name: "Dadra & Nagar Haveli and Daman & Diu", slug: "dnh-dd", type: "UT", region: "West" },
 ];
 
 const GRADIENTS = [
@@ -352,6 +353,7 @@ export default function AllStatesPage() {
     </div>
   );
 }
+
 
 
 
