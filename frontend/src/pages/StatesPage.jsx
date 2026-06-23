@@ -1,44 +1,79 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
+import imgAndhraPradesh from '../assets/states/andhra-pradesh-image.png';
+import imgArunachalPradesh from '../assets/states/arunachal-pradesh-image.png';
+import imgAssam from '../assets/states/assam-image.png';
+import imgBihar from '../assets/states/bihar-image.png';
+import imgChhattisgarh from '../assets/states/chhattisgarh-image.png';
+import imgGoa from '../assets/states/goa-image.png';
+import imgGujarat from '../assets/states/gujarat-image.png';
+import imgHaryana from '../assets/states/haryana-image.png';
+import imgHimachalPradesh from '../assets/states/himachal-pradesh-image.png';
+import imgJharkhand from '../assets/states/jharkhand-image.png';
+import imgKarnataka from '../assets/states/karnataka-image.png';
+import imgKerala from '../assets/states/kerala-image.png';
+import imgMadhyaPradesh from '../assets/states/madhya-pradesh-image.png';
+import imgMaharashtra from '../assets/states/maharashtra-image.png';
+import imgManipur from '../assets/states/manipur-image.png';
+import imgMeghalaya from '../assets/states/meghalaya-image.png';
+import imgMizoram from '../assets/states/mizoram-image.png';
+import imgNagaland from '../assets/states/nagaland-image.png';
+import imgOdisha from '../assets/states/odisha-image.png';
+import imgPunjab from '../assets/states/punjab-image.png';
+import imgRajasthan from '../assets/states/rajasthan-image.png';
+import imgSikkim from '../assets/states/sikkim-image.png';
+import imgTamilNadu from '../assets/states/tamil-nadu-image.png';
+import imgTelangana from '../assets/states/telangana-image.png';
+import imgTripura from '../assets/states/tripura-image.png';
+import imgUttarPradesh from '../assets/states/uttar-pradesh-image.png';
+import imgUttarakhand from '../assets/states/uttarakhand-image.png';
+import imgWestBengal from '../assets/states/west-bengal-image.png';
+import imgDelhi from '../assets/states/delhi-image.png';
+import imgJammuKashmir from '../assets/states/jammu-kashmir-image.png';
+import imgLadakh from '../assets/states/ladakh-image.png';
+import imgChandigarh from '../assets/states/chandigarh-image.png';
+import imgPuducherry from '../assets/states/puducherry-image.png';
+import imgLakshadweep from '../assets/states/lakshadweep-image.png';
+import imgAndaman from '../assets/states/andaman-image.png';
 
 const S3 = "https://bodhganga-pdf-storage-prod.s3.eu-north-1.amazonaws.com/state-images";
 const STATE_IMGS = {
-  "andhra-pradesh": "/src/assets/states/andhra-pradesh-image.png",
-  "arunachal-pradesh": "/src/assets/states/arunachal-pradesh-image.png",
-  "assam": "/src/assets/states/assam-image.png",
-  "bihar": "/src/assets/states/bihar-image.png",
-  "chhattisgarh": "/src/assets/states/chhattisgarh-image.png",
-  "goa": "/src/assets/states/goa-image.png",
-  "gujarat": "/src/assets/states/gujarat-image.png",
-  "haryana": "/src/assets/states/haryana-image.png",
-  "himachal-pradesh": "/src/assets/states/himachal-pradesh-image.png",
-  "jharkhand": "/src/assets/states/jharkhand-image.png",
-  "karnataka": "/src/assets/states/karnataka-image.png",
-  "kerala": "/src/assets/states/kerala-image.png",
-  "madhya-pradesh": "/src/assets/states/madhya-pradesh-image.png",
-  "maharashtra": "/src/assets/states/maharashtra-image.png",
-  "manipur": "/src/assets/states/manipur-image.png",
-  "meghalaya": "/src/assets/states/meghalaya-image.png",
-  "mizoram": "/src/assets/states/mizoram-image.png",
-  "nagaland": "/src/assets/states/nagaland-image.png",
-  "odisha": "/src/assets/states/odisha-image.png",
-  "punjab": "/src/assets/states/punjab-image.png",
-  "rajasthan": "/src/assets/states/rajasthan-image.png",
-  "sikkim": "/src/assets/states/sikkim-image.png",
-  "tamil-nadu": "/src/assets/states/tamil-nadu-image.png",
-  "telangana": "/src/assets/states/telangana-image.png",
-  "tripura": "/src/assets/states/tripura-image.png",
-  "uttar-pradesh": "/src/assets/states/uttar-pradesh-image.png",
-  "uttarakhand": "/src/assets/states/uttarakhand-image.png",
-  "west-bengal": "/src/assets/states/west-bengal-image.png",
-  "delhi": "/src/assets/states/delhi-image.png",
-  "jammu-kashmir": "/src/assets/states/jammu-kashmir-image.png",
-  "ladakh": "/src/assets/states/ladakh-image.png",
-  "chandigarh": "/src/assets/states/chandigarh-image.png",
-  "puducherry": "/src/assets/states/puducherry-image.png",
-  "lakshadweep": "/src/assets/states/lakshadweep-image.png",
-  "andaman-nicobar": "/src/assets/states/andaman-image.png",
+  "andhra-pradesh": imgAndhraPradesh,
+  "arunachal-pradesh": imgArunachalPradesh,
+  "assam": imgAssam,
+  "bihar": imgBihar,
+  "chhattisgarh": imgChhattisgarh,
+  "goa": imgGoa,
+  "gujarat": imgGujarat,
+  "haryana": imgHaryana,
+  "himachal-pradesh": imgHimachalPradesh,
+  "jharkhand": imgJharkhand,
+  "karnataka": imgKarnataka,
+  "kerala": imgKerala,
+  "madhya-pradesh": imgMadhyaPradesh,
+  "maharashtra": imgMaharashtra,
+  "manipur": imgManipur,
+  "meghalaya": imgMeghalaya,
+  "mizoram": imgMizoram,
+  "nagaland": imgNagaland,
+  "odisha": imgOdisha,
+  "punjab": imgPunjab,
+  "rajasthan": imgRajasthan,
+  "sikkim": imgSikkim,
+  "tamil-nadu": imgTamilNadu,
+  "telangana": imgTelangana,
+  "tripura": imgTripura,
+  "uttar-pradesh": imgUttarPradesh,
+  "uttarakhand": imgUttarakhand,
+  "west-bengal": imgWestBengal,
+  "delhi": imgDelhi,
+  "jammu-kashmir": imgJammuKashmir,
+  "ladakh": imgLadakh,
+  "chandigarh": imgChandigarh,
+  "puducherry": imgPuducherry,
+  "lakshadweep": imgLakshadweep,
+  "andaman-nicobar": imgAndaman,
 };
 const GRADS = [
   "from-emerald-900 to-teal-800",
