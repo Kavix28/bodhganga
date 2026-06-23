@@ -98,7 +98,7 @@ const Navbar = () => {
                                 <FiChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${aboutMenuOpen ? 'rotate-180' : ''}`} />
                             </button>
                             {aboutMenuOpen && (
-                                <div className="absolute left-0 mt-3 w-56 bg-emerald-dark/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gold/20 py-2 z-50">
+                                <div className="absolute left-0 mt-3 w-56 bg-emerald-dark/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gold/20 py-2 z-[9999]">
                                     {aboutLinks.map(item => (
                                         <Link key={item.path} to={item.path}
                                             className={`flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${isActive(item.path) ? 'text-gold bg-white/5' : 'text-white/80 hover:bg-white/5 hover:text-gold'}`}>
@@ -144,7 +144,7 @@ const Navbar = () => {
                                 </button>
 
                                 {userMenuOpen && (
-                                    <div className="absolute right-0 mt-3.5 w-56 bg-emerald-dark/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gold/20 py-2 z-50">
+                                    <div className="absolute right-0 mt-3.5 w-56 bg-emerald-dark/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gold/20 py-2 z-[9999]">
                                         <div className="px-4 py-3 border-b border-gold/10">
                                             <div className="text-sm font-bold text-white">{user?.name}</div>
                                             <div className="text-xs text-gold/60 truncate mt-0.5">{user?.email}</div>
@@ -269,6 +269,7 @@ const Navbar = () => {
 };
 
 export default Navbar;
+
 
 
 
