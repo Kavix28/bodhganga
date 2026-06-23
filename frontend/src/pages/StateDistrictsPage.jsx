@@ -16,9 +16,7 @@ export default function StateDistrictsPage() {
       try {
         // Fetch all published drive products for this state
         const res = await api.get(`/products/state/${stateSlug}`);
-        const products = Array.isArray(res)
-          ? res
-          : res?.data?.content || res?.data || [];
+        const products = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : res?.data?.data || res?.data?.content || [];
 
         if (products.length > 0) {
           setStateName(products[0].state || products[0].stateName || stateSlug);
@@ -168,4 +166,5 @@ function DistrictCard({ district, onClick }) {
     </div>
   );
 }
+
 
