@@ -86,7 +86,7 @@ const Dashboard = () => {
     // Fetch enrolled courses
     const { data: enrolledCourses = [] } = useQuery({
         queryKey: ['myCourses'],
-        queryFn: () => api.get('/courses/my-courses')
+        queryFn: () => api.get('/courses/my-courses').catch(() => [])
             .then(r => r?.data || r || [])
             .catch(() => []),
         staleTime: 5 * 60 * 1000,
@@ -319,4 +319,5 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
 
