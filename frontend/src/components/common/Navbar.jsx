@@ -80,7 +80,7 @@ const Navbar = () => {
                     </Link>
 
                     {/* Desktop Nav */}
-                    <div className="hidden md:flex items-center gap-2">
+                    <div className="hidden md:flex items-center gap-2 overflow-hidden">
                         {navLinks.map(link => (
                             <Link key={link.path} to={link.path}
                                 onClick={(e) => handleLinkClick(e, link.path)}
@@ -269,3 +269,4 @@ const Navbar = () => {
 };
 
 export default Navbar;
+

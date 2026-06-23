@@ -101,7 +101,7 @@ function App() {
                 <AuthProvider>
                     <CartProvider>
                     <Router>
-                        <div className="min-h-screen flex flex-col">
+                        <div className="min-h-screen flex flex-col overflow-x-hidden">
                             {(!isAdminRoute || (isAdminRoute && !isAdminLoggedIn)) && <Navbar />}
                             <AuthGateModal />
 
@@ -211,3 +211,4 @@ function App() {
 }
 
 export default App;
+
