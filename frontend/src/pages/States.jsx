@@ -6,6 +6,8 @@ import api from '../services/api';
 import StateCard from '../components/states/StateCard';
 import Breadcrumb from '../components/common/Breadcrumb';
 import EmptyState from '../components/ui/EmptyState';
+import { unionTerritories } from '../data/unionTerritories';
+import { indianStates } from '../data/states';
 
 const regionMap = {
     'jammu-kashmir': 'North India', 'ladakh': 'North India', 'himachal-pradesh': 'North India',
@@ -50,11 +52,15 @@ const States = () => {
     };
 
     const mergedData = useMemo(() => {
-        return dbData.map(item => ({
-            ...item,
-            notesCount: item.notesCount || 0,
-            region: regionMap[item.id] || 'Other',
-        }));
+        const apiIds = new Set(dbData.map(d => d.id));
+        const localFallback = [
+            ...indianStates.map(s => ({ ...s, type: "STATE", active: false, isActive: false })),
+            ...unionTerritories.map(ut => ({ ...ut, type: "UT", active: false, isActive: false })),
+        ].filter(item => !apiIds.has(item.id));
+        return [
+            ...dbData.map(item => ({ ...item, notesCount: item.notesCount || 0, region: regionMap[item.id] || "Other" })),
+            ...localFallback.map(item => ({ ...item, region: regionMap[item.id] || "Other" })),
+        ];
     }, [dbData]);
 
     const filteredItems = useMemo(() => {
@@ -169,5 +175,7 @@ const States = () => {
 };
 
 export default States;
+
+
 
 
