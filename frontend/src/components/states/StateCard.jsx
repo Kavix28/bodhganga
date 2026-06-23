@@ -58,22 +58,19 @@ const imageUrl = stateImageMap[state.id] || state.images?.[0] || state.thumbnail
             className="card-premium flex flex-col group h-full relative bg-white border border-emerald/5 hover:border-gold/30 hover:shadow-lg transition-all duration-300 glow-emerald-card"
         >
             {/* Thumbnail Banner */}
-            <div className="relative w-full bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-2xl mb-4 border border-emerald/5 shadow-inner">
+            <div className="relative w-full rounded-2xl overflow-hidden mb-4 border border-emerald/5 shadow-inner" style={{aspectRatio: '16/9'}}>
                 <img 
                     src={imageUrl} 
                     alt={state.name} 
                     loading="lazy" 
-                    className="w-full object-contain group-hover:scale-105 transition-transform duration-700 brightness-[0.9] group-hover:brightness-100" 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 brightness-[0.9] group-hover:brightness-100" 
                 />
-                
-                {/* State/UT Badge */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                 {state.code && (
                     <span className="absolute top-3 left-3 text-[8px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full bg-emerald-dark/95 text-gold border border-gold/25 backdrop-blur-md">
                         {state.code}
                     </span>
                 )}
-
-                {/* Exam Name Trim */}
                 <span className="absolute bottom-3 right-3 text-[8px] font-extrabold tracking-widest uppercase px-2.5 py-1 rounded-full bg-gold text-emerald-dark border border-white/20 shadow-md">
                     {examName}
                 </span>
