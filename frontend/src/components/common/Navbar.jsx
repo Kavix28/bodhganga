@@ -116,7 +116,7 @@ const Navbar = () => {
                             </Link>
                         )}
                     </div>
-                    <Link to="/state" onClick={() => setMobileOpen(false)}
+                    <Link to="/states" onClick={() => setMobileOpen(false)}
     className="flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-gold to-gold-dark text-emerald-dark">
     Explore Now
 </Link>
@@ -269,4 +269,5 @@ const Navbar = () => {
 };
 
 export default Navbar;
+
 
