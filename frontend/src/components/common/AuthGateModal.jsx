@@ -92,8 +92,8 @@ const AuthGateModal = () => {
                 login(res.data.token, res.data.user);
                 toast.success(`Welcome back, ${res.data.user?.name?.split(' ')[0] || 'Scholar'}!`);
                 closeAuthModal();
-                const fromPath = location.state?.from || '/';
-                navigate(fromPath);
+                const fromPath = location.state?.from || "/";
+                setTimeout(() => navigate(fromPath), 150);
             } else {
                 throw new Error(res?.message || 'Login failed');
             }
@@ -447,3 +447,4 @@ const AuthGateModal = () => {
 };
 
 export default AuthGateModal;
+
