@@ -145,7 +145,7 @@ const States = () => {
                                     <span className="w-2 h-2 rounded-full bg-emerald animate-pulse" />
                                     <span className="text-[9px] font-extrabold uppercase tracking-widest text-emerald-dark/60">Active · Content Available</span>
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start">
                                     {activeItems.map(item => <StateCard key={item.id} state={item} />)}
                                 </div>
                             </div>
@@ -156,7 +156,7 @@ const States = () => {
                                     <span className="w-2 h-2 rounded-full bg-gold/60" />
                                     <span className="text-[9px] font-extrabold uppercase tracking-widest text-emerald-dark/60">Coming Soon · Being Prepared</span>
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start">
                                     {comingSoonItems.map(item => <StateCard key={item.id} state={item} />)}
                                 </div>
                             </div>
@@ -169,3 +169,4 @@ const States = () => {
 };
 
 export default States;
+
