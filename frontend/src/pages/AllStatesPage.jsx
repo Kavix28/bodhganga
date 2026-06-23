@@ -36,6 +36,7 @@ import imgPuducherry from "../assets/states/puducherry-image.png";
 import imgChandigarh from "../assets/states/chandigarh-image.png";
 import imgLakshadweep from "../assets/states/lakshadweep-image.png";
 import imgAndaman from "../assets/states/andaman-image.png";
+import imgDnhDd from "../assets/states/dnh-dd-image.png";
 
 const STATE_IMAGE_MAP = {
   "andhra-pradesh": imgAndhra,
@@ -73,6 +74,7 @@ const STATE_IMAGE_MAP = {
   "chandigarh": imgChandigarh,
   "lakshadweep": imgLakshadweep,
   "andaman-and-nicobar-islands": imgAndaman,
+  "dnh-dd": imgDnhDd,
 };
 
 const ALL_REGIONS = [
@@ -353,6 +355,8 @@ export default function AllStatesPage() {
     </div>
   );
 }
+
+
 
 
 
