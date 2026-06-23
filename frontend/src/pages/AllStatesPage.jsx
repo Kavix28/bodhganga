@@ -154,7 +154,7 @@ function StateCard({ region, isActive, productCount, onClick }) {
       ].join(" ")}
     >
       <div
-        className="h-28 w-full relative"
+        className="w-full relative"
         style={img
           ? { backgroundImage: `url(${img})`, backgroundSize: "cover", backgroundPosition: "center" }
           : { background: `linear-gradient(135deg, ${g1}, ${g2})` }
@@ -307,7 +307,7 @@ export default function AllStatesPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
             {Array.from({ length: 12 }).map((_, i) => (
               <div key={i} className="rounded-2xl bg-gray-900 border border-gray-800 animate-pulse">
-                <div className="h-28 bg-gray-800 rounded-t-2xl" />
+                <div className="w-full bg-gray-800 rounded-t-2xl" style={{aspectRatio:"16/9"}} />
                 <div className="px-4 py-3 space-y-2">
                   <div className="h-3 bg-gray-800 rounded w-3/4" />
                   <div className="h-2 bg-gray-800 rounded w-1/2" />
@@ -357,3 +357,4 @@ export default function AllStatesPage() {
     </div>
   );
 }
+
