@@ -57,6 +57,8 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/states/**").permitAll()
                         // Public content reads
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/content/**").permitAll()
+                        // Public video reads
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/videos/**").permitAll()
                         // Public products (Digital Marketplace)
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/products/**").permitAll()
 
