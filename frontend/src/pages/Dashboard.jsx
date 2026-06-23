@@ -129,7 +129,7 @@ const Dashboard = () => {
                             </p>
                         </div>
                         <div className="flex gap-3">
-                            <Link to="/states" className="px-6 py-3 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest rounded-xl shadow-lg transition-all hover:-translate-y-0.5 active:scale-95">
+                            <Link to="/state" className="px-6 py-3 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest rounded-xl shadow-lg transition-all hover:-translate-y-0.5 active:scale-95">
                                 Start Studying
                             </Link>
                             <Link to="/profile" className="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/15 text-white font-bold text-xs uppercase tracking-widest rounded-xl transition-all">
@@ -319,3 +319,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+

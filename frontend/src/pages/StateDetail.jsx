@@ -261,7 +261,7 @@ const StateDetail = () => {
                     <ShieldAlert className="w-12 h-12 text-red-500 mx-auto" />
                     <h3 className="text-lg font-serif font-bold text-emerald-dark">Prep Center Mismatch</h3>
                     <p className="text-xs text-emerald-dark/60">The requested administrative region mapping was not found.</p>
-                    <Link to="/states" className="btn-premium btn-premium-primary text-[10px] uppercase font-bold py-2 mt-4 inline-block">Return to Explorer</Link>
+                    <Link to="/state" className="btn-premium btn-premium-primary text-[10px] uppercase font-bold py-2 mt-4 inline-block">Return to Explorer</Link>
                 </div>
             </div>
         );
@@ -908,3 +908,4 @@ const StateDetail = () => {
 };
 
 export default StateDetail;
+

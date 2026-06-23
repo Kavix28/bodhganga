@@ -234,7 +234,7 @@ export default function DistrictsPage() {
       )}
 
       <div className="max-w-6xl mx-auto">
-        <button onClick={() => navigate("/states-browse")}
+        <button onClick={() => navigate("/state")}
           className="text-gray-400 hover:text-amber-400 mb-6 flex items-center gap-1 text-sm">
           â† Back to States
         </button>
@@ -307,3 +307,4 @@ export default function DistrictsPage() {
     </div>
   );
 }
+

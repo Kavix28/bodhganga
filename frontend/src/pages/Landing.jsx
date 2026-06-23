@@ -379,7 +379,7 @@ const Landing = () => {
                                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                                 </button>
                                 <Link 
-                                    to="/states"
+                                    to="/state"
                                     className="flex items-center justify-center gap-2.5 px-8 py-4 bg-white/5 border border-white/10 hover:border-gold/30 text-white font-bold text-xs uppercase tracking-widest rounded-2xl backdrop-blur-md hover:bg-white/10 transition-all duration-300"
                                 >
                                     <Globe className="w-4 h-4 text-gold" />
@@ -701,7 +701,7 @@ const Landing = () => {
                             </p>
                         </div>
                         <Link 
-                            to="/states" 
+                            to="/state" 
                             className="group inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-gold hover:text-white transition-colors"
                         >
                             Explore All 36 Regions <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -1028,7 +1028,7 @@ const Landing = () => {
                             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                         </button>
                         <Link 
-                            to="/states"
+                            to="/state"
                             className="flex items-center justify-center gap-2.5 px-8 py-4 bg-white/5 border border-white/10 hover:border-gold/30 text-white font-bold text-xs uppercase tracking-widest rounded-2xl backdrop-blur-md hover:bg-white/10 transition-all duration-300"
                         >
                             <Globe className="w-4 h-4 text-gold" />
@@ -1088,5 +1088,6 @@ const Landing = () => {
 };
 
 export default Landing;
+
 
 

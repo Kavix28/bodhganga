@@ -125,7 +125,7 @@ function App() {
                                             <Route path="/error"          element={<ErrorPage />} />
 
                                             {/* ── Old states/UTs routes — kept for backward compat ── */}
-                                            <Route path="/states" element={<Navigate to="/state" replace />} />
+                                            <Route path="/state" element={<Navigate to="/state" replace />} />
                                             <Route path="/union-territories" element={<ProtectedRoute><UnionTerritories /></ProtectedRoute>} />
                                             <Route path="/states/:id"     element={<ProtectedRoute><StateDetail /></ProtectedRoute>} />
                                             <Route path="/union-territories/:id" element={<ProtectedRoute><StateDetail /></ProtectedRoute>} />
@@ -133,14 +133,14 @@ function App() {
                                             <Route path="/union-territories/:stateSlug/resources" element={<ProtectedRoute><ResourcePage /></ProtectedRoute>} />
 
                                             {/* ── Existing /states-browse flow ─────────────── */}
-                                            <Route path="/states-browse" element={<Navigate to="/state" replace />} />
+                                            <Route path="/state" element={<Navigate to="/state" replace />} />
                                             <Route path="/states-browse/:stateSlug"                        element={<DistrictsPage />} />
                                             <Route path="/states-browse/:stateSlug/:districtSlug"          element={<DistrictResourcesPage />} />
 
                                             {/* ── Old store URLs → redirect ──────────────── */}
-                                            <Route path="/store"                           element={<Navigate to="/states-browse" replace />} />
-                                            <Route path="/store/:stateSlug"                element={<Navigate to="/states-browse" replace />} />
-                                            <Route path="/store/:stateSlug/:districtSlug"  element={<Navigate to="/states-browse" replace />} />
+                                            <Route path="/store"                           element={<Navigate to="/state" replace />} />
+                                            <Route path="/store/:stateSlug"                element={<Navigate to="/state" replace />} />
+                                            <Route path="/store/:stateSlug/:districtSlug"  element={<Navigate to="/state" replace />} />
 
                                             {/* ── NEW: All-India States page (/state) ──────── */}
                                             <Route path="/explore" element={<ExplorePage />} />`n                                            <Route path="/state"                                                       element={<AllStatesPage />} />
@@ -211,5 +211,6 @@ function App() {
 }
 
 export default App;
+
 
 
