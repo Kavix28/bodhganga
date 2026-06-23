@@ -1,5 +1,6 @@
 import { Suspense, lazy } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import ScrollToTop from './components/common/ScrollToTop';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
@@ -101,6 +102,7 @@ function App() {
                 <AuthProvider>
                     <CartProvider>
                     <Router>
+      <ScrollToTop />
                         <div className="min-h-screen flex flex-col overflow-x-hidden">
                             {(!isAdminRoute || (isAdminRoute && !isAdminLoggedIn)) && <Navbar />}
                             <AuthGateModal />
@@ -209,6 +211,8 @@ function App() {
 }
 
 export default App;
+
+
 
 
 
