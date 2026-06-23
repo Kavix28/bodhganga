@@ -125,16 +125,14 @@ function App() {
                                             <Route path="/error"          element={<ErrorPage />} />
 
                                             {/* ── Old states/UTs routes — kept for backward compat ── */}
-                                            <Route path="/state" element={<Navigate to="/state" replace />} />
-                                            <Route path="/union-territories" element={<ProtectedRoute><UnionTerritories /></ProtectedRoute>} />
+                                                                                        <Route path="/union-territories" element={<ProtectedRoute><UnionTerritories /></ProtectedRoute>} />
                                             <Route path="/states/:id"     element={<ProtectedRoute><StateDetail /></ProtectedRoute>} />
                                             <Route path="/union-territories/:id" element={<ProtectedRoute><StateDetail /></ProtectedRoute>} />
                                             <Route path="/states/:stateSlug/resources" element={<ProtectedRoute><ResourcePage /></ProtectedRoute>} />
                                             <Route path="/union-territories/:stateSlug/resources" element={<ProtectedRoute><ResourcePage /></ProtectedRoute>} />
 
                                             {/* ── Existing /states-browse flow ─────────────── */}
-                                            <Route path="/state" element={<Navigate to="/state" replace />} />
-                                            <Route path="/states-browse/:stateSlug"                        element={<DistrictsPage />} />
+                                                                                        <Route path="/states-browse/:stateSlug"                        element={<DistrictsPage />} />
                                             <Route path="/states-browse/:stateSlug/:districtSlug"          element={<DistrictResourcesPage />} />
 
                                             {/* ── Old store URLs → redirect ──────────────── */}
@@ -211,6 +209,7 @@ function App() {
 }
 
 export default App;
+
 
 
 
