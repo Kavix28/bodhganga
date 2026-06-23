@@ -21,7 +21,8 @@ const regionMap = {
     'arunachal-pradesh': 'North-East India', 'assam': 'North-East India', 'manipur': 'North-East India',
     'meghalaya': 'North-East India', 'mizoram': 'North-East India', 'nagaland': 'North-East India',
     'sikkim': 'North-East India', 'tripura': 'North-East India',
-    'andaman-nicobar': 'East India', 'andaman-and-nicobar': 'East India',
+    'andaman-nicobar': 'East India',
+    'dnh-dd': 'West India', 'andaman-and-nicobar': 'East India',
 };
 
 const States = () => {
@@ -175,6 +176,7 @@ const States = () => {
 };
 
 export default States;
+
 
 
 
