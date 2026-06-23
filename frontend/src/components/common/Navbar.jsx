@@ -70,7 +70,7 @@ const Navbar = () => {
     return (
         <header className={`sticky top-0 z-50 transition-all duration-500 ${scrolled ? 'bg-emerald-dark/95 backdrop-blur-xl border-b border-gold/15 shadow-2xl' : 'bg-emerald-dark border-b border-gold/5'}`}>
             <div className="h-1 bg-gradient-to-r from-emerald via-gold to-emerald" />
-            <nav className="max-w-7xl mx-auto px-6 lg:px-8">
+            <nav className="max-w-7xl mx-auto px-6 lg:px-8 overflow-visible">
                 <div className="flex items-center justify-between h-24">
 
                     {/* Logo */}
@@ -269,6 +269,7 @@ const Navbar = () => {
 };
 
 export default Navbar;
+
 
 
 
