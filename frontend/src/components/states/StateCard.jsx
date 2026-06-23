@@ -85,7 +85,7 @@ const StateCard = ({ state }) => {
     return (
         <Link
             to={path}
-            className="card-premium flex flex-col group relative bg-white border border-emerald/5 hover:border-gold/30 hover:shadow-lg transition-all duration-300 glow-emerald-card rounded-2xl overflow-hidden"
+            className="card-premium flex flex-col group relative bg-white border border-emerald/5 hover:border-gold/30 hover:shadow-lg transition-all duration-300 glow-emerald-card rounded-2xl"
         >
             <div className="relative w-full">
                 <img
@@ -129,3 +129,4 @@ const StateCard = ({ state }) => {
 };
 
 export default StateCard;
+
