@@ -160,11 +160,7 @@ function StateCard({ region, isActive, productCount, onClick }) {
           <div className="w-full" style={{aspectRatio:"16/9", background:`linear-gradient(135deg, ${g1}, ${g2})`}} />
         )}
         <div className="absolute inset-0 bg-black/20" />
-        <div className="absolute top-2 left-2">
-          <span className="text-[9px] font-black uppercase tracking-widest bg-black/40 text-gray-300 px-1.5 py-0.5 rounded-md backdrop-blur-sm">
-            {region.type}
-          </span>
-        </div>
+        
         <div className="absolute top-2 right-2">
           {isActive ? (
             <span className="text-[9px] font-black uppercase tracking-widest bg-amber-500 text-black px-1.5 py-0.5 rounded-md">
@@ -356,5 +352,6 @@ export default function AllStatesPage() {
     </div>
   );
 }
+
 
 
