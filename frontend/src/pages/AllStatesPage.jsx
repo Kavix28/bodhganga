@@ -153,13 +153,12 @@ function StateCard({ region, isActive, productCount, onClick }) {
           : "border-gray-800 opacity-50 cursor-not-allowed",
       ].join(" ")}
     >
-      <div
-        className="w-full relative"
-        style={img
-          ? { backgroundImage: `url(${img})`, backgroundSize: "cover", backgroundPosition: "center" }
-          : { background: `linear-gradient(135deg, ${g1}, ${g2})` }
-        }
-      >
+      <div className="w-full relative">
+        {img ? (
+          <img src={img} alt={region.name} className="w-full h-auto block" />
+        ) : (
+          <div className="w-full" style={{aspectRatio:"16/9", background:`linear-gradient(135deg, ${g1}, ${g2})`}} />
+        )}
         <div className="absolute inset-0 bg-black/20" />
         <div className="absolute top-2 left-2">
           <span className="text-[9px] font-black uppercase tracking-widest bg-black/40 text-gray-300 px-1.5 py-0.5 rounded-md backdrop-blur-sm">
@@ -357,4 +356,5 @@ export default function AllStatesPage() {
     </div>
   );
 }
+
 
