@@ -255,7 +255,7 @@ export default function ExplorePage() {
                   <div key={s.slug} onClick={() => navigate(`/state/${s.slug}/districts`)}
                     className="rounded-xl border border-amber-500/30 cursor-pointer hover:border-amber-400/60 hover:-translate-y-0.5 transition-all overflow-hidden relative">
                     {img ? (
-                      <img src={img} alt={s.name} className="w-full h-24 object-cover" />
+                      <img src={img} alt={s.name} className="w-full h-auto block" />
                     ) : (
                       <div className="w-full h-24" style={{ background: `linear-gradient(135deg, ${g1}, ${g2})` }} />
                     )}
@@ -286,7 +286,7 @@ export default function ExplorePage() {
                 return (
                   <div key={s.slug} className="rounded-xl border border-gray-800 opacity-40 overflow-hidden relative">
                     {img ? (
-                      <img src={img} alt={s.name} className="w-full h-24 object-cover" />
+                      <img src={img} alt={s.name} className="w-full h-auto block" />
                     ) : (
                       <div className="w-full h-24" style={{ background: `linear-gradient(135deg, ${g1}, ${g2})` }} />
                     )}
