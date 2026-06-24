@@ -242,7 +242,7 @@ export default function ExplorePage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 mb-10">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-10">
               {activeList.map((s) => {
                 const [g1, g2] = getGradient(s.name);
                 const img = STATE_IMAGES[s.slug];
@@ -267,7 +267,7 @@ export default function ExplorePage() {
               <span className="w-2 h-2 rounded-full bg-gray-700 inline-block" />
               Coming Soon
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 mb-10">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-10">
               {plannedList.map((s) => {
                 const [g1, g2] = getGradient(s.name);
                 const img = STATE_IMAGES[s.slug];
