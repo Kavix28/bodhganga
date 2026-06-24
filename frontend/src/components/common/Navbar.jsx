@@ -1,7 +1,7 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { FiUser, FiLogOut, FiMenu, FiX, FiChevronDown } from 'react-icons/fi';
-import { BookOpen, MapPin, LayoutDashboard, ShoppingCart, Receipt, Heart } from 'lucide-react';
+import { BookOpen, MapPin, LayoutDashboard, ShoppingCart, Receipt, Heart, MessageSquare } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useCart } from '../../context/CartContext';
 import Logo from './Logo';
@@ -58,7 +58,7 @@ const Navbar = () => {
     };
 
     const handleLinkClick = (e, path) => {
-        const protectedRoutes = ['/free-resources', '/courses', '/cart', '/library', '/dashboard', '/profile', '/orders'];
+        const protectedRoutes = ['/free-resources', '/courses', '/cart', '/library', '/dashboard', '/student/dashboard', '/student/discussion', '/profile', '/orders'];
         if (protectedRoutes.some(r => path.startsWith(r)) && !isAuthenticated) {
             e.preventDefault();
             openAuthModal('welcome');
@@ -110,10 +110,16 @@ const Navbar = () => {
                         </div>
 
                         {isAuthenticated && (
-                            <Link to="/dashboard"
-                                className={`relative px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-300 rounded-xl ${isActive('/dashboard') ? 'text-gold bg-white/5 border border-gold/20' : 'text-white/80 hover:text-gold hover:bg-white/5 border border-transparent'}`}>
-                                Dashboard
-                            </Link>
+                            <>
+                                <Link to="/student/dashboard"
+                                    className={`relative px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-300 rounded-xl ${isActive('/student/dashboard') ? 'text-gold bg-white/5 border border-gold/20' : 'text-white/80 hover:text-gold hover:bg-white/5 border border-transparent'}`}>
+                                    Dashboard
+                                </Link>
+                                <Link to="/student/discussion"
+                                    className={`relative px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-300 rounded-xl ${isActive('/student/discussion') ? 'text-gold bg-white/5 border border-gold/20' : 'text-white/80 hover:text-gold hover:bg-white/5 border border-transparent'}`}>
+                                    Discussion
+                                </Link>
+                            </>
                         )}
                     </div>
                     <Link to="/state" onClick={() => setMobileOpen(false)}
@@ -158,8 +164,11 @@ const Navbar = () => {
                                         <Link to="/wishlist" className="flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 hover:text-gold transition-colors">
                                             <Heart className="w-4 h-4" /> My Wishlist
                                         </Link>
-                                        <Link to="/dashboard" className="flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 hover:text-gold transition-colors">
+                                        <Link to="/student/dashboard" className="flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 hover:text-gold transition-colors">
                                             <LayoutDashboard className="w-4 h-4" /> Dashboard
+                                        </Link>
+                                        <Link to="/student/discussion" className="flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 hover:text-gold transition-colors">
+                                            <MessageSquare className="w-4 h-4" /> Discussion Forum
                                         </Link>
                                         <Link to="/orders" className="flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 hover:text-gold transition-colors">
                                             <Receipt className="w-4 h-4" /> My Orders
@@ -214,10 +223,16 @@ const Navbar = () => {
                             </Link>
                         ))}
                         {isAuthenticated && (
-                            <Link to="/dashboard" onClick={() => setMobileOpen(false)}
-                                className="flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 border border-transparent">
-                                <LayoutDashboard className="w-4 h-4" /> Dashboard
-                            </Link>
+                            <>
+                                <Link to="/student/dashboard" onClick={() => setMobileOpen(false)}
+                                    className="flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 border border-transparent">
+                                    <LayoutDashboard className="w-4 h-4" /> Dashboard
+                                </Link>
+                                <Link to="/student/discussion" onClick={() => setMobileOpen(false)}
+                                    className="flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 border border-transparent">
+                                    <MessageSquare className="w-4 h-4" /> Discussion
+                                </Link>
+                            </>
                         )}
                         <div className="border-t border-gold/15 pt-3 mt-3">
                             <div className="px-4 py-1 text-[10px] text-gold/60 font-black uppercase tracking-widest">About Academy</div>
