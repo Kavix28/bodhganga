@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
+import { Map, MapPin, BookOpen, Gift, Gem, Flag } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 
@@ -122,11 +123,11 @@ export default function ExplorePage() {
   const plannedList = ALL_STATES.filter(s => !activeStates[s.slug]);
 
   const STATS = [
-    { label: "States Covered", value: stats.states, icon: "🗺️", color: "text-amber-400" },
-    { label: "Districts Live", value: stats.districts, icon: "📍", color: "text-blue-400" },
-    { label: "Study Materials", value: stats.total, icon: "📚", color: "text-green-400" },
-    { label: "Free Resources", value: stats.free, icon: "🆓", color: "text-emerald-400" },
-    { label: "Paid Resources", value: stats.paid, icon: "💎", color: "text-purple-400" },
+    { label: "States Covered", value: stats.states, icon: <Map className="w-6 h-6 text-amber-400 mx-auto" />, color: "text-amber-400" },
+    { label: "Districts Live", value: stats.districts, icon: <MapPin className="w-6 h-6 text-blue-400 mx-auto" />, color: "text-blue-400" },
+    { label: "Study Materials", value: stats.total, icon: <BookOpen className="w-6 h-6 text-green-400 mx-auto" />, color: "text-green-400" },
+    { label: "Free Resources", value: stats.free, icon: <Gift className="w-6 h-6 text-emerald-400 mx-auto" />, color: "text-emerald-400" },
+    { label: "Paid Resources", value: stats.paid, icon: <Gem className="w-6 h-6 text-purple-400 mx-auto" />, color: "text-purple-400" },
   ];
 
   return (
@@ -148,7 +149,7 @@ export default function ExplorePage() {
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
           {STATS.map((s) => (
             <div key={s.label} className="bg-gray-900 border border-gray-800 rounded-xl p-4 text-center">
-              <div className="text-2xl mb-1">{s.icon}</div>
+              <div className="mb-1">{s.icon}</div>
               <div className={`text-2xl font-extrabold ${s.color}`}>
                 {loading ? "—" : <CountUp target={s.value} />}
               </div>
