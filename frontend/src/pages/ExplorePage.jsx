@@ -31,13 +31,14 @@ import imgTripura from "../assets/states/tripura-image.png";
 import imgUP from "../assets/states/uttar-pradesh-image.png";
 import imgUttarakhand from "../assets/states/uttarakhand-image.png";
 import imgWestBengal from "../assets/states/west-bengal-image.png";
+import imgAndaman from "../assets/states/andaman-image.png";
+import imgChandigarh from "../assets/states/chandigarh-image.png";
 import imgDelhi from "../assets/states/delhi-image.png";
+import imgDnhDd from "../assets/states/dnh-dd-image.png";
 import imgJK from "../assets/states/jammu-kashmir-image.png";
 import imgLadakh from "../assets/states/ladakh-image.png";
-import imgPuducherry from "../assets/states/puducherry-image.png";
-import imgChandigarh from "../assets/states/chandigarh-image.png";
 import imgLakshadweep from "../assets/states/lakshadweep-image.png";
-import imgAndaman from "../assets/states/andaman-image.png";
+import imgPuducherry from "../assets/states/puducherry-image.png";
 
 const STATE_IMAGES = {
   "andhra-pradesh": imgAndhra,
@@ -68,13 +69,14 @@ const STATE_IMAGES = {
   "uttar-pradesh": imgUP,
   "uttarakhand": imgUttarakhand,
   "west-bengal": imgWestBengal,
-  "delhi": imgDelhi,
-  "jammu-and-kashmir": imgJK,
-  "ladakh": imgLadakh,
-  "puducherry": imgPuducherry,
+  "andaman-nicobar": imgAndaman,
   "chandigarh": imgChandigarh,
+  "delhi": imgDelhi,
+  "dnh-dd": imgDnhDd,
+  "jammu-kashmir": imgJK,
+  "ladakh": imgLadakh,
   "lakshadweep": imgLakshadweep,
-  "andaman-and-nicobar-islands": imgAndaman,
+  "puducherry": imgPuducherry,
 };
 
 const ALL_STATES = [
@@ -106,29 +108,21 @@ const ALL_STATES = [
   { name: "Uttar Pradesh", slug: "uttar-pradesh" },
   { name: "Uttarakhand", slug: "uttarakhand" },
   { name: "West Bengal", slug: "west-bengal" },
-  { name: "Delhi", slug: "delhi" },
-  { name: "Jammu & Kashmir", slug: "jammu-and-kashmir" },
-  { name: "Ladakh", slug: "ladakh" },
-  { name: "Puducherry", slug: "puducherry" },
+  { name: "Andaman & Nicobar", slug: "andaman-nicobar" },
   { name: "Chandigarh", slug: "chandigarh" },
+  { name: "Delhi", slug: "delhi" },
+  { name: "DNH & DD", slug: "dnh-dd" },
+  { name: "Jammu & Kashmir", slug: "jammu-kashmir" },
+  { name: "Ladakh", slug: "ladakh" },
   { name: "Lakshadweep", slug: "lakshadweep" },
-  { name: "Andaman & Nicobar Islands", slug: "andaman-and-nicobar-islands" },
+  { name: "Puducherry", slug: "puducherry" },
 ];
 
 const GRADIENTS = [
-  ["#1a4731", "#0f5132"],
-  ["#1e3a5f", "#1d4ed8"],
-  ["#4a1942", "#7e22ce"],
-  ["#5c2800", "#c2410c"],
-  ["#1a3a1a", "#15803d"],
-  ["#3b1f00", "#b45309"],
-  ["#1a1a3e", "#4338ca"],
-  ["#2d1b69", "#6d28d9"],
-];
-
-const IN_PROGRESS = [
-  "Himachal Pradesh / Chamba",
-  "Andhra Pradesh / Alluri Sitharama Raju",
+  ["#1a1a2e", "#16213e"], ["#0f3460", "#533483"],
+  ["#1b262c", "#0f4c75"], ["#2d132c", "#ee4540"],
+  ["#1a1a2e", "#e94560"], ["#0a3d62", "#1e3799"],
+  ["#1b1b2f", "#162447"], ["#191a19", "#1e5128"],
 ];
 
 function getGradient(name) {
@@ -139,7 +133,7 @@ function getGradient(name) {
 function CountUp({ target }) {
   const [val, setVal] = useState(0);
   useEffect(() => {
-    if (target === 0) return;
+    if (!target) return;
     let start = 0;
     const step = Math.ceil(target / 40);
     const timer = setInterval(() => {
@@ -149,15 +143,15 @@ function CountUp({ target }) {
     }, 30);
     return () => clearInterval(timer);
   }, [target]);
-  return <span>{val}</span>;
+  return <>{val}</>;
 }
 
 export default function ExplorePage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ states: 0, districts: 0, total: 0, free: 0, paid: 0 });
   const [activeStates, setActiveStates] = useState({});
   const [districtCounts, setDistrictCounts] = useState({});
+  const [stats, setStats] = useState({ states: 0, districts: 0, total: 0, free: 0, paid: 0 });
 
   useEffect(() => {
     const load = async () => {
@@ -165,14 +159,14 @@ export default function ExplorePage() {
         const res = await api.get("/products", {
           params: { importedFromDrive: true, published: true, size: 1000 },
         });
-        const products = Array.isArray(res) ? res : (res?.data?.content || res?.data || []);
+        const products = res.data?.content || res.data || [];
         const stateSet = new Set();
         const districtSet = new Set();
         const dCounts = {};
         let free = 0, paid = 0;
         products.forEach((p) => {
-          const ss = p.stateSlug || p.state?.toLowerCase().replace(/\s+/g, "-");
-          const ds = p.districtSlug || p.district?.toLowerCase().replace(/\s+/g, "-");
+          const ss = p.stateSlug || p.state_slug;
+          const ds = p.districtSlug || p.district_slug;
           if (ss) { stateSet.add(ss); dCounts[ss] = (dCounts[ss] || new Set()); if (ds) dCounts[ss].add(ds); }
           if (ds) districtSet.add(ds);
           if (p.free) free++; else paid++;
@@ -210,7 +204,7 @@ export default function ExplorePage() {
       <div className="border-b border-gray-800 bg-gray-900/60 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto px-4 py-10">
           <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-amber-400 mb-4">
-            <span>🇮🇳</span>
+            <span>&#x1F1EE;&#x1F1F3;</span>
             <span>BodhGanga Academy</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-white mb-2">Explore BodhGanga</h1>
@@ -239,10 +233,11 @@ export default function ExplorePage() {
           <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse inline-block" />
           Active States
         </h2>
+
         {loading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="h-28 rounded-xl bg-gray-900 animate-pulse" />
+              <div key={i} className="h-40 rounded-xl bg-gray-900 animate-pulse" />
             ))}
           </div>
         ) : (
@@ -253,22 +248,21 @@ export default function ExplorePage() {
                 const img = STATE_IMAGES[s.slug];
                 return (
                   <div key={s.slug} onClick={() => navigate(`/state/${s.slug}/districts`)}
-                    className="rounded-xl border border-amber-500/30 cursor-pointer hover:border-amber-400/60 hover:-translate-y-0.5 transition-all overflow-hidden relative">
-                    {img ? (
-                      <img src={img} alt={s.name} className="w-full h-auto block" />
-                    ) : (
-                      <div className="w-full h-24" style={{ background: `linear-gradient(135deg, ${g1}, ${g2})` }} />
-                    )}
-                    <div className="absolute inset-0 bg-black/40" />
-                    <div className="absolute inset-0 p-3 flex flex-col justify-between">
-                      <div className="flex items-center justify-between">
-                        <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                        <span className="text-[9px] font-black uppercase tracking-widest bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">LIVE</span>
-                      </div>
-                      <div>
+                    className="rounded-xl border border-amber-500/30 cursor-pointer hover:border-amber-400/60 hover:-translate-y-0.5 transition-all overflow-hidden">
+                    <div className="relative">
+                      {img ? (
+                        <img src={img} alt={s.name} className="w-full h-auto block" />
+                      ) : (
+                        <div className="w-full h-32" style={{ background: `linear-gradient(135deg, ${g1}, ${g2})` }} />
+                      )}
+                      <span className="absolute top-2 right-2 text-[9px] font-black uppercase tracking-widest bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">LIVE</span>
+                    </div>
+                    <div className="p-3 bg-gray-900">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
                         <h3 className="text-sm font-bold text-white">{s.name}</h3>
-                        <p className="text-[10px] text-gray-300 mt-0.5">{districtCounts[s.slug] || 0} district{districtCounts[s.slug] !== 1 ? "s" : ""}</p>
                       </div>
+                      <p className="text-[10px] text-gray-400">{districtCounts[s.slug] || 0} district{districtCounts[s.slug] !== 1 ? "s" : ""}</p>
                     </div>
                   </div>
                 );
@@ -284,22 +278,18 @@ export default function ExplorePage() {
                 const [g1, g2] = getGradient(s.name);
                 const img = STATE_IMAGES[s.slug];
                 return (
-                  <div key={s.slug} className="rounded-xl border border-gray-800 opacity-40 overflow-hidden relative">
-                    {img ? (
-                      <img src={img} alt={s.name} className="w-full h-auto block" />
-                    ) : (
-                      <div className="w-full h-24" style={{ background: `linear-gradient(135deg, ${g1}, ${g2})` }} />
-                    )}
-                    <div className="absolute inset-0 bg-black/50" />
-                    <div className="absolute inset-0 p-3 flex flex-col justify-between">
-                      <div className="flex items-center justify-between">
-                        <span className="w-2 h-2 rounded-full bg-gray-600" />
-                        <span className="text-[9px] font-black uppercase tracking-widest bg-gray-800 text-gray-500 px-1.5 py-0.5 rounded">SOON</span>
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-bold text-white">{s.name}</h3>
-                        <p className="text-[10px] text-gray-400 mt-0.5">Coming soon</p>
-                      </div>
+                  <div key={s.slug} className="rounded-xl border border-gray-800 opacity-50 overflow-hidden">
+                    <div className="relative">
+                      {img ? (
+                        <img src={img} alt={s.name} className="w-full h-auto block" />
+                      ) : (
+                        <div className="w-full h-32" style={{ background: `linear-gradient(135deg, ${g1}, ${g2})` }} />
+                      )}
+                      <span className="absolute top-2 right-2 text-[9px] font-black uppercase tracking-widest bg-gray-800 text-gray-500 px-1.5 py-0.5 rounded">SOON</span>
+                    </div>
+                    <div className="p-3 bg-gray-900">
+                      <h3 className="text-sm font-bold text-white">{s.name}</h3>
+                      <p className="text-[10px] text-gray-500 mt-0.5">Coming soon</p>
                     </div>
                   </div>
                 );
@@ -307,61 +297,6 @@ export default function ExplorePage() {
             </div>
           </>
         )}
-      </div>
-
-      {/* Roadmap */}
-      <div className="max-w-6xl mx-auto px-4 py-6 pb-20">
-        <h2 className="text-xs font-black uppercase tracking-widest text-white mb-6">Progress Roadmap</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          {/* Completed */}
-          <div className="bg-gray-900 border border-green-500/20 rounded-xl p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-lg">✅</span>
-              <h3 className="text-xs font-black uppercase tracking-widest text-green-400">Completed</h3>
-            </div>
-            <div className="space-y-2">
-              {activeList.length === 0 && <p className="text-gray-600 text-xs">None yet</p>}
-              {activeList.map(s => (
-                <div key={s.slug} className="flex items-center gap-2 text-sm text-gray-300">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0" />
-                  {s.name} <span className="text-gray-600 text-xs">({districtCounts[s.slug] || 0} districts)</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* In Progress */}
-          <div className="bg-gray-900 border border-amber-500/20 rounded-xl p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-lg">🔄</span>
-              <h3 className="text-xs font-black uppercase tracking-widest text-amber-400">In Progress</h3>
-            </div>
-            <div className="space-y-2">
-              {IN_PROGRESS.map(item => (
-                <div key={item} className="flex items-center gap-2 text-sm text-gray-300">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0 animate-pulse" />
-                  {item}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Planned */}
-          <div className="bg-gray-900 border border-gray-700 rounded-xl p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-lg">📋</span>
-              <h3 className="text-xs font-black uppercase tracking-widest text-gray-500">Planned</h3>
-            </div>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {plannedList.map(s => (
-                <div key={s.slug} className="flex items-center gap-2 text-sm text-gray-500">
-                  <span className="w-1.5 h-1.5 rounded-full bg-gray-700 flex-shrink-0" />
-                  {s.name}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
