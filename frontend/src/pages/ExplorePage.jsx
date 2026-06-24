@@ -248,22 +248,16 @@ export default function ExplorePage() {
                 const img = STATE_IMAGES[s.slug];
                 return (
                   <div key={s.slug} onClick={() => navigate(`/state/${s.slug}/districts`)}
-                    className="rounded-xl border border-amber-500/30 cursor-pointer hover:border-amber-400/60 hover:-translate-y-0.5 transition-all overflow-hidden">
+                    className="relative rounded-2xl border border-amber-500/30 overflow-hidden cursor-pointer hover:border-amber-400/60 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
                     <div className="relative">
                       {img ? (
                         <img src={img} alt={s.name} className="w-full h-auto block" />
                       ) : (
                         <div className="w-full h-32" style={{ background: `linear-gradient(135deg, ${g1}, ${g2})` }} />
                       )}
-                      <span className="absolute top-2 right-2 text-[9px] font-black uppercase tracking-widest bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">LIVE</span>
+                      <span className="absolute top-2 right-2 text-[9px] font-black uppercase tracking-widest bg-amber-500 text-black px-1.5 py-0.5 rounded-md">ACTIVE</span>
                     </div>
-                    <div className="p-3 bg-gray-900">
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                        <h3 className="text-sm font-bold text-white">{s.name}</h3>
-                      </div>
-                      <p className="text-[10px] text-gray-400">{districtCounts[s.slug] || 0} district{districtCounts[s.slug] !== 1 ? "s" : ""}</p>
-                    </div>
+                    <div className="px-3 py-3 flex items-center justify-between gap-2" style={{ background: `linear-gradient(135deg, ${g1}cc, ${g2}cc)` }}><div><h3 className="text-sm font-bold text-white leading-tight">{s.name}</h3><p className="text-xs text-gray-400 mt-0.5">{districtCounts[s.slug] || 0} district{districtCounts[s.slug] !== 1 ? "s" : ""}</p></div><span className="text-amber-400 text-lg flex-shrink-0">→</span></div>
                   </div>
                 );
               })}
@@ -278,19 +272,16 @@ export default function ExplorePage() {
                 const [g1, g2] = getGradient(s.name);
                 const img = STATE_IMAGES[s.slug];
                 return (
-                  <div key={s.slug} className="rounded-xl border border-gray-800 opacity-50 overflow-hidden">
+                  <div key={s.slug} className="relative rounded-2xl border border-gray-800 overflow-hidden opacity-50 cursor-not-allowed">
                     <div className="relative">
                       {img ? (
                         <img src={img} alt={s.name} className="w-full h-auto block" />
                       ) : (
                         <div className="w-full h-32" style={{ background: `linear-gradient(135deg, ${g1}, ${g2})` }} />
                       )}
-                      <span className="absolute top-2 right-2 text-[9px] font-black uppercase tracking-widest bg-gray-800 text-gray-500 px-1.5 py-0.5 rounded">SOON</span>
+                      <span className="absolute top-2 right-2 text-[9px] font-black uppercase tracking-widest bg-gray-800/80 text-gray-400 px-1.5 py-0.5 rounded-md">COMING SOON</span>
                     </div>
-                    <div className="p-3 bg-gray-900">
-                      <h3 className="text-sm font-bold text-white">{s.name}</h3>
-                      <p className="text-[10px] text-gray-500 mt-0.5">Coming soon</p>
-                    </div>
+                    <div className="px-3 py-3 flex items-center justify-between gap-2" style={{ background: `linear-gradient(135deg, ${g1}cc, ${g2}cc)` }}><div><h3 className="text-sm font-bold text-white leading-tight">{s.name}</h3><p className="text-xs text-gray-400 mt-0.5">Content being prepared</p></div><span className="text-gray-600 text-xs flex-shrink-0">Soon</span></div>
                   </div>
                 );
               })}
