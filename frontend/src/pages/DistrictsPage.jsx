@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import toast from "react-hot-toast";
 import { useCart } from '../context/CartContext';
-import { GraduationCap } from 'lucide-react';
+import { GraduationCap, Mail, MessageCircle, ArrowLeft, ArrowRight, Printer } from 'lucide-react';
 
 function ReceiptModal({ receipt, onClose }) {
   const handlePrint = () => window.print();
@@ -12,7 +12,7 @@ function ReceiptModal({ receipt, onClose }) {
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl" id="receipt-modal">
         {/* Receipt Header */}
         <div className="bg-emerald-800 rounded-t-2xl px-6 py-5 text-center">
-          <div className="text-2xl mb-1">ðŸŽ“</div>
+          <div className="flex justify-center mb-1"><GraduationCap className="w-8 h-8 text-white" /></div>
           <h2 className="text-white font-bold text-lg">Payment Successful!</h2>
           <p className="text-emerald-200 text-xs mt-1">Bodhganga Academy</p>
         </div>
@@ -66,7 +66,9 @@ function ReceiptModal({ receipt, onClose }) {
           <button
             onClick={handlePrint}
             className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-xl transition-colors text-sm">
-            ðŸ–¨ Print Receipt
+            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-xl transition-colors text-sm flex items-center justify-center gap-2">
+            <Printer className="w-4 h-4" /> Print Receipt
+          </button>
           </button>
         </div>
       </div>
@@ -79,8 +81,8 @@ function ContactSupportModal({ onClose, districtName }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-md shadow-2xl">
         <div className="px-6 py-5 border-b border-gray-700 flex justify-between items-center">
-          <h2 className="text-white font-bold">Payment Failed â€” Contact Support</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white text-xl">âœ•</button>
+          <h2 className="text-white font-bold">Payment Failed &mdash; Contact Support</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-white text-xl">x</button>
         </div>
         <div className="px-6 py-5 space-y-4">
           <p className="text-gray-400 text-sm">
@@ -88,7 +90,7 @@ function ContactSupportModal({ onClose, districtName }) {
           </p>
           <div className="bg-gray-800 rounded-xl p-4 space-y-3">
             <div className="flex items-center gap-3">
-              <span className="text-xl">ðŸ“§</span>
+              <MessageCircle className="w-5 h-5 text-amber-400 flex-shrink-0" />
               <div>
                 <p className="text-xs text-gray-500">Email Support</p>
                 <a href="mailto:support@bodhganga.in" className="text-amber-400 font-semibold text-sm hover:underline">
@@ -97,7 +99,7 @@ function ContactSupportModal({ onClose, districtName }) {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-xl">ðŸ’¬</span>
+              <MessageCircle className="w-5 h-5 text-amber-400 flex-shrink-0" />
               <div>
                 <p className="text-xs text-gray-500">WhatsApp Support</p>
                 <a href="https://wa.me/919999999999" target="_blank" rel="noopener noreferrer"
@@ -237,7 +239,7 @@ export default function DistrictsPage() {
       <div className="max-w-6xl mx-auto">
         <button onClick={() => navigate("/state")}
           className="text-gray-400 hover:text-amber-400 mb-6 flex items-center gap-1 text-sm">
-          â† Back to States
+          <ArrowLeft className="w-4 h-4" /> Back to States
         </button>
         <h1 className="text-3xl font-bold text-amber-400 mb-1">{stateName}</h1>
         <p className="text-gray-400 mb-6">Select a district to access study material</p>
