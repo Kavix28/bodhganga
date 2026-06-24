@@ -251,7 +251,7 @@ export default function ExplorePage() {
                     className="relative rounded-2xl border border-amber-500/30 overflow-hidden cursor-pointer hover:border-amber-400/60 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
                     <div className="relative">
                       {img ? (
-                        <img src={img} alt={s.name} className="w-full object-cover" style={{maxHeight:"200px"}} />
+                        <img src={img} alt={s.name} className="w-full h-auto block" />
                       ) : (
                         <div className="w-full h-32" style={{ background: `linear-gradient(135deg, ${g1}, ${g2})` }} />
                       )}
@@ -275,7 +275,7 @@ export default function ExplorePage() {
                   <div key={s.slug} className="relative rounded-2xl border border-gray-800 overflow-hidden opacity-50 cursor-not-allowed">
                     <div className="relative">
                       {img ? (
-                        <img src={img} alt={s.name} className="w-full object-cover" style={{maxHeight:"200px"}} />
+                        <img src={img} alt={s.name} className="w-full h-auto block" />
                       ) : (
                         <div className="w-full h-32" style={{ background: `linear-gradient(135deg, ${g1}, ${g2})` }} />
                       )}
