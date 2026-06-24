@@ -252,7 +252,6 @@ export default function ExplorePage() {
                     <div className="relative">
                       {img ? (
                         <img src={img} alt={s.name} className="w-full h-auto block" />
-                      <div className="absolute inset-0 bg-black/20" />
                       ) : (
                         <div className="w-full h-32" style={{ background: `linear-gradient(135deg, ${g1}, ${g2})` }} />
                       )}
@@ -277,7 +276,6 @@ export default function ExplorePage() {
                     <div className="relative">
                       {img ? (
                         <img src={img} alt={s.name} className="w-full h-auto block" />
-                      <div className="absolute inset-0 bg-black/20" />
                       ) : (
                         <div className="w-full h-32" style={{ background: `linear-gradient(135deg, ${g1}, ${g2})` }} />
                       )}
