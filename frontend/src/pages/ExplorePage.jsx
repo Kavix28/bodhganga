@@ -1,7 +1,81 @@
 ﻿import { useEffect, useState } from "react";
-import { Map, MapPin, BookOpen, Gift, Gem, Flag } from "lucide-react";
+import { Map, MapPin, BookOpen, Gift, Gem } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
+
+import imgAndhra from "../assets/states/andhra-pradesh-image.png";
+import imgArunachal from "../assets/states/arunachal-pradesh-image.png";
+import imgAssam from "../assets/states/assam-image.png";
+import imgBihar from "../assets/states/bihar-image.png";
+import imgChhattisgarh from "../assets/states/chhattisgarh-image.png";
+import imgGoa from "../assets/states/goa-image.png";
+import imgGujarat from "../assets/states/gujarat-image.png";
+import imgHaryana from "../assets/states/haryana-image.png";
+import imgHimachal from "../assets/states/himachal-pradesh-image.png";
+import imgJharkhand from "../assets/states/jharkhand-image.png";
+import imgKarnataka from "../assets/states/karnataka-image.png";
+import imgKerala from "../assets/states/kerala-image.png";
+import imgMP from "../assets/states/madhya-pradesh-image.png";
+import imgMaharashtra from "../assets/states/maharashtra-image.png";
+import imgManipur from "../assets/states/manipur-image.png";
+import imgMeghalaya from "../assets/states/meghalaya-image.png";
+import imgMizoram from "../assets/states/mizoram-image.png";
+import imgNagaland from "../assets/states/nagaland-image.png";
+import imgOdisha from "../assets/states/odisha-image.png";
+import imgPunjab from "../assets/states/punjab-image.png";
+import imgRajasthan from "../assets/states/rajasthan-image.png";
+import imgSikkim from "../assets/states/sikkim-image.png";
+import imgTamilNadu from "../assets/states/tamil-nadu-image.png";
+import imgTelangana from "../assets/states/telangana-image.png";
+import imgTripura from "../assets/states/tripura-image.png";
+import imgUP from "../assets/states/uttar-pradesh-image.png";
+import imgUttarakhand from "../assets/states/uttarakhand-image.png";
+import imgWestBengal from "../assets/states/west-bengal-image.png";
+import imgDelhi from "../assets/states/delhi-image.png";
+import imgJK from "../assets/states/jammu-kashmir-image.png";
+import imgLadakh from "../assets/states/ladakh-image.png";
+import imgPuducherry from "../assets/states/puducherry-image.png";
+import imgChandigarh from "../assets/states/chandigarh-image.png";
+import imgLakshadweep from "../assets/states/lakshadweep-image.png";
+import imgAndaman from "../assets/states/andaman-image.png";
+
+const STATE_IMAGES = {
+  "andhra-pradesh": imgAndhra,
+  "arunachal-pradesh": imgArunachal,
+  "assam": imgAssam,
+  "bihar": imgBihar,
+  "chhattisgarh": imgChhattisgarh,
+  "goa": imgGoa,
+  "gujarat": imgGujarat,
+  "haryana": imgHaryana,
+  "himachal-pradesh": imgHimachal,
+  "jharkhand": imgJharkhand,
+  "karnataka": imgKarnataka,
+  "kerala": imgKerala,
+  "madhya-pradesh": imgMP,
+  "maharashtra": imgMaharashtra,
+  "manipur": imgManipur,
+  "meghalaya": imgMeghalaya,
+  "mizoram": imgMizoram,
+  "nagaland": imgNagaland,
+  "odisha": imgOdisha,
+  "punjab": imgPunjab,
+  "rajasthan": imgRajasthan,
+  "sikkim": imgSikkim,
+  "tamil-nadu": imgTamilNadu,
+  "telangana": imgTelangana,
+  "tripura": imgTripura,
+  "uttar-pradesh": imgUP,
+  "uttarakhand": imgUttarakhand,
+  "west-bengal": imgWestBengal,
+  "delhi": imgDelhi,
+  "jammu-and-kashmir": imgJK,
+  "ladakh": imgLadakh,
+  "puducherry": imgPuducherry,
+  "chandigarh": imgChandigarh,
+  "lakshadweep": imgLakshadweep,
+  "andaman-and-nicobar-islands": imgAndaman,
+};
 
 const ALL_STATES = [
   { name: "Andhra Pradesh", slug: "andhra-pradesh" },
@@ -168,7 +242,7 @@ export default function ExplorePage() {
         {loading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="h-20 rounded-xl bg-gray-900 animate-pulse" />
+              <div key={i} className="h-28 rounded-xl bg-gray-900 animate-pulse" />
             ))}
           </div>
         ) : (
@@ -176,17 +250,25 @@ export default function ExplorePage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-10">
               {activeList.map((s) => {
                 const [g1, g2] = getGradient(s.name);
+                const img = STATE_IMAGES[s.slug];
                 return (
                   <div key={s.slug} onClick={() => navigate(`/state/${s.slug}/districts`)}
-                    className="rounded-xl border border-amber-500/30 cursor-pointer hover:border-amber-400/60 hover:-translate-y-0.5 transition-all overflow-hidden"
-                    style={{ background: `linear-gradient(135deg, ${g1}, ${g2})` }}>
-                    <div className="p-4">
-                      <div className="flex items-center justify-between mb-2">
+                    className="rounded-xl border border-amber-500/30 cursor-pointer hover:border-amber-400/60 hover:-translate-y-0.5 transition-all overflow-hidden relative">
+                    {img ? (
+                      <img src={img} alt={s.name} className="w-full h-24 object-cover" />
+                    ) : (
+                      <div className="w-full h-24" style={{ background: `linear-gradient(135deg, ${g1}, ${g2})` }} />
+                    )}
+                    <div className="absolute inset-0 bg-black/40" />
+                    <div className="absolute inset-0 p-3 flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
                         <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
                         <span className="text-[9px] font-black uppercase tracking-widest bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded">LIVE</span>
                       </div>
-                      <h3 className="text-sm font-bold text-white">{s.name}</h3>
-                      <p className="text-[10px] text-gray-300 mt-1">{districtCounts[s.slug] || 0} district{districtCounts[s.slug] !== 1 ? "s" : ""}</p>
+                      <div>
+                        <h3 className="text-sm font-bold text-white">{s.name}</h3>
+                        <p className="text-[10px] text-gray-300 mt-0.5">{districtCounts[s.slug] || 0} district{districtCounts[s.slug] !== 1 ? "s" : ""}</p>
+                      </div>
                     </div>
                   </div>
                 );
@@ -200,16 +282,24 @@ export default function ExplorePage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-10">
               {plannedList.map((s) => {
                 const [g1, g2] = getGradient(s.name);
+                const img = STATE_IMAGES[s.slug];
                 return (
-                  <div key={s.slug} className="rounded-xl border border-gray-800 opacity-40 overflow-hidden"
-                    style={{ background: `linear-gradient(135deg, ${g1}, ${g2})` }}>
-                    <div className="p-4">
-                      <div className="flex items-center justify-between mb-2">
+                  <div key={s.slug} className="rounded-xl border border-gray-800 opacity-40 overflow-hidden relative">
+                    {img ? (
+                      <img src={img} alt={s.name} className="w-full h-24 object-cover" />
+                    ) : (
+                      <div className="w-full h-24" style={{ background: `linear-gradient(135deg, ${g1}, ${g2})` }} />
+                    )}
+                    <div className="absolute inset-0 bg-black/50" />
+                    <div className="absolute inset-0 p-3 flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
                         <span className="w-2 h-2 rounded-full bg-gray-600" />
                         <span className="text-[9px] font-black uppercase tracking-widest bg-gray-800 text-gray-500 px-1.5 py-0.5 rounded">SOON</span>
                       </div>
-                      <h3 className="text-sm font-bold text-white">{s.name}</h3>
-                      <p className="text-[10px] text-gray-400 mt-1">Coming soon</p>
+                      <div>
+                        <h3 className="text-sm font-bold text-white">{s.name}</h3>
+                        <p className="text-[10px] text-gray-400 mt-0.5">Coming soon</p>
+                      </div>
                     </div>
                   </div>
                 );
