@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import toast from "react-hot-toast";
 import { useCart } from '../context/CartContext';
+import { GraduationCap } from 'lucide-react';
 
 function ReceiptModal({ receipt, onClose }) {
   const handlePrint = () => window.print();
