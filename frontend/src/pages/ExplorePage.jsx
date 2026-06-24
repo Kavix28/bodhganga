@@ -257,7 +257,7 @@ export default function ExplorePage() {
                       )}
                       <span className="absolute top-2 right-2 text-[9px] font-black uppercase tracking-widest bg-amber-500 text-black px-1.5 py-0.5 rounded-md">ACTIVE</span>
                     </div>
-                    <div className="px-3 py-3 flex items-center justify-between gap-2" style={{ background: "rgba(10,10,20,0.95)" }}><div><h3 className="text-sm font-bold text-white leading-tight">{s.name}</h3><p className="text-xs text-gray-400 mt-0.5">{districtCounts[s.slug] || 0} district{districtCounts[s.slug] !== 1 ? "s" : ""}</p></div><span className="text-amber-400 text-lg flex-shrink-0">→</span></div>
+                    <div className="px-3 py-3 flex items-center justify-between gap-2" style={{ background: `linear-gradient(135deg, ${g1}cc, ${g2}cc)` }}><div><h3 className="text-sm font-bold text-white leading-tight">{s.name}</h3><p className="text-xs text-gray-400 mt-0.5">{districtCounts[s.slug] || 0} district{districtCounts[s.slug] !== 1 ? "s" : ""}</p></div><span className="text-amber-400 text-lg flex-shrink-0">→</span></div>
                   </div>
                 );
               })}
@@ -281,7 +281,7 @@ export default function ExplorePage() {
                       )}
                       <span className="absolute top-2 right-2 text-[9px] font-black uppercase tracking-widest bg-gray-800/80 text-gray-400 px-1.5 py-0.5 rounded-md">COMING SOON</span>
                     </div>
-                    <div className="px-3 py-3 flex items-center justify-between gap-2" style={{ background: "rgba(10,10,20,0.95)" }}><div><h3 className="text-sm font-bold text-white leading-tight">{s.name}</h3><p className="text-xs text-gray-400 mt-0.5">Content being prepared</p></div><span className="text-gray-600 text-xs flex-shrink-0">Soon</span></div>
+                    <div className="px-3 py-3 flex items-center justify-between gap-2" style={{ background: `linear-gradient(135deg, ${g1}cc, ${g2}cc)` }}><div><h3 className="text-sm font-bold text-white leading-tight">{s.name}</h3><p className="text-xs text-gray-400 mt-0.5">Content being prepared</p></div><span className="text-gray-600 text-xs flex-shrink-0">Soon</span></div>
                   </div>
                 );
               })}
