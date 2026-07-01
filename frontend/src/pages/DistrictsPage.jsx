@@ -69,7 +69,7 @@ function ReceiptModal({ receipt, onClose }) {
             className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-xl transition-colors text-sm flex items-center justify-center gap-2">
             <Printer className="w-4 h-4" /> Print Receipt
           </button>
-          </button>
+    
         </div>
       </div>
     </div>
