@@ -62,10 +62,32 @@ export const AuthProvider = ({ children }) => {
         setUserData(userData);
     };
 
+    // Check if dev bypass is active (via environment variable, URL query param, or sessionStorage)
+    const isBypassActive = () => {
+        // Strict guard: disable bypass entirely in production mode
+        if (import.meta.env.PROD) return false;
+        
+        if (import.meta.env.VITE_DEV_BYPASS_AUTH === 'true') return true;
+        
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('bypassAuth') === 'true') {
+            sessionStorage.setItem('devBypassAuth', 'true');
+            return true;
+        }
+        
+        return sessionStorage.getItem('devBypassAuth') === 'true';
+    };
+
+    const MOCK_DEV_USER = {
+        name: 'Dev Preview User',
+        email: 'dev-preview@bodhganga.in',
+        role: 'STUDENT',
+    };
+
     const value = {
-        user,
+        user: user || (isBypassActive() ? MOCK_DEV_USER : null),
         token,
-        isAuthenticated,
+        isAuthenticated: isAuthenticated || isBypassActive(),
         isLoading,
         login,
         logout,
