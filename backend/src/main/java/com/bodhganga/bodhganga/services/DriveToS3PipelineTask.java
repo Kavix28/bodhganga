@@ -225,6 +225,12 @@ public class DriveToS3PipelineTask {
         String district = metadata.district;
         String category = metadata.category;
 
+        // If it's a category and no explicit tier folder was provided, default to Free
+        if (!hasTierFolder && !category.equalsIgnoreCase("general")) {
+            isFree = true;
+            price = 0.0;
+        }
+
         // ── Build S3 key: {state}/{category?}/{district?}/{free|paid}/{filename} ───────────
         String stateSlug = Product.generateSlug(normalizeName(state));
         String districtSlug = Product.generateSlug(normalizeName(district));
@@ -245,7 +251,14 @@ public class DriveToS3PipelineTask {
         if (!districtSlug.equals("general")) {
             s3KeyBuilder.append("/").append(districtSlug);
         }
-        s3KeyBuilder.append("/").append(tier).append("/").append(fileName);
+        
+        // Only append the free/paid tier to the S3 URL if a tier folder was actually used,
+        // OR if this is a generic district (to preserve legacy S3 link structures).
+        if (hasTierFolder || categorySlug.equals("general")) {
+            s3KeyBuilder.append("/").append(tier);
+        }
+        s3KeyBuilder.append("/").append(fileName);
+        
         String s3Key = s3KeyBuilder.toString();
         
         long size = file.getSize() != null ? file.getSize() : 0;
@@ -299,8 +312,8 @@ public class DriveToS3PipelineTask {
         product.setUpdatedAt(new Date());
 
         // Only overwrite free/price if the Drive structure explicitly declares a tier
-        // (free/paid/Free Resources folder). Otherwise preserve existing manual settings.
-        if (hasTierFolder || existing == null) {
+        // (free/paid/Free Resources folder) OR if it is a category.
+        if (hasTierFolder || existing == null || !category.equalsIgnoreCase("general")) {
             product.setFree(isFree);
             product.setPrice(price);
         }
@@ -362,7 +375,7 @@ public class DriveToS3PipelineTask {
     }
 
     private static final java.util.List<String> KNOWN_CATEGORIES = java.util.Arrays.asList(
-        "history", "heritage-sites-monuments", "geography", "art-culture"
+        "history", "heritage-sites-monuments", "geography", "art-culture", "monuments"
     );
 
     private FolderMetadata extractMetadata(List<String> folderPath) {
