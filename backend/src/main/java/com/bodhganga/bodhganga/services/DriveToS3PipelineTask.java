@@ -223,27 +223,38 @@ public class DriveToS3PipelineTask {
         FolderMetadata metadata = extractMetadata(folderPath);
         String state = metadata.state;
         String district = metadata.district;
+        String category = metadata.category;
 
-        // ── Build S3 key: {state}/{district}/{free|paid}/{filename} ───────────
+        // ── Build S3 key: {state}/{category?}/{district?}/{free|paid}/{filename} ───────────
         String stateSlug = Product.generateSlug(normalizeName(state));
         String districtSlug = Product.generateSlug(normalizeName(district));
+        String categorySlug = Product.generateSlug(normalizeName(category));
         String tier = isFree ? "free" : "paid";
 
         // Skip "general" entries (misconfigured paths)
-        if (stateSlug.equals("general") || districtSlug.equals("general")) {
-            log.warn("[INGESTION] Skipping file with general state/district: {}", fileName);
+        if (stateSlug.equals("general") || (districtSlug.equals("general") && categorySlug.equals("general"))) {
+            log.warn("[INGESTION] Skipping file with general state/district/category: {}", fileName);
             filesSkipped.incrementAndGet();
             return;
         }
 
-        String s3Key = stateSlug + "/" + districtSlug + "/" + tier + "/" + fileName;
+        StringBuilder s3KeyBuilder = new StringBuilder(stateSlug);
+        if (!categorySlug.equals("general")) {
+            s3KeyBuilder.append("/").append(categorySlug);
+        }
+        if (!districtSlug.equals("general")) {
+            s3KeyBuilder.append("/").append(districtSlug);
+        }
+        s3KeyBuilder.append("/").append(tier).append("/").append(fileName);
+        String s3Key = s3KeyBuilder.toString();
+        
         long size = file.getSize() != null ? file.getSize() : 0;
 
         String fileMimeType = targetMimeType != null ? targetMimeType : Product.determineMimeType(fileName);
         String contentType = Product.determineContentType(fileMimeType, fileName);
 
-        log.info("[INGESTION] state={} district={} tier={} file={} s3Key={}",
-            state, district, tier, fileName, s3Key);
+        log.info("[INGESTION] state={} category={} district={} tier={} file={} s3Key={}",
+            state, category, district, tier, fileName, s3Key);
 
         // ── Deduplication ──────────────────────────────────────────────────────
         Product existing = productRepo.findByGoogleDriveFileId(file.getId());
@@ -292,6 +303,11 @@ public class DriveToS3PipelineTask {
         if (hasTierFolder || existing == null) {
             product.setFree(isFree);
             product.setPrice(price);
+        }
+
+        if (!category.equalsIgnoreCase("general")) {
+            product.setCategory(category);
+        } else if (hasTierFolder || existing == null) {
             product.setCategory(isFree ? "Free Resources" : "Paid Resources");
         }
 
@@ -345,6 +361,10 @@ public class DriveToS3PipelineTask {
         return cleaned;
     }
 
+    private static final java.util.List<String> KNOWN_CATEGORIES = java.util.Arrays.asList(
+        "history", "heritage-sites-monuments", "geography", "art-culture"
+    );
+
     private FolderMetadata extractMetadata(List<String> folderPath) {
         List<String> normalizedList = new java.util.ArrayList<>();
         if (folderPath != null) {
@@ -356,7 +376,7 @@ public class DriveToS3PipelineTask {
             }
         }
 
-        if (normalizedList.isEmpty()) return new FolderMetadata("general", "general");
+        if (normalizedList.isEmpty()) return new FolderMetadata("general", "general", "general");
 
         java.util.List<String> knownStates = java.util.Arrays.asList(
             "andhra-pradesh", "arunachal-pradesh", "assam", "bihar", "chhattisgarh", "goa",
@@ -375,18 +395,36 @@ public class DriveToS3PipelineTask {
         }
         if (state == null) { state = normalizedList.get(0); stateIndex = 0; }
 
-        String district = "general";
-        for (int i = stateIndex + 1; i < normalizedList.size(); i++) {
-            String current = normalizedList.get(i);
-            if (!current.equalsIgnoreCase(state)) { district = current; break; }
+        String category = "general";
+        int categoryIndex = -1;
+        for (int i = 0; i < normalizedList.size(); i++) {
+            if (i == stateIndex) continue;
+            String slug = Product.generateSlug(normalizedList.get(i));
+            if (KNOWN_CATEGORIES.contains(slug)) {
+                category = normalizedList.get(i);
+                categoryIndex = i;
+                break;
+            }
         }
 
-        return new FolderMetadata(state, district);
+        String district = "general";
+        for (int i = 0; i < normalizedList.size(); i++) {
+            if (i == stateIndex || i == categoryIndex) continue;
+            district = normalizedList.get(i);
+            break;
+        }
+
+        return new FolderMetadata(state, district, category);
     }
 
     private static class FolderMetadata {
         public final String state;
         public final String district;
-        public FolderMetadata(String state, String district) { this.state = state; this.district = district; }
+        public final String category;
+        public FolderMetadata(String state, String district, String category) { 
+            this.state = state; 
+            this.district = district; 
+            this.category = category;
+        }
     }
 }
