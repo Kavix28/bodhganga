@@ -265,10 +265,10 @@ bodhganga/
 
 ## Security
 
-- JWT tokens (24h expiry, stateless)
+- JWT tokens (24hr expiry, stateless)
 - BCrypt password hashing (strength 10)
 - Role-based access control (USER / ADMIN)
-- Email OTP verification (10-min expiry, 5-attempt limit)
+- Email OTP verification (10min expiry, 5-attempt limit)
 - HMAC-SHA256 payment signature verification
 - Global exception handler (no stack traces in responses)
 - CORS restricted to configured origins
