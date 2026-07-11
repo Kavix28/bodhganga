@@ -122,7 +122,7 @@ const Navbar = () => {
                             </>
                         )}
                     </div>
-                    <Link to="/state" className="hidden md:flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-gold to-gold-dark text-emerald-dark">Explore Now</Link>
+                    <Link to="/explore" className="hidden md:flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-gold to-gold-dark text-emerald-dark">Explore Now</Link>
 
                     {/* Right Actions */}
                     <div className="hidden md:flex items-center gap-4">
