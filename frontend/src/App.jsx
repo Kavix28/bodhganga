@@ -162,7 +162,7 @@ function App() {
                                             />
 
                                             <Route
-                                            path="/state/:stateSlug/heritage-sites"
+                                            path="/state/:stateSlug/heritage-sites-monuments"
                                             element={<StateSectionPage />}
                                             />
 
