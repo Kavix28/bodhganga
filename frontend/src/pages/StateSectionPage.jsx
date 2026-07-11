@@ -10,8 +10,7 @@ export default function StateSectionPage() {
 
   const titles = {
     history: "History",
-    "heritage-sites": "Heritage Sites",
-    monuments: "Monuments",
+    "heritage-sites-monuments": "Heritage Sites & Monuments",
     geography: "Geography",
     "art-and-culture": "Art & Culture",
   };
