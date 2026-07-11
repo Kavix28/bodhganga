@@ -150,11 +150,9 @@ function App() {
 
                                             {/* ── NEW: All-India States page (/state) ──────── */}
 
-                                            {/* changes */}
-                                            {/* <Route path="/explore" element={<ExplorePage />} />`n                                            <Route path="/state"                                                       element={<AllStatesPage />} />
-                                            <Route path="/state/:stateSlug/districts"                                  element={<StateDistrictsPage />} />
-                                            <Route path="/state/:stateSlug/district/:districtSlug/products"            element={<StateDistrictProductsPage />} /> */}
-
+                                            
+                                            
+                                            <Route path="/explore" element={<ExplorePage />} />
                                             <Route path="/state" element={<AllStatesPage />} />
 
 
