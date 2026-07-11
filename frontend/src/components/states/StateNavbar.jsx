@@ -3,7 +3,6 @@ import { NavLink, useParams } from "react-router-dom";
 const tabs = [
   { name: "History", path: "history" },
   { name: "Heritage Sites", path: "heritage-sites" },
-  { name: "Monuments", path: "monuments" },
   { name: "Geography", path: "geography" },
   { name: "Art & Culture", path: "art-and-culture" },
 ];
