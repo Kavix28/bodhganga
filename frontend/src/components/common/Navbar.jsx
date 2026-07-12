@@ -1,25 +1,21 @@
 ﻿import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { FiUser, FiLogOut, FiMenu, FiX, FiChevronDown } from 'react-icons/fi';
-<<<<<<< HEAD
-import { BookOpen, MapPin, LayoutDashboard, ShoppingCart, Receipt, Heart, Compass } from 'lucide-react';
-=======
 import { BookOpen, MapPin, LayoutDashboard, ShoppingCart, Receipt, Heart, MessageSquare } from 'lucide-react';
->>>>>>> 09e14c04581513c9140203dc36af692e6ca79046
 import { useState, useEffect, useRef } from 'react';
 import { useCart } from '../../context/CartContext';
 import Logo from './Logo';
 
 const navLinks = [
     { path: '/state', label: 'States & UTs', icon: MapPin, public: true },
-    { path: '/courses',       label: 'Courses',       icon: BookOpen, public: true },
-    { path: '/blog',          label: 'Blog',          icon: null, public: true },
+    { path: '/courses', label: 'Courses', icon: BookOpen, public: true },
+    { path: '/blog', label: 'Blog', icon: null, public: true },
 ];
 
 const aboutLinks = [
-    { path: '/about',          label: 'About BodhGanga' },
-    { path: '/ndde',           label: 'About NDDE' },
-    { path: '/founder',        label: 'Founder & CEO' },
+    { path: '/about', label: 'About BodhGanga' },
+    { path: '/ndde', label: 'About NDDE' },
+    { path: '/founder', label: 'Founder & CEO' },
     { path: '/mission-vision', label: 'Mission & Vision' },
 ];
 
@@ -102,7 +98,7 @@ const Navbar = () => {
                                 <FiChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${aboutMenuOpen ? 'rotate-180' : ''}`} />
                             </button>
                             {aboutMenuOpen && (
-                                <div className="fixed w-56 bg-emerald-dark/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gold/20 py-2 z-[9999]" style={{top: aboutMenuRef.current ? aboutMenuRef.current.getBoundingClientRect().bottom + 12 + "px" : "auto", left: aboutMenuRef.current ? aboutMenuRef.current.getBoundingClientRect().left + "px" : "auto"}}>
+                                <div className="fixed w-56 bg-emerald-dark/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gold/20 py-2 z-[9999]" style={{ top: aboutMenuRef.current ? aboutMenuRef.current.getBoundingClientRect().bottom + 12 + "px" : "auto", left: aboutMenuRef.current ? aboutMenuRef.current.getBoundingClientRect().left + "px" : "auto" }}>
                                     {aboutLinks.map(item => (
                                         <Link key={item.path} to={item.path}
                                             className={`flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${isActive(item.path) ? 'text-gold bg-white/5' : 'text-white/80 hover:bg-white/5 hover:text-gold'}`}>
@@ -260,9 +256,9 @@ const Navbar = () => {
                                     <Link to="/library" onClick={() => setMobileOpen(false)} className="flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 border border-transparent">
                                         <BookOpen className="w-4 h-4" /> My Library
                                     </Link>
-<Link to="/wishlist" onClick={() => setMobileOpen(false)} className="flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 border border-transparent">
-    <Heart className="w-4 h-4" /> My Wishlist
-</Link>
+                                    <Link to="/wishlist" onClick={() => setMobileOpen(false)} className="flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 border border-transparent">
+                                        <Heart className="w-4 h-4" /> My Wishlist
+                                    </Link>
                                     <Link to="/orders" onClick={() => setMobileOpen(false)} className="flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 border border-transparent">
                                         <Receipt className="w-4 h-4" /> My Orders
                                     </Link>
