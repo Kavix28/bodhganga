@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useRef, useMemo } from 'react';
+import { useSEO } from '../hooks/useSEO';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { 
@@ -14,6 +15,7 @@ import { unionTerritories } from '../data/unionTerritories';
 import { API_BASE_URL } from '../utils/constants';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+
 
 const Counter = ({ target, suffix = '', duration = 1500 }) => {
     const [count, setCount] = useState(0);
@@ -51,6 +53,12 @@ const Landing = () => {
     const { isAuthenticated, openAuthModal } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+
+    useSEO({
+        title: "Bodhganga Academy",
+        description: "Bodhganga Academy is India's premium UPSC and State PSC preparation platform offering structured courses, district-wise learning, curated notes, exam preparation resources, and educational content for aspirants across India.",
+        keywords: "Bodhganga Academy, UPSC, State PSC, Civil Services"
+    });
 
     useEffect(() => {
         if (!isAuthenticated) {

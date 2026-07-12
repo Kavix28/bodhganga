@@ -2,7 +2,12 @@ import { useEffect } from 'react';
 
 export const useSEO = ({ title, description, keywords, ogTitle, ogDescription, ogImage, ogUrl }) => {
     useEffect(() => {
-        if (title) {
+        if (title === "Bodhganga Academy") 
+        {
+            document.title = "Bodhganga Academy";
+        } 
+        else 
+        {
             document.title = `${title} | BODHGANGA Knowledge Portal`;
         }
 
