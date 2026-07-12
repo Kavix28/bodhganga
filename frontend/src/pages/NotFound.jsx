@@ -29,7 +29,7 @@ const NotFound = () => (
                 <Home className="w-5 h-5" />
                 Back to Home
             </Link>
-            <Link to="/states" className="btn-outline btn-lg flex items-center gap-2">
+            <Link to="/state" className="btn-outline btn-lg flex items-center gap-2">
                 <Search className="w-5 h-5" />
                 Browse States
             </Link>
@@ -38,3 +38,4 @@ const NotFound = () => (
 );
 
 export default NotFound;
+

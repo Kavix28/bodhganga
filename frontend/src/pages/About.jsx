@@ -317,7 +317,7 @@ const About = () => {
                             {isAuthenticated ? 'Go to Dashboard' : 'Enroll Now — Free'}
                         </button>
                         <Link 
-                            to="/states"
+                            to="/state"
                             className="w-full sm:w-auto px-8 py-4 bg-white border border-emerald/10 hover:border-gold/30 text-emerald font-bold text-xs uppercase tracking-widest rounded-2xl transition-all duration-300 text-center shadow-sm"
                         >
                             Explore States & UTs
@@ -330,3 +330,4 @@ const About = () => {
 };
 
 export default About;
+

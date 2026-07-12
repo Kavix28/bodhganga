@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import toast from "react-hot-toast";
+import { useCart } from '../context/CartContext';
+import { GraduationCap, Mail, MessageCircle, Printer, ArrowLeft, ArrowRight } from 'lucide-react';
 
 function ReceiptModal({ receipt, onClose }) {
   const handlePrint = () => window.print();
@@ -10,7 +12,7 @@ function ReceiptModal({ receipt, onClose }) {
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl" id="receipt-modal">
         {/* Receipt Header */}
         <div className="bg-emerald-800 rounded-t-2xl px-6 py-5 text-center">
-          <div className="text-2xl mb-1">ðŸŽ“</div>
+          <div className="flex justify-center mb-1"><GraduationCap className="w-8 h-8 text-white" /></div>
           <h2 className="text-white font-bold text-lg">Payment Successful!</h2>
           <p className="text-emerald-200 text-xs mt-1">Bodhganga Academy</p>
         </div>
@@ -63,8 +65,8 @@ function ReceiptModal({ receipt, onClose }) {
           </button>
           <button
             onClick={handlePrint}
-            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-xl transition-colors text-sm">
-            ðŸ–¨ Print Receipt
+            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-xl transition-colors text-sm flex items-center justify-center gap-2">
+            <Printer className="w-4 h-4" /> Print Receipt
           </button>
         </div>
       </div>
@@ -77,7 +79,7 @@ function ContactSupportModal({ onClose, districtName }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-md shadow-2xl">
         <div className="px-6 py-5 border-b border-gray-700 flex justify-between items-center">
-          <h2 className="text-white font-bold">Payment Failed â€” Contact Support</h2>
+          <h2 className="text-white font-bold">Payment Failed - Contact Support</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white text-xl">âœ•</button>
         </div>
         <div className="px-6 py-5 space-y-4">
@@ -86,7 +88,7 @@ function ContactSupportModal({ onClose, districtName }) {
           </p>
           <div className="bg-gray-800 rounded-xl p-4 space-y-3">
             <div className="flex items-center gap-3">
-              <span className="text-xl">ðŸ“§</span>
+              <MessageCircle className="w-5 h-5 text-amber-400 flex-shrink-0" />
               <div>
                 <p className="text-xs text-gray-500">Email Support</p>
                 <a href="mailto:support@bodhganga.in" className="text-amber-400 font-semibold text-sm hover:underline">
@@ -95,7 +97,7 @@ function ContactSupportModal({ onClose, districtName }) {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-xl">ðŸ’¬</span>
+              <MessageCircle className="w-5 h-5 text-amber-400 flex-shrink-0" />
               <div>
                 <p className="text-xs text-gray-500">WhatsApp Support</p>
                 <a href="https://wa.me/919999999999" target="_blank" rel="noopener noreferrer"
@@ -123,6 +125,7 @@ function ContactSupportModal({ onClose, districtName }) {
 export default function DistrictsPage() {
   const { stateSlug } = useParams();
   const navigate = useNavigate();
+  const { addToCart } = useCart();
   const [districts, setDistricts] = useState([]);
   const [purchasedSlugs, setPurchasedSlugs] = useState([]);
   const [stateName, setStateName] = useState("");
@@ -130,6 +133,7 @@ export default function DistrictsPage() {
   const [loading, setLoading] = useState(true);
   const [receipt, setReceipt] = useState(null);
   const [failedDistrict, setFailedDistrict] = useState(null);
+  const [addedDistricts, setAddedDistricts] = useState({});
 
   useEffect(() => {
     const fetchData = async () => {
@@ -183,54 +187,20 @@ export default function DistrictsPage() {
     fetchData();
   }, [stateSlug]);
 
-  const handleUnlock = async (district) => {
-    const token = JSON.parse(localStorage.getItem("auth_token"));
-    if (!token) { toast.error("Please log in to unlock"); navigate("/login"); return; }
-    try {
-      const orderRes = await api.post("/payment/create-order", {
-        amountPaise: 100, districtSlug: district.districtSlug, stateSlug
-      });
-      const { orderId, amount, currency, keyId } = orderRes?.data || orderRes;
-      const options = {
-        key: keyId, amount, currency,
-        name: "Bodhganga Academy",
-        description: "Unlock " + district.districtName + " District Pack",
-        order_id: orderId,
-        handler: async (response) => {
-          try {
-            const verifyRes = await api.post("/payment/verify", {
-              razorpayOrderId: response.razorpay_order_id,
-              razorpayPaymentId: response.razorpay_payment_id,
-              razorpaySignature: response.razorpay_signature,
-              districtSlug: district.districtSlug, stateSlug
-            });
-            if (verifyRes?.success) {
-              setPurchasedSlugs(prev => [...prev, district.districtSlug]);
-              setReceipt({
-                districtName: district.districtName,
-                stateName: district.stateName || stateName,
-                paymentId: response.razorpay_payment_id,
-                orderId: response.razorpay_order_id,
-              });
-            } else {
-              toast.error("Payment verification failed. Contact support.");
-            }
-          } catch {
-            setFailedDistrict(district);
-          }
-        },
-        prefill: {},
-        theme: { color: "#065f46" },
-        modal: {
-          ondismiss: () => toast("Payment cancelled")
-        }
-      };
-      const rzp = new window.Razorpay(options);
-      rzp.on("payment.failed", () => setFailedDistrict(district));
-      rzp.open();
-    } catch (e) {
-      console.error(e);
-      toast.error("Could not initiate payment. Try again.");
+  const handleAddToCart = async (district) => {
+    const success = await addToCart({
+      productId: "district-bundle-" + district.districtSlug,
+      name: district.districtName + " — Complete Notes Bundle",
+      state: stateName,
+      district: district.districtName,
+      stateSlug: stateSlug,
+      districtSlug: district.districtSlug,
+      price: 99,
+      type: "BUNDLE",
+      files: []
+    });
+    if (success) {
+      setAddedDistricts(prev => ({ ...prev, [district.districtSlug]: true }));
     }
   };
 
@@ -265,7 +235,7 @@ export default function DistrictsPage() {
       )}
 
       <div className="max-w-6xl mx-auto">
-        <button onClick={() => navigate("/states-browse")}
+        <button onClick={() => navigate("/state")}
           className="text-gray-400 hover:text-amber-400 mb-6 flex items-center gap-1 text-sm">
           â† Back to States
         </button>
@@ -317,9 +287,14 @@ export default function DistrictsPage() {
                         </button>
                       ) : (
                         <button
-                          onClick={() => handleUnlock(district)}
-                          className="w-full bg-gray-800 hover:bg-gray-700 border border-amber-500 text-amber-400 font-semibold py-2 px-4 rounded-lg text-sm transition-colors">
-                          Unlock District — ₹1
+                          onClick={() => handleAddToCart(district)}
+                          disabled={addedDistricts[district.districtSlug]}
+                          className={`w-full font-semibold py-2 px-4 rounded-lg text-sm transition-colors ${
+                            addedDistricts[district.districtSlug] 
+                              ? 'bg-green-900/50 text-green-400 border border-green-800 cursor-not-allowed' 
+                              : 'bg-gray-800 hover:bg-gray-700 border border-amber-500 text-amber-400'
+                          }`}>
+                          {addedDistricts[district.districtSlug] ? "✓ Added to Cart" : "🛒 Add to Cart"}
                         </button>
                       )
                     )}
@@ -333,3 +308,4 @@ export default function DistrictsPage() {
     </div>
   );
 }
+

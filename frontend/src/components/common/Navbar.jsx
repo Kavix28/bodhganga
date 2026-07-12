@@ -1,13 +1,17 @@
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+﻿import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { FiUser, FiLogOut, FiMenu, FiX, FiChevronDown } from 'react-icons/fi';
+<<<<<<< HEAD
 import { BookOpen, MapPin, LayoutDashboard, ShoppingCart, Receipt, Heart, Compass } from 'lucide-react';
+=======
+import { BookOpen, MapPin, LayoutDashboard, ShoppingCart, Receipt, Heart, MessageSquare } from 'lucide-react';
+>>>>>>> 09e14c04581513c9140203dc36af692e6ca79046
 import { useState, useEffect, useRef } from 'react';
 import { useCart } from '../../context/CartContext';
 import Logo from './Logo';
 
 const navLinks = [
-    { path: '/states-browse', label: 'States & UTs', icon: MapPin, public: true },
+    { path: '/state', label: 'States & UTs', icon: MapPin, public: true },
     { path: '/courses',       label: 'Courses',       icon: BookOpen, public: true },
     { path: '/blog',          label: 'Blog',          icon: null, public: true },
 ];
@@ -58,7 +62,7 @@ const Navbar = () => {
     };
 
     const handleLinkClick = (e, path) => {
-        const protectedRoutes = ['/free-resources', '/courses', '/cart', '/library', '/dashboard', '/profile', '/orders'];
+        const protectedRoutes = ['/free-resources', '/courses', '/cart', '/library', '/dashboard', '/student/dashboard', '/student/discussion', '/profile', '/orders'];
         if (protectedRoutes.some(r => path.startsWith(r)) && !isAuthenticated) {
             e.preventDefault();
             openAuthModal('welcome');
@@ -70,7 +74,7 @@ const Navbar = () => {
     return (
         <header className={`sticky top-0 z-50 transition-all duration-500 ${scrolled ? 'bg-emerald-dark/95 backdrop-blur-xl border-b border-gold/15 shadow-2xl' : 'bg-emerald-dark border-b border-gold/5'}`}>
             <div className="h-1 bg-gradient-to-r from-emerald via-gold to-emerald" />
-            <nav className="max-w-7xl mx-auto px-6 lg:px-8">
+            <nav className="max-w-7xl mx-auto px-6 lg:px-8 overflow-visible">
                 <div className="flex items-center justify-between h-24">
 
                     {/* Logo */}
@@ -98,7 +102,7 @@ const Navbar = () => {
                                 <FiChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${aboutMenuOpen ? 'rotate-180' : ''}`} />
                             </button>
                             {aboutMenuOpen && (
-                                <div className="absolute left-0 mt-3 w-56 bg-emerald-dark/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gold/20 py-2 z-50">
+                                <div className="fixed w-56 bg-emerald-dark/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gold/20 py-2 z-[9999]" style={{top: aboutMenuRef.current ? aboutMenuRef.current.getBoundingClientRect().bottom + 12 + "px" : "auto", left: aboutMenuRef.current ? aboutMenuRef.current.getBoundingClientRect().left + "px" : "auto"}}>
                                     {aboutLinks.map(item => (
                                         <Link key={item.path} to={item.path}
                                             className={`flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${isActive(item.path) ? 'text-gold bg-white/5' : 'text-white/80 hover:bg-white/5 hover:text-gold'}`}>
@@ -110,12 +114,19 @@ const Navbar = () => {
                         </div>
 
                         {isAuthenticated && (
-                            <Link to="/dashboard"
-                                className={`relative px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-300 rounded-xl ${isActive('/dashboard') ? 'text-gold bg-white/5 border border-gold/20' : 'text-white/80 hover:text-gold hover:bg-white/5 border border-transparent'}`}>
-                                Dashboard
-                            </Link>
+                            <>
+                                <Link to="/student/dashboard"
+                                    className={`relative px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-300 rounded-xl ${isActive('/student/dashboard') ? 'text-gold bg-white/5 border border-gold/20' : 'text-white/80 hover:text-gold hover:bg-white/5 border border-transparent'}`}>
+                                    Dashboard
+                                </Link>
+                                <Link to="/student/discussion"
+                                    className={`relative px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all duration-300 rounded-xl ${isActive('/student/discussion') ? 'text-gold bg-white/5 border border-gold/20' : 'text-white/80 hover:text-gold hover:bg-white/5 border border-transparent'}`}>
+                                    Discussion
+                                </Link>
+                            </>
                         )}
                     </div>
+                    <Link to="/explore" className="hidden md:flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-gold to-gold-dark text-emerald-dark">Explore Now</Link>
 
                     {/* Right Actions */}
                     <div className="hidden md:flex items-center gap-4">
@@ -140,7 +151,7 @@ const Navbar = () => {
                                 </button>
 
                                 {userMenuOpen && (
-                                    <div className="absolute right-0 mt-3.5 w-56 bg-emerald-dark/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gold/20 py-2 z-50">
+                                    <div className="absolute right-0 mt-3.5 w-56 bg-emerald-dark/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gold/20 py-2 z-[9999]">
                                         <div className="px-4 py-3 border-b border-gold/10">
                                             <div className="text-sm font-bold text-white">{user?.name}</div>
                                             <div className="text-xs text-gold/60 truncate mt-0.5">{user?.email}</div>
@@ -154,8 +165,11 @@ const Navbar = () => {
                                         <Link to="/wishlist" className="flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 hover:text-gold transition-colors">
                                             <Heart className="w-4 h-4" /> My Wishlist
                                         </Link>
-                                        <Link to="/dashboard" className="flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 hover:text-gold transition-colors">
+                                        <Link to="/student/dashboard" className="flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 hover:text-gold transition-colors">
                                             <LayoutDashboard className="w-4 h-4" /> Dashboard
+                                        </Link>
+                                        <Link to="/student/discussion" className="flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 hover:text-gold transition-colors">
+                                            <MessageSquare className="w-4 h-4" /> Discussion Forum
                                         </Link>
                                         <Link to="/orders" className="flex items-center gap-3 px-4 py-3 text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 hover:text-gold transition-colors">
                                             <Receipt className="w-4 h-4" /> My Orders
@@ -216,10 +230,16 @@ const Navbar = () => {
                             </Link>
                         ))}
                         {isAuthenticated && (
-                            <Link to="/dashboard" onClick={() => setMobileOpen(false)}
-                                className="flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 border border-transparent">
-                                <LayoutDashboard className="w-4 h-4" /> Dashboard
-                            </Link>
+                            <>
+                                <Link to="/student/dashboard" onClick={() => setMobileOpen(false)}
+                                    className="flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 border border-transparent">
+                                    <LayoutDashboard className="w-4 h-4" /> Dashboard
+                                </Link>
+                                <Link to="/student/discussion" onClick={() => setMobileOpen(false)}
+                                    className="flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 border border-transparent">
+                                    <MessageSquare className="w-4 h-4" /> Discussion
+                                </Link>
+                            </>
                         )}
                         <div className="border-t border-gold/15 pt-3 mt-3">
                             <div className="px-4 py-1 text-[10px] text-gold/60 font-black uppercase tracking-widest">About Academy</div>
@@ -271,3 +291,10 @@ const Navbar = () => {
 };
 
 export default Navbar;
+
+
+
+
+
+
+

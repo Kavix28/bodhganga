@@ -1,5 +1,6 @@
 import { Suspense, lazy } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import ScrollToTop from './components/common/ScrollToTop';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
@@ -24,6 +25,8 @@ const VerifyMobileOtp  = lazy(() => import('./pages/VerifyMobileOtp'));
 const Login            = lazy(() => import('./pages/Login'));
 const ForgotPassword   = lazy(() => import('./pages/ForgotPassword'));
 const Dashboard        = lazy(() => import('./pages/Dashboard'));
+const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
+const StudentDiscussion = lazy(() => import('./pages/StudentDiscussion'));
 const Courses          = lazy(() => import('./pages/Courses'));
 const CourseDetail     = lazy(() => import('./pages/CourseDetail'));
 const CoursePlayer     = lazy(() => import('./pages/CoursePlayer'));
@@ -61,9 +64,12 @@ const DistrictsPage          = lazy(() => import('./pages/DistrictsPage'));
 const DistrictResourcesPage  = lazy(() => import('./pages/DistrictResourcesPage'));
 
 // NEW: All-India states page → districts → products  (/state/...)
+const ExplorePage = lazy(() => import('./pages/ExplorePage'));
 const AllStatesPage              = lazy(() => import('./pages/AllStatesPage'));
 const StateDistrictsPage         = lazy(() => import('./pages/StateDistrictsPage'));
 const StateDistrictProductsPage  = lazy(() => import('./pages/StateDistrictProductsPage'));
+//changes
+const StateSectionPage = lazy(() => import('./pages/StateSectionPage'));
 
 // Admin Pages
 const AdminLogin          = lazy(() => import('./pages/admin/AdminLogin'));
@@ -100,7 +106,8 @@ function App() {
                 <AuthProvider>
                     <CartProvider>
                     <Router>
-                        <div className="min-h-screen flex flex-col">
+      <ScrollToTop />
+                        <div className="min-h-screen flex flex-col overflow-x-hidden">
                             {(!isAdminRoute || (isAdminRoute && !isAdminLoggedIn)) && <Navbar />}
                             <AuthGateModal />
 
@@ -122,29 +129,67 @@ function App() {
                                             <Route path="/login"          element={<Login />} />
                                             <Route path="/forgot-password" element={<ForgotPassword />} />
                                             <Route path="/error"          element={<ErrorPage />} />
+                                            <Route path="/dev/dashboard"  element={<StudentDashboard />} />
+                                            <Route path="/dev/discussion" element={<StudentDiscussion />} />
 
                                             {/* ── Old states/UTs routes — kept for backward compat ── */}
-                                            <Route path="/states"         element={<ProtectedRoute><States /></ProtectedRoute>} />
-                                            <Route path="/union-territories" element={<ProtectedRoute><UnionTerritories /></ProtectedRoute>} />
+                                                                                        <Route path="/union-territories" element={<ProtectedRoute><UnionTerritories /></ProtectedRoute>} />
                                             <Route path="/states/:id"     element={<ProtectedRoute><StateDetail /></ProtectedRoute>} />
                                             <Route path="/union-territories/:id" element={<ProtectedRoute><StateDetail /></ProtectedRoute>} />
                                             <Route path="/states/:stateSlug/resources" element={<ProtectedRoute><ResourcePage /></ProtectedRoute>} />
                                             <Route path="/union-territories/:stateSlug/resources" element={<ProtectedRoute><ResourcePage /></ProtectedRoute>} />
 
                                             {/* ── Existing /states-browse flow ─────────────── */}
-                                            <Route path="/states-browse"                                   element={<StatesPage />} />
-                                            <Route path="/states-browse/:stateSlug"                        element={<DistrictsPage />} />
+                                                                                        <Route path="/states-browse/:stateSlug"                        element={<DistrictsPage />} />
                                             <Route path="/states-browse/:stateSlug/:districtSlug"          element={<DistrictResourcesPage />} />
 
                                             {/* ── Old store URLs → redirect ──────────────── */}
-                                            <Route path="/store"                           element={<Navigate to="/states-browse" replace />} />
-                                            <Route path="/store/:stateSlug"                element={<Navigate to="/states-browse" replace />} />
-                                            <Route path="/store/:stateSlug/:districtSlug"  element={<Navigate to="/states-browse" replace />} />
+                                            <Route path="/store"                           element={<Navigate to="/state" replace />} />
+                                            <Route path="/store/:stateSlug"                element={<Navigate to="/state" replace />} />
+                                            <Route path="/store/:stateSlug/:districtSlug"  element={<Navigate to="/state" replace />} />
 
                                             {/* ── NEW: All-India States page (/state) ──────── */}
-                                            <Route path="/state"                                                       element={<AllStatesPage />} />
-                                            <Route path="/state/:stateSlug/districts"                                  element={<StateDistrictsPage />} />
-                                            <Route path="/state/:stateSlug/district/:districtSlug/products"            element={<StateDistrictProductsPage />} />
+
+                                            
+                                            
+                                            <Route path="/explore" element={<ExplorePage />} />
+                                            <Route path="/state" element={<AllStatesPage />} />
+
+
+                                            <Route
+                                            path="/state/:stateSlug/history"
+                                            element={<StateSectionPage />}
+                                            />
+
+                                            <Route
+                                            path="/state/:stateSlug/heritage-sites-monuments"
+                                            element={<StateSectionPage />}
+                                            />
+
+                                            <Route
+                                            path="/state/:stateSlug/monuments"
+                                            element={<StateSectionPage />}
+                                            />
+
+                                            <Route
+                                            path="/state/:stateSlug/geography"
+                                            element={<StateSectionPage />}
+                                            />
+
+                                            <Route
+                                            path="/state/:stateSlug/art-and-culture"
+                                            element={<StateSectionPage />}
+                                            />
+
+                                            <Route
+                                            path="/state/:stateSlug/districts"
+                                            element={<StateDistrictsPage />}
+                                            />
+
+                                            <Route
+                                            path="/state/:stateSlug/district/:districtSlug/products"
+                                            element={<StateDistrictProductsPage />}
+                                            />
 
                                             {/* ── Protected User Routes ─────────────────────── */}
                                             <Route path="/question-bank"  element={<ProtectedRoute><QuestionBank /></ProtectedRoute>} />
@@ -157,6 +202,8 @@ function App() {
                                             <Route path="/checkout"       element={<ProtectedRoute><NotFound /></ProtectedRoute>} />
                                             <Route path="/payment"        element={<ProtectedRoute><NotFound /></ProtectedRoute>} />
                                             <Route path="/dashboard"      element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                                            <Route path="/student/dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
+                                            <Route path="/student/discussion" element={<ProtectedRoute><StudentDiscussion /></ProtectedRoute>} />
                                             <Route path="/courses"        element={<ProtectedRoute><Courses /></ProtectedRoute>} />
                                             <Route path="/courses/:id"    element={<ProtectedRoute><CourseDetail /></ProtectedRoute>} />
                                             <Route path="/courses/:courseId/player" element={<ProtectedRoute><CoursePlayer /></ProtectedRoute>} />
@@ -210,3 +257,9 @@ function App() {
 }
 
 export default App;
+
+
+
+
+
+

@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 
+import StateNavbar from "../components/states/StateNavbar";
+
 export default function StateDistrictsPage() {
   const { stateSlug } = useParams();
   const navigate = useNavigate();
@@ -15,12 +17,8 @@ export default function StateDistrictsPage() {
     const load = async () => {
       try {
         // Fetch all published drive products for this state
-        const res = await api.get("/products", {
-          params: { stateSlug, importedFromDrive: true, published: true, size: 1000 },
-        });
-        const products = Array.isArray(res)
-          ? res
-          : res?.data?.content || res?.data || [];
+        const res = await api.get(`/products/state/${stateSlug}`);
+        const products = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : res?.data?.data || res?.data?.content || [];
 
         if (products.length > 0) {
           setStateName(products[0].state || products[0].stateName || stateSlug);
@@ -89,7 +87,11 @@ export default function StateDistrictsPage() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      {/* <div className="max-w-6xl mx-auto px-4 py-8"> */}
+        <div className="max-w-6xl mx-auto px-4 py-8">
+
+        <StateNavbar />
+
         {error ? (
           <div className="text-red-400 text-center py-20 space-y-3">
             <div className="text-4xl">⚠️</div>
@@ -170,3 +172,5 @@ function DistrictCard({ district, onClick }) {
     </div>
   );
 }
+
+

@@ -26,8 +26,9 @@ function formatSize(bytes) {
 }
 
 function ResourceModal({ resource, onClose }) {
+  const [iframeLoading, setIframeLoading] = React.useState(true);
   const ext = (resource.fileExtension || "").toLowerCase();
-  const url = resource.s3Url;
+  const url = resource.s3Url ? resource.s3Url.split('/').map((part, i) => i < 3 ? part : encodeURIComponent(part)).join('/') : null;
   const title = resource.displayTitle || resource.title || resource.fileName;
 
   const officeExts = ["docx", "doc", "xlsx", "xls", "pptx", "ppt"];
@@ -36,14 +37,24 @@ function ResourceModal({ resource, onClose }) {
 
   const renderContent = () => {
     if (ext === "pdf") {
-      return (
-        <iframe
-          src={url}
-          className="w-full h-full rounded-lg"
-          title={title}
-        />
-      );
-    }
+  const googleUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+  return (
+    <div className="relative w-full h-full">
+      {iframeLoading && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 rounded-lg z-10">
+          <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-gray-400 text-sm">Loading document...</p>
+        </div>
+      )}
+      <iframe
+        src={googleUrl}
+        className="w-full h-full rounded-lg"
+        title={title}
+        onLoad={() => setIframeLoading(false)}
+      />
+    </div>
+  );
+}
     if (imageExts.includes(ext)) {
       return (
         <div className="w-full h-full flex items-center justify-center overflow-auto">
@@ -77,13 +88,7 @@ function ResourceModal({ resource, onClose }) {
       <div className="w-full h-full flex flex-col items-center justify-center gap-4">
         <div className="text-6xl">📎</div>
         <p className="text-gray-400">Preview not available for this file type.</p>
-        <a
-          href={url}
-          download
-          className="bg-amber-500 hover:bg-amber-400 text-black font-bold py-2 px-6 rounded-lg"
-        >
-          Download File
-        </a>
+        
       </div>
     );
   };
@@ -108,15 +113,7 @@ function ResourceModal({ resource, onClose }) {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0 ml-4">
-            <a
-              href={url}
-              download
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold rounded-lg transition-colors"
-            >
-              ⬇ Download
-            </a>
+            
             <button
               onClick={onClose}
               className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors text-lg leading-none"
@@ -272,3 +269,6 @@ export default function DistrictResourcesPage() {
     </div>
   );
 }
+
+
+

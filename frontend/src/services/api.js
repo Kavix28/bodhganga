@@ -56,8 +56,7 @@ api.interceptors.response.use(
                     ...data,
                 });
             }
-
-            // Handle 403 Forbidden - Access denied
+            // Handle 403 Forbidden - Access denied (no toast)
             if (status === 403) {
                 return Promise.reject({
                     message: 'Access denied. You do not have permission to access this resource.',

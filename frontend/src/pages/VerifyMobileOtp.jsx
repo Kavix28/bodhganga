@@ -111,7 +111,7 @@ const VerifyMobileOtp = () => {
                 localStorage.removeItem('signupData');
                 toast.success('Account created successfully! Welcome to Bodhganga!');
                 login(res?.token || res?.data?.token, res?.user || res?.data?.user);
-                navigate('/dashboard', { replace: true });
+                setTimeout(() => navigate("/dashboard", { replace: true }), 150);
             } else {
                 throw new Error(res?.message || 'Registration failed');
             }
@@ -201,3 +201,4 @@ const VerifyMobileOtp = () => {
 };
 
 export default VerifyMobileOtp;
+

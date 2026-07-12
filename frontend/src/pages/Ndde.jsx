@@ -2,8 +2,8 @@
 import { motion } from 'framer-motion';
 import { useSEO } from '../hooks/useSEO';
 import { 
-    BookOpen, Layers, Target, Compass, Sparkles, Map, 
-    Bookmark, Award, GraduationCap, ChevronRight
+    BookOpen, Layers, Target, Compass, Sparkles, Map,
+    Bookmark, Award, GraduationCap, ChevronRight, Users, Flag, Music, Globe, MapPin, Archive
 } from 'lucide-react';
 import indiaMap from '../assets/images/india-map.webp';
 
@@ -61,10 +61,10 @@ const Ndde = () => {
     ];
 
     const thematicArchives = [
-        { title: "Legends & Historical Personalities", desc: "Local rulers, freedom fighters, social reformers, and legendary historical figures.", icon: "ðŸ‘¥" },
-        { title: "National Movements & Wars", desc: "Grassroots freedom struggles, regional revolts, military posts, and unsung local heroes.", icon: "âš”ï¸" },
-        { title: "Festivals & Cultural Traditions", desc: "Local fairs, classical and folk dance forms, regional music heritage, and seasonal rituals.", icon: "ðŸŽª" },
-        { title: "Tribal Communities of India", desc: "Socio-cultural mapping, dialects, customs, and geographical settlements of indigenous communities.", icon: "ðŸ›ï¸" }
+        { title: "Legends & Historical Personalities", desc: "Local rulers, freedom fighters, social reformers, and legendary historical figures.", icon: Users },
+        { title: "National Movements & Wars", desc: "Grassroots freedom struggles, regional revolts, military posts, and unsung local heroes.", icon: Flag },
+        { title: "Festivals & Cultural Traditions", desc: "Local fairs, classical and folk dance forms, regional music heritage, and seasonal rituals.", icon: Music },
+        { title: "Tribal Communities of India", desc: "Socio-cultural mapping, dialects, customs, and geographical settlements of indigenous communities.", icon: Globe }
     ];
 
     return (
@@ -120,13 +120,13 @@ const Ndde = () => {
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                         {[
-                            { value: "780+", label: 'Districts Documented', icon: 'ðŸ—ºï¸' },
-                            { value: "36", label: 'States & UTs Covered', icon: 'ðŸ‡®ðŸ‡³' },
-                            { value: "8+", label: 'Thematic Archives', icon: 'ðŸ“š' },
-                            { value: "10+", label: 'Knowledge Dimensions', icon: 'ðŸ”' },
+                            { value: "780+", label: 'Districts Documented', icon: MapPin },
+                            { value: "36", label: 'States & UTs Covered', icon: Map },
+                            { value: "8+", label: 'Thematic Archives', icon: Archive },
+                            { value: "10+", label: 'Knowledge Dimensions', icon: Layers },
                         ].map((stat, i) => (
                             <div key={i} className="text-center space-y-1">
-                                <div className="text-2xl mb-1">{stat.icon}</div>
+                                <div className="flex justify-center mb-2"><stat.icon className="w-6 h-6 text-emerald" /></div>
                                 <div className="text-3xl font-extrabold text-emerald font-serif tracking-tight">{stat.value}</div>
                                 <div className="text-[10px] text-emerald/60 font-bold uppercase tracking-widest">{stat.label}</div>
                             </div>
