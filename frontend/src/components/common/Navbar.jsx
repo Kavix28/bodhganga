@@ -1,7 +1,7 @@
-﻿import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { FiUser, FiLogOut, FiMenu, FiX, FiChevronDown } from 'react-icons/fi';
-import { BookOpen, MapPin, LayoutDashboard, ShoppingCart, Receipt, Heart, MessageSquare } from 'lucide-react';
+import { BookOpen, MapPin, LayoutDashboard, ShoppingCart, Receipt, Heart, MessageSquare, Compass } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useCart } from '../../context/CartContext';
 import Logo from './Logo';
