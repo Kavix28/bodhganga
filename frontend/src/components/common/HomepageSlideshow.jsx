@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Compass } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, EffectFade, Pagination, Navigation, Keyboard } from 'swiper/modules';
 
@@ -62,6 +64,17 @@ const HomepageSlideshow = () => {
 
     return (
         <div className="w-full flex flex-col gap-6 mx-auto px-4 sm:px-0">
+            {/* Explore Now Button / Link to /states-browse */}
+            <div className="w-full max-w-[340px] sm:max-w-[380px] md:max-w-[420px] lg:max-w-none lg:w-[460px] mx-auto text-left hidden lg:block">
+                <Link
+                    to="/states-browse"
+                    className="group inline-flex items-center gap-2.5 px-4 py-2 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-[10px] uppercase tracking-widest rounded-xl shadow-md hover:shadow-gold/30 hover:-translate-y-0.5 transition-all duration-300 border border-gold/15"
+                >
+                    <Compass className="w-4 h-4 text-emerald-dark group-hover:rotate-45 transition-transform duration-300" />
+                    <span>Explore Now</span>
+                </Link>
+            </div>
+
             {/* Slide Metadata text block (repositioned above the image slider) */}
             <div className="w-full max-w-[340px] sm:max-w-[380px] md:max-w-[420px] lg:max-w-none lg:w-[460px] mx-auto text-left space-y-1">
                 <div className="text-[10px] sm:text-xs tracking-[0.25em] font-extrabold uppercase text-gold">India Unlocked 🇮🇳</div>

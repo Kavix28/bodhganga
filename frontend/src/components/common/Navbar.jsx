@@ -1,7 +1,7 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { FiUser, FiLogOut, FiMenu, FiX, FiChevronDown } from 'react-icons/fi';
-import { BookOpen, MapPin, LayoutDashboard, ShoppingCart, Receipt, Heart } from 'lucide-react';
+import { BookOpen, MapPin, LayoutDashboard, ShoppingCart, Receipt, Heart, Compass } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useCart } from '../../context/CartContext';
 import Logo from './Logo';
@@ -184,6 +184,12 @@ const Navbar = () => {
 
                     {/* Mobile hamburger */}
                     <div className="flex md:hidden items-center gap-2">
+                        <Link to="/states-browse"
+                            className="p-2.5 text-white/70 hover:text-gold hover:bg-white/5 rounded-xl border border-transparent hover:border-gold/15 transition-all duration-300"
+                            title="Explore Now"
+                        >
+                            <Compass className="w-5 h-5 text-gold group-hover:rotate-45 transition-transform" />
+                        </Link>
                         <Link to="/cart" onClick={(e) => handleLinkClick(e, '/cart')}
                             className="relative p-2.5 text-white/70 hover:text-gold hover:bg-white/5 rounded-xl border border-transparent hover:border-gold/15 transition-all duration-300">
                             <ShoppingCart className="w-5 h-5" />
