@@ -4,35 +4,6 @@ import api from "../../services/api";
 const AUTO_SCROLL_DELAY = 3000;
 const AUTO_SCROLL_RESUME_DELAY = 1000;
 
-const PhoneHeader = () => (
-  <div className="flex h-14 shrink-0 items-center justify-between border-b border-zinc-200 bg-white px-4 text-zinc-900">
-    <div className="flex items-center gap-1.5">
-      <svg viewBox="0 0 28 20" className="h-6 w-7" aria-hidden="true">
-        <rect width="28" height="20" rx="5" fill="#FF0000" />
-        <path d="M11 5.8L18 10L11 14.2V5.8Z" fill="white" />
-      </svg>
-      <span className="text-lg font-semibold tracking-[-0.08em]">YouTube</span>
-    </div>
-
-    <div className="flex items-center gap-4">
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        className="h-5 w-5"
-        aria-hidden="true"
-      >
-        <circle cx="11" cy="11" r="6.5" />
-        <path d="m16 16 4.2 4.2" strokeLinecap="round" />
-      </svg>
-
-      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-blue-600 text-[10px] font-bold text-white">
-        BG
-      </div>
-    </div>
-  </div>
-);
 
 const HomepageVideoScroller = () => {
   const feedRef = useRef(null);
@@ -158,10 +129,10 @@ const HomepageVideoScroller = () => {
 
   if (isLoading) {
     return (
-      <div className="mx-auto w-full max-w-[340px] sm:max-w-[390px] lg:w-[440px] lg:max-w-none">
+      <div className="mx-auto w-full max-w-[280px] sm:max-w-[320px] lg:w-[380px] lg:max-w-none">
         <div className="h-[500px] overflow-hidden rounded-[30px] border border-zinc-200 bg-zinc-950 p-2 shadow-2xl sm:h-[580px] lg:h-[640px]">
-          <div className="h-full overflow-hidden rounded-[23px] bg-white">
-            <PhoneHeader />
+          <div className="h-full overflow-hidden rounded-[23px] bg-black">
+            
 
             <div className="animate-pulse space-y-5 p-4">
               <div className="aspect-video w-full rounded-xl bg-zinc-200" />
@@ -177,17 +148,17 @@ const HomepageVideoScroller = () => {
 
   if (errorMessage) {
     return (
-      <div className="mx-auto w-full max-w-[340px] sm:max-w-[390px] lg:w-[440px] lg:max-w-none">
+      <div className="mx-auto w-full max-w-[280px] sm:max-w-[320px] lg:w-[380px] lg:max-w-none">
         <div className="h-[500px] overflow-hidden rounded-[30px] border border-zinc-200 bg-zinc-950 p-2 shadow-2xl sm:h-[580px] lg:h-[640px]">
-          <div className="flex h-full flex-col overflow-hidden rounded-[23px] bg-white">
-            <PhoneHeader />
+          <div className="flex h-full flex-col overflow-hidden rounded-[23px] bg-black">
+            
 
             <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
               <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-2xl text-red-600">
                 !
               </div>
 
-              <h3 className="text-lg font-semibold text-zinc-900">
+              <h3 className="text-lg font-semibold text-white">
                 Something went wrong
               </h3>
 
@@ -211,10 +182,10 @@ const HomepageVideoScroller = () => {
 
   if (videos.length === 0) {
     return (
-      <div className="mx-auto w-full max-w-[340px] sm:max-w-[390px] lg:w-[440px] lg:max-w-none">
+      <div className="mx-auto w-full max-w-[280px] sm:max-w-[320px] lg:w-[380px] lg:max-w-none">
         <div className="h-[500px] overflow-hidden rounded-[30px] border border-zinc-200 bg-zinc-950 p-2 shadow-2xl sm:h-[580px] lg:h-[640px]">
-          <div className="flex h-full flex-col overflow-hidden rounded-[23px] bg-white">
-            <PhoneHeader />
+          <div className="flex h-full flex-col overflow-hidden rounded-[23px] bg-black">
+            
 
             <div className="flex flex-1 items-center justify-center px-8 text-center">
               <p className="text-sm text-zinc-500">
@@ -228,10 +199,10 @@ const HomepageVideoScroller = () => {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[340px] sm:max-w-[390px] lg:w-[440px] lg:max-w-none">
+    <div className="mx-auto w-full max-w-[280px] sm:max-w-[320px] lg:w-[380px] lg:max-w-none">
       <div className="h-[500px] overflow-hidden rounded-[30px] border border-zinc-200 bg-zinc-950 p-2 shadow-2xl sm:h-[580px] lg:h-[640px]">
-        <div className="flex h-full flex-col overflow-hidden rounded-[23px] bg-white">
-          <PhoneHeader />
+        <div className="flex h-full flex-col overflow-hidden rounded-[23px] bg-black">
+          
 
           <div className="relative min-h-0 flex-1">
             <div
@@ -258,7 +229,7 @@ const HomepageVideoScroller = () => {
                       src={video.thumbnailUrl}
                       alt={video.title || "YouTube video thumbnail"}
                       loading={index === 0 ? "eager" : "lazy"}
-                      className="aspect-video w-full object-cover transition duration-500 group-hover:scale-105"
+                      className="h-[320px] w-full object-cover transition duration-500 group-hover:scale-105"
                     />
 
                     <div className="absolute inset-0 bg-black/10 transition group-hover:bg-black/20" />
@@ -274,7 +245,7 @@ const HomepageVideoScroller = () => {
                     </div>
                   </div>
 
-                  <h3 className="mt-3 px-1 text-left text-base font-semibold leading-snug text-zinc-900 transition group-hover:text-red-600">
+                  <h3 className="mt-3 px-1 text-left text-base font-semibold leading-snug text-white transition group-hover:text-red-600">
                     {video.title || "Latest video from BodhGanga"}
                   </h3>
                 </a>
@@ -299,7 +270,7 @@ const HomepageVideoScroller = () => {
                   className={`pointer-events-auto h-2 w-2 rounded-full transition-all duration-300 ${
                     activeIndex === index
                       ? "w-5 bg-red-600"
-                      : "bg-white/60 hover:bg-white"
+                      : "bg-white/40 hover:bg-white/70"
                   }`}
                 />
               ))}
