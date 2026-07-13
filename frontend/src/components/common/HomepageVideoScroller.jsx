@@ -105,13 +105,13 @@ const HomepageVideoScroller = () => {
     fetchVideos();
   }, [fetchVideos]);
 
-  useEffect(() => {
-    if (!isLoading && !errorMessage && videos.length > 1) {
-      startAutoScroll();
-    }
+  useEffect(() => 
+    {
+        if (!isLoading && !errorMessage && videos.length > 1) {
+        startAutoScroll();}
 
-    return clearAutoScroll;
-  }, [clearAutoScroll, currentIndex, errorMessage, isLoading, startAutoScroll, videos.length]);
+        return () => {clearAutoScroll();};
+    }, [videos.length, isLoading, errorMessage]);
 
   useEffect(() => {
     return () => {
