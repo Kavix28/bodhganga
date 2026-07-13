@@ -37,7 +37,6 @@ const HomepageVideoScroller = () => {
         behavior,
       });
 
-      setCurrentIndex(nextIndex);
 
       window.setTimeout(() => {
         isProgrammaticScrollRef.current = false;
@@ -46,15 +45,20 @@ const HomepageVideoScroller = () => {
     [videos.length]
   );
 
-  const startAutoScroll = useCallback(() => {
-    window.clearInterval(autoScrollIntervalRef.current);
+  const startAutoScroll = useCallback(() => { window.clearInterval(autoScrollIntervalRef.current);
 
-    if (videos.length < 2) return;
+        if (videos.length < 2) return;
 
-    autoScrollIntervalRef.current = window.setInterval(() => {
-      scrollToVideo(currentIndex + 1);
-    }, AUTO_SCROLL_DELAY);
-  }, [currentIndex, scrollToVideo, videos.length]);
+        autoScrollIntervalRef.current = window.setInterval(() => {
+            setCurrentIndex((prev) => {
+            const next = (prev + 1) % videos.length;
+
+            scrollToVideo(next);
+
+            return next;
+            });
+        }, AUTO_SCROLL_DELAY);
+    }, [scrollToVideo, videos.length]);
 
   const handleManualActivity = useCallback(() => {
     if (isProgrammaticScrollRef.current) return;
