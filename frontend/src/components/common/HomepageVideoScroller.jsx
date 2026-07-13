@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import api from "../../services/api";
 
-const AUTO_SCROLL_DELAY = 8000;
-const AUTO_SCROLL_RESUME_DELAY = 5000;
+const AUTO_SCROLL_DELAY = 4000;
+const AUTO_SCROLL_RESUME_DELAY = 2000;
 
 
 const HomepageVideoScroller = () => {
