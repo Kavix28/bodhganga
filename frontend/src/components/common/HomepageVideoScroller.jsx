@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import api from "../../services/api";
 
-const AUTO_SCROLL_DELAY = 4000;
-const AUTO_SCROLL_RESUME_DELAY = 2000;
+const AUTO_SCROLL_DELAY = 2000;
+const AUTO_SCROLL_RESUME_DELAY = 1000;
 
 
 const HomepageVideoScroller = () => {
@@ -203,10 +203,7 @@ const HomepageVideoScroller = () => {
       </div>
 
       <div className="relative mx-auto w-full max-w-[340px] sm:max-w-[380px] md:max-w-[420px] lg:max-w-none lg:w-[460px] h-[420px] sm:h-[500px] md:h-[560px] lg:h-[640px] rounded-[40px]  border-[8px]  border-neutral-900 bg-black shadow-[0_30px_80px_rgba(0,0,0,.45)]">
-        <div className="pointer-events-none absolute left-1/2 top-3 z-20 flex h-5 w-28 -translate-x-1/2 items-center justify-center rounded-full bg-black">
-          <span className="h-1 w-11 rounded-full bg-zinc-700" />
-        </div>
-
+        
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
