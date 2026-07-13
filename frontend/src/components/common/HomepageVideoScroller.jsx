@@ -1,19 +1,47 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import api from "../../services/api";
 
-const AUTO_SCROLL_DELAY = 2000;
+const AUTO_SCROLL_DELAY = 3000;
 const AUTO_SCROLL_RESUME_DELAY = 1000;
 
+const PhoneHeader = () => (
+  <div className="flex h-14 shrink-0 items-center justify-between border-b border-zinc-200 bg-white px-4 text-zinc-900">
+    <div className="flex items-center gap-1.5">
+      <svg viewBox="0 0 28 20" className="h-6 w-7" aria-hidden="true">
+        <rect width="28" height="20" rx="5" fill="#FF0000" />
+        <path d="M11 5.8L18 10L11 14.2V5.8Z" fill="white" />
+      </svg>
+      <span className="text-lg font-semibold tracking-[-0.08em]">YouTube</span>
+    </div>
+
+    <div className="flex items-center gap-4">
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        className="h-5 w-5"
+        aria-hidden="true"
+      >
+        <circle cx="11" cy="11" r="6.5" />
+        <path d="m16 16 4.2 4.2" strokeLinecap="round" />
+      </svg>
+
+      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-blue-600 text-[10px] font-bold text-white">
+        BG
+      </div>
+    </div>
+  </div>
+);
 
 const HomepageVideoScroller = () => {
-  const scrollContainerRef = useRef(null);
+  const feedRef = useRef(null);
   const autoScrollIntervalRef = useRef(null);
   const resumeTimeoutRef = useRef(null);
-  const scrollFrameRef = useRef(null);
-  const isProgrammaticScrollRef = useRef(false);
+  const animationFrameRef = useRef(null);
 
   const [videos, setVideos] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -26,43 +54,42 @@ const HomepageVideoScroller = () => {
 
   const scrollToVideo = useCallback(
     (index, behavior = "smooth") => {
-      const container = scrollContainerRef.current;
-      if (!container || videos.length === 0) return;
+      const feed = feedRef.current;
 
-      const nextIndex = ((index % videos.length) + videos.length) % videos.length;
+      if (!feed || videos.length === 0) return;
 
-      isProgrammaticScrollRef.current = true;
-      container.scrollTo({
-        top: container.clientHeight * nextIndex,
+      const targetIndex = ((index % videos.length) + videos.length) % videos.length;
+
+      feed.scrollTo({
+        top: feed.clientHeight * targetIndex,
         behavior,
       });
 
-
-      window.setTimeout(() => {
-        isProgrammaticScrollRef.current = false;
-      }, 500);
+      setActiveIndex(targetIndex);
     },
     [videos.length]
   );
 
-  const startAutoScroll = useCallback(() => { window.clearInterval(autoScrollIntervalRef.current);
+  const startAutoScroll = useCallback(() => {
+    window.clearInterval(autoScrollIntervalRef.current);
 
-        if (videos.length < 2) return;
+    if (videos.length < 2) return;
 
-        autoScrollIntervalRef.current = window.setInterval(() => {
-            setCurrentIndex((prev) => {
-            const next = (prev + 1) % videos.length;
+    autoScrollIntervalRef.current = window.setInterval(() => {
+      setActiveIndex((previousIndex) => {
+        const nextIndex = (previousIndex + 1) % videos.length;
 
-            scrollToVideo(next);
+        feedRef.current?.scrollTo({
+          top: feedRef.current.clientHeight * nextIndex,
+          behavior: "smooth",
+        });
 
-            return next;
-            });
-        }, AUTO_SCROLL_DELAY);
-    }, [scrollToVideo, videos.length]);
+        return nextIndex;
+      });
+    }, AUTO_SCROLL_DELAY);
+  }, [videos.length]);
 
-  const handleManualActivity = useCallback(() => {
-    if (isProgrammaticScrollRef.current) return;
-
+  const handleManualScroll = useCallback(() => {
     window.clearInterval(autoScrollIntervalRef.current);
     window.clearTimeout(resumeTimeoutRef.current);
 
@@ -71,24 +98,21 @@ const HomepageVideoScroller = () => {
     }, AUTO_SCROLL_RESUME_DELAY);
   }, [startAutoScroll]);
 
-  const handleScroll = useCallback(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
+  const handleFeedScroll = useCallback(() => {
+    const feed = feedRef.current;
 
-    if (scrollFrameRef.current) return;
+    if (!feed || animationFrameRef.current) return;
 
-    scrollFrameRef.current = window.requestAnimationFrame(() => {
-      const nextIndex = Math.round(container.scrollTop / container.clientHeight);
+    animationFrameRef.current = window.requestAnimationFrame(() => {
+      const nextIndex = Math.round(feed.scrollTop / feed.clientHeight);
 
-      setCurrentIndex((previousIndex) =>
+      setActiveIndex((previousIndex) =>
         previousIndex === nextIndex ? previousIndex : nextIndex
       );
 
-      scrollFrameRef.current = null;
+      animationFrameRef.current = null;
     });
-
-    handleManualActivity();
-  }, [handleManualActivity]);
+  }, []);
 
   const fetchVideos = useCallback(async () => {
     setIsLoading(true);
@@ -96,10 +120,18 @@ const HomepageVideoScroller = () => {
 
     try {
       const response = await api.get("/videos/latest");
-      setVideos(Array.isArray(response) ? response.slice(0, 3) : []);
-      setCurrentIndex(0);
+
+      const latestVideos = Array.isArray(response)
+        ? response.slice(0, 3)
+        : [];
+
+      setVideos(latestVideos);
+      setActiveIndex(0);
+
+      feedRef.current?.scrollTo({ top: 0, behavior: "auto" });
     } catch {
-      setErrorMessage("Unable to load the latest stories right now.");
+      setVideos([]);
+      setErrorMessage("We could not load the latest videos.");
     } finally {
       setIsLoading(false);
     }
@@ -109,34 +141,34 @@ const HomepageVideoScroller = () => {
     fetchVideos();
   }, [fetchVideos]);
 
-  useEffect(() => 
-    {
-        if (!isLoading && !errorMessage && videos.length > 1) {
-        startAutoScroll();}
+  useEffect(() => {
+    if (!isLoading && !errorMessage && videos.length > 1) {
+      startAutoScroll();
+    }
 
-        return () => {clearAutoScroll();};
-    }, [videos.length, isLoading, errorMessage]);
+    return clearAutoScroll;
+  }, [clearAutoScroll, errorMessage, isLoading, startAutoScroll, videos.length]);
 
   useEffect(() => {
     return () => {
-      window.cancelAnimationFrame(scrollFrameRef.current);
+      window.cancelAnimationFrame(animationFrameRef.current);
       clearAutoScroll();
     };
   }, [clearAutoScroll]);
 
   if (isLoading) {
     return (
-      <div className="w-full flex flex-col gap-6 mx-auto px-4 sm:px-0 animate-pulse">
-        <div className="w-full max-w-[340px] sm:max-w-[380px] md:max-w-[420px] lg:max-w-none lg:w-[460px] mx-auto space-y-3">
-          <div className="h-3 w-36 rounded-full bg-white/15" />
-          <div className="h-3 w-60 rounded-full bg-white/10" />
-          <div className="h-8 w-4/5 rounded-lg bg-white/15" />
-        </div>
+      <div className="mx-auto w-full max-w-[340px] sm:max-w-[390px] lg:w-[440px] lg:max-w-none">
+        <div className="h-[500px] overflow-hidden rounded-[30px] border border-zinc-200 bg-zinc-950 p-2 shadow-2xl sm:h-[580px] lg:h-[640px]">
+          <div className="h-full overflow-hidden rounded-[23px] bg-white">
+            <PhoneHeader />
 
-        <div className="relative mx-auto w-full max-w-[340px] sm:max-w-[380px] md:max-w-[420px] lg:max-w-none lg:w-[460px] h-[420px] sm:h-[500px] md:h-[560px] lg:h-[640px] rounded-[28px] border border-white/10 bg-zinc-950 p-2 shadow-2xl">
-          <div className="h-full w-full rounded-[21px] bg-gradient-to-br from-emerald-950 via-zinc-900 to-black">
-            <div className="absolute inset-x-10 top-24 h-32 rounded-2xl bg-white/5 blur-2xl" />
-            <div className="absolute inset-x-8 bottom-12 h-3 rounded-full bg-white/10" />
+            <div className="animate-pulse space-y-5 p-4">
+              <div className="aspect-video w-full rounded-xl bg-zinc-200" />
+              <div className="h-5 w-11/12 rounded bg-zinc-200" />
+              <div className="h-4 w-2/3 rounded bg-zinc-100" />
+              <div className="mt-8 aspect-video w-full rounded-xl bg-zinc-100" />
+            </div>
           </div>
         </div>
       </div>
@@ -145,29 +177,33 @@ const HomepageVideoScroller = () => {
 
   if (errorMessage) {
     return (
-      <div className="w-full flex flex-col gap-6 mx-auto px-4 sm:px-0">
-        <div className="w-full max-w-[340px] sm:max-w-[380px] md:max-w-[420px] lg:max-w-none lg:w-[460px] mx-auto text-left space-y-1">
-          <div className="text-[10px] sm:text-xs tracking-[0.25em] font-extrabold uppercase text-gold">
-            India Unlocked 🇮🇳
-          </div>
-          <div className="text-[9px] sm:text-[10px] text-white/50 font-bold uppercase tracking-wider">
-            Decoding India, District by District
-          </div>
-        </div>
+      <div className="mx-auto w-full max-w-[340px] sm:max-w-[390px] lg:w-[440px] lg:max-w-none">
+        <div className="h-[500px] overflow-hidden rounded-[30px] border border-zinc-200 bg-zinc-950 p-2 shadow-2xl sm:h-[580px] lg:h-[640px]">
+          <div className="flex h-full flex-col overflow-hidden rounded-[23px] bg-white">
+            <PhoneHeader />
 
-        <div className="mx-auto flex h-[420px] sm:h-[500px] md:h-[560px] lg:h-[640px] w-full max-w-[340px] sm:max-w-[380px] md:max-w-[420px] lg:max-w-none lg:w-[460px] flex-col items-center justify-center rounded-[28px] border border-red-300/20 bg-gradient-to-b from-zinc-950 to-red-950/40 p-8 text-center shadow-2xl">
-          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-red-300/20 bg-red-400/10 text-2xl">
-            !
+            <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
+              <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-2xl text-red-600">
+                !
+              </div>
+
+              <h3 className="text-lg font-semibold text-zinc-900">
+                Something went wrong
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-zinc-500">
+                {errorMessage}
+              </p>
+
+              <button
+                type="button"
+                onClick={fetchVideos}
+                className="mt-6 rounded-full bg-red-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 active:scale-95"
+              >
+                Retry
+              </button>
+            </div>
           </div>
-          <h3 className="font-serif text-xl font-semibold text-white">Stories unavailable</h3>
-          <p className="mt-2 max-w-[260px] text-sm text-white/55">{errorMessage}</p>
-          <button
-            type="button"
-            onClick={fetchVideos}
-            className="mt-6 rounded-full border border-gold/40 bg-gold/10 px-5 py-2 text-xs font-bold uppercase tracking-wider text-gold transition hover:bg-gold/20"
-          >
-            Try again
-          </button>
         </div>
       </div>
     );
@@ -175,114 +211,100 @@ const HomepageVideoScroller = () => {
 
   if (videos.length === 0) {
     return (
-      <div className="w-full flex flex-col gap-6 mx-auto px-4 sm:px-0">
-        <div className="w-full max-w-[340px] sm:max-w-[380px] md:max-w-[420px] lg:max-w-none lg:w-[460px] mx-auto text-left space-y-1">
-          <div className="text-[10px] sm:text-xs tracking-[0.25em] font-extrabold uppercase text-gold">
-            India Unlocked 🇮🇳
-          </div>
-          <div className="text-[9px] sm:text-[10px] text-white/50 font-bold uppercase tracking-wider">
-            Decoding India, District by District
-          </div>
-        </div>
+      <div className="mx-auto w-full max-w-[340px] sm:max-w-[390px] lg:w-[440px] lg:max-w-none">
+        <div className="h-[500px] overflow-hidden rounded-[30px] border border-zinc-200 bg-zinc-950 p-2 shadow-2xl sm:h-[580px] lg:h-[640px]">
+          <div className="flex h-full flex-col overflow-hidden rounded-[23px] bg-white">
+            <PhoneHeader />
 
-        <div className="mx-auto flex h-[420px] sm:h-[500px] md:h-[560px] lg:h-[640px] w-full max-w-[340px] sm:max-w-[380px] md:max-w-[420px] lg:max-w-none lg:w-[460px] items-center justify-center rounded-[28px] border border-gold/25 bg-gradient-to-b from-emerald-950 to-zinc-950 p-8 text-center shadow-2xl">
-          <p className="font-serif text-lg text-gold">No latest videos available yet.</p>
+            <div className="flex flex-1 items-center justify-center px-8 text-center">
+              <p className="text-sm text-zinc-500">
+                No videos available right now.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full flex flex-col gap-6 mx-auto px-4 sm:px-0">
-      <div className="w-full max-w-[340px] sm:max-w-[380px] md:max-w-[420px] lg:max-w-none lg:w-[460px] mx-auto text-left space-y-1">
-        <div className="text-[10px] sm:text-xs tracking-[0.25em] font-extrabold uppercase text-gold">
-          India Unlocked 🇮🇳
-        </div>
-        <div className="text-[9px] sm:text-[10px] text-white/50 font-bold uppercase tracking-wider">
-          Decoding India, District by District
-        </div>
-        <h3 className="pt-1 text-lg sm:text-2xl font-semibold font-serif text-white tracking-tight leading-tight">
-          {videos[currentIndex]?.title}
-        </h3>
-      </div>
+    <div className="mx-auto w-full max-w-[340px] sm:max-w-[390px] lg:w-[440px] lg:max-w-none">
+      <div className="h-[500px] overflow-hidden rounded-[30px] border border-zinc-200 bg-zinc-950 p-2 shadow-2xl sm:h-[580px] lg:h-[640px]">
+        <div className="flex h-full flex-col overflow-hidden rounded-[23px] bg-white">
+          <PhoneHeader />
 
-      <div className="relative mx-auto w-full max-w-[340px] sm:max-w-[380px] md:max-w-[420px] lg:max-w-none lg:w-[460px] h-[420px] sm:h-[500px] md:h-[560px] lg:h-[640px] rounded-[40px]  border-[8px]  border-neutral-900 bg-black shadow-[0_30px_80px_rgba(0,0,0,.45)]">
-        
-        <div
-          ref={scrollContainerRef}
-          onScroll={handleScroll}
-          onWheel={handleManualActivity}
-          onTouchStart={handleManualActivity}
-          onMouseEnter={handleManualActivity}
-          className="h-full w-full snap-y snap-mandatory overflow-y-auto rounded-[21px] scroll-smooth [&::-webkit-scrollbar]:hidden"
-          style={{ scrollbarWidth: "none" }}
-        >
-        {videos.map((video, index) => (
-        <div
-                key={video.videoId || `${video.youtubeUrl}-${index}`}
-                className="relative h-full w-full snap-start snap-always overflow-hidden bg-zinc-900"
-                >
+          <div className="relative min-h-0 flex-1">
+            <div
+              ref={feedRef}
+              onScroll={handleFeedScroll}
+              onWheel={handleManualScroll}
+              onTouchStart={handleManualScroll}
+              onTouchMove={handleManualScroll}
+              onTouchEnd={handleManualScroll}
+              className="h-full snap-y snap-mandatory overflow-y-auto scroll-smooth [&::-webkit-scrollbar]:hidden"
+              style={{ scrollbarWidth: "none" }}
+            >
+              {videos.map((video, index) => (
                 <a
-                    href={video.youtubeUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Watch on YouTube"
-                    className="relative block h-full w-full group cursor-pointer"
+                  key={video.videoId || `${video.youtubeUrl}-${index}`}
+                  href={video.youtubeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Watch ${video.title || "video"} on YouTube`}
+                  className="group flex h-full snap-start snap-always flex-col justify-center px-3 py-4"
                 >
-                {/* Thumbnail */}
-                <img
-                    src={video.thumbnailUrl}
-                    alt={video.title}
-                    className="h-full w-full object-cover transition-all duration-500 group-hover:scale-105"
-                />
+                  <div className="relative overflow-hidden rounded-xl bg-zinc-200 shadow-sm">
+                    <img
+                      src={video.thumbnailUrl}
+                      alt={video.title || "YouTube video thumbnail"}
+                      loading={index === 0 ? "eager" : "lazy"}
+                      className="aspect-video w-full object-cover transition duration-500 group-hover:scale-105"
+                    />
 
-                {/* Dark Overlay */}
-                <div className="absolute inset-0 bg-black/30 transition-colors duration-300 group-hover:bg-black/20" />
+                    <div className="absolute inset-0 bg-black/10 transition group-hover:bg-black/20" />
 
-                {/* Play Button */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-600 shadow-2xl transition-all duration-300 group-hover:scale-110 group-hover:bg-red-500">
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
+                    <div className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-red-600 shadow-lg transition duration-300 group-hover:scale-110 group-hover:bg-red-700">
+                      <svg
                         viewBox="0 0 24 24"
-                        fill="white"
-                        className="ml-1 h-10 w-10"
-                    >
-                        <path d="M8 5v14l11-7z" />
-                    </svg>
+                        className="ml-1 h-7 w-7 fill-white"
+                        aria-hidden="true"
+                      >
+                        <path d="M8 5.5v13L18.5 12 8 5.5Z" />
+                      </svg>
                     </div>
-                </div>
+                  </div>
 
-                {/* Bottom Gradient */}
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent" />
-
-                {/* Click to Watch Badge */}
-                <div className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-black/60 backdrop-blur-md px-4 py-2 text-xs font-semibold tracking-wide text-white opacity-0 transition-all duration-300 group-hover:opacity-100">
-                    ▶ Watch on YouTube
-                </div>
+                  <h3 className="mt-3 px-1 text-left text-base font-semibold leading-snug text-zinc-900 transition group-hover:text-red-600">
+                    {video.title || "Latest video from BodhGanga"}
+                  </h3>
                 </a>
+              ))}
             </div>
-            ))}
-        </div>
-        <div className="absolute bottom-4 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/45 px-3 py-2 backdrop-blur-md">
-          {videos.map((video, index) => (
-            <button
-              key={video.videoId || index}
-              type="button"
-              aria-label={`Go to video ${index + 1}`}
-              aria-current={index === currentIndex}
-              onClick={() => {
-                clearAutoScroll();
-                scrollToVideo(index);
-                window.setTimeout(startAutoScroll, AUTO_SCROLL_RESUME_DELAY);
-              }}
-              className={`h-2.5 w-2.5 rounded-full transition-all duration-300 ${
-                index === currentIndex
-                  ? "scale-110 bg-gold shadow-[0_0_10px_rgba(255,215,0,0.8)]"
-                  : "bg-white/45 hover:bg-white/80"
-              }`}
-            />
-          ))}
+
+            <div className="pointer-events-none absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-zinc-900/80 px-3 py-2 shadow-lg backdrop-blur-sm">
+              {videos.map((video, index) => (
+                <button
+                  key={video.videoId || index}
+                  type="button"
+                  aria-label={`Go to video ${index + 1}`}
+                  aria-current={activeIndex === index}
+                  onClick={() => {
+                    clearAutoScroll();
+                    scrollToVideo(index);
+
+                    resumeTimeoutRef.current = window.setTimeout(() => {
+                        startAutoScroll();
+                    }, AUTO_SCROLL_RESUME_DELAY);
+                    }}
+                  className={`pointer-events-auto h-2 w-2 rounded-full transition-all duration-300 ${
+                    activeIndex === index
+                      ? "w-5 bg-red-600"
+                      : "bg-white/60 hover:bg-white"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
