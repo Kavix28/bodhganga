@@ -194,7 +194,7 @@ const Navbar = () => {
 
                     {/* Mobile hamburger */}
                     <div className="flex md:hidden items-center gap-2">
-                        <Link to="/states-browse"
+                        <Link to="/explore"
                             className="p-2.5 text-white/70 hover:text-gold hover:bg-white/5 rounded-xl border border-transparent hover:border-gold/15 transition-all duration-300"
                             title="Explore Now"
                         >
