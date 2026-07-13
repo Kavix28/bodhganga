@@ -1,110 +1,56 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import api from "../../services/api";
 
-const AUTO_SCROLL_DELAY = 3000;
-const AUTO_SCROLL_RESUME_DELAY = 1000;
-
+const AUTO_SCROLL_DELAY = 3500;
+const AUTO_SCROLL_RESUME_DELAY = 2000;
 
 const HomepageVideoScroller = () => {
   const feedRef = useRef(null);
+
   const autoScrollIntervalRef = useRef(null);
   const resumeTimeoutRef = useRef(null);
   const animationFrameRef = useRef(null);
 
   const [videos, setVideos] = useState([]);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // -----------------------------
+  // Cleanup
+  // -----------------------------
 
   const clearAutoScroll = useCallback(() => {
     window.clearInterval(autoScrollIntervalRef.current);
     window.clearTimeout(resumeTimeoutRef.current);
+
     autoScrollIntervalRef.current = null;
     resumeTimeoutRef.current = null;
   }, []);
 
-  const scrollToVideo = useCallback(
-    (index, behavior = "smooth") => {
-      const feed = feedRef.current;
-
-      if (!feed || videos.length === 0) return;
-
-      const targetIndex = ((index % videos.length) + videos.length) % videos.length;
-
-      feed.scrollTo({
-        top: feed.clientHeight * targetIndex,
-        behavior,
-      });
-
-      setActiveIndex(targetIndex);
-    },
-    [videos.length]
-  );
-
-  const startAutoScroll = useCallback(() => {
-    window.clearInterval(autoScrollIntervalRef.current);
-
-    if (videos.length < 2) return;
-
-    autoScrollIntervalRef.current = window.setInterval(() => {
-      setActiveIndex((previousIndex) => {
-        const nextIndex = (previousIndex + 1) % videos.length;
-
-        feedRef.current?.scrollTo({
-          top: feedRef.current.clientHeight * nextIndex,
-          behavior: "smooth",
-        });
-
-        return nextIndex;
-      });
-    }, AUTO_SCROLL_DELAY);
-  }, [videos.length]);
-
-  const handleManualScroll = useCallback(() => {
-    window.clearInterval(autoScrollIntervalRef.current);
-    window.clearTimeout(resumeTimeoutRef.current);
-
-    resumeTimeoutRef.current = window.setTimeout(() => {
-      startAutoScroll();
-    }, AUTO_SCROLL_RESUME_DELAY);
-  }, [startAutoScroll]);
-
-  const handleFeedScroll = useCallback(() => {
-    const feed = feedRef.current;
-
-    if (!feed || animationFrameRef.current) return;
-
-    animationFrameRef.current = window.requestAnimationFrame(() => {
-      const nextIndex = Math.round(feed.scrollTop / feed.clientHeight);
-
-      setActiveIndex((previousIndex) =>
-        previousIndex === nextIndex ? previousIndex : nextIndex
-      );
-
-      animationFrameRef.current = null;
-    });
-  }, []);
+  // -----------------------------
+  // Fetch Videos
+  // -----------------------------
 
   const fetchVideos = useCallback(async () => {
-    setIsLoading(true);
-    setErrorMessage("");
-
     try {
+      setLoading(true);
+      setError("");
+
       const response = await api.get("/videos/latest");
 
       const latestVideos = Array.isArray(response)
-        ? response.slice(0, 3)
+        ? response
         : [];
 
       setVideos(latestVideos);
-      setActiveIndex(0);
+    } catch (err) {
+      console.error(err);
 
-      feedRef.current?.scrollTo({ top: 0, behavior: "auto" });
-    } catch {
+      setError("Unable to load videos.");
+
       setVideos([]);
-      setErrorMessage("We could not load the latest videos.");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }, []);
 
@@ -112,33 +58,135 @@ const HomepageVideoScroller = () => {
     fetchVideos();
   }, [fetchVideos]);
 
+  // -----------------------------
+  // Auto Scroll
+  // -----------------------------
+
+  const startAutoScroll = useCallback(() => {
+    clearAutoScroll();
+
+    const container = feedRef.current;
+
+    if (!container) return;
+
+    autoScrollIntervalRef.current = window.setInterval(() => {
+
+      const card =
+        container.querySelector("[data-video-card]");
+
+      if (!card) return;
+
+      const cardHeight =
+        card.getBoundingClientRect().height + 20;
+
+      const maxScroll =
+        container.scrollHeight -
+        container.clientHeight;
+
+      if (
+        container.scrollTop + cardHeight >=
+        maxScroll
+      ) {
+        container.scrollTo({
+          top: 0,
+          behavior: "smooth",
+        });
+
+        return;
+      }
+
+      container.scrollBy({
+        top: cardHeight,
+        behavior: "smooth",
+      });
+
+    }, AUTO_SCROLL_DELAY);
+
+  }, [clearAutoScroll]);
+
+  // -----------------------------
+  // Pause while user scrolls
+  // -----------------------------
+
+  const handleManualScroll = useCallback(() => {
+
+    clearAutoScroll();
+
+    resumeTimeoutRef.current =
+      window.setTimeout(() => {
+        startAutoScroll();
+      }, AUTO_SCROLL_RESUME_DELAY);
+
+  }, [clearAutoScroll, startAutoScroll]);
+
+  // -----------------------------
+  // Scroll optimisation
+  // -----------------------------
+
+  const handleScroll = useCallback(() => {
+
+    if (animationFrameRef.current) return;
+
+    animationFrameRef.current =
+      window.requestAnimationFrame(() => {
+        animationFrameRef.current = null;
+      });
+
+  }, []);
+
   useEffect(() => {
-    if (!isLoading && !errorMessage && videos.length > 1) {
+
+    if (!loading && !error && videos.length > 1) {
       startAutoScroll();
     }
 
     return clearAutoScroll;
-  }, [clearAutoScroll, errorMessage, isLoading, startAutoScroll, videos.length]);
+
+  }, [
+    loading,
+    error,
+    videos.length,
+    startAutoScroll,
+    clearAutoScroll,
+  ]);
 
   useEffect(() => {
+
     return () => {
-      window.cancelAnimationFrame(animationFrameRef.current);
+
       clearAutoScroll();
+
+      window.cancelAnimationFrame(
+        animationFrameRef.current
+      );
+
     };
+
   }, [clearAutoScroll]);
+    // ----------------------------------
+  // Loading State
+  // ----------------------------------
 
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="mx-auto w-full max-w-[280px] sm:max-w-[320px] lg:w-[380px] lg:max-w-none">
-        <div className="h-[500px] overflow-hidden rounded-[30px] border border-zinc-200 bg-zinc-950 p-2 shadow-2xl sm:h-[580px] lg:h-[640px]">
-          <div className="h-full overflow-hidden rounded-[23px] bg-black">
-            
+      <div className="mx-auto w-full max-w-[340px] sm:max-w-[360px] lg:w-[400px]">
+        <div className="h-[75vh] lg:h-[700px] rounded-[32px] border border-zinc-800 bg-black p-3 shadow-2xl">
+          <div className="h-full overflow-hidden rounded-[24px] bg-black">
+            <div className="animate-pulse space-y-8 p-4">
 
-            <div className="animate-pulse space-y-5 p-4">
-              <div className="aspect-video w-full rounded-xl bg-zinc-200" />
-              <div className="h-5 w-11/12 rounded bg-zinc-200" />
-              <div className="h-4 w-2/3 rounded bg-zinc-100" />
-              <div className="mt-8 aspect-video w-full rounded-xl bg-zinc-100" />
+              {[1, 2, 3].map((item) => (
+                <div
+                  key={item}
+                  className="space-y-3"
+                >
+                  <div className="aspect-video rounded-xl bg-zinc-800" />
+
+                  <div className="h-4 w-11/12 rounded bg-zinc-700" />
+
+                  <div className="h-3 w-2/3 rounded bg-zinc-800" />
+                </div>
+              ))}
+
             </div>
           </div>
         </div>
@@ -146,137 +194,230 @@ const HomepageVideoScroller = () => {
     );
   }
 
-  if (errorMessage) {
-    return (
-      <div className="mx-auto w-full max-w-[280px] sm:max-w-[320px] lg:w-[380px] lg:max-w-none">
-        <div className="h-[500px] overflow-hidden rounded-[30px] border border-zinc-200 bg-zinc-950 p-2 shadow-2xl sm:h-[580px] lg:h-[640px]">
-          <div className="flex h-full flex-col overflow-hidden rounded-[23px] bg-black">
-            
+  // ----------------------------------
+  // Error State
+  // ----------------------------------
 
-            <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
-              <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-2xl text-red-600">
+  if (error) {
+    return (
+      <div className="mx-auto w-full max-w-[340px] sm:max-w-[360px] lg:w-[400px]">
+        <div className="h-[75vh] lg:h-[700px] rounded-[32px] border border-zinc-800 bg-black p-3 shadow-2xl">
+
+          <div className="flex h-full items-center justify-center rounded-[24px] bg-black">
+
+            <div className="text-center">
+
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-600 text-3xl font-bold text-white">
                 !
               </div>
 
-              <h3 className="text-lg font-semibold text-white">
-                Something went wrong
+              <h3 className="text-xl font-semibold text-white">
+                Unable to load videos
               </h3>
 
-              <p className="mt-2 text-sm leading-6 text-zinc-500">
-                {errorMessage}
+              <p className="mt-2 text-sm text-zinc-400">
+                {error}
               </p>
 
               <button
-                type="button"
                 onClick={fetchVideos}
-                className="mt-6 rounded-full bg-red-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 active:scale-95"
+                className="mt-6 rounded-full bg-red-600 px-6 py-3 font-medium text-white transition hover:bg-red-700"
               >
                 Retry
               </button>
+
             </div>
+
           </div>
+
         </div>
       </div>
     );
   }
+
+  // ----------------------------------
+  // Empty State
+  // ----------------------------------
 
   if (videos.length === 0) {
     return (
-      <div className="mx-auto w-full max-w-[280px] sm:max-w-[320px] lg:w-[380px] lg:max-w-none">
-        <div className="h-[500px] overflow-hidden rounded-[30px] border border-zinc-200 bg-zinc-950 p-2 shadow-2xl sm:h-[580px] lg:h-[640px]">
-          <div className="flex h-full flex-col overflow-hidden rounded-[23px] bg-black">
-            
+      <div className="mx-auto w-full max-w-[340px] sm:max-w-[360px] lg:w-[400px]">
+        <div className="h-[75vh] lg:h-[700px] rounded-[32px] border border-zinc-800 bg-black p-3 shadow-2xl">
 
-            <div className="flex flex-1 items-center justify-center px-8 text-center">
-              <p className="text-sm text-zinc-500">
-                No videos available right now.
+          <div className="flex h-full items-center justify-center rounded-[24px] bg-black">
+
+            <div className="text-center">
+
+              <h3 className="text-xl font-semibold text-white">
+                No Videos Available
+              </h3>
+
+              <p className="mt-3 text-zinc-400">
+                Latest videos will appear here.
               </p>
+
             </div>
+
           </div>
+
         </div>
       </div>
     );
   }
 
+  // ----------------------------------
+  // Main UI
+  // ----------------------------------
+
   return (
-    <div className="mx-auto w-full max-w-[280px] sm:max-w-[320px] lg:w-[380px] lg:max-w-none">
-      <div className="h-[500px] overflow-hidden rounded-[30px] border border-zinc-200 bg-zinc-950 p-2 shadow-2xl sm:h-[580px] lg:h-[640px]">
-        <div className="flex h-full flex-col overflow-hidden rounded-[23px] bg-black">
-          
 
-          <div className="relative min-h-0 flex-1">
-            <div
-              ref={feedRef}
-              onScroll={handleFeedScroll}
-              onWheel={handleManualScroll}
-              onTouchStart={handleManualScroll}
-              onTouchMove={handleManualScroll}
-              onTouchEnd={handleManualScroll}
-              className="h-full snap-y snap-mandatory overflow-y-auto scroll-smooth [&::-webkit-scrollbar]:hidden"
-              style={{ scrollbarWidth: "none" }}
+    <div className="mx-auto w-full max-w-[340px] sm:max-w-[360px] lg:w-[400px]">
+
+      {/* Phone */}
+
+      <div className="h-[75vh] lg:h-[700px] rounded-[32px] border border-zinc-800 bg-black p-3 shadow-[0_20px_80px_rgba(0,0,0,.45)]">
+
+        <div
+          ref={feedRef}
+          onScroll={handleScroll}
+          onWheel={handleManualScroll}
+          onTouchStart={handleManualScroll}
+          onTouchMove={handleManualScroll}
+          onTouchEnd={handleManualScroll}
+          className="
+            h-full
+            overflow-y-auto
+            rounded-[24px]
+            bg-black
+            px-4
+            py-4
+            space-y-8
+            scroll-smooth
+            [&::-webkit-scrollbar]:hidden
+          "
+          style={{
+            scrollbarWidth: "none",
+          }}
+        >
+                      {videos.map((video, index) => (
+            <a
+              key={video.videoId || video.youtubeUrl || index}
+              href={video.youtubeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-video-card
+              className="group block"
             >
-              {videos.map((video, index) => (
-                <a
-                  key={video.videoId || `${video.youtubeUrl}-${index}`}
-                  href={video.youtubeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={`Watch ${video.title || "video"} on YouTube`}
-                  className="group flex h-full snap-start snap-always flex-col justify-center px-3 py-4"
-                >
-                  <div className="relative overflow-hidden rounded-xl bg-zinc-200 shadow-sm">
-                    <img
-                      src={video.thumbnailUrl}
-                      alt={video.title || "YouTube video thumbnail"}
-                      loading={index === 0 ? "eager" : "lazy"}
-                      className="h-[320px] w-full object-cover transition duration-500 group-hover:scale-105"
-                    />
+              {/* Thumbnail */}
 
-                    <div className="absolute inset-0 bg-black/10 transition group-hover:bg-black/20" />
+              <div className="relative overflow-hidden rounded-2xl bg-zinc-900 shadow-lg">
 
-                    <div className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-red-600 shadow-lg transition duration-300 group-hover:scale-110 group-hover:bg-red-700">
-                      <svg
-                        viewBox="0 0 24 24"
-                        className="ml-1 h-7 w-7 fill-white"
-                        aria-hidden="true"
-                      >
-                        <path d="M8 5.5v13L18.5 12 8 5.5Z" />
-                      </svg>
-                    </div>
-                  </div>
-
-                  <h3 className="mt-3 px-1 text-left text-base font-semibold leading-snug text-white transition group-hover:text-red-600">
-                    {video.title || "Latest video from BodhGanga"}
-                  </h3>
-                </a>
-              ))}
-            </div>
-
-            <div className="pointer-events-none absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-zinc-900/80 px-3 py-2 shadow-lg backdrop-blur-sm">
-              {videos.map((video, index) => (
-                <button
-                  key={video.videoId || index}
-                  type="button"
-                  aria-label={`Go to video ${index + 1}`}
-                  aria-current={activeIndex === index}
-                  onClick={() => {
-                    clearAutoScroll();
-                    scrollToVideo(index);
-
-                    resumeTimeoutRef.current = window.setTimeout(() => {
-                        startAutoScroll();
-                    }, AUTO_SCROLL_RESUME_DELAY);
-                    }}
-                  className={`pointer-events-auto h-2 w-2 rounded-full transition-all duration-300 ${
-                    activeIndex === index
-                      ? "w-5 bg-red-600"
-                      : "bg-white/40 hover:bg-white/70"
-                  }`}
+                <img
+                  src={video.thumbnailUrl}
+                  alt={video.title || "Video Thumbnail"}
+                  loading={index < 2 ? "eager" : "lazy"}
+                  className="
+                    h-[200px]
+                    w-full
+                    object-cover
+                    transition
+                    duration-500
+                    group-hover:scale-[1.03]
+                  "
                 />
-              ))}
-            </div>
-          </div>
-        </div>
+
+                {/* Dark Overlay */}
+
+                <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition" />
+
+                {/* Duration Badge */}
+
+                {video.duration && (
+                  <div
+                    className="
+                      absolute
+                      bottom-3
+                      right-3
+                      rounded
+                      bg-black/80
+                      px-2
+                      py-1
+                      text-[11px]
+                      font-medium
+                      text-white
+                    "
+                  >
+                    {video.duration}
+                  </div>
+                )}
+
+                {/* Play Button */}
+
+                <div
+                  className="
+                    absolute
+                    left-1/2
+                    top-1/2
+                    flex
+                    h-16
+                    w-16
+                    -translate-x-1/2
+                    -translate-y-1/2
+                    items-center
+                    justify-center
+                    rounded-full
+                    bg-red-600
+                    shadow-xl
+                    transition
+                    duration-300
+                    group-hover:scale-110
+                    group-hover:bg-red-700
+                  "
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="ml-1 h-8 w-8 fill-white"
+                  >
+                    <path d="M8 5.5v13L18.5 12 8 5.5Z" />
+                  </svg>
+                </div>
+
+              </div>
+
+              {/* Video Details */}
+
+              <div className="min-w-0">
+
+                
+
+                  <h3
+                    className="
+                      line-clamp-2
+                      text-[15px]
+                      font-semibold
+                      leading-6
+                      text-white
+                    "
+                  >
+                    {video.title || "Latest Video"}
+                  </h3>
+
+                  <p className="mt-1 text-xs text-zinc-400">
+                    BodhGanga Academy
+                  </p>
+
+                  <p className="mt-1 text-xs text-zinc-500">
+                    {video.views || "Latest Upload"}
+                    {video.uploadedAt && ` • ${video.uploadedAt}`}
+                  </p>
+
+                </div>
+
+              
+
+            </a>
+          ))}
+                </div>
       </div>
     </div>
   );
