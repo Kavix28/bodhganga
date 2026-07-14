@@ -194,12 +194,6 @@ const Navbar = () => {
 
                     {/* Mobile hamburger */}
                     <div className="flex md:hidden items-center gap-2">
-                        <Link to="/state"
-                            className="p-2.5 text-white/70 hover:text-gold hover:bg-white/5 rounded-xl border border-transparent hover:border-gold/15 transition-all duration-300"
-                            title="Explore Now"
-                        >
-                            <Compass className="w-5 h-5 text-gold group-hover:rotate-45 transition-transform" />
-                        </Link>
                         <Link to="/cart" onClick={(e) => handleLinkClick(e, '/cart')}
                             className="relative p-2.5 text-white/70 hover:text-gold hover:bg-white/5 rounded-xl border border-transparent hover:border-gold/15 transition-all duration-300">
                             <ShoppingCart className="w-5 h-5" />
