@@ -122,7 +122,7 @@ const Navbar = () => {
                             </>
                         )}
                     </div>
-                    <Link to="/explore" className="hidden md:flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-gold to-gold-dark text-emerald-dark">Explore Now</Link>
+                    <Link to="/state" className="hidden md:flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-gold to-gold-dark text-emerald-dark">Explore Now</Link>
 
                     {/* Right Actions */}
                     <div className="hidden md:flex items-center gap-4">
@@ -194,7 +194,7 @@ const Navbar = () => {
 
                     {/* Mobile hamburger */}
                     <div className="flex md:hidden items-center gap-2">
-                        <Link to="/explore"
+                        <Link to="/state"
                             className="p-2.5 text-white/70 hover:text-gold hover:bg-white/5 rounded-xl border border-transparent hover:border-gold/15 transition-all duration-300"
                             title="Explore Now"
                         >
