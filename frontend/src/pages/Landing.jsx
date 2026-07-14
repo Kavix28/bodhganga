@@ -8,7 +8,7 @@ import {
     Sparkles, ShieldCheck, Flame, Users, BookOpenCheck, Compass 
 } from 'lucide-react';
 import Logo from '../components/common/Logo';
-import HomepageSlideshow from '../components/common/HomepageSlideshow';
+import HomepageVideoScroller from '../components/common/HomepageVideoScroller';
 import indiaMap from '../assets/images/india-map.webp';
 import { indianStates } from '../data/states';
 import { unionTerritories } from '../data/unionTerritories';
@@ -376,7 +376,7 @@ const Landing = () => {
                         </div>
 
                         <div className="lg:col-span-5 w-full flex flex-col gap-6 mt-10 lg:mt-0 mx-auto px-4 sm:px-0 animate-fade-in">
-                            <HomepageSlideshow />
+                            <HomepageVideoScroller />
                         </div>
                     </div>
                 </div>
