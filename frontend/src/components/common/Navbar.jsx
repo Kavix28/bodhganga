@@ -1,7 +1,7 @@
-﻿import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { FiUser, FiLogOut, FiMenu, FiX, FiChevronDown } from 'react-icons/fi';
-import { BookOpen, MapPin, LayoutDashboard, ShoppingCart, Receipt, Heart, MessageSquare } from 'lucide-react';
+import { BookOpen, MapPin, LayoutDashboard, ShoppingCart, Receipt, Heart, MessageSquare, Compass } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useCart } from '../../context/CartContext';
 import Logo from './Logo';
@@ -194,7 +194,7 @@ const Navbar = () => {
 
                     {/* Mobile hamburger */}
                     <div className="flex md:hidden items-center gap-2">
-                        <Link to="/states-browse"
+                        <Link to="/explore"
                             className="p-2.5 text-white/70 hover:text-gold hover:bg-white/5 rounded-xl border border-transparent hover:border-gold/15 transition-all duration-300"
                             title="Explore Now"
                         >
