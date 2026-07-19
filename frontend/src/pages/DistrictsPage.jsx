@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import toast from "react-hot-toast";
@@ -65,7 +65,6 @@ function ReceiptModal({ receipt, onClose }) {
           </button>
           <button
             onClick={handlePrint}
-            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-xl transition-colors text-sm">
             className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2.5 rounded-xl transition-colors text-sm flex items-center justify-center gap-2">
             <Printer className="w-4 h-4" /> Print Receipt
           </button>

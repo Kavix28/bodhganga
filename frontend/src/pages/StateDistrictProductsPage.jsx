@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../services/api";
+import { useAuth } from "../hooks/useAuth";
+import ChambaMCQFeature from "../components/states/ChambaMCQFeature";
 
 const FILE_ICONS = {
   pdf:  { icon: "📄", color: "text-red-400",    label: "PDF" },
@@ -124,6 +126,12 @@ export default function StateDistrictProductsPage() {
   const [loading, setLoading]       = useState(true);
   const [purchased, setPurchased]   = useState(false);
   const [selected, setSelected]     = useState(null);
+  const { isAuthenticated, openAuthModal } = useAuth();
+  const [mcqFlowState, setMcqFlowState] = useState(null);
+
+  useEffect(() => {
+    setMcqFlowState(null);
+  }, [activeTab]);
 
   useEffect(() => {
     const load = async () => {
@@ -241,43 +249,60 @@ export default function StateDistrictProductsPage() {
               No resources in this section yet.
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {shown.map((r) => {
-                const ext  = (r.fileExtension || "").toLowerCase();
-                const meta = FILE_ICONS[ext] || { icon: "📎", color: "text-gray-400", label: ext.toUpperCase() || "FILE" };
-                const title = r.displayTitle || r.title || r.fileName;
-                return (
-                  <div
-                    key={r.id}
-                    className="bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-amber-500 transition-all duration-200 hover:shadow-lg hover:shadow-amber-500/10 flex flex-col"
-                  >
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="text-2xl">{meta.icon}</span>
-                      <span className={`text-[10px] font-bold uppercase ${meta.color} bg-gray-800 px-2 py-0.5 rounded`}>
-                        {meta.label}
-                      </span>
-                      {(r.free || r.isFree || r.price === 0) && (
-                        <span className="text-[10px] font-bold uppercase text-green-400 bg-green-900/40 border border-green-800 px-2 py-0.5 rounded ml-auto">
-                          Free
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="text-sm font-semibold text-white mb-1 line-clamp-2 flex-1">
-                      {title}
-                    </h3>
-                    {r.fileSize && (
-                      <p className="text-xs text-gray-500 mb-3">{formatSize(r.fileSize)}</p>
-                    )}
-                    <button
-                      onClick={() => setSelected(r)}
-                      className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold py-2 px-4 rounded-lg text-sm transition-colors mt-2"
+            mcqFlowState ? (
+              <ChambaMCQFeature
+                onBack={() => setMcqFlowState(null)}
+              />
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {shown.map((r) => {
+                  const ext  = (r.fileExtension || "").toLowerCase();
+                  const meta = FILE_ICONS[ext] || { icon: "📎", color: "text-gray-400", label: ext.toUpperCase() || "FILE" };
+                  const title = r.displayTitle || r.title || r.fileName;
+                  const isChambaMCQ = (stateSlug === 'himachal-pradesh' && districtSlug === 'chamba') && (r.title === "Sample MCQs Question bank Chamba District" || r.displayTitle === "Sample MCQs Question bank Chamba District" || r.fileName === "Sample MCQs Question bank Chamba District");
+                  return (
+                    <div
+                      key={r.id}
+                      className="bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-amber-500 transition-all duration-200 hover:shadow-lg hover:shadow-amber-500/10 flex flex-col"
                     >
-                      View Resource
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="text-2xl">{meta.icon}</span>
+                        <span className={`text-[10px] font-bold uppercase ${meta.color} bg-gray-800 px-2 py-0.5 rounded`}>
+                          {meta.label}
+                        </span>
+                        {(r.free || r.isFree || r.price === 0) && (
+                          <span className="text-[10px] font-bold uppercase text-green-400 bg-green-900/40 border border-green-800 px-2 py-0.5 rounded ml-auto">
+                            Free
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-sm font-semibold text-white mb-1 line-clamp-2 flex-1">
+                        {title}
+                      </h3>
+                      {r.fileSize && (
+                        <p className="text-xs text-gray-500 mb-3">{formatSize(r.fileSize)}</p>
+                      )}
+                      <button
+                        onClick={() => {
+                          if (isChambaMCQ) {
+                            if (!isAuthenticated) {
+                              openAuthModal('welcome');
+                            } else {
+                              setMcqFlowState('select-level');
+                            }
+                          } else {
+                            setSelected(r);
+                          }
+                        }}
+                        className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold py-2 px-4 rounded-lg text-sm transition-colors mt-2"
+                      >
+                        {isChambaMCQ ? "Practice MCQs" : "View Resource"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )
           )
         )}
       </div>

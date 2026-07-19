@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../services/api";
 import toast from "react-hot-toast";
+import { useAuth } from "../hooks/useAuth";
+import ChambaMCQFeature from "../components/states/ChambaMCQFeature";
 
 const FILE_ICONS = {
   pdf:  { icon: "📄", color: "text-red-400",    label: "PDF" },
@@ -142,6 +144,12 @@ export default function DistrictResourcesPage() {
   const [purchased, setPurchased] = useState(false);
   const [selectedResource, setSelectedResource] = useState(null);
   const activeTab = searchParams.get("tab") || "free";
+  const { isAuthenticated, openAuthModal } = useAuth();
+  const [mcqFlowState, setMcqFlowState] = useState(null);
+
+  useEffect(() => {
+    setMcqFlowState(null);
+  }, [activeTab]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -237,32 +245,49 @@ export default function DistrictResourcesPage() {
           displayed.length === 0 ? (
             <div className="text-gray-500 text-center py-20">No resources in this section.</div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {displayed.map(r => {
-                const ext = (r.fileExtension || "").toLowerCase();
-                const meta = FILE_ICONS[ext] || { icon: "📎", color: "text-gray-400", label: ext.toUpperCase() || "FILE" };
-                return (
-                  <div key={r.id}
-                    className="bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-amber-500 transition-all duration-200">
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="text-2xl">{meta.icon}</span>
-                      <span className={`text-xs font-bold uppercase ${meta.color} bg-gray-800 px-2 py-0.5 rounded`}>
-                        {meta.label}
-                      </span>
+            mcqFlowState ? (
+              <ChambaMCQFeature
+                onBack={() => setMcqFlowState(null)}
+              />
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {displayed.map(r => {
+                  const ext = (r.fileExtension || "").toLowerCase();
+                  const meta = FILE_ICONS[ext] || { icon: "📎", color: "text-gray-400", label: ext.toUpperCase() || "FILE" };
+                  const isChambaMCQ = (stateSlug === 'himachal-pradesh' && districtSlug === 'chamba') && (r.title === "Sample MCQs Question bank Chamba District" || r.displayTitle === "Sample MCQs Question bank Chamba District" || r.fileName === "Sample MCQs Question bank Chamba District");
+                  return (
+                    <div key={r.id}
+                      className="bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-amber-500 transition-all duration-200">
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="text-2xl">{meta.icon}</span>
+                        <span className={`text-xs font-bold uppercase ${meta.color} bg-gray-800 px-2 py-0.5 rounded`}>
+                          {meta.label}
+                        </span>
+                      </div>
+                      <h3 className="text-sm font-semibold text-white mb-1 line-clamp-2">
+                        {r.displayTitle || r.title || r.fileName}
+                      </h3>
+                      {r.fileSize && <p className="text-xs text-gray-500 mb-3">{formatSize(r.fileSize)}</p>}
+                      <button
+                        onClick={() => {
+                          if (isChambaMCQ) {
+                            if (!isAuthenticated) {
+                              openAuthModal('welcome');
+                            } else {
+                              setMcqFlowState('select-level');
+                            }
+                          } else {
+                            setSelectedResource(r);
+                          }
+                        }}
+                        className="block w-full text-center bg-amber-500 hover:bg-amber-400 text-black font-semibold py-2 px-4 rounded-lg transition-colors text-sm mt-3">
+                        {isChambaMCQ ? "Practice MCQs" : "View"}
+                      </button>
                     </div>
-                    <h3 className="text-sm font-semibold text-white mb-1 line-clamp-2">
-                      {r.displayTitle || r.title || r.fileName}
-                    </h3>
-                    {r.fileSize && <p className="text-xs text-gray-500 mb-3">{formatSize(r.fileSize)}</p>}
-                    <button
-                      onClick={() => setSelectedResource(r)}
-                      className="block w-full text-center bg-amber-500 hover:bg-amber-400 text-black font-semibold py-2 px-4 rounded-lg transition-colors text-sm mt-3">
-                      View
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )
           )
         )}
       </div>
