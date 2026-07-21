@@ -41,19 +41,22 @@ export default function StateDistrictsPage() {
         setDistricts(Object.values(districtMap).sort((a, b) => a.districtName.localeCompare(b.districtName)));
         setIsActiveState(products.length > 0 || ['haryana', 'himachal-pradesh', 'jharkhand'].includes(stateSlug));
       } catch (err) {
-        console.warn("Failed to load districts from backend, using dev fallback data:", err);
-        // Fallback mock data for dev review when backend is offline
-        setIsActiveState(['haryana', 'himachal-pradesh', 'jharkhand'].includes(stateSlug));
-        if (stateSlug === 'haryana') {
-          setDistricts([
-            { districtSlug: 'kurukshetra', districtName: 'Kurukshetra', free: 3, paid: 5, total: 8 },
-            { districtSlug: 'panchkula', districtName: 'Panchkula', free: 2, paid: 4, total: 6 },
-            { districtSlug: 'ambala', districtName: 'Ambala', free: 1, paid: 3, total: 4 }
-          ]);
+        console.error("Failed to load districts:", err);
+        if (import.meta.env.DEV) {
+          setIsActiveState(['haryana', 'himachal-pradesh', 'jharkhand'].includes(stateSlug));
+          if (stateSlug === 'haryana') {
+            setDistricts([
+              { districtSlug: 'kurukshetra', districtName: 'Kurukshetra', free: 3, paid: 5, total: 8 },
+              { districtSlug: 'panchkula', districtName: 'Panchkula', free: 2, paid: 4, total: 6 },
+              { districtSlug: 'ambala', districtName: 'Ambala', free: 1, paid: 3, total: 4 }
+            ]);
+          } else {
+            setDistricts([
+              { districtSlug: 'mock-district', districtName: 'Mock District', free: 1, paid: 2, total: 3 }
+            ]);
+          }
         } else {
-          setDistricts([
-            { districtSlug: 'mock-district', districtName: 'Mock District', free: 1, paid: 2, total: 3 }
-          ]);
+          setError("Could not load district data. Please try again.");
         }
       } finally {
         setLoading(false);

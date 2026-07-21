@@ -52,7 +52,7 @@ const Library          = lazy(() => import('./pages/Library'));
 const FreeResources    = lazy(() => import('./pages/FreeResources'));
 const AiCompanionPage  = lazy(() => import('./pages/AiCompanionPage'));
 const Wishlist         = lazy(() => import('./pages/Wishlist'));
-const DevPreviewChambaMCQ = lazy(() => import('./pages/DevPreviewChambaMCQ'));
+
 
 // Old Store Pages (kept so old /store URLs redirect cleanly)
 const StatePage        = lazy(() => import('./pages/StatePage'));
@@ -131,7 +131,6 @@ function App() {
                                             <Route path="/error"          element={<ErrorPage />} />
                                             <Route path="/dev/dashboard"  element={<StudentDashboard />} />
                                             <Route path="/dev/discussion" element={<StudentDiscussion />} />
-                                            <Route path="/dev-preview/chamba-mcqs" element={<DevPreviewChambaMCQ />} />
 
                                             {/* ── Old states/UTs routes — kept for backward compat ── */}
                                                                                         <Route path="/union-territories" element={<ProtectedRoute><UnionTerritories /></ProtectedRoute>} />
