@@ -260,7 +260,7 @@ export default function StateDistrictProductsPage() {
                   const meta = FILE_ICONS[ext] || { icon: "📎", color: "text-gray-400", label: ext.toUpperCase() || "FILE" };
                   const title = r.displayTitle || r.title || r.fileName;
                   const titleNorm = (r.title || r.displayTitle || r.fileName || "").toLowerCase();
-                  const isChambaMCQ = (stateSlug === 'himachal-pradesh' && districtSlug === 'chamba') &&
+                  const isChambaMCQ = (stateSlug === 'himachal-pradesh' && districtSlug.includes('chamba')) &&
                                       (titleNorm.includes("sample mcqs question bank chamba district") ||
                                        titleNorm.includes("chamba district practice mcq"));
                   return (
