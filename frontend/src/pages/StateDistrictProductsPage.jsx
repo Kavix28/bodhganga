@@ -285,22 +285,33 @@ export default function StateDistrictProductsPage() {
                       {r.fileSize && (
                         <p className="text-xs text-gray-500 mb-3">{formatSize(r.fileSize)}</p>
                       )}
-                      <button
-                        onClick={() => {
-                          if (isChambaMCQ) {
-                            if (!isAuthenticated) {
-                              openAuthModal('welcome');
-                            } else {
-                              setMcqFlowState('select-level');
-                            }
-                          } else {
-                            setSelected(r);
-                          }
-                        }}
-                        className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold py-2 px-4 rounded-lg text-sm transition-colors mt-2"
-                      >
-                        {isChambaMCQ ? "Practice MCQs" : "View Resource"}
-                      </button>
+                      {isChambaMCQ ? (
+                        <div className="flex gap-2 mt-2 w-full">
+                          <button
+                            onClick={() => setSelected(r)}
+                            className="flex-1 text-center bg-amber-500 hover:bg-amber-400 text-black font-semibold py-2 px-2.5 rounded-lg transition-colors text-xs md:text-sm">
+                            View PDF
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (!isAuthenticated) {
+                                openAuthModal('welcome');
+                              } else {
+                                  setMcqFlowState('select-level');
+                              }
+                            }}
+                            className="flex-1 text-center bg-amber-500 hover:bg-amber-400 text-black font-semibold py-2 px-2.5 rounded-lg transition-colors text-xs md:text-sm">
+                            Practice MCQs
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setSelected(r)}
+                          className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold py-2 px-4 rounded-lg text-sm transition-colors mt-2"
+                        >
+                          View Resource
+                        </button>
+                      )}
                     </div>
                   );
                 })}

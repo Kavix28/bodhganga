@@ -271,21 +271,32 @@ export default function DistrictResourcesPage() {
                         {r.displayTitle || r.title || r.fileName}
                       </h3>
                       {r.fileSize && <p className="text-xs text-gray-500 mb-3">{formatSize(r.fileSize)}</p>}
-                      <button
-                        onClick={() => {
-                          if (isChambaMCQ) {
-                            if (!isAuthenticated) {
-                              openAuthModal('welcome');
-                            } else {
-                              setMcqFlowState('select-level');
-                            }
-                          } else {
-                            setSelectedResource(r);
-                          }
-                        }}
-                        className="block w-full text-center bg-amber-500 hover:bg-amber-400 text-black font-semibold py-2 px-4 rounded-lg transition-colors text-sm mt-3">
-                        {isChambaMCQ ? "Practice MCQs" : "View"}
-                      </button>
+                      {isChambaMCQ ? (
+                        <div className="flex gap-2 mt-3 w-full">
+                          <button
+                            onClick={() => setSelectedResource(r)}
+                            className="flex-1 text-center bg-amber-500 hover:bg-amber-400 text-black font-semibold py-2 px-2.5 rounded-lg transition-colors text-xs md:text-sm">
+                            View PDF
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (!isAuthenticated) {
+                                openAuthModal('welcome');
+                              } else {
+                                  setMcqFlowState('select-level');
+                              }
+                            }}
+                            className="flex-1 text-center bg-amber-500 hover:bg-amber-400 text-black font-semibold py-2 px-2.5 rounded-lg transition-colors text-xs md:text-sm">
+                            Practice MCQs
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setSelectedResource(r)}
+                          className="block w-full text-center bg-amber-500 hover:bg-amber-400 text-black font-semibold py-2 px-4 rounded-lg transition-colors text-sm mt-3">
+                          View
+                        </button>
+                      )}
                     </div>
                   );
                 })}
