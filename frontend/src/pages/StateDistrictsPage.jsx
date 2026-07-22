@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
+import StateSectionTabs from "../components/states/StateSectionTabs";
 
 import StateNavbar from "../components/states/StateNavbar";
 
@@ -12,6 +13,7 @@ export default function StateDistrictsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [error, setError] = useState(null);
+  const [isActiveState, setIsActiveState] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -39,9 +41,25 @@ export default function StateDistrictsPage() {
         });
 
         setDistricts(Object.values(districtMap).sort((a, b) => a.districtName.localeCompare(b.districtName)));
+        setIsActiveState(products.length > 0 || ['haryana', 'himachal-pradesh', 'jharkhand'].includes(stateSlug));
       } catch (err) {
         console.error("Failed to load districts:", err);
-        setError("Could not load district data. Please try again.");
+        if (import.meta.env.DEV) {
+          setIsActiveState(['haryana', 'himachal-pradesh', 'jharkhand'].includes(stateSlug));
+          if (stateSlug === 'haryana') {
+            setDistricts([
+              { districtSlug: 'kurukshetra', districtName: 'Kurukshetra', free: 3, paid: 5, total: 8 },
+              { districtSlug: 'panchkula', districtName: 'Panchkula', free: 2, paid: 4, total: 6 },
+              { districtSlug: 'ambala', districtName: 'Ambala', free: 1, paid: 3, total: 4 }
+            ]);
+          } else {
+            setDistricts([
+              { districtSlug: 'mock-district', districtName: 'Mock District', free: 1, paid: 2, total: 3 }
+            ]);
+          }
+        } else {
+          setError("Could not load district data. Please try again.");
+        }
       } finally {
         setLoading(false);
       }
@@ -105,13 +123,20 @@ export default function StateDistrictsPage() {
           </div>
         ) : (
           <>
+            {/* Tabs Bar */}
+            {isActiveState && (
+              <div className="mb-8">
+                <StateSectionTabs stateSlug={stateSlug} activeSection="" />
+              </div>
+            )}
+
             {/* Search */}
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search districts…"
-              className="w-full max-w-sm bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-amber-500 mb-8 transition-colors"
+              className="w-full max-w-sm bg-gray-900 border border-gray-700 rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-500 mb-8 focus:outline-none focus:border-amber-500 transition-colors"
             />
 
             {filtered.length === 0 ? (

@@ -53,6 +53,7 @@ const FreeResources    = lazy(() => import('./pages/FreeResources'));
 const AiCompanionPage  = lazy(() => import('./pages/AiCompanionPage'));
 const Wishlist         = lazy(() => import('./pages/Wishlist'));
 
+
 // Old Store Pages (kept so old /store URLs redirect cleanly)
 const StatePage        = lazy(() => import('./pages/StatePage'));
 const DistrictPage     = lazy(() => import('./pages/DistrictPage'));
@@ -68,8 +69,7 @@ const ExplorePage = lazy(() => import('./pages/ExplorePage'));
 const AllStatesPage              = lazy(() => import('./pages/AllStatesPage'));
 const StateDistrictsPage         = lazy(() => import('./pages/StateDistrictsPage'));
 const StateDistrictProductsPage  = lazy(() => import('./pages/StateDistrictProductsPage'));
-//changes
-const StateSectionPage = lazy(() => import('./pages/StateSectionPage'));
+const StateSectionPage           = lazy(() => import('./pages/StateSectionPage'));
 
 // Admin Pages
 const AdminLogin          = lazy(() => import('./pages/admin/AdminLogin'));
@@ -155,41 +155,21 @@ function App() {
                                             <Route path="/explore" element={<ExplorePage />} />
                                             <Route path="/state" element={<AllStatesPage />} />
 
+                                            <Route path="/state/:stateSlug/history" element={<StateSectionPage />} />
+                                            <Route path="/state/:stateSlug/geography" element={<StateSectionPage />} />
+                                            <Route path="/state/:stateSlug/heritage-monuments" element={<StateSectionPage />} />
+                                            <Route path="/state/:stateSlug/art-culture" element={<StateSectionPage />} />
+                                            <Route path="/state/:stateSlug/heritage-sites-monuments" element={<StateSectionPage />} />
+                                            <Route path="/state/:stateSlug/monuments" element={<StateSectionPage />} />
+                                            <Route path="/state/:stateSlug/art-and-culture" element={<StateSectionPage />} />
+                                            
+                                            <Route path="/state/:stateSlug/districts" element={<StateDistrictsPage />} />
+                                            <Route path="/state/:stateSlug/district/:districtSlug/products" element={<StateDistrictProductsPage />} />
 
-                                            <Route
-                                            path="/state/:stateSlug/history"
-                                            element={<StateSectionPage />}
-                                            />
-
-                                            <Route
-                                            path="/state/:stateSlug/heritage-sites-monuments"
-                                            element={<StateSectionPage />}
-                                            />
-
-                                            <Route
-                                            path="/state/:stateSlug/monuments"
-                                            element={<StateSectionPage />}
-                                            />
-
-                                            <Route
-                                            path="/state/:stateSlug/geography"
-                                            element={<StateSectionPage />}
-                                            />
-
-                                            <Route
-                                            path="/state/:stateSlug/art-and-culture"
-                                            element={<StateSectionPage />}
-                                            />
-
-                                            <Route
-                                            path="/state/:stateSlug/districts"
-                                            element={<StateDistrictsPage />}
-                                            />
-
-                                            <Route
-                                            path="/state/:stateSlug/district/:districtSlug/products"
-                                            element={<StateDistrictProductsPage />}
-                                            />
+                                            <Route path="/states/:stateSlug/history" element={<StateSectionPage />} />
+                                            <Route path="/states/:stateSlug/heritage-monuments" element={<StateSectionPage />} />
+                                            <Route path="/states/:stateSlug/geography" element={<StateSectionPage />} />
+                                            <Route path="/states/:stateSlug/art-culture" element={<StateSectionPage />} />
 
                                             {/* ── Protected User Routes ─────────────────────── */}
                                             <Route path="/question-bank"  element={<ProtectedRoute><QuestionBank /></ProtectedRoute>} />
