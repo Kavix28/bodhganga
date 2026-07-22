@@ -1,19 +1,21 @@
-﻿import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { useSEO } from '../hooks/useSEO';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { 
     ArrowRight, BookOpen, HelpCircle, CheckCircle, MapPin, 
     Award, Star, ChevronDown, Check, Globe, TrendingUp, Play, 
-    Sparkles, ShieldCheck, Flame, Users, BookOpenCheck 
+    Sparkles, ShieldCheck, Flame, Users, BookOpenCheck, Compass 
 } from 'lucide-react';
 import Logo from '../components/common/Logo';
-import HomepageSlideshow from '../components/common/HomepageSlideshow';
+import HomepageVideoScroller from '../components/common/HomepageVideoScroller';
 import indiaMap from '../assets/images/india-map.webp';
 import { indianStates } from '../data/states';
 import { unionTerritories } from '../data/unionTerritories';
 import { API_BASE_URL } from '../utils/constants';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+
 
 const Counter = ({ target, suffix = '', duration = 1500 }) => {
     const [count, setCount] = useState(0);
@@ -51,6 +53,12 @@ const Landing = () => {
     const { isAuthenticated, openAuthModal } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+
+    useSEO({
+        title: "Bodhganga Academy",
+        description: "Bodhganga Academy is India's premium UPSC and State PSC preparation platform offering structured courses, district-wise learning, curated notes, exam preparation resources, and educational content for aspirants across India.",
+        keywords: "Bodhganga Academy, UPSC, State PSC, Civil Services"
+    });
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -284,6 +292,16 @@ const Landing = () => {
                         
                         <div className="lg:col-span-7 text-left space-y-8 animate-fade-in">
                             <div className="space-y-4">
+                                {/* Mobile-only Explore Now Button */}
+                                <div className="lg:hidden w-full flex justify-center">
+                                    <Link 
+                                        to="/state" 
+                                        className="group inline-flex items-center justify-center gap-2.5 px-6 py-3.5 bg-gradient-to-r from-gold via-amber-400 to-gold-dark text-emerald-dark font-black text-xs sm:text-sm uppercase tracking-widest rounded-xl shadow-[0_0_15px_rgba(212,175,55,0.25)] hover:shadow-[0_0_25px_rgba(212,175,55,0.55)] hover:-translate-y-0.5 active:scale-95 transition-all duration-300 border border-gold/30 backdrop-blur-md whitespace-nowrap"
+                                    >
+                                        <Compass className="w-4 h-4 text-emerald-dark group-hover:rotate-45 transition-transform duration-500 ease-out" />
+                                        <span>Explore Now</span>
+                                    </Link>
+                                </div>
                                 <div className="inline-block">
                                     <div className="inline-flex items-center gap-3 px-7 py-3.5 md:px-9 md:py-4.5 rounded-full bg-emerald-950/40 border border-gold/35 backdrop-blur-md shadow-[0_0_15px_rgba(201,169,97,0.1)] shimmer-badge">
                                         <span className="text-lg md:text-xl">🇮🇳</span>
@@ -358,7 +376,17 @@ const Landing = () => {
                         </div>
 
                         <div className="lg:col-span-5 w-full flex flex-col gap-6 mt-10 lg:mt-0 mx-auto px-4 sm:px-0 animate-fade-in">
-                            <HomepageSlideshow />
+                            {/* Desktop-only Explore Now Button */}
+                            <div className="hidden lg:block w-full max-w-[340px] sm:max-w-[360px] lg:w-[400px] mx-auto text-left">
+                                <Link
+                                    to="/state"
+                                    className="group inline-flex items-center justify-center gap-2.5 px-6 py-3.5 bg-gradient-to-r from-gold via-amber-400 to-gold-dark text-emerald-dark font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_0_15px_rgba(212,175,55,0.25)] hover:shadow-[0_0_25px_rgba(212,175,55,0.55)] hover:-translate-y-0.5 active:scale-95 transition-all duration-300 border border-gold/30 backdrop-blur-md whitespace-nowrap"
+                                >
+                                    <Compass className="w-4 h-4 text-emerald-dark group-hover:rotate-45 transition-transform duration-500 ease-out" />
+                                    <span>Explore Now</span>
+                                </Link>
+                            </div>
+                            <HomepageVideoScroller />
                         </div>
                     </div>
                 </div>

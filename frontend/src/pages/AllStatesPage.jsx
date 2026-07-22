@@ -1,6 +1,9 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
+//change
+import StateNavbar from "../components/states/StateNavbar";
+
 import imgAndhra from "../assets/states/andhra-pradesh-image.png";
 import imgArunachal from "../assets/states/arunachal-pradesh-image.png";
 import imgAssam from "../assets/states/assam-image.png";
@@ -138,7 +141,7 @@ function getGradient(name) {
 
 const REGIONS_FILTER = ["All", "North", "South", "East", "West", "Central", "North-East"];
 const TYPE_FILTERS = [
-  { id: "all", label: "All Regions (35)" },
+  { id: "all", label: "All Regions (36)" },
   { id: "STATE", label: "28 States" },
   { id: "UT", label: "8 UTs" },
 ];
@@ -203,8 +206,21 @@ function StateCard({ region, isActive, productCount, onClick }) {
 export default function AllStatesPage() {
   const navigate = useNavigate();
   const [activeSlugSet, setActiveSlugSet] = useState(new Set());
+
+  //change
+//   const [activeSlugSet, setActiveSlugSet] = useState(
+//   new Set([
+//     "haryana",
+//     "himachal-pradesh",
+//     "jharkhand",
+//     "karnataka",
+//   ])
+// );
   const [productCounts, setProductCounts] = useState({});
+
+  //change
   const [loading, setLoading] = useState(true);
+
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [regionFilter, setRegionFilter] = useState("All");
@@ -228,7 +244,9 @@ export default function AllStatesPage() {
         setProductCounts(counts);
       } catch (err) {
         console.error("Failed to load active states:", err);
-      } finally {
+      }
+      
+      finally {
         setLoading(false);
       }
     };

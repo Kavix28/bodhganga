@@ -1,5 +1,4 @@
 import { Component } from 'react';
-import { Link } from 'react-router-dom';
 
 class ErrorBoundary extends Component {
     constructor(props) {
@@ -34,9 +33,9 @@ class ErrorBoundary extends Component {
                             >
                                 Try Again
                             </button>
-                            <Link to="/" className="btn-outline">
+                            <a href="/" className="btn-outline">
                                 Go Home
-                            </Link>
+                            </a>
                         </div>
                         {import.meta.env.DEV && this.state.error && (
                             <pre className="mt-6 text-left text-xs bg-red-50 border border-red-200 rounded-lg p-4 overflow-auto text-red-700">

@@ -23,9 +23,10 @@ const SECTION_ICONS = {
 };
 
 export default function StateSectionPage() {
-  const { stateSlug, section } = useParams();
+  const { stateSlug } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const section = location.pathname.split("/").pop();
   const { isAuthenticated } = useAuth();
 
   // Gate content access on mount

@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import StateSectionTabs from "../components/states/StateSectionTabs";
 
+import StateNavbar from "../components/states/StateNavbar";
+
 export default function StateDistrictsPage() {
   const { stateSlug } = useParams();
   const navigate = useNavigate();
@@ -103,7 +105,11 @@ export default function StateDistrictsPage() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      {/* <div className="max-w-6xl mx-auto px-4 py-8"> */}
+        <div className="max-w-6xl mx-auto px-4 py-8">
+
+        <StateNavbar />
+
         {error ? (
           <div className="text-red-400 text-center py-20 space-y-3">
             <div className="text-4xl">⚠️</div>
