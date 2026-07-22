@@ -254,7 +254,10 @@ export default function DistrictResourcesPage() {
                 {displayed.map(r => {
                   const ext = (r.fileExtension || "").toLowerCase();
                   const meta = FILE_ICONS[ext] || { icon: "📎", color: "text-gray-400", label: ext.toUpperCase() || "FILE" };
-                  const isChambaMCQ = (stateSlug === 'himachal-pradesh' && districtSlug === 'chamba') && (r.title === "Sample MCQs Question bank Chamba District" || r.displayTitle === "Sample MCQs Question bank Chamba District" || r.fileName === "Sample MCQs Question bank Chamba District");
+                  const titleNorm = (r.title || r.displayTitle || r.fileName || "").toLowerCase();
+                  const isChambaMCQ = (stateSlug === 'himachal-pradesh' && districtSlug.includes('chamba')) &&
+                                      (titleNorm.includes("sample mcqs question bank chamba district") ||
+                                       titleNorm.includes("chamba district practice mcq"));
                   return (
                     <div key={r.id}
                       className="bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-amber-500 transition-all duration-200">
