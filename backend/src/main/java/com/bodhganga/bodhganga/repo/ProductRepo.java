@@ -11,6 +11,7 @@ public interface ProductRepo extends MongoRepository<Product, String> {
     // Published product queries (used by frontend APIs)
     List<Product> findByIsPublishedTrue();
     List<Product> findByStateSlugAndIsPublishedTrue(String stateSlug);
+    List<Product> findByStateSlugAndCategoryAndIsPublishedTrue(String stateSlug, String category);
     List<Product> findByStateSlugAndDistrictSlugAndIsPublishedTrue(String stateSlug, String districtSlug);
     List<Product> findByDistrictSlugAndIsPublishedTrue(String districtSlug);
     List<Product> findByIsFreeTrueAndIsPublishedTrue();

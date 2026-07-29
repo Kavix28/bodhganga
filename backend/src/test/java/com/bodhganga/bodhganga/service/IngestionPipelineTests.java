@@ -213,6 +213,42 @@ public class IngestionPipelineTests {
     }
 
     @Test
+    void testCategoryFolderMappingAndVariants() throws Exception {
+        File stateFolder = new File();
+        stateFolder.setId("state-folder-id");
+        stateFolder.setName("State 1- Andhra Pradesh");
+        stateFolder.setMimeType("application/vnd.google-apps.folder");
+        when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(stateFolder));
+
+        File categoryFolder = new File();
+        categoryFolder.setId("category-folder-id");
+        categoryFolder.setName("Monuments");
+        categoryFolder.setMimeType("application/vnd.google-apps.folder");
+        when(googleDriveSyncService.listFilesInFolder("state-folder-id")).thenReturn(List.of(categoryFolder));
+
+        File pdfFile = new File();
+        pdfFile.setId("pdf-file-id");
+        pdfFile.setName("monuments_info.pdf");
+        pdfFile.setMimeType("application/pdf");
+        pdfFile.setSize(200L);
+        when(googleDriveSyncService.listFilesInFolder("category-folder-id")).thenReturn(List.of(pdfFile));
+
+        when(googleDriveSyncService.downloadFile("pdf-file-id")).thenReturn(new ByteArrayInputStream("data".getBytes()));
+        String computedS3Key = "andhra-pradesh/heritage-sites-monuments/monuments_info.pdf";
+        when(s3Service.uploadFileWithKey(any(), eq(200L), eq(computedS3Key), eq("application/pdf"))).thenReturn(computedS3Key);
+        when(s3Service.getS3Url(computedS3Key)).thenReturn("http://s3/" + computedS3Key);
+
+        pipelineTask.syncDriveToS3(true);
+
+        List<Product> inserted = productRepo.findAll();
+        assertEquals(1, inserted.size());
+        Product p = inserted.get(0);
+        assertEquals("heritage-sites-monuments", p.getCategory());
+        assertEquals("andhra-pradesh", p.getStateSlug());
+        assertEquals("general", p.getDistrictSlug());
+    }
+
+    @Test
     void testArchiveSafetyOnFailure() throws Exception {
         File stateFolder = new File();
         stateFolder.setId("state-folder-id");

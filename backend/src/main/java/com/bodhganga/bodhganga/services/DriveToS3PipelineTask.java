@@ -238,13 +238,20 @@ public class DriveToS3PipelineTask {
         String tier = isFree ? "free" : "paid";
 
         // Skip "general" entries (misconfigured paths)
-        if (stateSlug.equals("general") || (districtSlug.equals("general") && categorySlug.equals("general"))) {
-            log.warn("[INGESTION] Skipping file with general state/district/category: {}", fileName);
-            filesSkipped.incrementAndGet();
-            return;
+        // Except when we are dealing with Free/Paid Resources directly (which don't have a state)
+        boolean isGenericFree = isFree && stateSlug.equals("general") && !categorySlug.equals("general");
+        if (!isGenericFree) {
+            if (stateSlug.equals("general") || (districtSlug.equals("general") && categorySlug.equals("general"))) {
+                log.warn("[INGESTION] Skipping file with general state/district/category: {}", fileName);
+                filesSkipped.incrementAndGet();
+                return;
+            }
         }
 
-        StringBuilder s3KeyBuilder = new StringBuilder(stateSlug);
+        // For generic free resources, we use "free-resources" as the key prefix/state slug in S3 key
+        String s3StatePrefix = (isFree && stateSlug.equals("general")) ? "free-resources" : stateSlug;
+
+        StringBuilder s3KeyBuilder = new StringBuilder(s3StatePrefix);
         if (!categorySlug.equals("general")) {
             s3KeyBuilder.append("/").append(categorySlug);
         }
@@ -255,7 +262,9 @@ public class DriveToS3PipelineTask {
         // Only append the free/paid tier to the S3 URL if a tier folder was actually used,
         // OR if this is a generic district (to preserve legacy S3 link structures).
         if (hasTierFolder || categorySlug.equals("general")) {
-            s3KeyBuilder.append("/").append(tier);
+            if (!isGenericFree) {
+                s3KeyBuilder.append("/").append(tier);
+            }
         }
         s3KeyBuilder.append("/").append(fileName);
         
@@ -374,12 +383,63 @@ public class DriveToS3PipelineTask {
         return cleaned;
     }
 
-    private static final java.util.List<String> KNOWN_CATEGORIES = java.util.Arrays.asList(
-        "history", "heritage-sites-monuments", "geography", "art-culture", "monuments"
+    private static final java.util.Map<String, String> CATEGORY_MAP = java.util.Map.of(
+        "history", "history",
+        "geography", "geography",
+        "heritage-sites-monuments", "heritage-sites-monuments",
+        "heritage-sites-and-monuments", "heritage-sites-monuments",
+        "monuments", "heritage-sites-monuments",
+        "heritage", "heritage-sites-monuments",
+        "art-culture", "art-and-culture",
+        "art-and-culture", "art-and-culture"
     );
 
     private FolderMetadata extractMetadata(List<String> folderPath) {
         List<String> normalizedList = new java.util.ArrayList<>();
+        boolean isGenericFree = false;
+        String freeCategory = null;
+
+        if (folderPath != null) {
+            boolean hasFreeResources = false;
+            int freeIndex = -1;
+            for (int i = 0; i < folderPath.size(); i++) {
+                if (isFreeFolder(folderPath.get(i))) {
+                    hasFreeResources = true;
+                    freeIndex = i;
+                    break;
+                }
+            }
+
+            boolean hasKnownState = false;
+            java.util.List<String> knownStatesList = java.util.Arrays.asList(
+                "andhra-pradesh", "arunachal-pradesh", "assam", "bihar", "chhattisgarh", "goa",
+                "gujarat", "haryana", "himachal-pradesh", "jharkhand", "karnataka", "kerala",
+                "madhya-pradesh", "maharashtra", "manipur", "meghalaya", "mizoram", "nagaland",
+                "odisha", "punjab", "rajasthan", "sikkim", "tamil-nadu", "telangana", "tripura",
+                "uttar-pradesh", "uttarakhand", "west-bengal", "delhi", "jammu-and-kashmir",
+                "ladakh", "puducherry", "chandigarh", "lakshadweep", "andaman-and-nicobar-islands"
+            );
+            for (String f : folderPath) {
+                if (knownStatesList.contains(Product.generateSlug(normalizeName(f)))) {
+                    hasKnownState = true;
+                    break;
+                }
+            }
+
+            if (hasFreeResources && !hasKnownState) {
+                isGenericFree = true;
+                if (folderPath.size() > freeIndex + 1) {
+                    freeCategory = normalizeName(folderPath.get(freeIndex + 1));
+                } else {
+                    freeCategory = "Free Resources";
+                }
+            }
+        }
+
+        if (isGenericFree) {
+            return new FolderMetadata("general", "general", freeCategory);
+        }
+
         if (folderPath != null) {
             for (String f : folderPath) {
                 // Skip free/paid tier folders from state/district extraction
@@ -413,8 +473,8 @@ public class DriveToS3PipelineTask {
         for (int i = 0; i < normalizedList.size(); i++) {
             if (i == stateIndex) continue;
             String slug = Product.generateSlug(normalizedList.get(i));
-            if (KNOWN_CATEGORIES.contains(slug)) {
-                category = normalizedList.get(i);
+            if (CATEGORY_MAP.containsKey(slug)) {
+                category = CATEGORY_MAP.get(slug);
                 categoryIndex = i;
                 break;
             }

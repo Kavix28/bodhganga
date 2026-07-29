@@ -91,12 +91,7 @@ npm run dev
 
 Frontend starts on **http://localhost:5173**
 
-### 4. Default Admin Credentials
 
-```
-Email:    admin@bodhganga.in
-Password: Admin@123
-```
 
 > ⚠️ Change these immediately in production.
 
@@ -243,11 +238,7 @@ bodhganga/
 4. Output directory: `dist`
 5. Add env var: `VITE_API_BASE_URL=https://api.bodhganga.in/api`
 
-### Railway (Backend)
-1. Connect GitHub repo
-2. Set root directory: `backend`
-3. Add all env vars from `backend/.env.example`
-4. Railway auto-detects Maven and builds
+
 
 ### MongoDB Atlas
 1. Create free cluster at [mongodb.com/atlas](https://mongodb.com/atlas)

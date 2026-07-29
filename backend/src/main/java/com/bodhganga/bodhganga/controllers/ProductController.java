@@ -44,6 +44,18 @@ public class ProductController {
     }
 
     /**
+     * Public API to get products by state slug and category
+     */
+    @GetMapping("/state/{stateSlug}/category/{category}")
+    public ResponseEntity<ApiResponseDTO> getProductsByStateAndCategory(@PathVariable String stateSlug, @PathVariable String category) {
+        List<Product> products = productRepo.findByStateSlugAndCategoryAndIsPublishedTrue(stateSlug, category);
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+                .success(true)
+                .data(products)
+                .build());
+    }
+
+    /**
      * Public API to get products by state slug and district slug
      */
     @GetMapping("/state/{stateSlug}/district/{districtSlug}")
