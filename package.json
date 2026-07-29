@@ -1,6 +1,7 @@
 {
   "name": "bodhganga",
   "version": "1.0.0",
+  "description": "BodhGanga Academy - A scalable, real-world educational SaaS platform developed and maintained by SDE Intern.",
   "scripts": {
     "build": "npm --prefix frontend run build",
     "install-frontend": "npm --prefix frontend install",

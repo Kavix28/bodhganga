@@ -122,7 +122,7 @@ const Navbar = () => {
                             </>
                         )}
                     </div>
-                    <Link to="/state" className="hidden md:flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-gold to-gold-dark text-emerald-dark">Explore Now</Link>
+                    <Link to="/state" className="hidden md:flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-gold to-gold-dark text-emerald-dark">Learn More</Link>
 
                     {/* Right Actions */}
                     <div className="hidden md:flex items-center gap-4">
@@ -141,7 +141,7 @@ const Navbar = () => {
                                     </div>
                                     <div className="text-left">
                                         <div className="text-xs font-bold text-white leading-tight">{user?.name?.split(' ')[0] || 'Scholar'}</div>
-                                        <div className="text-[10px] text-gold/60 font-semibold tracking-wider uppercase mt-0.5">{user?.role === 'ADMIN' ? 'Admin' : 'Student'}</div>
+                                        <div className="text-[10px] text-gold/60 font-semibold tracking-wider uppercase mt-0.5">{user?.role === 'ADMIN' ? 'Admin' : (user?.role === 'SDE_INTERN' || user?.role === 'INTERN') ? 'SDE Intern' : 'Student'}</div>
                                     </div>
                                     <FiChevronDown className={`w-4 h-4 text-gold/60 transition-transform duration-300 ${userMenuOpen ? 'rotate-180' : ''}`} />
                                 </button>
@@ -243,7 +243,7 @@ const Navbar = () => {
                         <div className="border-t border-gold/10 pt-4 mt-4">
                             {isAuthenticated ? (
                                 <>
-                                    <div className="px-4 py-2 text-[10px] text-gold/60 font-bold uppercase tracking-widest">{user?.name} · {user?.role}</div>
+                                    <div className="px-4 py-2 text-[10px] text-gold/60 font-bold uppercase tracking-widest">{user?.name} · {user?.role === 'ADMIN' ? 'Admin' : (user?.role === 'SDE_INTERN' || user?.role === 'INTERN') ? 'SDE Intern' : 'Student'}</div>
                                     <Link to="/profile" onClick={() => setMobileOpen(false)} className="flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white/80 hover:bg-white/5 border border-transparent">
                                         <FiUser className="w-4 h-4" /> My Profile
                                     </Link>

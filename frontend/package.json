@@ -3,6 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "description": "BodhGanga Academy frontend application - developed and maintained by SDE Intern.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

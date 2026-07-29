@@ -129,13 +129,15 @@ const Profile = () => {
                                     </div>
                                     <div className="text-left space-y-1">
                                         <h2 className="text-xl font-bold text-emerald-dark font-serif tracking-tight">{user?.name || 'Scholar'}</h2>
-                                        <span className={`inline-block text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full ${
-                                            user?.role === 'ADMIN'
-                                                ? 'bg-red-500/10 text-red-500 border border-red-500/20'
-                                                : 'bg-emerald/10 text-emerald border border-emerald/20'
-                                        }`}>
-                                            {user?.role || 'USER'}
-                                        </span>
+                                         <span className={`inline-block text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full ${
+                                             user?.role === 'ADMIN'
+                                                 ? 'bg-red-500/10 text-red-500 border border-red-500/20'
+                                                 : (user?.role === 'SDE_INTERN' || user?.role === 'INTERN')
+                                                 ? 'bg-gold/10 text-gold-dark border border-gold/20'
+                                                 : 'bg-emerald/10 text-emerald border border-emerald/20'
+                                         }`}>
+                                             {user?.role === 'SDE_INTERN' ? 'SDE Intern' : user?.role === 'INTERN' ? 'Intern' : (user?.role || 'USER')}
+                                         </span>
                                     </div>
                                 </div>
 
