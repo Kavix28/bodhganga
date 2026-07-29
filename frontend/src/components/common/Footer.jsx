@@ -7,9 +7,9 @@ const Footer = () => {
 
     const links = {
         Platform: [
-            { label: 'States & UTs',    to: '/states' },
-            { label: 'Courses',         to: '/courses' },
-            { label: 'Question Bank',   to: '/question-bank' },
+            { label: 'States & UTs',          to: '/state' },
+            { label: 'Test Your Knowledge', to: '/test-series' },
+            { label: 'Question Bank',         to: '/question-bank' },
             { label: 'Subjects',        to: '/subjects' },
             { label: 'Digital Store',   to: '/store' },
             { label: 'Blog',            to: '/blog' },

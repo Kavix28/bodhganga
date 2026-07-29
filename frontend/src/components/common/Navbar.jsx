@@ -1,14 +1,14 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { FiUser, FiLogOut, FiMenu, FiX, FiChevronDown } from 'react-icons/fi';
-import { BookOpen, MapPin, LayoutDashboard, ShoppingCart, Receipt, Heart, MessageSquare, Compass } from 'lucide-react';
+import { BookOpen, MapPin, LayoutDashboard, ShoppingCart, Receipt, Heart, MessageSquare, Compass, Award } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useCart } from '../../context/CartContext';
 import Logo from './Logo';
 
 const navLinks = [
     { path: '/state', label: 'States & UTs', icon: MapPin, public: true },
-    { path: '/courses', label: 'Courses', icon: BookOpen, public: true },
+    { path: '/test-series', label: 'Test Your Knowledge', icon: Award, public: true },
     { path: '/blog', label: 'Blog', icon: null, public: true },
 ];
 
@@ -58,7 +58,7 @@ const Navbar = () => {
     };
 
     const handleLinkClick = (e, path) => {
-        const protectedRoutes = ['/free-resources', '/courses', '/cart', '/library', '/dashboard', '/student/dashboard', '/student/discussion', '/profile', '/orders'];
+        const protectedRoutes = ['/free-resources', '/cart', '/library', '/dashboard', '/student/dashboard', '/student/discussion', '/profile', '/orders'];
         if (protectedRoutes.some(r => path.startsWith(r)) && !isAuthenticated) {
             e.preventDefault();
             openAuthModal('welcome');
@@ -122,7 +122,7 @@ const Navbar = () => {
                             </>
                         )}
                     </div>
-                    <Link to="/state" className="hidden md:flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-gold to-gold-dark text-emerald-dark">Learn More</Link>
+                    <Link to="/state" className="hidden md:flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-gold to-gold-dark text-emerald-dark">Explore Now</Link>
 
                     {/* Right Actions */}
                     <div className="hidden md:flex items-center gap-4">

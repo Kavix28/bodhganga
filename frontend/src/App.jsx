@@ -71,6 +71,13 @@ const StateDistrictsPage         = lazy(() => import('./pages/StateDistrictsPage
 const StateDistrictProductsPage  = lazy(() => import('./pages/StateDistrictProductsPage'));
 const StateSectionPage           = lazy(() => import('./pages/StateSectionPage'));
 
+// Test Your Knowledge Series Pages
+const TestYourKnowledge = lazy(() => import('./pages/TestYourKnowledge'));
+const StateTestZone      = lazy(() => import('./pages/StateTestZone'));
+const DistrictTestPage   = lazy(() => import('./pages/DistrictTestPage'));
+const QuizEngine         = lazy(() => import('./pages/QuizEngine'));
+const TestResult         = lazy(() => import('./pages/TestResult'));
+
 // Admin Pages
 const AdminLogin          = lazy(() => import('./pages/admin/AdminLogin'));
 const AdminLayout         = lazy(() => import('./layouts/AdminLayout'));
@@ -165,6 +172,13 @@ function App() {
                                             
                                             <Route path="/state/:stateSlug/districts" element={<StateDistrictsPage />} />
                                             <Route path="/state/:stateSlug/district/:districtSlug/products" element={<StateDistrictProductsPage />} />
+
+                                            {/* ── Test Your Knowledge Routes ─────────────────── */}
+                                            <Route path="/test-series" element={<TestYourKnowledge />} />
+                                            <Route path="/test-series/:stateId" element={<StateTestZone />} />
+                                            <Route path="/test-series/:stateId/:districtId" element={<DistrictTestPage />} />
+                                            <Route path="/test-series/:stateId/:districtId/quiz/:testType" element={<QuizEngine />} />
+                                            <Route path="/test-series/:stateId/:districtId/result" element={<TestResult />} />
 
                                             <Route path="/states/:stateSlug/history" element={<StateSectionPage />} />
                                             <Route path="/states/:stateSlug/heritage-monuments" element={<StateSectionPage />} />
