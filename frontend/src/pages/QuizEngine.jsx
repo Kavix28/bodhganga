@@ -1,13 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { sampleQuestionsData } from '../data/testSeriesData';
+import { bengaluruQuestions } from '../data/bengaluruQuestions';
+import { ernakulamQuestions } from '../data/ernakulamQuestions';
 import { Clock, CheckCircle, AlertCircle, ArrowLeft, ArrowRight, Bookmark, ShieldCheck, Zap } from 'lucide-react';
+
+// District-specific question banks — add new imports and entries here as more districts get questions
+const districtQuestionBanks = {
+    'bengaluru': bengaluruQuestions,
+    'ernakulam': ernakulamQuestions,
+};
 
 const QuizEngine = () => {
     const { stateId, districtId, testType } = useParams(); // 'easy', 'advanced', 'master'
     const navigate = useNavigate();
 
-    const questions = sampleQuestionsData[testType] || sampleQuestionsData.easy;
+    // Use district-specific questions if available, otherwise fall back to sample data
+    const questionBank = districtQuestionBanks[districtId] || sampleQuestionsData;
+    const questions = questionBank[testType] || questionBank.easy || sampleQuestionsData.easy;
 
     const [currentIndex, setCurrentIndex] = useState(0);
     const [selectedAnswers, setSelectedAnswers] = useState({});
