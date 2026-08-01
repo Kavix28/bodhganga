@@ -26,13 +26,10 @@ const Login            = lazy(() => import('./pages/Login'));
 const ForgotPassword   = lazy(() => import('./pages/ForgotPassword'));
 const Dashboard        = lazy(() => import('./pages/Dashboard'));
 const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
-const StudentDiscussion = lazy(() => import('./pages/StudentDiscussion'));
 const Courses          = lazy(() => import('./pages/Courses'));
 const CourseDetail     = lazy(() => import('./pages/CourseDetail'));
 const CoursePlayer     = lazy(() => import('./pages/CoursePlayer'));
 const Profile          = lazy(() => import('./pages/Profile'));
-const Blog             = lazy(() => import('./pages/Blog'));
-const BlogPost         = lazy(() => import('./pages/BlogPost'));
 const States           = lazy(() => import('./pages/States'));
 const UnionTerritories = lazy(() => import('./pages/UnionTerritories'));
 const StateDetail      = lazy(() => import('./pages/StateDetail'));
@@ -83,7 +80,6 @@ const AdminLogin          = lazy(() => import('./pages/admin/AdminLogin'));
 const AdminLayout         = lazy(() => import('./layouts/AdminLayout'));
 const AdminDashboardPage  = lazy(() => import('./pages/admin/Dashboard'));
 const AdminStates         = lazy(() => import('./pages/admin/AdminStates'));
-const AdminBlogs          = lazy(() => import('./pages/admin/AdminBlogs'));
 const AdminMarketplace    = lazy(() => import('./pages/admin/AdminMarketplace'));
 const AdminPDFManager     = lazy(() => import('./pages/admin/AdminPDFManager'));
 const AdminOrders         = lazy(() => import('./pages/admin/AdminOrders'));
@@ -129,15 +125,13 @@ function App() {
                                             <Route path="/founder"        element={<Founder />} />
                                             <Route path="/mission-vision" element={<MissionVision />} />
                                             <Route path="/about-india"    element={<AboutIndia />} />
-                                            <Route path="/blog"           element={<Blog />} />
-                                            <Route path="/blog/:slug"     element={<BlogPost />} />
                                             <Route path="/register"       element={<Register />} />
                                             <Route path="/verify-mobile-otp" element={<VerifyMobileOtp />} />
                                             <Route path="/login"          element={<Login />} />
                                             <Route path="/forgot-password" element={<ForgotPassword />} />
                                             <Route path="/error"          element={<ErrorPage />} />
                                             <Route path="/dev/dashboard"  element={<StudentDashboard />} />
-                                            <Route path="/dev/discussion" element={<StudentDiscussion />} />
+                                            
 
                                             {/* ── Old states/UTs routes — kept for backward compat ── */}
                                                                                         <Route path="/union-territories" element={<ProtectedRoute><UnionTerritories /></ProtectedRoute>} />
@@ -197,7 +191,6 @@ function App() {
                                             <Route path="/payment"        element={<ProtectedRoute><NotFound /></ProtectedRoute>} />
                                             <Route path="/dashboard"      element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                                             <Route path="/student/dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
-                                            <Route path="/student/discussion" element={<ProtectedRoute><StudentDiscussion /></ProtectedRoute>} />
                                             <Route path="/courses"        element={<ProtectedRoute><Courses /></ProtectedRoute>} />
                                             <Route path="/courses/:id"    element={<ProtectedRoute><CourseDetail /></ProtectedRoute>} />
                                             <Route path="/courses/:courseId/player" element={<ProtectedRoute><CoursePlayer /></ProtectedRoute>} />
@@ -210,7 +203,6 @@ function App() {
                                                 <Route index            element={<Navigate to="/admin/dashboard" replace />} />
                                                 <Route path="dashboard" element={<AdminDashboardPage />} />
                                                 <Route path="states"    element={<AdminStates />} />
-                                                <Route path="blogs"     element={<AdminBlogs />} />
                                                 <Route path="content"   element={<AdminPDFManager />} />
                                                 <Route path="content-marketplace" element={<AdminMarketplace />} />
                                                 <Route path="pdf-manager" element={<AdminPDFManager />} />

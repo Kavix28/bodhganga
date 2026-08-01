@@ -95,14 +95,14 @@ function StateCard({ state, onClick }) {
   return (
     <div
       onClick={onClick}
-      className="rounded-xl overflow-hidden border border-gray-700 hover:border-amber-500 cursor-pointer hover:shadow-lg hover:shadow-amber-500/10 transition-all duration-200 group relative"
+      className="rounded-xl overflow-hidden border border-gray-700 hover:border-amber-500 cursor-pointer hover:shadow-lg hover:shadow-amber-500/10 transition-all duration-200 group relative h-full flex flex-col"
     >
       {!imgErr ? (
         <img
           src={STATE_IMGS[slug] || `${S3}/${slug}-image.png`}
           alt={name}
           onError={() => setImgErr(true)}
-          className="w-full h-auto block"
+          className="w-full h-48 object-cover block"
         />
       ) : (
         <div className={`w-full h-48 bg-gradient-to-br ${grad} flex items-center justify-center`}>
@@ -116,7 +116,7 @@ function StateCard({ state, onClick }) {
           Available
         </span>
       </div>
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-4 py-3">
+      <div className="px-4 py-3 bg-gray-900">
         <div className="flex justify-between items-center">
           <h2 className="text-sm font-bold text-white">{name}</h2>
           <span className="text-amber-400 text-xs group-hover:translate-x-0.5 transition-transform">
@@ -194,7 +194,7 @@ export default function StatesPage() {
               : "No states available yet."}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 auto-rows-fr">
             {filtered.map((state) => {
               const slug = state.id || state.stateSlug || "";
               return (

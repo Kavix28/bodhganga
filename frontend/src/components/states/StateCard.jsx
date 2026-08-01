@@ -94,7 +94,7 @@ const StateCard = ({ state }) => {
                     src={imageUrl}
                     alt={state.name}
                     loading="lazy"
-                    className="w-full h-auto block"
+                    className="w-full h-48 object-cover block rounded-t-2xl"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 px-3 py-3">
