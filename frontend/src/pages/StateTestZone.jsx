@@ -100,7 +100,7 @@ const StateTestZone = () => {
                                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                 <input
                                     type="text"
-                                    placeholder="Search district in Chhattisgarh..."
+                                    placeholder={`Search district in ${stateData.name}...`}
                                     value={searchDistrict}
                                     onChange={(e) => setSearchDistrict(e.target.value)}
                                     className="w-full pl-10 pr-4 py-2.5 bg-slate-900 border border-white/10 rounded-xl text-xs text-white placeholder-slate-400 focus:outline-none focus:border-gold"
@@ -142,7 +142,7 @@ const StateTestZone = () => {
                                             to={`/test-series/${stateData.id}/${dist.id}`}
                                             className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-wider hover:opacity-95 transition-all shadow-md"
                                         >
-                                            <span>Open Balod Test Page</span>
+                                            <span>Open {dist.name} Test Page</span>
                                             <ChevronRight className="w-4 h-4" />
                                         </Link>
                                     ) : (
@@ -176,7 +176,7 @@ const StateTestZone = () => {
                                     <h3 className="text-lg font-serif font-bold text-white">{sub.title}</h3>
                                     <p className="text-xs text-slate-400">Full-length state level practice modules with comprehensive answer rationales.</p>
                                     <Link
-                                        to={`/test-series/${stateData.id}/balod`}
+                                        to={`/test-series/${stateData.id}/${stateData.districts?.[0]?.id || ''}`}
                                         className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-white/10 hover:bg-gold hover:text-emerald-dark text-white font-bold text-xs uppercase tracking-wider transition-all duration-300"
                                     >
                                         <span>Start Practice</span>
