@@ -6,7 +6,6 @@ export default function StateSectionPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-
   const section = location.pathname.split("/").pop();
 
   const titles = {

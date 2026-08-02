@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
     MapPin, BookOpen, Video, Users, Star, ArrowRight, ShieldAlert,
     CheckCircle2, Shield, Calendar, HelpCircle, FileText, ChevronRight, Play, Eye,
-    X, Volume2, Bookmark, Flame, Download
+    X, Volume2, Bookmark, Flame
 } from 'lucide-react';
 import api from '../services/api';
 import Breadcrumb from '../components/common/Breadcrumb';
@@ -731,7 +731,7 @@ const StateDetail = () => {
                     <div>
                         <p className="font-bold text-xs uppercase text-gold">Purchase Complete!</p>
                         <p className="text-sm font-semibold text-white truncate max-w-[200px]">{purchaseSuccess.title || purchaseSuccess.name}</p>
-                        <p className="text-[10px] text-slate-400">PDF download link sent to your email & profile dashboard.</p>
+                        <p className="text-[10px] text-slate-400">PDF access link sent to your email & profile dashboard.</p>
                     </div>
                 </div>
             )}

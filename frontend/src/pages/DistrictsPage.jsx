@@ -157,13 +157,20 @@ export default function DistrictsPage() {
         });
 
         // Merge: district list drives structure, products drive counts
-        const merged = distList.map(d => ({
-          districtSlug: d.districtSlug,
-          districtName: d.district,
-          stateName: stateSlug,
-          freeCount: countMap[d.districtSlug]?.freeCount ?? 0,
-          paidCount: countMap[d.districtSlug]?.paidCount ?? 0,
-        }));
+        const NON_DISTRICT_KEYS = ["general", "state-images", "stateimages", "images", "state images"];
+        const merged = distList
+          .filter(d => {
+            const normSlug = String(d.districtSlug || "").toLowerCase().trim();
+            const normName = String(d.district || "").toLowerCase().trim();
+            return !NON_DISTRICT_KEYS.includes(normSlug) && !NON_DISTRICT_KEYS.includes(normName);
+          })
+          .map(d => ({
+            districtSlug: d.districtSlug,
+            districtName: d.district,
+            stateName: stateSlug,
+            freeCount: countMap[d.districtSlug]?.freeCount ?? 0,
+            paidCount: countMap[d.districtSlug]?.paidCount ?? 0,
+          }));
 
         setDistricts(merged);
 

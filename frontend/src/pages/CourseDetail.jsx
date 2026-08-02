@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { FiPlay, FiBookOpen, FiClock, FiUser, FiShoppingCart, FiCheck, FiArrowLeft, FiDownload } from 'react-icons/fi';
+import { FiPlay, FiBookOpen, FiClock, FiUser, FiShoppingCart, FiCheck, FiArrowLeft } from 'react-icons/fi';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import Loader from '../components/common/Loader';
@@ -167,8 +167,8 @@ const CourseDetail = () => {
                                             <span>Video explanations</span>
                                         </div>
                                         <div className="flex items-center space-x-3">
-                                            <FiDownload className="w-5 h-5 text-primary-600" />
-                                            <span>Downloadable resources</span>
+                                            <FiBookOpen className="w-5 h-5 text-primary-600" />
+                                            <span>Online reading access</span>
                                         </div>
                                         <div className="flex items-center space-x-3">
                                             <FiCheck className="w-5 h-5 text-primary-600" />

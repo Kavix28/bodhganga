@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { FiPlay, FiBookOpen, FiArrowLeft, FiDownload, FiExternalLink, FiLock } from 'react-icons/fi';
+import { FiPlay, FiBookOpen, FiArrowLeft, FiExternalLink, FiLock } from 'react-icons/fi';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import Loader from '../components/common/Loader';
@@ -253,13 +253,6 @@ const CoursePlayer = () => {
                                             >
                                                 <FiBookOpen className="w-4 h-4" />
                                                 <span>View PDF</span>
-                                            </button>
-                                            <button
-                                                onClick={handlePdfAccess}
-                                                className="btn-secondary flex items-center space-x-2"
-                                            >
-                                                <FiDownload className="w-4 h-4" />
-                                                <span>Download</span>
                                             </button>
                                         </div>
                                         

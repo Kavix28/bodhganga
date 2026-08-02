@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Download, BookOpen, ChevronRight } from 'lucide-react';
+import { FileText, BookOpen, ChevronRight } from 'lucide-react';
 
 /**
  * NotesViewer Component
@@ -45,11 +45,7 @@ const NotesViewer = ({ stateId, stateName }) => {
         }
     ];
 
-    const handleDownload = (pdfUrl, title) => {
-        // Frontend-only - actual download will be handled by backend
-        console.log(`Downloading: ${title} from ${pdfUrl}`);
-        // In production: window.open(pdfUrl, '_blank');
-    };
+
 
     const handleView = (topic) => {
         setSelectedTopic(topic);
@@ -127,13 +123,6 @@ const NotesViewer = ({ stateId, stateName }) => {
                                 <BookOpen className="w-5 h-5 mr-2" />
                                 View Notes
                             </button>
-                            <button
-                                onClick={() => handleDownload(topic.pdfUrl, topic.title)}
-                                className="btn bg-white text-[var(--navy)] border-2 border-[var(--navy)] hover:bg-gray-50 flex-1"
-                            >
-                                <Download className="w-5 h-5 mr-2" />
-                                Download PDF
-                            </button>
                         </div>
                     </div>
                 ))}
@@ -171,13 +160,7 @@ const NotesViewer = ({ stateId, stateName }) => {
                                     <p className="text-sm text-gray-500 mb-6">
                                         {selectedTopic.pageCount} pages • Last updated: {selectedTopic.lastUpdated}
                                     </p>
-                                    <button
-                                        onClick={() => handleDownload(selectedTopic.pdfUrl, selectedTopic.title)}
-                                        className="btn-saffron"
-                                    >
-                                        <Download className="w-5 h-5 mr-2" />
-                                        Download PDF
-                                    </button>
+
                                 </div>
 
                                 {/* Subtopics Navigation */}

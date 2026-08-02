@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { FiUser, FiMail, FiPhone, FiEdit2, FiSave, FiX, FiShoppingBag, FiMapPin } from 'react-icons/fi';
-import { BookOpen, Award, Shield, Download } from 'lucide-react';
+import { BookOpen, Award, Shield, Eye } from 'lucide-react';
 import api from '../services/api';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -33,23 +33,25 @@ const Profile = () => {
             .catch(() => {});
     }, []);
 
-    const handleDownload = async (productId) => {
-        if (!productId) {
-            toast.error('Invalid product ID');
+    const handleViewPdf = async (product, purchase) => {
+        const storageKey = product?.storageKey;
+        if (!storageKey) {
+            toast.error('No PDF file associated with this product.');
             return;
         }
         try {
-            toast.loading('Generating secure download link...', { id: 'download-pdf' });
-            const res = await api.get(`/downloads/${productId}`);
-            if (res?.success && res.data) {
-                toast.success('Download starting!', { id: 'download-pdf' });
-                window.open(res.data, "_blank");
+            toast.loading('Opening PDF...', { id: 'view-pdf' });
+            const res = await api.get(`/pdf/${storageKey}`);
+            const signedUrl = res?.url || res?.data?.url;
+            if (signedUrl) {
+                toast.success('PDF opened!', { id: 'view-pdf' });
+                window.open(signedUrl, '_blank');
             } else {
-                toast.error(res?.message || 'Failed to retrieve download URL.', { id: 'download-pdf' });
+                toast.error('Failed to retrieve PDF.', { id: 'view-pdf' });
             }
         } catch (err) {
-            console.error('Error generating secure download URL:', err);
-            toast.error(err?.message || 'Failed to retrieve secure download link.', { id: 'download-pdf' });
+            console.error('Error opening PDF:', err);
+            toast.error(err?.message || 'Failed to open PDF.', { id: 'view-pdf' });
         }
     };
 
@@ -300,10 +302,10 @@ const Profile = () => {
                                                         </Link>
                                                     ) : (
                                                         <button 
-                                                            onClick={() => handleDownload(product.id || purchase.productId)}
+                                                            onClick={() => handleViewPdf(product, purchase)}
                                                             className="px-4 py-2 bg-gradient-to-r from-gold to-gold-dark hover:from-gold-dark hover:to-gold text-emerald-dark font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all duration-300 shadow-sm flex items-center gap-1.5"
                                                         >
-                                                            <Download className="w-3.5 h-3.5" /> Download PDF
+                                                            <Eye className="w-3.5 h-3.5" /> View PDF
                                                         </button>
                                                     )}
                                                 </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BookOpen, Search, Download, Eye, Sparkles, AlertCircle } from 'lucide-react';
+import { BookOpen, Search, Eye, Sparkles, AlertCircle } from 'lucide-react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import Breadcrumb from '../components/common/Breadcrumb';
@@ -29,7 +29,7 @@ const Library = () => {
         }
     };
 
-    const handleAccessFile = async (item, directDownload = false) => {
+    const handleAccessFile = async (item) => {
         const storageKey = item.storageKey || item.product?.storageKey;
         if (!storageKey) {
             toast.error("No S3 storage key associated with this item");
@@ -43,22 +43,10 @@ const Library = () => {
             const signedUrl = res.url || res.data?.url;
             
             if (signedUrl) {
-                if (directDownload) {
-                    // Force download by creating a temporary link
-                    const link = document.createElement('a');
-                    link.href = signedUrl;
-                    link.setAttribute('download', `${item.title || 'Note'}.pdf`);
-                    link.setAttribute('target', '_blank');
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    toast.success("Download started");
-                } else {
-                    // Open in new tab for viewing
-                    window.open(signedUrl, '_blank');
-                }
+                // Open in new tab for viewing
+                window.open(signedUrl, '_blank');
             } else {
-                throw new Error("Could not resolve document download URL");
+                throw new Error("Could not resolve document URL");
             }
         } catch (error) {
             console.error("Access error:", error);
@@ -207,20 +195,13 @@ const Library = () => {
                                         </div>
 
                                         {/* Actions */}
-                                        <div className="grid grid-cols-2 gap-2 pt-4 border-t border-emerald/5 mt-4">
+                                        <div className="pt-4 border-t border-emerald/5 mt-4">
                                             <button
-                                                onClick={() => handleAccessFile(item, false)}
+                                                onClick={() => handleAccessFile(item)}
                                                 disabled={actionId === item.id}
-                                                className="py-2.5 bg-emerald/5 hover:bg-emerald text-emerald-dark hover:text-white border border-emerald/10 font-bold text-[9px] uppercase tracking-widest rounded-xl transition-all duration-300 flex items-center justify-center gap-1.5"
+                                                className="w-full py-2.5 bg-emerald/5 hover:bg-emerald text-emerald-dark hover:text-white border border-emerald/10 font-bold text-[9px] uppercase tracking-widest rounded-xl transition-all duration-300 flex items-center justify-center gap-1.5"
                                             >
                                                 <Eye className="w-3.5 h-3.5" /> View
-                                            </button>
-                                            <button
-                                                onClick={() => handleAccessFile(item, true)}
-                                                disabled={actionId === item.id}
-                                                className="py-2.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-[9px] uppercase tracking-widest rounded-xl transition-all duration-300 flex items-center justify-center gap-1.5 shadow-sm"
-                                            >
-                                                <Download className="w-3.5 h-3.5" /> Download
                                             </button>
                                         </div>
                                     </div>

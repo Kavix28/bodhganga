@@ -222,7 +222,7 @@ const AuthGateModal = () => {
                     <div className="space-y-6">
                         <div className="text-center space-y-1">
                             <h2 className="text-2xl font-serif font-bold text-white tracking-tight">Welcome Back</h2>
-                            <p className="text-white/60 text-xs">Sign in to unlock notes, dashboards, and downloads.</p>
+                            <p className="text-white/60 text-xs">Sign in to unlock notes, dashboards, and resources.</p>
                         </div>
 
                         <form onSubmit={handleLoginSubmit} className="space-y-4">

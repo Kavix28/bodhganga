@@ -78,7 +78,8 @@ public class StateController {
         Aggregation agg = Aggregation.newAggregation(
             Aggregation.match(Criteria.where("isPublished").is(true)
                 .and("stateSlug").is(stateSlug)
-                .and("district").exists(true).ne(null).ne("").ne("general")),
+                .and("district").exists(true).ne(null).ne("").nin("general", "State images", "state images", "images")
+                .and("districtSlug").nin("general", "state-images", "images", "stateimages")),
             Aggregation.group("district", "districtSlug").count().as("count"),
             Aggregation.project("count")
                 .and("_id.district").as("district")

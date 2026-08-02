@@ -141,18 +141,19 @@ public class CloudSourceTraversalService {
             stateIndex = -1;
         }
 
-        String district = "general";
+        String district = null;
+        List<String> ignoredDistrictNames = List.of("general", "state images", "state-images", "stateimages", "images");
         
-        // Find the first unique element after state in nesting path
+        // Find the first unique element after state in nesting path that is a valid district folder
         for (int i = stateIndex + 1; i < pathList.size(); i++) {
             String current = pathList.get(i);
-            if (!current.equalsIgnoreCase(state)) {
+            if (!current.equalsIgnoreCase(state) && !ignoredDistrictNames.contains(current.toLowerCase().trim())) {
                 district = current;
                 break;
             }
         }
         
-        return new FolderInfo(state, district);
+        return new FolderInfo(state, district != null ? district : "general");
     }
 
     private static class FolderInfo {

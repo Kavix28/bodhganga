@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { 
-    ShoppingBag, Search, BookOpen, Download, Star, Filter, 
+    ShoppingBag, Search, BookOpen, Star, Filter, 
     Clock, ShieldCheck, Flame, Eye, Sparkles, X, ChevronRight,
     TrendingUp, Award, CheckCircle, ArrowRight, BookOpenCheck, Bookmark, Volume2
 } from 'lucide-react';
@@ -214,7 +214,7 @@ const Marketplace = () => {
     const notificationTemplates = [
         "Aditi R. from Uttar Pradesh purchased UPPSC Mains Solved Answers!",
         "Rahul S. from Delhi unlocked UPSC & State PSC GS Economy Core Master Notes!",
-        "Mayank K. from Bihar downloaded BPSC 70th Civil Services History Booster!",
+        "Mayank K. from Bihar unlocked BPSC 70th Civil Services History Booster!",
         "Pranav P. from Maharashtra unlocked MPSC GS Polity Guide!",
         "Shreya J. from Rajasthan unlocked Science & Tech pack — 50% discount applied!",
     ];
@@ -450,7 +450,7 @@ const Marketplace = () => {
                             <ShieldCheck className="w-5 h-5 text-emerald-400" />
                             <div>
                                 <p className="text-xl font-bold text-white">Instant</p>
-                                <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">PDF Download</p>
+                                <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">PDF Access</p>
                             </div>
                         </div>
                     </div>
@@ -466,7 +466,7 @@ const Marketplace = () => {
                         <div>
                             <p className="font-bold text-xs uppercase text-gold">Purchase Complete!</p>
                             <p className="text-sm font-semibold text-white truncate max-w-[200px]">{purchaseSuccess.title || purchaseSuccess.name}</p>
-                            <p className="text-[10px] text-slate-400">PDF download link sent to your email & profile dashboard.</p>
+                            <p className="text-[10px] text-slate-400">PDF access link sent to your email & profile dashboard.</p>
                         </div>
                     </div>
                 )}
@@ -550,7 +550,7 @@ const Marketplace = () => {
                                                 <span className="text-[10px] text-slate-400 font-normal">({product.reviewCount || 120}+ reviews)</span>
                                             </span>
                                             <span className="flex items-center gap-1 text-emerald-400">
-                                                <Download className="w-3.5 h-3.5" />
+                                                <ShoppingBag className="w-3.5 h-3.5" />
                                                 {(product.downloadCount || 1500).toLocaleString()}+ bought
                                             </span>
                                         </div>

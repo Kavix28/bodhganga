@@ -28,10 +28,15 @@ export default function StateDistrictsPage() {
 
         // Group by districtSlug → count free and paid per district
         const districtMap = {};
+        const NON_DISTRICT_KEYS = ["general", "state-images", "stateimages", "images", "state images"];
         products.forEach((p) => {
           const dSlug = p.districtSlug;
           const dName = p.district || p.districtName || dSlug;
           if (!dSlug) return;
+          const normSlug = String(dSlug).toLowerCase().trim();
+          const normName = String(dName).toLowerCase().trim();
+          if (NON_DISTRICT_KEYS.includes(normSlug) || NON_DISTRICT_KEYS.includes(normName)) return;
+
           if (!districtMap[dSlug]) {
             districtMap[dSlug] = { districtSlug: dSlug, districtName: dName, free: 0, paid: 0, total: 0 };
           }

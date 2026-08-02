@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Sparkles, Download, CheckCircle, Search } from 'lucide-react';
+import { BookOpen, Sparkles, CheckCircle, Search } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
 import toast from 'react-hot-toast';
