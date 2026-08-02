@@ -4,6 +4,7 @@ import api from "../services/api";
 import toast from "react-hot-toast";
 import { useAuth } from "../hooks/useAuth";
 import ChambaMCQFeature from "../components/states/ChambaMCQFeature";
+import SecurePdfViewer from "../components/SecurePdfViewer";
 
 const FILE_ICONS = {
   pdf:  { icon: "📄", color: "text-red-400",    label: "PDF" },
@@ -28,7 +29,8 @@ function formatSize(bytes) {
 }
 
 function ResourceModal({ resource, onClose }) {
-  const [iframeLoading, setIframeLoading] = React.useState(true);
+  const { user } = useAuth();
+  const [iframeLoading, setIframeLoading] = useState(true);
   const ext = (resource.fileExtension || "").toLowerCase();
   const url = resource.s3Url ? resource.s3Url.split('/').map((part, i) => i < 3 ? part : encodeURIComponent(part)).join('/') : null;
   const title = resource.displayTitle || resource.title || resource.fileName;
@@ -39,24 +41,18 @@ function ResourceModal({ resource, onClose }) {
 
   const renderContent = () => {
     if (ext === "pdf") {
-  const googleUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
-  return (
-    <div className="relative w-full h-full">
-      {iframeLoading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 rounded-lg z-10">
-          <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p className="text-gray-400 text-sm">Loading document...</p>
+      return (
+        <div className="relative w-full h-full">
+          <SecurePdfViewer
+            pdfUrl={url}
+            title={title}
+            watermarkText={`${user?.email || 'Student'} • BodhGanga Protected Resource`}
+            onClose={onClose}
+            className="w-full h-full border-none rounded-lg"
+          />
         </div>
-      )}
-      <iframe
-        src={googleUrl}
-        className="w-full h-full rounded-lg"
-        title={title}
-        onLoad={() => setIframeLoading(false)}
-      />
-    </div>
-  );
-}
+      );
+    }
     if (imageExts.includes(ext)) {
       return (
         <div className="w-full h-full flex items-center justify-center overflow-auto">

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, FileText, Trash2, Check, X, Filter, Download, ExternalLink, RefreshCw, Plus } from 'lucide-react';
+import { Upload, FileText, Trash2, Check, X, Filter, Download, ExternalLink, RefreshCw, Plus, Eye } from 'lucide-react';
 import api from '../../services/api';
 import AdminPdfUploadModal from '../../components/admin/AdminPdfUploadModal';
+import SecurePdfViewerModal from '../../components/SecurePdfViewerModal';
 
 /**
  * AdminPDFManager Component
@@ -15,6 +16,12 @@ const AdminPDFManager = () => {
     // Real PDF products state
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(false);
+
+    const [activePdfModal, setActivePdfModal] = useState({
+        isOpen: false,
+        pdfUrl: '',
+        title: ''
+    });
 
     useEffect(() => {
         fetchProducts();
@@ -253,20 +260,20 @@ const AdminPDFManager = () => {
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end gap-1.5">
-                                                {/* Open Presigned URL */}
-                                                {pdf.previewUrl && (
-                                                    <a
-                                                        href={pdf.previewUrl}
-                                                        target="_blank"
-                                                        rel="noreferrer"
+                                                {/* Open Secure Reader Preview */}
+                                                {(pdf.previewUrl || pdf.storageKey) && (
+                                                    <button
+                                                        onClick={() => setActivePdfModal({
+                                                            isOpen: true,
+                                                            pdfUrl: pdf.previewUrl || `${api.defaults.baseURL || ''}/api/pdf/${pdf.storageKey}`,
+                                                            title: pdf.title || 'PDF Preview'
+                                                        })}
                                                         className="p-2 text-emerald-premium hover:bg-emerald-premium/5 border border-transparent hover:border-emerald-premium/10 rounded-xl transition-all"
-                                                        title="Open Preview"
+                                                        title="Open Secure Reader Preview"
                                                     >
-                                                        <ExternalLink className="w-4 h-4" />
-                                                    </a>
+                                                        <Eye className="w-4 h-4" />
+                                                    </button>
                                                 )}
-                                                
-
                                                 
                                                 {/* Delete */}
                                                 <button
@@ -310,6 +317,14 @@ const AdminPDFManager = () => {
                     }}
                 />
             )}
+
+            <SecurePdfViewerModal
+                isOpen={activePdfModal.isOpen}
+                onClose={() => setActivePdfModal({ isOpen: false, pdfUrl: '', title: '' })}
+                pdfUrl={activePdfModal.pdfUrl}
+                title={activePdfModal.title}
+                watermarkText="ADMIN PREVIEW • BodhGanga Protected Copy"
+            />
         </div>
     );
 };

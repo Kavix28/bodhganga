@@ -5,6 +5,8 @@ import { FiPlay, FiBookOpen, FiArrowLeft, FiExternalLink, FiLock } from 'react-i
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import Loader from '../components/common/Loader';
+import SecurePdfViewer from '../components/SecurePdfViewer';
+import SecurePdfViewerModal from '../components/SecurePdfViewerModal';
 
 const CoursePlayer = () => {
     const { courseId } = useParams();
@@ -15,6 +17,7 @@ const CoursePlayer = () => {
     const [isPurchased, setIsPurchased] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('video');
+    const [pdfModalOpen, setPdfModalOpen] = useState(false);
 
     // Fetch course details and purchase status
     useEffect(() => {
@@ -28,42 +31,27 @@ const CoursePlayer = () => {
                 
                 // Check if user has purchased this course
                 const purchaseResponse = await api.get(`/payment/check-purchase/${courseId}`);
-                setIsPurchased(purchaseResponse.data);
-                
+                setIsPurchased(purchaseResponse.data?.purchased || false);
             } catch (error) {
-                console.error('Error fetching course:', error);
-                if (error.message?.includes('not found')) {
-                    navigate('/404');
-                } else {
-                    toast.error('Failed to load course');
-                    navigate('/courses');
-                }
+                console.error('Error fetching course data:', error);
+                toast.error('Failed to load course details');
             } finally {
                 setIsLoading(false);
             }
         };
 
-        if (courseId) {
-            fetchCourseData();
-        }
-    }, [courseId, navigate]);
+        fetchCourseData();
+    }, [courseId]);
 
     // Handle back navigation
     const handleBack = () => {
         navigate(`/courses/${courseId}`);
     };
 
-    // Handle PDF download/view
+    // Handle PDF view modal
     const handlePdfAccess = () => {
         if (!course) return;
-        
-        if (isPurchased) {
-            // Open PDF in new tab for full access
-            window.open(`/api/content/${courseId}/pdf`, '_blank');
-        } else {
-            // Show preview only
-            window.open(`/api/content/${courseId}/pdf`, '_blank');
-        }
+        setPdfModalOpen(true);
     };
 
     // Handle YouTube video
@@ -228,39 +216,29 @@ const CoursePlayer = () => {
                             <div className="card">
                                 <h3 className="text-lg font-semibold text-gray-900 mb-4">PDF Materials</h3>
                                 
-                                {course.pdfFileName ? (
-                                    <div>
-                                        {/* PDF Info */}
-                                        <div className="bg-gray-50 rounded-[2px] p-4 mb-4">
-                                            <div className="flex items-center justify-between">
-                                                <div>
-                                                    <h4 className="font-medium text-gray-900 mb-1">
-                                                        {course.pdfFileName}
-                                                    </h4>
-                                                    <p className="text-sm text-gray-600">
-                                                        {course.totalPages} pages • Full access granted
-                                                    </p>
-                                                </div>
-                                                <FiBookOpen className="w-8 h-8 text-primary-600" />
+                                {(course.pdfFileName || course.pdfStorageKey || course.s3Key) ? (
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                            <div>
+                                                <h4 className="font-semibold text-slate-800">{course.pdfFileName || course.title}</h4>
+                                                <p className="text-xs text-slate-500">{course.totalPages ? `${course.totalPages} pages • ` : ''}Protected Digital Reader</p>
                                             </div>
-                                        </div>
-                                        
-                                        {/* PDF Actions */}
-                                        <div className="flex items-center space-x-4">
                                             <button
                                                 onClick={handlePdfAccess}
-                                                className="btn-primary flex items-center space-x-2"
+                                                className="btn-primary flex items-center space-x-2 text-xs"
                                             >
                                                 <FiBookOpen className="w-4 h-4" />
-                                                <span>View PDF</span>
+                                                <span>Expand Fullscreen</span>
                                             </button>
                                         </div>
-                                        
-                                        {/* PDF Preview Note */}
-                                        <div className="mt-4 p-3 bg-green-50 rounded-[2px] border border-green-200">
-                                            <p className="text-green-800 text-sm">
-                                                <strong>Full Access:</strong> You have purchased this course and can view all {course.totalPages} pages of the PDF.
-                                            </p>
+
+                                        <div className="h-[600px] w-full overflow-hidden rounded-xl border border-slate-800 shadow-lg">
+                                            <SecurePdfViewer
+                                                pdfUrl={course.pdfUrl || (course.pdfStorageKey ? `/api/pdf/${course.pdfStorageKey}` : `/api/content/${courseId}/pdf`)}
+                                                title={course.pdfFileName || course.title}
+                                                watermarkText={`${user?.email || 'Student'} • BodhGanga Protected Copy`}
+                                                className="w-full h-full border-none"
+                                            />
                                         </div>
                                     </div>
                                 ) : (
@@ -272,6 +250,14 @@ const CoursePlayer = () => {
                             </div>
                         )}
                     </div>
+
+                    <SecurePdfViewerModal
+                        isOpen={pdfModalOpen}
+                        onClose={() => setPdfModalOpen(false)}
+                        pdfUrl={course?.pdfUrl || (course?.pdfStorageKey ? `/api/pdf/${course.pdfStorageKey}` : `/api/content/${courseId}/pdf`)}
+                        title={course?.pdfFileName || course?.title || "Course Material"}
+                        watermarkText={`${user?.email || 'Student'} • BodhGanga Protected Copy`}
+                    />
 
                     {/* Sidebar */}
                     <div className="lg:col-span-1">

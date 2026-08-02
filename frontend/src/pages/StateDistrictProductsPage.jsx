@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 import ChambaMCQFeature from "../components/states/ChambaMCQFeature";
+import SecurePdfViewer from "../components/SecurePdfViewer";
 
 const FILE_ICONS = {
   pdf:  { icon: "📄", color: "text-red-400",    label: "PDF" },
@@ -25,6 +26,7 @@ function formatSize(bytes) {
 }
 
 function ResourceModal({ resource, onClose }) {
+  const { user } = useAuth();
   const ext = (resource.fileExtension || "").toLowerCase();
   const url  = resource.s3Url;
   const title = resource.displayTitle || resource.title || resource.fileName;
@@ -68,10 +70,12 @@ function ResourceModal({ resource, onClose }) {
         {/* Body */}
         <div className="flex-1 overflow-hidden p-4">
           {ext === "pdf" ? (
-            <iframe
-              src={`https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`}
-              className="w-full h-full rounded-lg"
+            <SecurePdfViewer
+              pdfUrl={url}
               title={title}
+              watermarkText={`${user?.email || 'Student'} • BodhGanga Protected Copy`}
+              onClose={onClose}
+              className="w-full h-full border-none rounded-lg"
             />
           ) : imageExts.includes(ext) ? (
             <div className="w-full h-full flex items-center justify-center overflow-auto">
