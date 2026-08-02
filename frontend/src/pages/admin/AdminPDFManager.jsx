@@ -266,18 +266,7 @@ const AdminPDFManager = () => {
                                                     </a>
                                                 )}
                                                 
-                                                {/* Secure S3 Download */}
-                                                {pdf.storageKey && (
-                                                    <a
-                                                        href={getDownloadUrl(pdf.storageKey)}
-                                                        target="_blank"
-                                                        rel="noreferrer"
-                                                        className="p-2 text-slate-600 hover:bg-slate-100 border border-transparent hover:border-slate-200 rounded-xl transition-all"
-                                                        title="Download Secure PDF"
-                                                    >
-                                                        <Download className="w-4 h-4" />
-                                                    </a>
-                                                )}
+
                                                 
                                                 {/* Delete */}
                                                 <button

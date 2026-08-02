@@ -177,20 +177,12 @@ const DistrictTestPage = () => {
                                 <span className="inline-block px-3 py-1 bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase rounded-full border border-emerald-500/40">
                                     ✓ Bundle Unlocked & Ready
                                 </span>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <button
-                                        onClick={() => setShowNotesModal(true)}
-                                        className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-gold/20 hover:bg-gold/30 text-gold text-xs font-bold border border-gold/40 transition-colors"
-                                    >
-                                        <FileText className="w-3.5 h-3.5" /> Read Notes
-                                    </button>
-                                    <button
-                                        onClick={() => alert('Downloading Balod District Study Notes PDF...')}
-                                        className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-colors"
-                                    >
-                                        <Download className="w-3.5 h-3.5" /> Download
-                                    </button>
-                                </div>
+                                <button
+                                    onClick={() => setShowNotesModal(true)}
+                                    className="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-gold/20 hover:bg-gold/30 text-gold text-xs font-bold border border-gold/40 transition-colors"
+                                >
+                                    <FileText className="w-3.5 h-3.5" /> Read Notes
+                                </button>
                                 <button
                                     onClick={() => navigate(`/test-series/${stateId}/${districtId}/quiz/master`)}
                                     className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-black text-xs uppercase tracking-widest hover:shadow-xl transition-all"

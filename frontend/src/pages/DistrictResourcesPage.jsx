@@ -97,7 +97,8 @@ function ResourceModal({ resource, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 select-none"
+      onContextMenu={(e) => e.preventDefault()}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-5xl h-[90vh] flex flex-col shadow-2xl">

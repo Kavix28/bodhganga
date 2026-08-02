@@ -40,7 +40,8 @@ function ResourceModal({ resource, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 select-none"
+      onContextMenu={(e) => e.preventDefault()}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-5xl h-[92vh] flex flex-col shadow-2xl">
@@ -67,7 +68,11 @@ function ResourceModal({ resource, onClose }) {
         {/* Body */}
         <div className="flex-1 overflow-hidden p-4">
           {ext === "pdf" ? (
-            <iframe src={url} className="w-full h-full rounded-lg" title={title} />
+            <iframe
+              src={`https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`}
+              className="w-full h-full rounded-lg"
+              title={title}
+            />
           ) : imageExts.includes(ext) ? (
             <div className="w-full h-full flex items-center justify-center overflow-auto">
               <img src={url} alt={title} className="max-w-full max-h-full object-contain rounded-lg" />
