@@ -40,45 +40,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
-
-
-        // Check if Authorization header exists and starts with "Bearer "
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // Extract JWT token
         jwt = authHeader.substring(7);
 
         try {
-            // Extract user email from token
             userEmail = jwtUtil.extractEmail(jwt);
 
-            // If user email exists and no authentication is set
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-
-                // Validate token
                 if (!jwtUtil.isTokenExpired(jwt)) {
-                    // Extract role and create authority
                     String role = jwtUtil.extractRole(jwt);
                     SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role);
-
-                    // Create authentication token
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userEmail,
                             null,
                             Collections.singletonList(authority));
-
-                    // Set details
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-                    // Set authentication in security context
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
         } catch (Exception e) {
-            // Token is invalid, continue without authentication
             logger.error("JWT validation error: " + e.getMessage());
         }
 

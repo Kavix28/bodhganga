@@ -8,6 +8,8 @@ import { anantnagQuestions } from '../data/anantnagQuestions';
 import { chatraQuestions } from '../data/chatraQuestions';
 import { Clock, CheckCircle, AlertCircle, ArrowLeft, ArrowRight, Bookmark, ShieldCheck, Zap } from 'lucide-react';
 
+import api from '../services/api';
+
 // District-specific question banks — add new imports and entries here as more districts get questions
 const districtQuestionBanks = {
     'bengaluru': bengaluruQuestions,
@@ -64,7 +66,7 @@ const QuizEngine = () => {
         }));
     };
 
-    const handleSubmitQuiz = () => {
+    const handleSubmitQuiz = async () => {
         let correctCount = 0;
         let incorrectCount = 0;
         let unattemptedCount = 0;
@@ -106,6 +108,32 @@ const QuizEngine = () => {
             selectedAnswers,
             bookmarks
         };
+
+        const bookmarkedQuestionIds = Object.keys(bookmarks)
+            .filter(idxKey => bookmarks[idxKey])
+            .map(idxKey => questions[parseInt(idxKey)]?.id || String(idxKey));
+
+        const attemptData = {
+            stateSlug: stateId,
+            districtSlug: districtId,
+            testType,
+            totalQuestions: questions.length,
+            correctCount,
+            incorrectCount,
+            unattemptedCount,
+            score: scoreData.score,
+            percentage: scoreData.percentage,
+            accuracy: scoreData.accuracy,
+            timeTaken: scoreData.timeTaken,
+            topicAnalysis,
+            bookmarkedQuestionIds
+        };
+
+        try {
+            await api.post('/quiz/attempt', attemptData);
+        } catch (error) {
+            console.error('Failed to save quiz attempt:', error);
+        }
 
         navigate(`/test-series/${stateId}/${districtId}/result`, { state: { result: scoreData } });
     };
