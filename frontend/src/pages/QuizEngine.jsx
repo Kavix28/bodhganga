@@ -3,18 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { sampleQuestionsData } from '../data/testSeriesData';
 import { bengaluruQuestions } from '../data/bengaluruQuestions';
 import { ernakulamQuestions } from '../data/ernakulamQuestions';
-import { kargilQuestions } from '../data/kargilQuestions';
-import { anantnagQuestions } from '../data/anantnagQuestions';
-import { chatraQuestions } from '../data/chatraQuestions';
 import { Clock, CheckCircle, AlertCircle, ArrowLeft, ArrowRight, Bookmark, ShieldCheck, Zap } from 'lucide-react';
 
 // District-specific question banks — add new imports and entries here as more districts get questions
 const districtQuestionBanks = {
     'bengaluru': bengaluruQuestions,
     'ernakulam': ernakulamQuestions,
-    'kargil': kargilQuestions,
-    'anantnag': anantnagQuestions,
-    'chatra': chatraQuestions,
 };
 
 const QuizEngine = () => {

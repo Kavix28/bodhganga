@@ -3,14 +3,8 @@
  * Specs from BodhGanga Test Your Knowledge Documentation
  *
  * Available States/UTs and their active districts:
- *   - Chhattisgarh: Balod, Baloda Bazar, Bastar, Bilaspur, Durg, Raipur, Surguja (already set up)
  *   - Karnataka: Bengaluru only
  *   - Kerala: Ernakulam only
- *   - Jammu & Kashmir: Anantnag only
- *   - Madhya Pradesh: Alirajpur only
- *   - Maharashtra: Akola only
- *   - Jharkhand: Chatra only
- *   - Ladakh (UT): Kargil only
  *
  * All other districts within these states show "Coming Soon".
  * All other states/UTs show "Coming Soon" at the state level.
@@ -136,23 +130,13 @@ export const statesAndUtTestData = [
         code: 'JK',
         capital: 'Srinagar (Summer), Jammu (Winter)',
         totalDistricts: 20,
-        coveredDistrictsCount: 1,
-        totalTests: 3,
-        freeTestAvailable: true,
-        isAvailable: true,
+        coveredDistrictsCount: 0,
+        totalTests: 0,
+        freeTestAvailable: false,
+        isAvailable: false,
         image: 'https://images.unsplash.com/photo-1597074866923-dc0589150458?auto=format&fit=crop&q=80&w=800',
         districts: [
-            {
-                id: 'anantnag',
-                name: 'Anantnag',
-                isAvailable: true,
-                easyTestsCount: 1,
-                advancedTestsCount: 1,
-                masterTestsCount: 1,
-                notesAvailable: true,
-                price: 199,
-                description: 'Known for Martand Sun Temple, Achabal Garden, and the Lidder River — the cultural heartland of South Kashmir.'
-            },
+            { id: 'anantnag', name: 'Anantnag', isAvailable: false },
             { id: 'srinagar', name: 'Srinagar', isAvailable: false },
             { id: 'jammu', name: 'Jammu', isAvailable: false },
             { id: 'baramulla', name: 'Baramulla', isAvailable: false },
@@ -188,23 +172,13 @@ export const statesAndUtTestData = [
         code: 'MP',
         capital: 'Bhopal',
         totalDistricts: 55,
-        coveredDistrictsCount: 1,
-        totalTests: 3,
-        freeTestAvailable: true,
-        isAvailable: true,
+        coveredDistrictsCount: 0,
+        totalTests: 0,
+        freeTestAvailable: false,
+        isAvailable: false,
         image: 'https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&q=80&w=800',
         districts: [
-            {
-                id: 'alirajpur',
-                name: 'Alirajpur',
-                isAvailable: true,
-                easyTestsCount: 1,
-                advancedTestsCount: 1,
-                masterTestsCount: 1,
-                notesAvailable: true,
-                price: 199,
-                description: 'A tribal-majority district known for Bhil culture, Narmada riverbanks, and dense teak forests.'
-            },
+            { id: 'alirajpur', name: 'Alirajpur', isAvailable: false },
             { id: 'agar-malwa', name: 'Agar Malwa', isAvailable: false },
             { id: 'anuppur', name: 'Anuppur', isAvailable: false },
             { id: 'ashoknagar', name: 'Ashoknagar', isAvailable: false },
@@ -276,23 +250,13 @@ export const statesAndUtTestData = [
         code: 'MH',
         capital: 'Mumbai',
         totalDistricts: 36,
-        coveredDistrictsCount: 1,
-        totalTests: 3,
-        freeTestAvailable: true,
-        isAvailable: true,
+        coveredDistrictsCount: 0,
+        totalTests: 0,
+        freeTestAvailable: false,
+        isAvailable: false,
         image: 'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?auto=format&fit=crop&q=80&w=800',
         districts: [
-            {
-                id: 'akola',
-                name: 'Akola',
-                isAvailable: true,
-                easyTestsCount: 1,
-                advancedTestsCount: 1,
-                masterTestsCount: 1,
-                notesAvailable: true,
-                price: 199,
-                description: 'Known as the cotton city of India, an important agricultural and commercial district in Vidarbha region.'
-            },
+            { id: 'akola', name: 'Akola', isAvailable: false },
             { id: 'ahmednagar', name: 'Ahmednagar', isAvailable: false },
             { id: 'amravati', name: 'Amravati', isAvailable: false },
             { id: 'aurangabad', name: 'Chhatrapati Sambhajinagar', isAvailable: false },
@@ -344,23 +308,13 @@ export const statesAndUtTestData = [
         code: 'JH',
         capital: 'Ranchi',
         totalDistricts: 24,
-        coveredDistrictsCount: 1,
-        totalTests: 3,
-        freeTestAvailable: true,
-        isAvailable: true,
+        coveredDistrictsCount: 0,
+        totalTests: 0,
+        freeTestAvailable: false,
+        isAvailable: false,
         image: 'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&q=80&w=800',
         districts: [
-            {
-                id: 'chatra',
-                name: 'Chatra',
-                isAvailable: true,
-                easyTestsCount: 1,
-                advancedTestsCount: 1,
-                masterTestsCount: 1,
-                notesAvailable: true,
-                price: 199,
-                description: 'Known for its dense forests, coal reserves, and the historic Kauleshwari Devi temple atop Kauleshwari Hill.'
-            },
+            { id: 'chatra', name: 'Chatra', isAvailable: false },
             { id: 'bokaro', name: 'Bokaro', isAvailable: false },
             { id: 'deoghar', name: 'Deoghar', isAvailable: false },
             { id: 'dhanbad', name: 'Dhanbad', isAvailable: false },
@@ -402,23 +356,13 @@ export const statesAndUtTestData = [
         code: 'LA',
         capital: 'Leh',
         totalDistricts: 3,
-        coveredDistrictsCount: 1,
-        totalTests: 3,
-        freeTestAvailable: true,
-        isAvailable: true,
+        coveredDistrictsCount: 0,
+        totalTests: 0,
+        freeTestAvailable: false,
+        isAvailable: false,
         image: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&q=80&w=800',
         districts: [
-            {
-                id: 'kargil',
-                name: 'Kargil',
-                isAvailable: true,
-                easyTestsCount: 1,
-                advancedTestsCount: 1,
-                masterTestsCount: 1,
-                notesAvailable: true,
-                price: 199,
-                description: 'The gateway to Zanskar — famous for the Kargil War memorial, Suru Valley, and ancient Buddhist monasteries.'
-            },
+            { id: 'kargil', name: 'Kargil', isAvailable: false },
             { id: 'leh', name: 'Leh', isAvailable: false },
             { id: 'zanskar', name: 'Zanskar', isAvailable: false }
         ],
@@ -812,27 +756,27 @@ export const statesAndUtTestData = [
     }
 ];
 
-// Sample Question Set Generator for Balod District
+// Sample Question Set Generator for General Practice
 export const sampleQuestionsData = {
     easy: Array.from({ length: 20 }, (_, i) => ({
         id: `easy_${i + 1}`,
         topic: ['Geography', 'History', 'Economy', 'Administration', 'Culture'][i % 5],
         difficulty: 'Easy',
-        question: `[Q${i + 1}] Which key water reservoir / dam project is located in Balod district of Chhattisgarh?`,
+        question: `[Q${i + 1}] Practice Question on ${['Geography', 'History', 'Economy', 'Administration', 'Culture'][i % 5]}`,
         options: [
-            'Tandula Dam',
-            'Gangrel Dam',
-            'Hasdeo Bango Dam',
-            'Kutaghat Dam'
+            'Option A',
+            'Option B',
+            'Option C',
+            'Option D'
         ],
         correctAnswer: 0,
-        explanation: 'Tandula Dam was constructed across Tandula and Sukha rivers in 1912 and is a premier irrigation reservoir in Balod district.'
+        explanation: 'Detailed explanation for this practice question.'
     })),
     advanced: Array.from({ length: 20 }, (_, i) => ({
         id: `adv_${i + 1}`,
         topic: ['Geography', 'History', 'Economy', 'Administration', 'Culture'][i % 5],
         difficulty: 'Advanced',
-        question: `[Q${i + 1}] Consider the following statements regarding the geological formation and mineral wealth of Balod District:\n1. Dalli Rajhara iron ore complex supplies hematite ore to Bhilai Steel Plant.\n2. The district belongs entirely to the Cuddapah sedimentary basin.\nWhich of the statements given above is/are correct?`,
+        question: `[Q${i + 1}] Advanced Statement-based Practice Question on ${['Geography', 'History', 'Economy', 'Administration', 'Culture'][i % 5]}:\n1. Statement 1\n2. Statement 2\nWhich of the statements given above is/are correct?`,
         options: [
             '1 only',
             '2 only',
@@ -840,21 +784,21 @@ export const sampleQuestionsData = {
             'Neither 1 nor 2'
         ],
         correctAnswer: 0,
-        explanation: 'Statement 1 is correct: Dalli Rajhara in Balod provides high-grade iron ore to Bhilai Steel Plant. Statement 2 is incorrect as Archean granite and Dharwar metamorphic rocks dominate the iron ore ridge.'
+        explanation: 'Detailed analytical explanation for this advanced question.'
     })),
     master: Array.from({ length: 75 }, (_, i) => ({
         id: `master_${i + 1}`,
         topic: ['History', 'Geography', 'Rivers and dams', 'Economy and agriculture', 'Art and culture', 'Tribes and communities', 'Important personalities', 'Administration'][i % 8],
         difficulty: i % 3 === 0 ? 'Easy' : i % 3 === 1 ? 'Moderate' : 'Difficult',
-        question: `[Master Q${i + 1}] Analytical Question on ${['History', 'Geography', 'Rivers and dams', 'Economy and agriculture', 'Art and culture', 'Tribes and communities', 'Important personalities', 'Administration'][i % 8]} of Balod District`,
+        question: `[Master Q${i + 1}] Master Test Question on ${['History', 'Geography', 'Rivers and dams', 'Economy and agriculture', 'Art and culture', 'Tribes and communities', 'Important personalities', 'Administration'][i % 8]}`,
         options: [
-            'Option A: Primary historical attribute',
-            'Option B: Secondary geographical factor',
+            'Option A: Primary attribute',
+            'Option B: Secondary factor',
             'Option C: Administrative landmark',
             'Option D: Socio-cultural tradition'
         ],
         correctAnswer: 0,
-        explanation: 'Comprehensive explanation detailing state administrative structures, tribal heritage, and physical geography.'
+        explanation: 'Comprehensive explanation detailing key concepts and facts.'
     }))
 };
 
