@@ -6,12 +6,20 @@ import api from '../services/api';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
+import SecurePdfViewerModal from '../components/SecurePdfViewerModal';
+
 const Profile = () => {
     const { user, updateUser } = useAuth();
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [purchases, setPurchases] = useState([]);
     const [enrollments, setEnrollments] = useState([]);
+
+    const [activePdfModal, setActivePdfModal] = useState({
+        isOpen: false,
+        pdfUrl: '',
+        title: ''
+    });
 
     const [formData, setFormData] = useState({
         name: user?.name || '',
@@ -44,8 +52,12 @@ const Profile = () => {
             const res = await api.get(`/pdf/${storageKey}`);
             const signedUrl = res?.url || res?.data?.url;
             if (signedUrl) {
-                toast.success('PDF opened!', { id: 'view-pdf' });
-                window.open(signedUrl, '_blank');
+                toast.success('PDF loaded in secure reader!', { id: 'view-pdf' });
+                setActivePdfModal({
+                    isOpen: true,
+                    pdfUrl: signedUrl,
+                    title: product?.title || 'Study Material'
+                });
             } else {
                 toast.error('Failed to retrieve PDF.', { id: 'view-pdf' });
             }
@@ -368,6 +380,14 @@ const Profile = () => {
                     </div>
                 </div>
             </div>
+
+            <SecurePdfViewerModal
+                isOpen={activePdfModal.isOpen}
+                onClose={() => setActivePdfModal({ isOpen: false, pdfUrl: '', title: '' })}
+                pdfUrl={activePdfModal.pdfUrl}
+                title={activePdfModal.title}
+                watermarkText={`${user?.email || user?.name || 'Student'} • BodhGanga Protected Copy`}
+            />
         </div>
     );
 };

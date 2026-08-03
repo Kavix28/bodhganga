@@ -4,13 +4,22 @@ import api from '../services/api';
 import toast from 'react-hot-toast';
 import Breadcrumb from '../components/common/Breadcrumb';
 import { getResourceBadge } from './Marketplace';
+import SecurePdfViewerModal from '../components/SecurePdfViewerModal';
+import { useAuth } from '../hooks/useAuth';
 
 const Library = () => {
+    const { user } = useAuth();
     const [purchases, setPurchases] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [filter, setFilter] = useState('ALL'); // 'ALL' | 'PURCHASED' | 'FREE'
     const [actionId, setActionId] = useState(null);
+
+    const [activePdfModal, setActivePdfModal] = useState({
+        isOpen: false,
+        pdfUrl: '',
+        title: ''
+    });
 
     useEffect(() => {
         fetchLibrary();
@@ -43,8 +52,11 @@ const Library = () => {
             const signedUrl = res.url || res.data?.url;
             
             if (signedUrl) {
-                // Open in new tab for viewing
-                window.open(signedUrl, '_blank');
+                setActivePdfModal({
+                    isOpen: true,
+                    pdfUrl: signedUrl,
+                    title: item.product?.title || item.title || "Study Material"
+                });
             } else {
                 throw new Error("Could not resolve document URL");
             }
@@ -211,6 +223,14 @@ const Library = () => {
                     </div>
                 )}
             </div>
+
+            <SecurePdfViewerModal
+                isOpen={activePdfModal.isOpen}
+                onClose={() => setActivePdfModal({ isOpen: false, pdfUrl: '', title: '' })}
+                pdfUrl={activePdfModal.pdfUrl}
+                title={activePdfModal.title}
+                watermarkText={`${user?.email || user?.name || 'Student'} • BodhGanga Protected Copy`}
+            />
         </div>
     );
 };

@@ -89,6 +89,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/dashboard/storage").authenticated()
 
                         // Protected user endpoints
+                        .requestMatchers("/api/quiz/**").authenticated()
                         .requestMatchers("/api/dashboard/**").authenticated()
                         .requestMatchers("/api/profile/**").authenticated()
                         .requestMatchers("/api/courses/enroll/**").authenticated()

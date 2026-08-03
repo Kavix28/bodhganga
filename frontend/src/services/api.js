@@ -2,27 +2,23 @@ import axios from 'axios';
 import { API_BASE_URL, ERROR_MESSAGES, ERROR_CODES } from '../utils/constants';
 import { getAuthToken, clearAuthData } from '../utils/storage';
 
-// Create axios instance with base configuration
 const api = axios.create({
     baseURL: API_BASE_URL,
     headers: {
         'Content-Type': 'application/json',
     },
-    timeout: 15000, // 15 seconds
+    timeout: 15000,
 });
 
-// Log the API base URL for debugging
 console.log('🌐 API Base URL:', API_BASE_URL);
 
-// Request interceptor - Add JWT token to headers
 api.interceptors.request.use(
     (config) => {
         // Prevent duplicate /api/api pathing when baseURL also ends with /api
         if (config.url && config.url.startsWith('/api/') && config.baseURL && config.baseURL.endsWith('/api')) {
             config.url = config.url.substring(4);
         }
-        // Fallback: Check standard auth token first, then admin token
-        const token = getAuthToken() || sessionStorage.getItem('admin_jwt');
+        let token = getAuthToken() || sessionStorage.getItem('admin_jwt');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -33,16 +29,12 @@ api.interceptors.request.use(
     }
 );
 
-// Response interceptor - Handle errors globally
 api.interceptors.response.use(
     (response) => {
-        // Return only the data from successful responses
         return response.data;
     },
     (error) => {
-        // Handle different error cases
         if (error.response) {
-            // Server responded with error status
             const { status, data } = error.response;
 
             // Handle 401 Unauthorized - Token expired or invalid

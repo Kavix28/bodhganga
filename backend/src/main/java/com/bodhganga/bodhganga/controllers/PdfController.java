@@ -202,12 +202,17 @@ public class PdfController {
             if (redirect) {
                 return ResponseEntity.status(302)
                         .header("Location", signedUrl)
+                        .header("Cache-Control", "no-cache, no-store, must-revalidate")
+                        .header("X-Content-Type-Options", "nosniff")
                         .build();
             }
 
             Map<String, String> response = new HashMap<>();
             response.put("url", signedUrl);
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok()
+                    .header("Cache-Control", "no-cache, no-store, must-revalidate")
+                    .header("X-Content-Type-Options", "nosniff")
+                    .body(response);
 
         } catch (Exception e) {
             log.error("Failed to generate presigned URL for key {}: {}", key, e.getMessage());

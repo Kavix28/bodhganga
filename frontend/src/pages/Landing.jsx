@@ -248,7 +248,7 @@ const Landing = () => {
 
     const faqs = [
         { q: "Are these notes aligned with the latest syllabus?", a: "Yes! All notes are compiled by top educators and former civil servants. They are updated dynamically for the latest state PSC and UPSC patterns." },
-        { q: "Can I print the purchased study materials?", a: "Absolutely. Once purchased, you get permanent PDF access in your dashboard. You can read online and print them for offline study." },
+        { q: "How do I access my purchased study materials?", a: "Once purchased, you get permanent online PDF reading access directly in your dashboard to view anytime on web or mobile." },
         { q: "Is there mock test support available on BodhGanga?", a: "Yes, our interactive question banks feature high-yield questions with detailed step-by-step explanatory models." },
         { q: "How do I access state-specific courses?", a: "Navigate to the 'States & UTs' portal, select your desired state or union territory, and explore maps, notes, playlists, and customized study packages." }
     ];

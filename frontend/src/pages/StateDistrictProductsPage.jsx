@@ -2,19 +2,21 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../hooks/useAuth";
+import ChambaMCQFeature from "../components/states/ChambaMCQFeature";
+import SecurePdfViewer from "../components/SecurePdfViewer";
 
 const FILE_ICONS = {
-  pdf:  { icon: "📄", color: "text-red-400",    label: "PDF" },
-  docx: { icon: "📝", color: "text-blue-400",   label: "DOCX" },
-  doc:  { icon: "📝", color: "text-blue-400",   label: "DOC" },
-  xlsx: { icon: "📊", color: "text-green-400",  label: "XLSX" },
+  pdf: { icon: "📄", color: "text-red-400", label: "PDF" },
+  docx: { icon: "📝", color: "text-blue-400", label: "DOCX" },
+  doc: { icon: "📝", color: "text-blue-400", label: "DOC" },
+  xlsx: { icon: "📊", color: "text-green-400", label: "XLSX" },
   pptx: { icon: "📋", color: "text-orange-400", label: "PPTX" },
-  png:  { icon: "🖼️", color: "text-purple-400", label: "Image" },
-  jpg:  { icon: "🖼️", color: "text-purple-400", label: "Image" },
+  png: { icon: "🖼️", color: "text-purple-400", label: "Image" },
+  jpg: { icon: "🖼️", color: "text-purple-400", label: "Image" },
   jpeg: { icon: "🖼️", color: "text-purple-400", label: "Image" },
   webp: { icon: "🖼️", color: "text-purple-400", label: "Image" },
-  mp3:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
-  m4a:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
+  mp3: { icon: "🎵", color: "text-pink-400", label: "Audio" },
+  m4a: { icon: "🎵", color: "text-pink-400", label: "Audio" },
 };
 
 function formatSize(bytes) {
@@ -24,12 +26,13 @@ function formatSize(bytes) {
 }
 
 function ResourceModal({ resource, onClose }) {
+  const { user } = useAuth();
   const ext = (resource.fileExtension || "").toLowerCase();
-  const url  = resource.s3Url;
+  const url = resource.s3Url;
   const title = resource.displayTitle || resource.title || resource.fileName;
   const officeExts = ["docx", "doc", "xlsx", "xls", "pptx", "ppt"];
-  const imageExts  = ["png", "jpg", "jpeg", "webp"];
-  const audioExts  = ["mp3", "m4a", "wav"];
+  const imageExts = ["png", "jpg", "jpeg", "webp"];
+  const audioExts = ["mp3", "m4a", "wav"];
 
   useEffect(() => {
     const h = (e) => { if (e.key === "Escape") onClose(); };
@@ -39,7 +42,8 @@ function ResourceModal({ resource, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 select-none"
+      onContextMenu={(e) => e.preventDefault()}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-5xl h-[92vh] flex flex-col shadow-2xl">
@@ -66,7 +70,13 @@ function ResourceModal({ resource, onClose }) {
         {/* Body */}
         <div className="flex-1 overflow-hidden p-4">
           {ext === "pdf" ? (
-            <iframe src={url} className="w-full h-full rounded-lg" title={title} />
+            <SecurePdfViewer
+              pdfUrl={url}
+              title={title}
+              watermarkText={`${user?.email || 'Student'} • BodhGanga Protected Copy`}
+              onClose={onClose}
+              className="w-full h-full border-none rounded-lg"
+            />
           ) : imageExts.includes(ext) ? (
             <div className="w-full h-full flex items-center justify-center overflow-auto">
               <img src={url} alt={title} className="max-w-full max-h-full object-contain rounded-lg" />
@@ -105,10 +115,10 @@ export default function StateDistrictProductsPage() {
 
   const [allResources, setAllResources] = useState([]);
   const [districtName, setDistrictName] = useState("");
-  const [stateName, setStateName]   = useState("");
-  const [loading, setLoading]       = useState(true);
-  const [purchased, setPurchased]   = useState(false);
-  const [selected, setSelected]     = useState(null);
+  const [stateName, setStateName] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [purchased, setPurchased] = useState(false);
+  const [selected, setSelected] = useState(null);
   const { isAuthenticated, openAuthModal } = useAuth();
   const [mcqFlowState, setMcqFlowState] = useState(null);
 
@@ -125,7 +135,7 @@ export default function StateDistrictProductsPage() {
         setAllResources(products);
         if (products.length > 0) {
           setDistrictName(products[0].district || products[0].districtName || districtSlug);
-          setStateName(products[0].state   || products[0].stateName   || stateSlug);
+          setStateName(products[0].state || products[0].stateName || stateSlug);
         }
         // Check purchase status (silently fail when not logged in)
         try {
@@ -144,7 +154,7 @@ export default function StateDistrictProductsPage() {
 
   const freeRes = allResources.filter((r) => r.free || r.isFree || r.price === 0);
   const paidRes = allResources.filter((r) => !r.free && !r.isFree && r.price > 0);
-  const shown   = activeTab === "free" ? freeRes : paidRes;
+  const shown = activeTab === "free" ? freeRes : paidRes;
 
   if (loading) {
     return (
@@ -234,7 +244,7 @@ export default function StateDistrictProductsPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {shown.map((r) => {
-                const ext  = (r.fileExtension || "").toLowerCase();
+                const ext = (r.fileExtension || "").toLowerCase();
                 const meta = FILE_ICONS[ext] || { icon: "📎", color: "text-gray-400", label: ext.toUpperCase() || "FILE" };
                 const title = r.displayTitle || r.title || r.fileName;
                 return (
