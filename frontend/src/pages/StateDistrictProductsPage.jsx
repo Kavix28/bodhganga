@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../hooks/useAuth";
-import ChambaMCQFeature from "../components/states/ChambaMCQFeature";
 import SecurePdfViewer from "../components/SecurePdfViewer";
 
 const FILE_ICONS = {
