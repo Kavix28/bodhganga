@@ -134,8 +134,14 @@ public class DriveToS3PipelineTask {
         filesSkipped.set(0);
         duplicatesFound.set(0);
 
+        Set<String> scannedDriveFileIds = Collections.synchronizedSet(new HashSet<>());
+
         try {
-            traverseAndSync(sourceFolderId, "BodhGanga", new ArrayList<>());
+            traverseAndSync(sourceFolderId, "BodhGanga", new ArrayList<>(), scannedDriveFileIds);
+            
+            // Delete Synchronization Pass
+            performDeleteSync(scannedDriveFileIds);
+
             lastRun = new Date();
             syncDurationMs.set(System.currentTimeMillis() - startTime);
             log.info("[GENERIC PIPELINE] COMPLETED in {} ms - uploaded={}, skipped={}, failed={}, duplicates={}",
@@ -148,10 +154,31 @@ public class DriveToS3PipelineTask {
         }
     }
 
+    private void performDeleteSync(Set<String> scannedDriveFileIds) {
+        log.info("[DELETE SYNC] Checking for deleted Google Drive files...");
+        List<Product> activeDriveProducts = productRepo.findByImportedFromDrive(true);
+        int deletedCount = 0;
+
+        for (Product p : activeDriveProducts) {
+            if (Boolean.TRUE.equals(p.getIsDeleted())) continue;
+            String driveId = p.getGoogleDriveFileId();
+            if (driveId != null && !driveId.isBlank() && !scannedDriveFileIds.contains(driveId)) {
+                log.info("[DELETE SYNC] Drive file removed, soft-deleting Mongo record: {} (Drive ID: {})", p.getFileName(), driveId);
+                p.setIsDeleted(true);
+                p.setPublished(false);
+                p.setIngestionStatus(IngestionStatus.DELETED);
+                p.setUpdatedAt(new Date());
+                productRepo.save(p);
+                deletedCount++;
+            }
+        }
+        log.info("[DELETE SYNC] Synchronized {} deletions.", deletedCount);
+    }
+
     /**
      * Recursive folder traversal with unlimited depth & pagination.
      */
-    private void traverseAndSync(String folderId, String folderName, List<String> folderPath) {
+    private void traverseAndSync(String folderId, String folderName, List<String> folderPath, Set<String> scannedDriveFileIds) {
         log.info("[GENERIC PIPELINE] FOLDER: {} ({}) Path: {}", folderName, folderId, folderPath);
         try {
             List<File> items = googleDriveSyncService.listFilesInFolder(folderId);
@@ -162,9 +189,10 @@ public class DriveToS3PipelineTask {
                 if ("application/vnd.google-apps.folder".equals(mimeType)) {
                     List<String> nextPath = new ArrayList<>(folderPath);
                     nextPath.add(item.getName());
-                    traverseAndSync(item.getId(), item.getName(), nextPath);
+                    traverseAndSync(item.getId(), item.getName(), nextPath, scannedDriveFileIds);
                 } else {
                     try {
+                        scannedDriveFileIds.add(item.getId());
                         processFile(item, folderId, folderPath);
                     } catch (Exception e) {
                         log.error("[GENERIC PIPELINE] Failed processing file {}: {}", item.getName(), e.getMessage());
@@ -251,26 +279,40 @@ public class DriveToS3PipelineTask {
             checksum = calculateSHA256(fileBytes);
         }
 
-        // ── Step 2: Idempotent Duplicate Detection ───────────────────────────
+        // ── Step 2: Idempotent & Incremental Sync Check ───────────────────────────
         Product existing = productRepo.findByGoogleDriveFileId(file.getId());
         if (existing == null) existing = productRepo.findByS3Key(s3Key).orElse(null);
         if (existing == null && checksum != null) existing = productRepo.findByChecksum(checksum).orElse(null);
-        if (existing == null && fileName != null) {
-            List<Product> matches = productRepo.findByImportedFromDrive(true);
-            for (Product p : matches) {
-                if (fileName.equals(p.getFileName())) { existing = p; break; }
-            }
+
+        // Incremental sync: If checksum matches existing record, skip re-uploading
+        if (existing != null && checksum != null && checksum.equals(existing.getChecksum()) && Boolean.TRUE.equals(existing.getIsLatestVersion())) {
+            log.info("[INCREMENTAL SYNC] File unchanged, skipping re-upload: {}", fileName);
+            existing.setLastSync(new Date());
+            productRepo.save(existing);
+            filesSkipped.incrementAndGet();
+            return;
         }
 
-        Product product = existing;
-        if (product != null) {
-            log.info("[GENERIC PIPELINE] Found existing database record for: {}", fileName);
+        Product product;
+        if (existing != null && checksum != null && !checksum.equals(existing.getChecksum())) {
+            // Versioning: File modified on Drive → create new version (v2, v3...)
+            log.info("[VERSIONING] Modifying file {}, creating version {}", fileName, (existing.getVersion() != null ? existing.getVersion() : 1) + 1);
+            existing.setIsLatestVersion(false);
+            existing.setPublished(false);
+            productRepo.save(existing);
+
+            product = new Product();
+            product.setVersion((existing.getVersion() != null ? existing.getVersion() : 1) + 1);
+            product.setPreviousVersionId(existing.getId());
+            product.setIsLatestVersion(true);
             duplicatesFound.incrementAndGet();
-            if (product.getGoogleDriveFileId() == null || product.getGoogleDriveFileId().isEmpty()) {
-                product.setGoogleDriveFileId(file.getId());
-            }
+        } else if (existing != null) {
+            product = existing;
+            product.setIsLatestVersion(true);
         } else {
             product = new Product();
+            product.setVersion(1);
+            product.setIsLatestVersion(true);
             product.setOriginalFileName(fileName);
             product.setFileName(fileName);
             product.setFileExtension(fileExtension);
@@ -279,7 +321,7 @@ public class DriveToS3PipelineTask {
             log.info("[GENERIC PIPELINE] Creating new product record for: {}", fileName);
         }
 
-        // ── Step 3: Populate Metadata ────────────────────────────────────────
+        // ── Step 3: Populate Smart Metadata ────────────────────────────────────────
         String displayTitle = Product.stripExtension(fileName);
         product.setTitle(displayTitle);
         product.setDisplayTitle(displayTitle);
@@ -297,6 +339,13 @@ public class DriveToS3PipelineTask {
         product.setSubcategory(metadata.subcategory);
         product.setSubcategorySlug(metadata.subcategorySlug);
         product.setSubfolderPath(metadata.subfolderPath);
+        
+        List<String> crumbs = new ArrayList<>();
+        if (state != null) crumbs.add(state);
+        if (navbarCategory != null) crumbs.add(navbarCategory);
+        if (metadata.subcategory != null) crumbs.add(metadata.subcategory);
+        product.setBreadcrumbs(crumbs);
+
         product.setGoogleDriveFileId(file.getId());
         product.setGoogleDriveParentId(parentFolderId);
         product.setChecksum(checksum);

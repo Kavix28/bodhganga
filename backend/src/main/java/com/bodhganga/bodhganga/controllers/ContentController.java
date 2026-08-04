@@ -31,6 +31,81 @@ public class ContentController {
     }
 
     /**
+     * GET /api/content/search
+     * Multi-faceted full-text search API supporting q, state, category, language, page, size.
+     */
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponseDTO> searchContent(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String state,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String language,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        Query query = new Query();
+        query.addCriteria(Criteria.where("isPublished").is(true)
+                .and("isDeleted").ne(true));
+
+        if (state != null && !state.isBlank()) {
+            query.addCriteria(Criteria.where("stateSlug").is(Product.generateSlug(state)));
+        }
+        if (category != null && !category.isBlank()) {
+            query.addCriteria(Criteria.where("categorySlug").is(Product.generateSlug(category)));
+        }
+        if (language != null && !language.isBlank()) {
+            query.addCriteria(Criteria.where("language").is(language));
+        }
+
+        if (q != null && !q.isBlank()) {
+            String regexPattern = "(?i)" + java.util.regex.Pattern.quote(q.trim());
+            query.addCriteria(new Criteria().orOperator(
+                Criteria.where("title").regex(regexPattern),
+                Criteria.where("description").regex(regexPattern),
+                Criteria.where("fileName").regex(regexPattern),
+                Criteria.where("tags").regex(regexPattern),
+                Criteria.where("ocrText").regex(regexPattern)
+            ));
+        }
+
+        query.with(org.springframework.data.domain.PageRequest.of(page, size));
+        List<Product> results = mongoTemplate.find(query, Product.class);
+
+        java.util.Map<String, Object> responseData = new java.util.HashMap<>();
+        responseData.put("content", results);
+        responseData.put("page", page);
+        responseData.put("size", size);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+                .success(true)
+                .message("Search completed successfully")
+                .data(responseData)
+                .build());
+    }
+
+    /**
+     * GET /api/content/versions/{id}
+     * Returns multiversion revision history for a given document.
+     */
+    @GetMapping("/versions/{id}")
+    public ResponseEntity<ApiResponseDTO> getVersionHistory(@PathVariable String id) {
+        Product target = mongoTemplate.findById(id, Product.class);
+        if (target == null || target.getGoogleDriveFileId() == null) {
+            return ResponseEntity.status(404).body(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("Document or version history not found")
+                    .build());
+        }
+
+        List<Product> versions = productRepo.findByGoogleDriveFileIdOrderByVersionDesc(target.getGoogleDriveFileId());
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+                .success(true)
+                .message("Version revision history loaded")
+                .data(versions)
+                .build());
+    }
+
+    /**
      * GET /api/content/{stateSlug}/{categorySlug}
      * Returns dynamic files for a specific state and category.
      * Examples: /api/content/rajasthan/history, /api/content/madhya-pradesh/geography

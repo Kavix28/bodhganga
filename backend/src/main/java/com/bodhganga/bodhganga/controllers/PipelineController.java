@@ -14,6 +14,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.bodhganga.bodhganga.services.SelfHealingService;
+
 /**
  * Admin API for the Bodhganga ingestion pipeline.
  * Single pipeline: DriveToS3PipelineTask (legacy PipelineTask is disabled).
@@ -27,13 +29,16 @@ public class PipelineController {
     private final DriveToS3PipelineTask driveToS3PipelineTask;
     private final ProductRepo productRepo;
     private final ProductionVerificationService productionVerificationService;
+    private final SelfHealingService selfHealingService;
 
     public PipelineController(DriveToS3PipelineTask driveToS3PipelineTask,
                                ProductRepo productRepo,
-                               ProductionVerificationService productionVerificationService) {
+                               ProductionVerificationService productionVerificationService,
+                               SelfHealingService selfHealingService) {
         this.driveToS3PipelineTask = driveToS3PipelineTask;
         this.productRepo = productRepo;
         this.productionVerificationService = productionVerificationService;
+        this.selfHealingService = selfHealingService;
     }
 
     // =========================================================================
@@ -56,6 +61,17 @@ public class PipelineController {
                     .message("Pipeline failed: " + e.getMessage())
                     .build());
         }
+    }
+
+    // =========================================================================
+    // POST /api/admin/pipeline/self-heal
+    // Triggers self-healing consistency and integrity audit.
+    // =========================================================================
+    @PostMapping("/self-heal")
+    public ResponseEntity<Map<String, Object>> runSelfHealing() {
+        log.info("[PIPELINE] Self-healing audit triggered via admin API.");
+        Map<String, Object> result = selfHealingService.runSelfHealingAudit();
+        return ResponseEntity.ok(result);
     }
 
     // =========================================================================
