@@ -38,3 +38,17 @@ export const getStudentProfile = async (token) => {
     }
     return api.get('/profile', config);
 };
+
+/**
+ * Get comprehensive student overview
+ * @param {string} [token] - Optional JWT token
+ * @returns {Promise}
+ */
+export const getUserOverview = async (token) => {
+    const config = {};
+    if (token) {
+        config.headers = { Authorization: `Bearer ${token}` };
+    }
+    return api.get('/dashboard/user-overview', config);
+};
+

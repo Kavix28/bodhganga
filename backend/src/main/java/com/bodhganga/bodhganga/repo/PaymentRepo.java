@@ -22,4 +22,7 @@ public interface PaymentRepo extends MongoRepository<Payment, String> {
 
     /** Count by status */
     long countByStatus(String status);
+
+    /** Fetch recent payment transactions */
+    List<Payment> findTop20ByOrderByCreatedAtDesc();
 }

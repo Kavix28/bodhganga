@@ -1,5 +1,5 @@
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import StateNavbar from "../components/states/StateNavbar";
+import StateSectionTabs from "../components/states/StateSectionTabs";
 
 export default function StateSectionPage() {
   const { stateSlug } = useParams();
@@ -42,7 +42,9 @@ export default function StateSectionPage() {
 
       <div className="max-w-6xl mx-auto px-4 py-8">
 
-        <StateNavbar />
+        <div className="mb-8">
+          <StateSectionTabs stateSlug={stateSlug} activeSection={section} />
+        </div>
 
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-8">
 

@@ -16,4 +16,6 @@ public interface EnrollmentRepo extends MongoRepository<Enrollment, String> {
     Optional<Enrollment> findByUserIdAndCourseId(String userId, String courseId);
 
     Boolean existsByUserIdAndCourseId(String userId, String courseId);
+
+    List<Enrollment> findTop20ByOrderByEnrolledAtDesc();
 }

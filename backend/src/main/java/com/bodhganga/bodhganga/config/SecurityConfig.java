@@ -61,6 +61,13 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/videos/**").permitAll()
                         // Public products (Digital Marketplace)
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/products/**").permitAll()
+                        // Public Test Series catalog reads
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/test-series/**").permitAll()
+
+                        // Test Execution, Evaluation & Analytics — require authentication
+                        .requestMatchers("/api/test-execution/**").authenticated()
+                        .requestMatchers("/api/test-evaluation/**").authenticated()
+                        .requestMatchers("/api/test-analytics/**").authenticated()
 
                         // Payment — webhook and check-purchase are public, order/verify require auth
                         .requestMatchers("/api/ai/general").permitAll()

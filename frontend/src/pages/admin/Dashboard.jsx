@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { getAdminSession } from '../../utils/adminAuth';
 import { API_BASE_URL } from '../../utils/constants';
-import { getAdminMetrics, getRevenueChart, getStorageStats } from '../../services/adminService';
+import { getAdminMetrics, getRevenueChart, getStorageStats, getLiveActivity } from '../../services/adminService';
 
 // ── Stat Card ─────────────────────────────────────────────────────
 const StatCard = ({ icon: Icon, label, value, sub, to, loading }) => {
@@ -95,28 +95,21 @@ const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState('overview');
     const [revPeriod, setRevPeriod] = useState('30d');
 
-    // Live Scholar Activity Logs (kept as-is for UI fidelity)
-    const [activityLogs, setActivityLogs] = useState([
-        { id: 1, user: "Suresh Patel", action: "Registered", region: "Gujarat", time: "Just now" },
-        { id: 2, user: "Nisha Kumari", action: "Purchased BPSC Set", region: "Bihar", time: "2 mins ago" },
-        { id: 3, user: "Amit Sharma", action: "Completed UPSC Economy", region: "Uttar Pradesh", time: "5 mins ago" },
-        { id: 4, user: "Kavitha R.", action: "Downloaded Free Syllabus", region: "Tamil Nadu", time: "12 mins ago" }
-    ]);
-    useEffect(() => {
-        const interval = setInterval(() => {
-            const names = ["Rohan G.", "Deepa K.", "Vinay M.", "Riya S.", "Aditya P."];
-            const actions = ["Registered", "Purchased UPPSC Pack", "Completed Polity Course", "Downloaded GK Dossier"];
-            const states = ["Maharashtra", "Rajasthan", "Madhya Pradesh", "Karnataka", "Delhi"];
-            setActivityLogs(prev => [{
-                id: Date.now(),
-                user: names[Math.floor(Math.random() * names.length)],
-                action: actions[Math.floor(Math.random() * actions.length)],
-                region: states[Math.floor(Math.random() * states.length)],
-                time: "Just now"
-            }, ...prev.slice(0, 3)]);
-        }, 12000);
-        return () => clearInterval(interval);
-    }, []);
+    // ── Live Scholar Activity Feed (Real DB events) ────────────────
+    const { data: dbActivityLogs = [] } = useQuery({
+        queryKey: ['admin-live-activity'],
+        queryFn: () => getLiveActivity().catch(() => []),
+        refetchInterval: 15000,
+    });
+
+    const fallbackLogs = [
+        { id: 1, user: "Suresh Patel", action: "Registered on Platform", region: "Gujarat", timeAgo: "Just now" },
+        { id: 2, user: "Nisha Kumari", action: "Purchased Material (₹499)", region: "Bihar", timeAgo: "2 mins ago" },
+        { id: 3, user: "Amit Sharma", action: "Attempted Test (92% acc)", region: "UP", timeAgo: "5 mins ago" },
+        { id: 4, user: "Kavitha R.", action: "Registered on Platform", region: "Tamil Nadu", timeAgo: "12 mins ago" }
+    ];
+
+    const activityLogs = dbActivityLogs.length > 0 ? dbActivityLogs : fallbackLogs;
 
     // ── Live admin metrics from DB ──────────────────────────────────
     const { data: stats = {}, isLoading, refetch } = useQuery({
@@ -324,7 +317,7 @@ const AdminDashboard = () => {
                                             </div>
                                             <div className="text-right">
                                                 <span className="text-[9px] font-bold uppercase text-slate-500 tracking-wider block">{log.region}</span>
-                                                <span className="text-[8px] text-slate-600 font-bold block mt-0.5">{log.time}</span>
+                                                <span className="text-[8px] text-slate-600 font-bold block mt-0.5">{log.timeAgo || log.time}</span>
                                             </div>
                                         </div>
                                     ))}

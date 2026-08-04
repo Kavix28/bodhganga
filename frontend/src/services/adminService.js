@@ -31,6 +31,19 @@ export const getStorageStats = () =>
     api.get('/dashboard/storage').then(r => r?.data || { available: false });
 
 /**
+ * Get real-time platform activity feed from database.
+ */
+export const getLiveActivity = () =>
+    api.get('/dashboard/live-activity').then(r => r?.data || []);
+
+/**
+ * Get state-by-state regional user analytics.
+ */
+export const getRegionalAnalytics = () =>
+    api.get('/dashboard/analytics/regional').then(r => r?.data || []);
+
+
+/**
  * Get admin order list with optional filters.
  * @param {number} page
  * @param {number} size
