@@ -1,17 +1,25 @@
 package com.bodhganga.bodhganga.entity;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.CompoundIndexes;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.Date;
 
 @Document(collection = "products")
+@CompoundIndexes({
+    @CompoundIndex(name = "state_category_idx", def = "{'stateSlug': 1, 'categorySlug': 1, 'isPublished': 1}"),
+    @CompoundIndex(name = "state_navbar_idx", def = "{'stateSlug': 1, 'navbarSlug': 1, 'isPublished': 1}")
+})
 public class Product {
     @Id
     private String id;
     
     private String title;
     private String description;
+    @Indexed
     private String stateSlug; // To associate with a specific state
     private String type; // "PDF", "AUDIO", "VIDEO"
     
@@ -19,16 +27,23 @@ public class Product {
     private String previewUrl; // Thumbnail or sample audio
     private String storageKey; // AWS S3 Object Key for secure download
     
+    @Indexed
     private boolean isPublished;
     private Date createdAt;
  
     // Fields for PDF import from Google Drive
     private String category;
+    @Indexed
+    private String categorySlug;
     private String courseId;
     private String fileName;
     private Long fileSize;
+    
+    @Indexed(unique = true, sparse = true)
     private String s3Key;
     private String driveUrl;
+    
+    @Indexed
     private Boolean importedFromDrive;
     
     // Recursive State/District Ingestion Fields
@@ -46,6 +61,8 @@ public class Product {
 
     // Hardened pipeline fields
     private String fileExtension;
+    
+    @Indexed(unique = true, sparse = true)
     private String googleDriveFileId;
     private IngestionStatus ingestionStatus;
     private Date updatedAt;
@@ -60,7 +77,11 @@ public class Product {
 
     // Generic Hierarchical Pipeline Fields
     private String navbarCategory;
+    @Indexed
     private String navbarSlug;
+    private String subcategory;
+    private String subcategorySlug;
+    private String subfolderPath;
     private String googleDriveParentId;
     private Date lastSync;
     private String checksum;
@@ -208,6 +229,18 @@ public class Product {
         }
         return fileName;
     }
+
+    public String getCategorySlug() { return categorySlug; }
+    public void setCategorySlug(String categorySlug) { this.categorySlug = categorySlug; }
+
+    public String getSubcategory() { return subcategory; }
+    public void setSubcategory(String subcategory) { this.subcategory = subcategory; }
+
+    public String getSubcategorySlug() { return subcategorySlug; }
+    public void setSubcategorySlug(String subcategorySlug) { this.subcategorySlug = subcategorySlug; }
+
+    public String getSubfolderPath() { return subfolderPath; }
+    public void setSubfolderPath(String subfolderPath) { this.subfolderPath = subfolderPath; }
 
     public String getNavbarCategory() { return navbarCategory; }
     public void setNavbarCategory(String navbarCategory) { this.navbarCategory = navbarCategory; }

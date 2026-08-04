@@ -64,16 +64,26 @@ public class PipelineController {
     @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> getPipelineStatus() {
         Map<String, Object> response = new HashMap<>();
+        Map<String, Object> auditSummary = productionVerificationService.getSummary();
+
         response.put("activePipeline", "GenericDriveToS3Pipeline");
         response.put("legacyPipelineDisabled", true);
         response.put("running", driveToS3PipelineTask.isRunning());
         response.put("lastRun", driveToS3PipelineTask.getLastRun());
         response.put("filesProcessed", driveToS3PipelineTask.getFilesProcessed());
+        response.put("driveFiles", driveToS3PipelineTask.getFilesProcessed());
         response.put("filesUploaded", driveToS3PipelineTask.getFilesUploaded());
+        response.put("s3Files", driveToS3PipelineTask.getFilesUploaded());
         response.put("filesFailed", driveToS3PipelineTask.getFilesFailed());
+        response.put("failedUploads", driveToS3PipelineTask.getFilesFailed());
         response.put("filesSkipped", driveToS3PipelineTask.getFilesSkipped());
+        response.put("skipped", driveToS3PipelineTask.getFilesSkipped());
         response.put("duplicatesFound", driveToS3PipelineTask.getDuplicatesFound());
+        response.put("duplicates", driveToS3PipelineTask.getDuplicatesFound());
         response.put("syncDurationMs", driveToS3PipelineTask.getSyncDurationMs());
+        response.put("syncDuration", driveToS3PipelineTask.getSyncDurationMs());
+
+        response.putAll(auditSummary);
         return ResponseEntity.ok(response);
     }
 

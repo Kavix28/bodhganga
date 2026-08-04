@@ -12,6 +12,7 @@ public interface ProductRepo extends MongoRepository<Product, String> {
     List<Product> findByIsPublishedTrue();
     List<Product> findByStateSlugAndIsPublishedTrue(String stateSlug);
     List<Product> findByStateSlugAndCategoryAndIsPublishedTrue(String stateSlug, String category);
+    List<Product> findByStateSlugAndCategorySlugAndIsPublishedTrue(String stateSlug, String categorySlug);
     List<Product> findByStateSlugAndNavbarSlugAndIsPublishedTrue(String stateSlug, String navbarSlug);
     List<Product> findByStateSlugAndNavbarCategoryAndIsPublishedTrue(String stateSlug, String navbarCategory);
     List<Product> findByStateSlugAndDistrictSlugAndIsPublishedTrue(String stateSlug, String districtSlug);

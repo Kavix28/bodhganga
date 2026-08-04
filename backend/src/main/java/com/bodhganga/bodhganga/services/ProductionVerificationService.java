@@ -58,6 +58,19 @@ public class ProductionVerificationService {
         long uncoveredDistricts = totalDistricts - coveredDistricts;
         double coveragePercentage = totalDistricts > 0 ? (coveredDistricts * 100.0) / totalDistricts : 0.0;
 
+        // Category & State coverage metrics
+        Set<String> activeStates = allProducts.stream()
+                .filter(Product::isPublished)
+                .map(Product::getStateSlug)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Set<String> activeCategories = allProducts.stream()
+                .filter(Product::isPublished)
+                .map(p -> p.getNavbarCategory() != null ? p.getNavbarCategory() : p.getCategory())
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
         summary.put("totalStates", totalStates);
         summary.put("totalUTs", totalUTs);
         summary.put("totalDistricts", totalDistricts);
@@ -65,10 +78,14 @@ public class ProductionVerificationService {
         summary.put("uncoveredDistricts", uncoveredDistricts);
         summary.put("coveragePercentage", Math.round(coveragePercentage * 100.0) / 100.0);
         summary.put("totalProducts", (long) allProducts.size());
+        summary.put("mongoRecords", (long) allProducts.size());
         summary.put("publishedProducts", allProducts.stream().filter(Product::isPublished).count());
         summary.put("importedProducts", allProducts.stream().filter(p -> Boolean.TRUE.equals(p.getImportedFromDrive())).count());
         summary.put("failedProducts", allProducts.stream().filter(p -> IngestionStatus.FAILED == p.getIngestionStatus()).count());
         summary.put("archivedProducts", allProducts.stream().filter(Product::isArchived).count());
+        summary.put("activeStateCount", activeStates.size());
+        summary.put("activeCategoryCount", activeCategories.size());
+        summary.put("activeCategories", activeCategories);
 
         return summary;
     }

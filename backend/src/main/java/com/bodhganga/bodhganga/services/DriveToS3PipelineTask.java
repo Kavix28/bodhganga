@@ -293,6 +293,10 @@ public class DriveToS3PipelineTask {
         product.setDistrictSlug(districtSlug);
         product.setNavbarCategory(navbarCategory);
         product.setNavbarSlug(navbarSlug);
+        product.setCategorySlug(navbarSlug);
+        product.setSubcategory(metadata.subcategory);
+        product.setSubcategorySlug(metadata.subcategorySlug);
+        product.setSubfolderPath(metadata.subfolderPath);
         product.setGoogleDriveFileId(file.getId());
         product.setGoogleDriveParentId(parentFolderId);
         product.setChecksum(checksum);
@@ -373,7 +377,7 @@ public class DriveToS3PipelineTask {
      */
     private HierarchicalMetadata extractMetadata(List<String> folderPath, String fileName) {
         if (folderPath == null || folderPath.isEmpty()) {
-            return new HierarchicalMetadata("General", "general", "General Notes", "general-notes", "general", "general", true);
+            return new HierarchicalMetadata("General", "general", "General Notes", "general-notes", null, null, null, "general", "general", true);
         }
 
         List<String> cleanedPath = new ArrayList<>();
@@ -388,7 +392,7 @@ public class DriveToS3PipelineTask {
         }
 
         if (cleanedPath.isEmpty()) {
-            return new HierarchicalMetadata("General", "general", "General Notes", "general-notes", "general", "general", isFree);
+            return new HierarchicalMetadata("General", "general", "General Notes", "general-notes", null, null, null, "general", "general", isFree);
         }
 
         // Folder 0 is State
@@ -397,14 +401,23 @@ public class DriveToS3PipelineTask {
 
         String navbarCategory = "General Notes";
         String district = "general";
+        String subcategory = null;
+        String subcategorySlug = null;
+        String subfolderPath = null;
 
         if (cleanedPath.size() > 1) {
             String segment1 = cleanedPath.get(1);
-            // Check if segment1 is district or category
             navbarCategory = segment1;
 
             if (cleanedPath.size() > 2) {
+                // If folder 2 is a known district folder pattern or district ingestion
                 district = cleanedPath.get(2);
+
+                // Build subcategory path for unlimited nesting
+                List<String> subList = cleanedPath.subList(2, cleanedPath.size());
+                subcategory = subList.get(0);
+                subcategorySlug = Product.generateSlug(subcategory);
+                subfolderPath = String.join("/", subList);
             }
         }
 
@@ -412,11 +425,15 @@ public class DriveToS3PipelineTask {
         String districtSlug = Product.generateSlug(district);
 
         if (!hasTierFolder) {
-            // Default files inside non-tier category folders to Free if unspecified
             isFree = true;
         }
 
-        return new HierarchicalMetadata(state, stateSlug, navbarCategory, navbarSlug, district, districtSlug, isFree);
+        return new HierarchicalMetadata(
+            state, stateSlug,
+            navbarCategory, navbarSlug,
+            subcategory, subcategorySlug, subfolderPath,
+            district, districtSlug, isFree
+        );
     }
 
     private static class HierarchicalMetadata {
@@ -424,30 +441,46 @@ public class DriveToS3PipelineTask {
         public final String stateSlug;
         public final String navbarCategory;
         public final String navbarSlug;
+        public final String subcategory;
+        public final String subcategorySlug;
+        public final String subfolderPath;
         public final String district;
         public final String districtSlug;
         public final boolean isFree;
 
         public HierarchicalMetadata(String state, String stateSlug,
                                     String navbarCategory, String navbarSlug,
+                                    String subcategory, String subcategorySlug, String subfolderPath,
                                     String district, String districtSlug,
                                     boolean isFree) {
             this.state = state;
             this.stateSlug = stateSlug;
             this.navbarCategory = navbarCategory;
             this.navbarSlug = navbarSlug;
+            this.subcategory = subcategory;
+            this.subcategorySlug = subcategorySlug;
+            this.subfolderPath = subfolderPath;
             this.district = district;
             this.districtSlug = districtSlug;
             this.isFree = isFree;
         }
 
         public String buildS3Key(String fileName) {
-            if (district != null && !district.equals("general")) {
-                // Backward compatible S3 path: state-slug/navbar-slug/district-slug/free|paid/filename.pdf
+            if (district != null && !district.equals("general") && (subcategory == null || subcategory.equals(district))) {
+                // Backward compatible district S3 path: state-slug/navbar-slug/district-slug/free|paid/filename.pdf
                 return String.format("%s/%s/%s/%s/%s",
                     stateSlug, navbarSlug, districtSlug, (isFree ? "free" : "paid"), fileName);
+            } else if (subfolderPath != null && !subfolderPath.isEmpty()) {
+                // Generic nested subcategory S3 path: state-slug/navbar-slug/subfolder-slugs/filename.pdf
+                String[] segments = subfolderPath.split("/");
+                StringBuilder sb = new StringBuilder(stateSlug).append("/").append(navbarSlug);
+                for (String seg : segments) {
+                    sb.append("/").append(Product.generateSlug(seg));
+                }
+                sb.append("/").append(fileName);
+                return sb.toString();
             } else {
-                // Generic S3 path: state-slug/navbar-slug/filename.pdf
+                // Generic category S3 path: state-slug/navbar-slug/filename.pdf
                 return String.format("%s/%s/%s", stateSlug, navbarSlug, fileName);
             }
         }
