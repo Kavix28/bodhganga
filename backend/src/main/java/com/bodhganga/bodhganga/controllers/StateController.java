@@ -28,6 +28,7 @@ public class StateController {
     }
 
     public record DistrictInfo(String district, String districtSlug, long count) {}
+    public record CategoryInfo(String navbarCategory, String navbarSlug, long notesCount) {}
 
     /**
      * GET /api/states/available
@@ -67,6 +68,74 @@ public class StateController {
             .collect(java.util.stream.Collectors.toList());
 
         return ResponseEntity.ok(states);
+    }
+
+    /**
+     * GET /api/states/{stateSlug}/categories
+     * Returns dynamic list of categories available for a given state derived from products
+     */
+    @GetMapping("/{stateSlug}/categories")
+    public ResponseEntity<List<CategoryInfo>> getAvailableCategories(@PathVariable String stateSlug) {
+        Aggregation agg = Aggregation.newAggregation(
+            Aggregation.match(Criteria.where("isPublished").is(true)
+                .and("stateSlug").is(stateSlug)),
+            Aggregation.project()
+                .and(org.springframework.data.mongodb.core.aggregation.ConditionalOperators.ifNull("navbarCategory").thenValueOf("category")).as("effCategory")
+                .and(org.springframework.data.mongodb.core.aggregation.ConditionalOperators.ifNull("navbarSlug").thenValueOf("category")).as("effSlug"),
+            Aggregation.group("effCategory", "effSlug").count().as("notesCount"),
+            Aggregation.project("notesCount")
+                .and("_id.effCategory").as("navbarCategory")
+                .and("_id.effSlug").as("navbarSlug")
+                .andExclude("_id")
+        );
+
+        AggregationResults<CategoryInfo> results = mongoTemplate.aggregate(agg, "products", CategoryInfo.class);
+        List<CategoryInfo> list = results.getMappedResults();
+        return ResponseEntity.ok(list);
+    }
+
+    /**
+     * GET /api/states/{stateSlug}/category/{categorySlug}
+     * Returns published products matching stateSlug + categorySlug
+     */
+    @GetMapping("/{stateSlug}/category/{categorySlug}")
+    public ResponseEntity<List<Product>> getProductsByStateAndCategory(
+            @PathVariable String stateSlug,
+            @PathVariable String categorySlug) {
+        org.springframework.data.mongodb.core.query.Query query = new org.springframework.data.mongodb.core.query.Query();
+        query.addCriteria(Criteria.where("isPublished").is(true)
+                .and("stateSlug").is(stateSlug)
+                .orOperator(
+                    Criteria.where("navbarSlug").is(categorySlug),
+                    Criteria.where("category").is(categorySlug)
+                ));
+
+        List<Product> products = mongoTemplate.find(query, Product.class);
+        return ResponseEntity.ok(products);
+    }
+
+    /**
+     * GET /api/states/{stateSlug}/category/{categorySlug}/{id}
+     * Returns product by ID
+     */
+    @GetMapping("/{stateSlug}/category/{categorySlug}/{id}")
+    public ResponseEntity<ApiResponseDTO> getCategoryProductById(
+            @PathVariable String stateSlug,
+            @PathVariable String categorySlug,
+            @PathVariable String id) {
+        Product product = mongoTemplate.findById(id, Product.class);
+        if (product == null || !product.isPublished()) {
+            return ResponseEntity.status(404).body(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("Product not found")
+                    .build());
+        }
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+                .success(true)
+                .message("Product retrieved")
+                .data(product)
+                .build());
     }
 
     /**

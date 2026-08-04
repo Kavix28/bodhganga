@@ -64,7 +64,7 @@ public class PipelineController {
     @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> getPipelineStatus() {
         Map<String, Object> response = new HashMap<>();
-        response.put("activePipeline", "DriveToS3PipelineTask");
+        response.put("activePipeline", "GenericDriveToS3Pipeline");
         response.put("legacyPipelineDisabled", true);
         response.put("running", driveToS3PipelineTask.isRunning());
         response.put("lastRun", driveToS3PipelineTask.getLastRun());
@@ -72,6 +72,8 @@ public class PipelineController {
         response.put("filesUploaded", driveToS3PipelineTask.getFilesUploaded());
         response.put("filesFailed", driveToS3PipelineTask.getFilesFailed());
         response.put("filesSkipped", driveToS3PipelineTask.getFilesSkipped());
+        response.put("duplicatesFound", driveToS3PipelineTask.getDuplicatesFound());
+        response.put("syncDurationMs", driveToS3PipelineTask.getSyncDurationMs());
         return ResponseEntity.ok(response);
     }
 

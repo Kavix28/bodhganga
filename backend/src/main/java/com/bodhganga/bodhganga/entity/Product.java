@@ -57,6 +57,14 @@ public class Product {
     private String stateName;
     private String districtName;
     private boolean published;
+
+    // Generic Hierarchical Pipeline Fields
+    private String navbarCategory;
+    private String navbarSlug;
+    private String googleDriveParentId;
+    private Date lastSync;
+    private String checksum;
+    private Integer version = 1;
     
     public Product() {
         this.createdAt = new Date();
@@ -200,6 +208,24 @@ public class Product {
         }
         return fileName;
     }
+
+    public String getNavbarCategory() { return navbarCategory; }
+    public void setNavbarCategory(String navbarCategory) { this.navbarCategory = navbarCategory; }
+
+    public String getNavbarSlug() { return navbarSlug; }
+    public void setNavbarSlug(String navbarSlug) { this.navbarSlug = navbarSlug; }
+
+    public String getGoogleDriveParentId() { return googleDriveParentId; }
+    public void setGoogleDriveParentId(String googleDriveParentId) { this.googleDriveParentId = googleDriveParentId; }
+
+    public Date getLastSync() { return lastSync; }
+    public void setLastSync(Date lastSync) { this.lastSync = lastSync; }
+
+    public String getChecksum() { return checksum; }
+    public void setChecksum(String checksum) { this.checksum = checksum; }
+
+    public Integer getVersion() { return version; }
+    public void setVersion(Integer version) { this.version = version; }
 
     public static String determineContentType(String mimeType, String fileName) {
         if (mimeType != null) {

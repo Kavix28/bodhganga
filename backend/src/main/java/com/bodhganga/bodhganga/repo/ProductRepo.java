@@ -12,6 +12,8 @@ public interface ProductRepo extends MongoRepository<Product, String> {
     List<Product> findByIsPublishedTrue();
     List<Product> findByStateSlugAndIsPublishedTrue(String stateSlug);
     List<Product> findByStateSlugAndCategoryAndIsPublishedTrue(String stateSlug, String category);
+    List<Product> findByStateSlugAndNavbarSlugAndIsPublishedTrue(String stateSlug, String navbarSlug);
+    List<Product> findByStateSlugAndNavbarCategoryAndIsPublishedTrue(String stateSlug, String navbarCategory);
     List<Product> findByStateSlugAndDistrictSlugAndIsPublishedTrue(String stateSlug, String districtSlug);
     List<Product> findByDistrictSlugAndIsPublishedTrue(String districtSlug);
     List<Product> findByIsFreeTrueAndIsPublishedTrue();
@@ -21,6 +23,7 @@ public interface ProductRepo extends MongoRepository<Product, String> {
     Product findBySourceFileId(String sourceFileId);
     Optional<Product> findByS3Key(String s3Key);
     Optional<Product> findByStorageKey(String storageKey);
+    Optional<Product> findByChecksum(String checksum);
     Product findByStateSlugAndDistrictSlugAndFileName(String stateSlug, String districtSlug, String fileName);
 
     // Existence checks (fast, index-backed)
