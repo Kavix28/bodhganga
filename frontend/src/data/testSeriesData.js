@@ -2,17 +2,13 @@
  * Test Series & Test Your Knowledge Master Data
  * Specs from BodhGanga Test Your Knowledge Documentation
  *
- * Available States/UTs and their active districts:
- *   - Karnataka: Bengaluru only
- *   - Kerala: Ernakulam only
- *
- * All other districts within these states show "Coming Soon".
- * All other states/UTs show "Coming Soon" at the state level.
+ * All test content is now served exclusively through the Question Bank Pipeline.
+ * Karnataka and Kerala demo tests have been removed.
+ * All states/UTs show "Coming Soon" until real PDFs are ingested via the QB pipeline.
  */
 
 export const statesAndUtTestData = [
-    // ==================== AVAILABLE STATES ====================
-    
+    // ── Karnataka (demo tests removed — content pending QB pipeline ingestion) ──
     {
         id: 'karnataka',
         name: 'Karnataka',
@@ -20,23 +16,13 @@ export const statesAndUtTestData = [
         code: 'KA',
         capital: 'Bengaluru',
         totalDistricts: 31,
-        coveredDistrictsCount: 1,
-        totalTests: 3,
-        freeTestAvailable: true,
-        isAvailable: true,
+        coveredDistrictsCount: 0,
+        totalTests: 0,
+        freeTestAvailable: false,
+        isAvailable: false,
         image: 'https://images.unsplash.com/photo-1596176530529-78163a4f7af2?auto=format&fit=crop&q=80&w=800',
         districts: [
-            {
-                id: 'bengaluru',
-                name: 'Bengaluru',
-                isAvailable: true,
-                easyTestsCount: 1,
-                advancedTestsCount: 1,
-                masterTestsCount: 1,
-                notesAvailable: true,
-                price: 199,
-                description: 'The Silicon Valley of India — explore its rich history, Vidhana Soudha, Cubbon Park, and modern tech heritage.'
-            },
+            { id: 'bengaluru', name: 'Bengaluru', isAvailable: false },
             { id: 'bengaluru-rural', name: 'Bengaluru Rural', isAvailable: false },
             { id: 'bagalkot', name: 'Bagalkot', isAvailable: false },
             { id: 'ballari', name: 'Ballari (Bellary)', isAvailable: false },
@@ -68,15 +54,9 @@ export const statesAndUtTestData = [
             { id: 'yadgir', name: 'Yadgir', isAvailable: false },
             { id: 'vijayanagara', name: 'Vijayanagara', isAvailable: false }
         ],
-        subjectTests: [
-            { id: 'ka-districts', title: 'Districts of Karnataka', testsCount: 3, category: 'Districts' },
-            { id: 'ka-history', title: 'Karnataka History — Ancient to Modern', testsCount: 5, category: 'History' },
-            { id: 'ka-geography', title: 'Karnataka Geography & Rivers', testsCount: 4, category: 'Geography' },
-            { id: 'ka-art-culture', title: 'Kannada Art, Music & Festivals', testsCount: 4, category: 'Art and Culture' },
-            { id: 'ka-heritage', title: 'Heritage Sites — Hampi, Badami & More', testsCount: 3, category: 'Heritage and Monuments' },
-            { id: 'ka-polity', title: 'State Governance & Economy', testsCount: 3, category: 'State Polity, Administration and Economy' }
-        ]
+        subjectTests: []
     },
+    // ── Kerala (demo tests removed — content pending QB pipeline ingestion) ──
     {
         id: 'kerala',
         name: 'Kerala',
@@ -84,29 +64,19 @@ export const statesAndUtTestData = [
         code: 'KL',
         capital: 'Thiruvananthapuram',
         totalDistricts: 14,
-        coveredDistrictsCount: 1,
-        totalTests: 3,
-        freeTestAvailable: true,
-        isAvailable: true,
+        coveredDistrictsCount: 0,
+        totalTests: 0,
+        freeTestAvailable: false,
+        isAvailable: false,
         image: 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&q=80&w=800',
         districts: [
-            {
-                id: 'ernakulam',
-                name: 'Ernakulam',
-                isAvailable: true,
-                easyTestsCount: 1,
-                advancedTestsCount: 1,
-                masterTestsCount: 1,
-                notesAvailable: true,
-                price: 199,
-                description: 'The commercial capital of Kerala — home to Kochi, Fort Kochi, backwaters, and spice trade heritage.'
-            },
             { id: 'thiruvananthapuram', name: 'Thiruvananthapuram', isAvailable: false },
             { id: 'kollam', name: 'Kollam', isAvailable: false },
             { id: 'pathanamthitta', name: 'Pathanamthitta', isAvailable: false },
             { id: 'alappuzha', name: 'Alappuzha', isAvailable: false },
             { id: 'kottayam', name: 'Kottayam', isAvailable: false },
             { id: 'idukki', name: 'Idukki', isAvailable: false },
+            { id: 'ernakulam', name: 'Ernakulam', isAvailable: false },
             { id: 'thrissur', name: 'Thrissur', isAvailable: false },
             { id: 'palakkad', name: 'Palakkad', isAvailable: false },
             { id: 'malappuram', name: 'Malappuram', isAvailable: false },
@@ -115,13 +85,7 @@ export const statesAndUtTestData = [
             { id: 'kannur', name: 'Kannur', isAvailable: false },
             { id: 'kasaragod', name: 'Kasaragod', isAvailable: false }
         ],
-        subjectTests: [
-            { id: 'kl-districts', title: 'Districts of Kerala', testsCount: 2, category: 'Districts' },
-            { id: 'kl-history', title: 'Kerala History — Ancient to Modern', testsCount: 4, category: 'History' },
-            { id: 'kl-geography', title: 'Kerala Geography & Backwaters', testsCount: 3, category: 'Geography' },
-            { id: 'kl-art-culture', title: 'Kathakali, Theyyam & Festivals', testsCount: 3, category: 'Art and Culture' },
-            { id: 'kl-heritage', title: 'Heritage Sites & Temples', testsCount: 2, category: 'Heritage and Monuments' }
-        ]
+        subjectTests: []
     },
     {
         id: 'jammu-kashmir',
