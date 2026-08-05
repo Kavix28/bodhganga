@@ -47,7 +47,7 @@ public class SecurityConfig {
                                 "/api/auth/admin/login",
                                 "/api/auth/**",
                                 "/error",
-                                "/actuator/**"
+                                "/actuator/health"
                         ).permitAll()
                         // Public course reads
                         .requestMatchers("/api/courses/list", "/api/courses/category/**").permitAll()
@@ -64,16 +64,19 @@ public class SecurityConfig {
                         // Public Test Series catalog reads
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/test-series/**").permitAll()
 
+                        // Question Bank — catalog and search are public; test execution and dashboard require auth
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/question-bank/tests").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/question-bank/tests/**").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/question-bank/search").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/question-bank/tests/*/submit").authenticated()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/question-bank/dashboard").authenticated()
+
                         // Test Execution, Evaluation & Analytics — require authentication
                         .requestMatchers("/api/test-execution/**").authenticated()
                         .requestMatchers("/api/test-evaluation/**").authenticated()
                         .requestMatchers("/api/test-analytics/**").authenticated()
 
-                        // Payment — webhook and check-purchase are public, order/verify require auth
-                        .requestMatchers("/api/ai/general").permitAll()
-                        .requestMatchers("/api/ai/study").authenticated()
-                        .requestMatchers("/api/ai/**").permitAll()
-                        // AI companion - general is public, study requires auth
+                        // AI companion — general is public, study requires auth
                         .requestMatchers("/api/ai/general").permitAll()
                         .requestMatchers("/api/ai/study").authenticated()
                         .requestMatchers("/api/payment/webhook", "/api/payment/check-purchase/**").permitAll()
@@ -125,16 +128,16 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        
+
+        // Known production origins — always allowed
         java.util.List<String> origins = new java.util.ArrayList<>(java.util.List.of(
             "http://localhost:5173",
             "http://localhost:3000",
-            "http://127.0.0.1:*",
             "https://bodhganga.in",
-            "https://www.bodhganga.in",
-            "https://*.vercel.app"
+            "https://www.bodhganga.in"
         ));
-        
+
+        // Additional origins injected at runtime (e.g., staging, specific Vercel deployment URL)
         String envOrigins = System.getenv("ALLOWED_ORIGINS");
         if (envOrigins != null && !envOrigins.isBlank()) {
             for (String origin : envOrigins.split(",")) {
@@ -144,10 +147,18 @@ public class SecurityConfig {
                 }
             }
         }
-        
+
         configuration.setAllowedOriginPatterns(origins);
         configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(java.util.List.of("*")); // Allow all headers to prevent preflight 403s
+        // Explicit header allowlist — no wildcard
+        configuration.setAllowedHeaders(java.util.List.of(
+            "Authorization",
+            "Content-Type",
+            "X-Requested-With",
+            "Accept",
+            "Origin"
+        ));
+        configuration.setExposedHeaders(java.util.List.of("Authorization"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
