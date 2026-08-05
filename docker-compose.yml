@@ -1,14 +1,14 @@
 version: '3.9'
 
 services:
-  # ── MongoDB ──────────────────────────────────────────────────────
+  # ── MongoDB ──────────────────────────────────────────────────────────────────
   mongodb:
     image: mongo:7.0
     container_name: bodhganga-mongo
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASS:-changeme}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASS}
       MONGO_INITDB_DATABASE: bodhganga
     volumes:
       - mongo_data:/data/db
@@ -22,7 +22,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # ── Backend (Spring Boot) ─────────────────────────────────────────
+  # ── Backend (Spring Boot) ─────────────────────────────────────────────────────
   backend:
     build:
       context: ./backend
@@ -35,41 +35,67 @@ services:
     env_file:
       - .env
     volumes:
-      - ./google-credentials.json:/app/google-credentials.json:ro
+      # ── State Pipeline credentials (read-only secret volume) ──────────────────
+      # Provide your google-credentials.json at host path ./secrets/google-credentials.json
+      # OR use Docker Swarm / Kubernetes secrets mounted at /run/secrets/
+      - ./secrets/google-credentials.json:/run/secrets/google-credentials.json:ro
+      # ── Question Bank Pipeline credentials (independent service account) ───────
+      # Provide your google-qb-credentials.json at host path ./secrets/google-qb-credentials.json
+      # NEVER commit this file — it contains a private key.
+      - ./secrets/google-qb-credentials.json:/run/secrets/google-qb-credentials.json:ro
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
-      MONGO_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASS:-changeme}@mongodb:27017/bodhganga?authSource=admin
+      # MongoDB
+      MONGO_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASS}@mongodb:27017/bodhganga?authSource=admin
+      # JWT
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
-      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
-      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+      # Payment
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET}
+      # SMS / OTP
       MSG91_AUTH_KEY: ${MSG91_AUTH_KEY:-}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      OTP_ENABLED: ${OTP_ENABLED:-true}
+      # AWS S3
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_REGION: ${AWS_REGION:-ap-south-1}
-      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-bodhganga-pdf-storage-prod}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-bodhganga-prod}
+      # SMTP
       SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
+      # CORS
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:80,http://localhost:5173}
+      # Gemini AI
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      # State Material Pipeline
       GOOGLE_DRIVE_PIPELINE_ENABLED: ${GOOGLE_DRIVE_PIPELINE_ENABLED:-false}
-      GOOGLE_DRIVE_CREDENTIALS_PATH: /app/google-credentials.json
+      GOOGLE_DRIVE_CREDENTIALS_PATH: /run/secrets/google-credentials.json
       GOOGLE_DRIVE_SOURCE_FOLDER_ID: ${GOOGLE_DRIVE_SOURCE_FOLDER_ID:-}
       GOOGLE_DRIVE_ARCHIVE_FOLDER_ID: ${GOOGLE_DRIVE_ARCHIVE_FOLDER_ID:-}
+      # Question Bank Pipeline (independent credentials + config)
+      QB_CREDENTIALS_PATH: /run/secrets/google-qb-credentials.json
+      QB_PIPELINE_ENABLED: ${QB_PIPELINE_ENABLED:-false}
+      QB_SOURCE_FOLDER_ID: ${QB_SOURCE_FOLDER_ID:-}
+      QB_ARCHIVE_FOLDER_ID: ${QB_ARCHIVE_FOLDER_ID:-}
+      QB_SYNC_INTERVAL_MS: ${QB_SYNC_INTERVAL_MS:-600000}
+      # YouTube
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
+      YOUTUBE_CHANNEL_ID: ${YOUTUBE_CHANNEL_ID:-}
     ports:
       - "9090:9090"
     networks:
       - bodhganga-net
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/api/auth/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/actuator/health || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5
 
-  # ── Frontend (React + Nginx) ──────────────────────────────────────
+  # ── Frontend (React + Nginx) ──────────────────────────────────────────────────
   frontend:
     build:
       context: ./frontend

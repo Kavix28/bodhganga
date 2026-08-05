@@ -32,6 +32,13 @@ build/
 ### VS Code ###
 .vscode/
 
-### Secrets & Credentials ###
+### Secrets & Credentials — NEVER commit these ###
 .env
+# All Google Service Account JSON keys
 google-credentials.json
+google-credentials.json.json
+google-qb-credentials.json
+google-qb-credentials.json.json
+*-credentials.json
+*-service-account.json
+*.keyfile.json
