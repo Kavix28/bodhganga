@@ -7,4 +7,5 @@ import java.util.List;
 public interface QBAuditRepo extends MongoRepository<QBAudit, String> {
     List<QBAudit> findByGoogleDriveFileId(String googleDriveFileId);
     List<QBAudit> findTop50ByOrderByTimestampDesc();
+    long countByStatus(String status);
 }

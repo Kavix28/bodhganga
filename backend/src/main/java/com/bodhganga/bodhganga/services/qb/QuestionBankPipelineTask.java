@@ -16,32 +16,18 @@ import java.io.InputStream;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * Scheduled ingestion pipeline for the Question Bank.
- *
- * <p>Drive traversal ← → S3 upload ← → Gemini parsing ← → Mongo save ← → Archive.
- *
- * <p>This service is <strong>completely independent</strong> of the State-material pipeline:
- * <ul>
- *   <li>Uses {@link QuestionBankDriveService} (dedicated QB service-account credentials).</li>
- *   <li>All folder IDs come from {@link QuestionBankProperties} — nothing is hardcoded.</li>
- *   <li>Gemini is called <em>once per PDF, during ingestion only</em> — never at exam time.</li>
- *   <li>Archive happens only after successful S3 + Mongo completion.</li>
- * </ul>
- */
 @Service
 public class QuestionBankPipelineTask {
 
     private static final Logger log = LoggerFactory.getLogger(QuestionBankPipelineTask.class);
 
-    // ── Injected dependencies ────────────────────────────────────────────────
-    private final QuestionBankProperties  props;
+    private final QuestionBankProperties props;
     private final QuestionBankDriveService driveService;
-    private final S3Service               s3Service;
+    private final S3Service s3Service;
     private final GeminiQuestionParserService geminiParserService;
-    private final TestGeneratorService    testGeneratorService;
-    private final QBQuestionRepo          questionRepo;
-    private final QBAuditRepo             auditRepo;
+    private final TestGeneratorService testGeneratorService;
+    private final QBQuestionRepo questionRepo;
+    private final QBAuditRepo auditRepo;
 
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
 
@@ -52,60 +38,52 @@ public class QuestionBankPipelineTask {
                                     TestGeneratorService testGeneratorService,
                                     QBQuestionRepo questionRepo,
                                     QBAuditRepo auditRepo) {
-        this.props             = props;
-        this.driveService      = driveService;
-        this.s3Service         = s3Service;
+        this.props = props;
+        this.driveService = driveService;
+        this.s3Service = s3Service;
         this.geminiParserService = geminiParserService;
         this.testGeneratorService = testGeneratorService;
-        this.questionRepo      = questionRepo;
-        this.auditRepo         = auditRepo;
+        this.questionRepo = questionRepo;
+        this.auditRepo = auditRepo;
     }
 
-    // ── Scheduled entry-point ────────────────────────────────────────────────
-
-    @Scheduled(fixedDelayString = "${google.drive.qb.sync-interval-ms:600000}")
+    @Scheduled(fixedDelayString = "${google.drive.qb.sync-interval-ms:${QB_SYNC_INTERVAL_MS:600000}}")
     public void scheduledSync() {
-        if (!props.isPipelineEnabled()) {
+        if (!isPipelineEnabled()) {
             log.info("[QB PIPELINE] Scheduled sync skipped — google.drive.qb.pipeline.enabled=false.");
             return;
         }
         syncQuestionBank(false);
     }
 
-    // ── Public API (also called by AdminQuestionBankPipelineController) ──────
+    public boolean isPipelineEnabled() {
+        return props.isPipelineEnabled();
+    }
 
     public void syncQuestionBank(boolean force) {
-
-        // 1. Guard: QB Drive client must be initialized
         if (!driveService.isConfigured()) {
-            String msg = "[QB PIPELINE] QB Drive client is not configured — check QB credentials. "
-                    + "See startup logs for the root cause.";
+            String msg = "[QB PIPELINE] QB Drive client is not configured — check QB credentials.";
             log.error(msg);
             if (force) throw new IllegalStateException(msg);
             return;
         }
 
-        // 2. Guard: source folder required
         String sourceFolderId = props.getSourceFolderId();
         if (sourceFolderId == null || sourceFolderId.isBlank()
                 || sourceFolderId.equalsIgnoreCase("REPLACE_WITH_SOURCE_FOLDER_ID")) {
-            String msg = "[QB PIPELINE] google.drive.qb.source-folder-id is not set. "
-                    + "Replace the placeholder with the real Drive folder ID before enabling the pipeline.";
+            String msg = "[QB PIPELINE] google.drive.qb.source-folder-id is not set.";
             log.error(msg);
             if (force) throw new IllegalStateException(msg);
             return;
         }
 
-        // 3. Warn if archive folder is missing (non-fatal)
         String archiveFolderId = props.getArchiveFolderId();
         if (archiveFolderId == null || archiveFolderId.isBlank()
                 || archiveFolderId.equalsIgnoreCase("REPLACE_WITH_ARCHIVE_FOLDER_ID")) {
-            log.warn("[QB PIPELINE] google.drive.qb.archive-folder-id is not set. "
-                    + "Processed PDFs will not be archived and may be re-processed on next sync.");
+            log.warn("[QB PIPELINE] google.drive.qb.archive-folder-id is not set. Processed PDFs will not be archived.");
             archiveFolderId = null;
         }
 
-        // 4. Concurrency guard — one run at a time
         if (!isRunning.compareAndSet(false, true)) {
             String msg = "[QB PIPELINE] Pipeline is already running — skipping concurrent trigger.";
             log.warn(msg);
@@ -113,44 +91,55 @@ public class QuestionBankPipelineTask {
             return;
         }
 
-        log.info("[QB PIPELINE] ── STARTED ── scanning source folder: {}", sourceFolderId);
+        long startTime = System.currentTimeMillis();
+        log.info("========== QB SYNC START ==========");
+        log.info("Checking Drive... Source Folder: {}", sourceFolderId);
 
         try {
             traverseAndIngest(sourceFolderId, new ArrayList<>(), archiveFolderId);
-            log.info("[QB PIPELINE] ── COMPLETED ── successfully.");
+            long duration = System.currentTimeMillis() - startTime;
+            log.info("SUCCESS (Execution time: {} ms)", duration);
+            log.info("========== QB SYNC END ==========");
         } catch (Exception e) {
-            log.error("[QB PIPELINE] ── FAILED ── {}", e.getMessage(), e);
+            log.error("[QB PIPELINE] Stage FAILED during traversal/ingest: {}", e.getMessage(), e);
+            log.info("========== QB SYNC END (FAILED) ==========");
         } finally {
             isRunning.set(false);
         }
     }
 
-    // ── Recursive traversal ──────────────────────────────────────────────────
-
-    private void traverseAndIngest(String folderId, List<String> path, String archiveFolderId) {
+    private void traverseAndIngest(String folderId, List<String> path, String archiveFolderId) throws Exception {
+        List<File> items;
         try {
-            List<File> items = driveService.listFilesInFolder(folderId);
-            if (items == null || items.isEmpty()) return;
-
-            for (File item : items) {
-                if ("application/vnd.google-apps.folder".equals(item.getMimeType())) {
-                    List<String> nextPath = new ArrayList<>(path);
-                    nextPath.add(item.getName());
-                    traverseAndIngest(item.getId(), nextPath, archiveFolderId);
-                } else if (item.getName() != null && item.getName().toLowerCase().endsWith(".pdf")) {
-                    processPdfFile(item, path, archiveFolderId);
-                }
-            }
-        } catch (IllegalStateException e) {
-            // Drive client not configured — propagate to stop the whole run
-            throw e;
+            items = driveService.listFilesInFolder(folderId);
         } catch (Exception e) {
-            log.error("[QB PIPELINE] Error reading folder {} (path={}): {}",
-                    folderId, path, e.getMessage(), e);
+            log.error("[QB PIPELINE] FAILED AT STAGE: Drive Folder Traversal (Folder ID: {}) - {}", folderId, e.getMessage());
+            throw e;
+        }
+
+        if (items == null || items.isEmpty()) return;
+
+        int folderCount = 0;
+        int pdfCount = 0;
+        for (File item : items) {
+            if ("application/vnd.google-apps.folder".equals(item.getMimeType())) {
+                folderCount++;
+            } else if (item.getName() != null && item.getName().toLowerCase().endsWith(".pdf")) {
+                pdfCount++;
+            }
+        }
+        log.info("Found {} folders, Found {} PDFs in folder path: {}", folderCount, pdfCount, path);
+
+        for (File item : items) {
+            if ("application/vnd.google-apps.folder".equals(item.getMimeType())) {
+                List<String> nextPath = new ArrayList<>(path);
+                nextPath.add(item.getName());
+                traverseAndIngest(item.getId(), nextPath, archiveFolderId);
+            } else if (item.getName() != null && item.getName().toLowerCase().endsWith(".pdf")) {
+                processPdfFile(item, path, archiveFolderId);
+            }
         }
     }
-
-    // ── Per-PDF processing ───────────────────────────────────────────────────
 
     private void processPdfFile(File file, List<String> path, String archiveFolderId) {
         String state   = path.size() > 0 ? path.get(0) : "General";
@@ -162,106 +151,121 @@ public class QuestionBankPipelineTask {
         String subjectSlug = GeminiQuestionParserService.generateSlug(subject);
         String fileName    = file.getName();
 
-        log.info("[QB PIPELINE] Processing PDF: {} (State={}, Exam={}, Subject={})",
-                fileName, state, exam, subject);
+        log.info("Processing PDF: {}", fileName);
 
         QBAudit audit = new QBAudit();
         audit.setFileName(fileName);
         audit.setGoogleDriveFileId(file.getId());
 
         try {
-            // ── 1. Download from Drive ────────────────────────────────────────
+            // Stage 1: Download
             byte[] bytes;
             try (InputStream stream = driveService.downloadFile(file.getId(), file.getMimeType())) {
                 if (stream == null) {
-                    log.warn("[QB PIPELINE] Download returned null stream for '{}' — skipping.", fileName);
+                    log.warn("[QB PIPELINE] FAILED AT STAGE: Drive PDF Download - Null stream returned for {}", fileName);
                     return;
                 }
                 bytes = stream.readAllBytes();
+            } catch (Exception e) {
+                log.error("[QB PIPELINE] FAILED AT STAGE: Drive PDF Download for '{}' - {}", fileName, e.getMessage());
+                throw e;
             }
 
             if (bytes.length == 0) {
-                log.warn("[QB PIPELINE] Zero-byte content for '{}' — skipping.", fileName);
+                log.warn("[QB PIPELINE] FAILED AT STAGE: Drive PDF Download - Zero-byte file: {}", fileName);
                 return;
             }
 
-            // ── 2. Upload to S3 ───────────────────────────────────────────────
-            String s3Key = String.format("question-bank/%s/%s/%s/%s",
-                    stateSlug, examSlug, subjectSlug, fileName);
+            // Stage 2: S3 Upload
+            String s3Key = String.format("question-bank/%s/%s/%s/%s", stateSlug, examSlug, subjectSlug, fileName);
+            log.info("Uploading S3 ... Target Key: {}", s3Key);
             try (InputStream is = new java.io.ByteArrayInputStream(bytes)) {
                 s3Key = s3Service.uploadFileWithKey(is, (long) bytes.length, s3Key, "application/pdf");
+            } catch (Exception e) {
+                log.error("[QB PIPELINE] FAILED AT STAGE: S3 Upload for '{}' - {}", fileName, e.getMessage());
+                throw e;
             }
             audit.setS3Key(s3Key);
 
-            // ── 3. PDF → text ─────────────────────────────────────────────────
+            // Stage 3: PDF Text Extraction & Gemini Metadata Parsing
             String text = extractTextFromPdfBytes(bytes);
             if (text == null || text.isBlank()) {
-                log.warn("[QB PIPELINE] PDFBox returned empty text for '{}' — Gemini will receive raw placeholder.",
-                        fileName);
                 text = "PDF content could not be extracted from: " + fileName;
             }
 
-            // ── 4. Gemini (ONE TIME ONLY — never at live exam time) ───────────
-            List<QBQuestion> extracted = geminiParserService.parseQuestionsFromText(
-                    text, state, stateSlug, exam, examSlug, subject, subjectSlug,
-                    file.getId(), s3Key);
+            List<QBQuestion> extracted;
+            try {
+                log.info("Extracting metadata via Gemini ...");
+                extracted = geminiParserService.parseQuestionsFromText(
+                        text, state, stateSlug, exam, examSlug, subject, subjectSlug,
+                        file.getId(), s3Key);
+            } catch (Exception e) {
+                log.error("[QB PIPELINE] FAILED AT STAGE: Gemini Metadata Extraction for '{}' - {}", fileName, e.getMessage());
+                throw e;
+            }
 
             audit.setGeminiCallsCount(1);
             audit.setTotalQuestionsExtracted(extracted.size());
 
-            // ── 5. Dedup + Save ────────────────────────────────────────────────
+            // Stage 4: Mongo Save & Dedup
             int passed  = 0;
             int flagged = 0;
             List<QBQuestion> savedQuestions = new ArrayList<>();
 
-            for (QBQuestion q : extracted) {
-                Optional<QBQuestion> existing = questionRepo.findByGoogleDriveFileIdAndQuestionHash(
-                        q.getGoogleDriveFileId(), q.getQuestionHash());
+            try {
+                for (QBQuestion q : extracted) {
+                    Optional<QBQuestion> existing = questionRepo.findByGoogleDriveFileIdAndQuestionHash(
+                            q.getGoogleDriveFileId(), q.getQuestionHash());
 
-                if (existing.isPresent()) {
-                    savedQuestions.add(existing.get());
-                    passed++;
-                } else {
-                    QBQuestion saved = questionRepo.save(q);
-                    savedQuestions.add(saved);
-                    if (Boolean.TRUE.equals(saved.getNeedsReview())) flagged++;
-                    else passed++;
+                    if (existing.isPresent()) {
+                        savedQuestions.add(existing.get());
+                        passed++;
+                    } else {
+                        QBQuestion saved = questionRepo.save(q);
+                        savedQuestions.add(saved);
+                        if (Boolean.TRUE.equals(saved.getNeedsReview())) flagged++;
+                        else passed++;
+                    }
                 }
+                log.info("Mongo Updated ... Saved {} questions (Passed: {}, Flagged: {})", savedQuestions.size(), passed, flagged);
+            } catch (Exception e) {
+                log.error("[QB PIPELINE] FAILED AT STAGE: Mongo Database Save for '{}' - {}", fileName, e.getMessage());
+                throw e;
             }
 
             audit.setQuestionsPassed(passed);
             audit.setQuestionsFlaggedReview(flagged);
 
-            // ── 6. Test & Bundle generation ───────────────────────────────────
-            testGeneratorService.generateTestsAndBundles(savedQuestions, file.getId(), s3Key);
+            // Stage 5: Test & Bundle Generation
+            try {
+                testGeneratorService.generateTestsAndBundles(savedQuestions, file.getId(), s3Key);
+            } catch (Exception e) {
+                log.error("[QB PIPELINE] FAILED AT STAGE: Test & Bundle Generation for '{}' - {}", fileName, e.getMessage());
+                throw e;
+            }
 
-            // ── 7. Archive (ONLY on full SUCCESS) ─────────────────────────────
+            // Stage 6: Archive
             if (archiveFolderId != null && !archiveFolderId.isBlank()) {
                 try {
                     driveService.moveToArchive(file.getId(), archiveFolderId);
-                    log.info("[QB PIPELINE] Archived '{}' → folder {}", fileName, archiveFolderId);
+                    log.info("Archived ... File {} moved to folder {}", fileName, archiveFolderId);
                 } catch (Exception archiveEx) {
-                    // Archive failure is non-fatal — log and continue; the pipeline itself succeeded
-                    log.error("[QB PIPELINE] Archive move failed for '{}': {} (S3 + Mongo are intact)",
-                            fileName, archiveEx.getMessage(), archiveEx);
+                    log.error("[QB PIPELINE] FAILED AT STAGE: Google Drive Archival for '{}' - {}", fileName, archiveEx.getMessage());
                 }
             }
 
             audit.setStatus("SUCCESS");
             auditRepo.save(audit);
+            log.info("SUCCESS Processing {}", fileName);
 
         } catch (Exception e) {
-            log.error("[QB PIPELINE] Error processing '{}': {}", fileName, e.getMessage(), e);
             audit.setStatus("FAILED");
             audit.setErrorMessage(e.getMessage());
             auditRepo.save(audit);
         }
     }
 
-    // ── PDF text extraction ───────────────────────────────────────────────────
-
     private String extractTextFromPdfBytes(byte[] bytes) {
-        // PDFBox 3.x API: Loader.loadPDF(byte[]) — pass raw bytes directly
         try (org.apache.pdfbox.pdmodel.PDDocument doc = org.apache.pdfbox.Loader.loadPDF(bytes)) {
             org.apache.pdfbox.text.PDFTextStripper stripper = new org.apache.pdfbox.text.PDFTextStripper();
             return stripper.getText(doc);
@@ -270,8 +274,6 @@ public class QuestionBankPipelineTask {
             return null;
         }
     }
-
-    // ── Status ────────────────────────────────────────────────────────────────
 
     public boolean isRunning() { return isRunning.get(); }
 }

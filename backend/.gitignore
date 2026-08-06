@@ -34,6 +34,10 @@ build/
 
 ### Secrets & Credentials — NEVER commit these ###
 .env
+# Local dev override properties (contains real secrets for local pipeline testing)
+src/main/resources/application-local.properties
+# QB credentials copied to classpath for local dev run
+src/main/resources/google-qb-credentials.json
 # All Google Service Account JSON keys
 google-credentials.json
 google-credentials.json.json
