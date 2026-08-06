@@ -164,6 +164,7 @@ function App() {
                                             <Route path="/state/:stateSlug/art-and-culture" element={<StateSectionPage />} />
                                             
                                             <Route path="/state/:stateSlug/districts" element={<StateDistrictsPage />} />
+                                            <Route path="/state/:stateSlug/district/:districtSlug" element={<StateDistrictProductsPage />} />
                                             <Route path="/state/:stateSlug/district/:districtSlug/products" element={<StateDistrictProductsPage />} />
 
                                             {/* ── Test Your Knowledge Routes ─────────────────── */}

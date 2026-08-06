@@ -28,7 +28,7 @@ export default function StateDistrictsPage() {
         const districtMap = {};
         const NON_DISTRICT_KEYS = ["general", "state-images", "stateimages", "images", "state images"];
         products.forEach((p) => {
-          const dSlug = p.navbarSlug;
+          const dSlug = p.navbarSlug || p.categorySlug || p.districtSlug;
           const dName = p.navbarCategory || p.district || dSlug;
           if (!dSlug) return;
           const normSlug = String(dSlug).toLowerCase().trim();
@@ -39,8 +39,8 @@ export default function StateDistrictsPage() {
             districtMap[dSlug] = {
               districtSlug: dSlug,
               districtName: dName,
-              navbarSlug: p.navbarSlug,
-              navbarCategory: p.navbarCategory,
+              navbarSlug: p.navbarSlug || dSlug,
+              navbarCategory: p.navbarCategory || dName,
               free: 0,
               paid: 0,
               total: 0
@@ -59,13 +59,13 @@ export default function StateDistrictsPage() {
           setIsActiveState(['haryana', 'himachal-pradesh', 'jharkhand'].includes(stateSlug));
           if (stateSlug === 'haryana') {
             setDistricts([
-              { districtSlug: 'kurukshetra', districtName: 'Kurukshetra', free: 3, paid: 5, total: 8 },
-              { districtSlug: 'panchkula', districtName: 'Panchkula', free: 2, paid: 4, total: 6 },
-              { districtSlug: 'ambala', districtName: 'Ambala', free: 1, paid: 3, total: 4 }
+              { districtSlug: 'district-44-kurukshetra', districtName: 'District 44 - Kurukshetra', navbarSlug: 'district-44-kurukshetra', navbarCategory: 'District 44 - Kurukshetra', free: 3, paid: 5, total: 8 },
+              { districtSlug: 'panchkula', districtName: 'Panchkula', navbarSlug: 'panchkula', navbarCategory: 'Panchkula', free: 2, paid: 4, total: 6 },
+              { districtSlug: 'ambala', districtName: 'Ambala', navbarSlug: 'ambala', navbarCategory: 'Ambala', free: 1, paid: 3, total: 4 }
             ]);
           } else {
             setDistricts([
-              { districtSlug: 'mock-district', districtName: 'Mock District', free: 1, paid: 2, total: 3 }
+              { districtSlug: 'mock-district', districtName: 'Mock District', navbarSlug: 'mock-district', navbarCategory: 'Mock District', free: 1, paid: 2, total: 3 }
             ]);
           }
         } else {
