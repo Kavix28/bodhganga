@@ -133,7 +133,7 @@ export default function StateDistrictProductsPage() {
         const products = Array.isArray(res) ? res : (res?.data || []);
         setAllResources(products);
         if (products.length > 0) {
-          setDistrictName(products[0].district || products[0].districtName || districtSlug);
+          setDistrictName(products[0].navbarCategory || products[0].districtName || districtSlug);
           setStateName(products[0].state || products[0].stateName || stateSlug);
         }
         // Check purchase status (silently fail when not logged in)

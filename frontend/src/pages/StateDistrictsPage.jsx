@@ -24,19 +24,27 @@ export default function StateDistrictsPage() {
           setStateName(products[0].state || products[0].stateName || stateSlug);
         }
 
-        // Group by districtSlug → count free and paid per district
+        // Group by navbarSlug → count free and paid per district
         const districtMap = {};
         const NON_DISTRICT_KEYS = ["general", "state-images", "stateimages", "images", "state images"];
         products.forEach((p) => {
-          const dSlug = p.districtSlug;
-          const dName = p.district || p.districtName || dSlug;
+          const dSlug = p.navbarSlug;
+          const dName = p.navbarCategory || p.district || dSlug;
           if (!dSlug) return;
           const normSlug = String(dSlug).toLowerCase().trim();
           const normName = String(dName).toLowerCase().trim();
           if (NON_DISTRICT_KEYS.includes(normSlug) || NON_DISTRICT_KEYS.includes(normName)) return;
 
           if (!districtMap[dSlug]) {
-            districtMap[dSlug] = { districtSlug: dSlug, districtName: dName, free: 0, paid: 0, total: 0 };
+            districtMap[dSlug] = {
+              districtSlug: dSlug,
+              districtName: dName,
+              navbarSlug: p.navbarSlug,
+              navbarCategory: p.navbarCategory,
+              free: 0,
+              paid: 0,
+              total: 0
+            };
           }
           districtMap[dSlug].total++;
           if (p.free || p.isFree || p.price === 0) districtMap[dSlug].free++;
@@ -151,7 +159,7 @@ export default function StateDistrictsPage() {
                     key={d.districtSlug}
                     district={d}
                     onClick={() =>
-                      navigate(`/state/${stateSlug}/district/${d.districtSlug}/products`)
+                      navigate(`/state/${stateSlug}/district/${d.navbarSlug}/products`)
                     }
                   />
                 ))}
