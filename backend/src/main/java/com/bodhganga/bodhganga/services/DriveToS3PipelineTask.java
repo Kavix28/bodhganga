@@ -41,17 +41,28 @@ public class DriveToS3PipelineTask {
     private final AtomicLong syncDurationMs = new AtomicLong(0);
 
     private static final List<String> SUPPORTED_EXTENSIONS = List.of(
-        "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
-        "png", "jpg", "jpeg", "webp",
-        "mp3", "m4a", "wav", "ogg", "aac", "flac",
-        "mp4", "avi", "mkv", "mov",
-        "zip", "txt"
-    );
+            "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
+            "png", "jpg", "jpeg", "webp",
+            "mp3", "m4a", "wav", "ogg", "aac", "flac",
+            "mp4", "avi", "mkv", "mov",
+            "zip", "txt");
+
+    public static String normalizeName(String name) {
+        return ProductMetadataUtil.normalizeName(name);
+    }
+
+    /**
+     * Backward compatibility wrapper.
+     * Metadata parsing now lives in ProductMetadataUtil.
+     */
+    public static String normalizeName(String name) {
+        return ProductMetadataUtil.normalizeName(name);
+    }
 
     public DriveToS3PipelineTask(GoogleDriveSyncService googleDriveSyncService,
-                                S3Service s3Service,
-                                ProductRepo productRepo,
-                                MongoTemplate mongoTemplate) {
+            S3Service s3Service,
+            ProductRepo productRepo,
+            MongoTemplate mongoTemplate) {
         this.googleDriveSyncService = googleDriveSyncService;
         this.s3Service = s3Service;
         this.productRepo = productRepo;
@@ -70,7 +81,8 @@ public class DriveToS3PipelineTask {
     @jakarta.annotation.PostConstruct
     public void validateStartup() {
         boolean driveConfigured = googleDriveSyncService.isConfigured();
-        boolean s3Configured = s3Service != null && s3Service.getBucketName() != null && !s3Service.getBucketName().isEmpty();
+        boolean s3Configured = s3Service != null && s3Service.getBucketName() != null
+                && !s3Service.getBucketName().isEmpty();
         boolean mongoConnected = false;
         try {
             mongoTemplate.executeCommand("{ping: 1}");
@@ -88,11 +100,26 @@ public class DriveToS3PipelineTask {
 
         if (pipelineEnabled) {
             boolean canRun = true;
-            if (!driveConfigured) { log.warn("Google Drive not configured"); canRun = false; }
-            if (!s3Configured) { log.warn("S3 not configured"); canRun = false; }
-            if (!mongoConnected) { log.warn("MongoDB not connected"); canRun = false; }
-            if (sourceFolderId == null || sourceFolderId.isBlank()) { log.warn("Source folder ID missing"); canRun = false; }
-            if (archiveFolderId == null || archiveFolderId.isBlank()) { log.warn("Archive folder ID missing"); canRun = false; }
+            if (!driveConfigured) {
+                log.warn("Google Drive not configured");
+                canRun = false;
+            }
+            if (!s3Configured) {
+                log.warn("S3 not configured");
+                canRun = false;
+            }
+            if (!mongoConnected) {
+                log.warn("MongoDB not connected");
+                canRun = false;
+            }
+            if (sourceFolderId == null || sourceFolderId.isBlank()) {
+                log.warn("Source folder ID missing");
+                canRun = false;
+            }
+            if (archiveFolderId == null || archiveFolderId.isBlank()) {
+                log.warn("Archive folder ID missing");
+                canRun = false;
+            }
             if (!canRun) {
                 log.warn("Pipeline prerequisites not met. Pipeline will NOT run automatically.");
                 pipelineEnabled = false;
@@ -100,14 +127,37 @@ public class DriveToS3PipelineTask {
         }
     }
 
-    public boolean isRunning() { return isRunning.get(); }
-    public Date getLastRun() { return lastRun; }
-    public int getFilesProcessed() { return filesProcessed.get(); }
-    public int getFilesUploaded() { return filesUploaded.get(); }
-    public int getFilesFailed() { return filesFailed.get(); }
-    public int getFilesSkipped() { return filesSkipped.get(); }
-    public int getDuplicatesFound() { return duplicatesFound.get(); }
-    public long getSyncDurationMs() { return syncDurationMs.get(); }
+    public boolean isRunning() {
+        return isRunning.get();
+    }
+
+    public Date getLastRun() {
+        return lastRun;
+    }
+
+    public int getFilesProcessed() {
+        return filesProcessed.get();
+    }
+
+    public int getFilesUploaded() {
+        return filesUploaded.get();
+    }
+
+    public int getFilesFailed() {
+        return filesFailed.get();
+    }
+
+    public int getFilesSkipped() {
+        return filesSkipped.get();
+    }
+
+    public int getDuplicatesFound() {
+        return duplicatesFound.get();
+    }
+
+    public long getSyncDurationMs() {
+        return syncDurationMs.get();
+    }
 
     @Scheduled(fixedDelay = 600000)
     public void syncDriveToS3() {
@@ -120,11 +170,13 @@ public class DriveToS3PipelineTask {
             return;
         }
         if (force && (!googleDriveSyncService.isConfigured() || sourceFolderId == null)) {
-            throw new IllegalStateException("Google Drive sync service is not configured or source folder ID is missing.");
+            throw new IllegalStateException(
+                    "Google Drive sync service is not configured or source folder ID is missing.");
         }
         if (!isRunning.compareAndSet(false, true)) {
             log.warn("[GENERIC PIPELINE] Pipeline already running.");
-            if (force) throw new IllegalStateException("Pipeline sync is already running.");
+            if (force)
+                throw new IllegalStateException("Pipeline sync is already running.");
             return;
         }
 
@@ -140,17 +192,19 @@ public class DriveToS3PipelineTask {
 
         try {
             traverseAndSync(sourceFolderId, "BodhGanga", new ArrayList<>(), scannedDriveFileIds);
-            
+
             // Delete Synchronization Pass
             performDeleteSync(scannedDriveFileIds);
 
             lastRun = new Date();
             syncDurationMs.set(System.currentTimeMillis() - startTime);
             log.info("[GENERIC PIPELINE] COMPLETED in {} ms - uploaded={}, skipped={}, failed={}, duplicates={}",
-                syncDurationMs.get(), filesUploaded.get(), filesSkipped.get(), filesFailed.get(), duplicatesFound.get());
+                    syncDurationMs.get(), filesUploaded.get(), filesSkipped.get(), filesFailed.get(),
+                    duplicatesFound.get());
         } catch (Exception e) {
             log.error("[GENERIC PIPELINE] FAILED: {}", e.getMessage(), e);
-            if (force) throw new RuntimeException("Error during Drive to S3 sync: " + e.getMessage(), e);
+            if (force)
+                throw new RuntimeException("Error during Drive to S3 sync: " + e.getMessage(), e);
         } finally {
             isRunning.set(false);
         }
@@ -162,10 +216,12 @@ public class DriveToS3PipelineTask {
         int deletedCount = 0;
 
         for (Product p : activeDriveProducts) {
-            if (Boolean.TRUE.equals(p.getIsDeleted())) continue;
+            if (Boolean.TRUE.equals(p.getIsDeleted()))
+                continue;
             String driveId = p.getGoogleDriveFileId();
             if (driveId != null && !driveId.isBlank() && !scannedDriveFileIds.contains(driveId)) {
-                log.info("[DELETE SYNC] Drive file removed, soft-deleting Mongo record: {} (Drive ID: {})", p.getFileName(), driveId);
+                log.info("[DELETE SYNC] Drive file removed, soft-deleting Mongo record: {} (Drive ID: {})",
+                        p.getFileName(), driveId);
                 p.setIsDeleted(true);
                 p.setPublished(false);
                 p.setIngestionStatus(IngestionStatus.DELETED);
@@ -180,11 +236,13 @@ public class DriveToS3PipelineTask {
     /**
      * Recursive folder traversal with unlimited depth & pagination.
      */
-    private void traverseAndSync(String folderId, String folderName, List<String> folderPath, Set<String> scannedDriveFileIds) {
+    private void traverseAndSync(String folderId, String folderName, List<String> folderPath,
+            Set<String> scannedDriveFileIds) {
         log.info("[GENERIC PIPELINE] FOLDER: {} ({}) Path: {}", folderName, folderId, folderPath);
         try {
             List<File> items = googleDriveSyncService.listFilesInFolder(folderId);
-            if (items == null) return;
+            if (items == null)
+                return;
 
             for (File item : items) {
                 String mimeType = item.getMimeType();
@@ -212,11 +270,9 @@ public class DriveToS3PipelineTask {
         log.info("[GENERIC PIPELINE] FILE: {} (Drive ID: {})", fileName, file.getId());
 
         String mimeType = file.getMimeType();
-        boolean isGoogleDoc = mimeType != null && (
-            mimeType.equals("application/vnd.google-apps.document") ||
-            mimeType.equals("application/vnd.google-apps.spreadsheet") ||
-            mimeType.equals("application/vnd.google-apps.presentation")
-        );
+        boolean isGoogleDoc = mimeType != null && (mimeType.equals("application/vnd.google-apps.document") ||
+                mimeType.equals("application/vnd.google-apps.spreadsheet") ||
+                mimeType.equals("application/vnd.google-apps.presentation"));
         String targetMimeType = isGoogleDoc ? "application/pdf" : mimeType;
 
         if (isGoogleDoc && fileName != null && !fileName.toLowerCase().endsWith(".pdf")) {
@@ -230,7 +286,8 @@ public class DriveToS3PipelineTask {
             return;
         }
 
-        // ── Extract Hierarchical Metadata (State, NavbarCategory, District, Tier) ───────────
+        // ── Extract Hierarchical Metadata (State, NavbarCategory, District, Tier)
+        // ───────────
         HierarchicalMetadata metadata = ProductMetadataUtil.extractMetadata(folderPath, fileName);
         String state = metadata.state;
         String stateSlug = metadata.stateSlug;
@@ -250,7 +307,7 @@ public class DriveToS3PipelineTask {
         String contentType = Product.determineContentType(fileMimeType, fileName);
 
         log.info("[GENERIC PIPELINE] state={} navbarCategory={} district={} s3Key={}",
-            state, navbarCategory, district, s3Key);
+                state, navbarCategory, district, s3Key);
 
         // ── Step 1: Download & Compute Checksum ──────────────────────────────
         byte[] fileBytes;
@@ -271,11 +328,14 @@ public class DriveToS3PipelineTask {
 
         // ── Step 2: Idempotent & Incremental Sync Check ───────────────────────────
         Product existing = productRepo.findByGoogleDriveFileId(file.getId());
-        if (existing == null) existing = productRepo.findByS3Key(s3Key).orElse(null);
-        if (existing == null && checksum != null) existing = productRepo.findByChecksum(checksum).orElse(null);
+        if (existing == null)
+            existing = productRepo.findByS3Key(s3Key).orElse(null);
+        if (existing == null && checksum != null)
+            existing = productRepo.findByChecksum(checksum).orElse(null);
 
         // Incremental sync: If checksum matches existing record, skip re-uploading
-        if (existing != null && checksum != null && checksum.equals(existing.getChecksum()) && Boolean.TRUE.equals(existing.getIsLatestVersion())) {
+        if (existing != null && checksum != null && checksum.equals(existing.getChecksum())
+                && Boolean.TRUE.equals(existing.getIsLatestVersion())) {
             log.info("[INCREMENTAL SYNC] File unchanged, skipping re-upload: {}", fileName);
             existing.setLastSync(new Date());
             productRepo.save(existing);
@@ -286,7 +346,8 @@ public class DriveToS3PipelineTask {
         Product product;
         if (existing != null && checksum != null && !checksum.equals(existing.getChecksum())) {
             // Versioning: File modified on Drive → create new version (v2, v3...)
-            log.info("[VERSIONING] Modifying file {}, creating version {}", fileName, (existing.getVersion() != null ? existing.getVersion() : 1) + 1);
+            log.info("[VERSIONING] Modifying file {}, creating version {}", fileName,
+                    (existing.getVersion() != null ? existing.getVersion() : 1) + 1);
             existing.setIsLatestVersion(false);
             existing.setPublished(false);
             productRepo.save(existing);
@@ -329,11 +390,14 @@ public class DriveToS3PipelineTask {
         product.setSubcategory(metadata.subcategory);
         product.setSubcategorySlug(metadata.subcategorySlug);
         product.setSubfolderPath(metadata.subfolderPath);
-        
+
         List<String> crumbs = new ArrayList<>();
-        if (state != null) crumbs.add(state);
-        if (navbarCategory != null) crumbs.add(navbarCategory);
-        if (metadata.subcategory != null) crumbs.add(metadata.subcategory);
+        if (state != null)
+            crumbs.add(state);
+        if (navbarCategory != null)
+            crumbs.add(navbarCategory);
+        if (metadata.subcategory != null)
+            crumbs.add(metadata.subcategory);
         product.setBreadcrumbs(crumbs);
 
         product.setGoogleDriveFileId(file.getId());
@@ -363,7 +427,7 @@ public class DriveToS3PipelineTask {
             product = productRepo.save(product);
 
             log.info("[GENERIC PIPELINE] SUCCESS state={} navbarCategory={} s3Url={}",
-                state, navbarCategory, s3Url);
+                    state, navbarCategory, s3Url);
 
             // ── Step 5: Archive ONLY After S3 + Mongo Success ─────────────────────
             if (archiveFolderId != null && !archiveFolderId.isEmpty() && !archiveFolderId.equals("null")) {
@@ -395,7 +459,8 @@ public class DriveToS3PipelineTask {
             StringBuilder hexString = new StringBuilder();
             for (byte b : hash) {
                 String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) hexString.append('0');
+                if (hex.length() == 1)
+                    hexString.append('0');
                 hexString.append(hex);
             }
             return hexString.toString();
