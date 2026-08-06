@@ -3,6 +3,8 @@ package com.bodhganga.bodhganga.services;
 import com.bodhganga.bodhganga.entity.IngestionStatus;
 import com.bodhganga.bodhganga.entity.Product;
 import com.bodhganga.bodhganga.repo.ProductRepo;
+import com.bodhganga.bodhganga.util.ProductMetadataUtil;
+import com.bodhganga.bodhganga.util.ProductMetadataUtil.HierarchicalMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -11,7 +13,7 @@ import java.util.*;
 
 /**
  * One-time S3 to MongoDB Product Metadata Recovery Service.
- * Recreates Product documents in MongoDB from existing S3 bucket objects.
+ * Recreates Product documents in MongoDB from existing S3 bucket objects using ProductMetadataUtil.
  */
 @Service
 public class S3RecoveryService {
@@ -30,10 +32,10 @@ public class S3RecoveryService {
      * Recovery result summary DTO matching requirements: { scanned, imported, skipped, failed }
      */
     public static class RecoveryResult {
-        private int scanned;
-        private int imported;
-        private int skipped;
-        private int failed;
+        private final int scanned;
+        private final int imported;
+        private final int skipped;
+        private final int failed;
 
         public RecoveryResult(int scanned, int imported, int skipped, int failed) {
             this.scanned = scanned;
@@ -73,7 +75,24 @@ public class S3RecoveryService {
             }
 
             // Skip Question Bank prefix (isolated subsystem)
-            if (s3Key.startsWith("question-bank/") || s3Key.contains("/question-bank/")) {
+            if (s3Key.startsWith("question-bank/") || s3Key.contains("/question-bank/") ||
+                s3Key.startsWith("qb/") || s3Key.contains("/qb/")) {
+                skipped++;
+                continue;
+            }
+
+            String[] parts = s3Key.split("/");
+            if (parts.length == 0) {
+                skipped++;
+                continue;
+            }
+
+            String fileName = parts[parts.length - 1];
+
+            // Ignore hidden files and temporary files
+            if (fileName.startsWith(".") || fileName.startsWith("~$") ||
+                fileName.endsWith(".tmp") || fileName.endsWith(".crdownload") ||
+                fileName.equalsIgnoreCase(".DS_Store")) {
                 skipped++;
                 continue;
             }
@@ -85,15 +104,19 @@ public class S3RecoveryService {
                     continue;
                 }
 
-                // Parse metadata from S3 Key using Product metadata conventions
-                Product product = parseMetadataFromS3Key(s3Key);
-                if (product != null) {
-                    productRepo.save(product);
-                    imported++;
-                    log.info("[S3 RECOVERY] Created Product for S3 key: {}", s3Key);
-                } else {
-                    failed++;
+                // Reconstruct folderPath from S3 key segments (excluding the filename)
+                List<String> folderPath = new ArrayList<>();
+                for (int i = 0; i < parts.length - 1; i++) {
+                    folderPath.add(parts[i]);
                 }
+
+                // Extract metadata via central production utility
+                HierarchicalMetadata metadata = ProductMetadataUtil.extractMetadata(folderPath, fileName);
+
+                Product product = buildProductFromMetadata(s3Key, fileName, metadata);
+                productRepo.save(product);
+                imported++;
+                log.info("[S3 RECOVERY] Created Product for S3 key: {}", s3Key);
 
             } catch (Exception e) {
                 log.error("[S3 RECOVERY ERROR] Failed to import S3 key '{}': {}", s3Key, e.getMessage(), e);
@@ -107,109 +130,70 @@ public class S3RecoveryService {
         return new RecoveryResult(scanned, imported, skipped, failed);
     }
 
-    /**
-     * Parses S3 Key into Product entity using established State Notes metadata conventions.
-     */
-    private Product parseMetadataFromS3Key(String s3Key) {
-        String[] parts = s3Key.split("/");
-        if (parts.length == 0) return null;
+    private Product buildProductFromMetadata(String s3Key, String fileName, HierarchicalMetadata metadata) {
+        String state = metadata.state;
+        String stateSlug = metadata.stateSlug;
+        String navbarCategory = metadata.navbarCategory;
+        String navbarSlug = metadata.navbarSlug;
+        String district = metadata.district;
+        String districtSlug = metadata.districtSlug;
+        boolean isFree = metadata.isFree;
+        double price = isFree ? 0.0 : 99.0;
 
-        String rawFileName = parts[parts.length - 1];
-        String stateSlug = parts[0];
-        String stateName = capitalizeWords(stateSlug.replace("-", " "));
-
-        String fileExtension = Product.getFileExtension(rawFileName);
-        String fileMimeType = Product.determineMimeType(rawFileName);
-        String contentType = Product.determineContentType(fileMimeType, rawFileName);
-        String title = Product.stripExtension(rawFileName).replace("_", " ");
+        String displayTitle = Product.stripExtension(fileName);
+        String fileExtension = Product.getFileExtension(fileName);
+        String fileMimeType = Product.determineMimeType(fileName);
+        String contentType = Product.determineContentType(fileMimeType, fileName);
 
         Product product = new Product();
-        product.setS3Key(s3Key);
-        product.setStorageKey(s3Key);
-        product.setS3Url(s3Service.getS3Url(s3Key));
-
-        product.setState(stateName);
-        product.setStateSlug(stateSlug);
-
-        product.setOriginalFileName(rawFileName);
-        product.setFileName(rawFileName);
-        product.setTitle(title);
-        product.setDisplayTitle(title);
-
-        product.setFileExtension(fileExtension);
-        product.setMimeType(fileMimeType);
-        product.setContentType(contentType);
-        product.setType(contentType);
-
-        product.setImportedFromDrive(true);
-        product.setIngestionStatus(IngestionStatus.COMPLETED);
-        product.setPublished(true);
-        product.setPublishedField(true);
-        product.setArchived(false);
-        product.setIsDeleted(false);
-
-        product.setIsLatestVersion(true);
         product.setVersion(1);
+        product.setIsLatestVersion(true);
+        product.setOriginalFileName(fileName);
+        product.setFileName(fileName);
+        product.setFileExtension(fileExtension);
+        product.setImportedFromDrive(true);
 
         Date now = new Date();
         product.setCreatedAt(now);
         product.setUpdatedAt(now);
         product.setLastSync(now);
 
-        // Derive navbarCategory / category / subcategory / district from path structure
-        if (parts.length > 2) {
-            String catSlug = parts[1];
-            String catName = capitalizeWords(catSlug.replace("-", " "));
-            product.setNavbarCategory(catName);
-            product.setNavbarSlug(catSlug);
-            product.setCategory(catName);
-            product.setCategorySlug(catSlug);
+        product.setTitle(displayTitle);
+        product.setDisplayTitle(displayTitle);
+        product.setType(contentType);
+        product.setContentType(contentType);
+        product.setMimeType(fileMimeType);
 
-            if (parts.length > 3) {
-                String distSlug = parts[2];
-                String distName = capitalizeWords(distSlug.replace("-", " "));
-                product.setDistrict(distName);
-                product.setDistrictSlug(distSlug);
-            } else {
-                product.setDistrict("general");
-                product.setDistrictSlug("general");
-            }
-        } else if (parts.length > 1) {
-            String catSlug = parts[1];
-            String catName = capitalizeWords(catSlug.replace("-", " "));
-            product.setNavbarCategory(catName);
-            product.setNavbarSlug(catSlug);
-            product.setCategory(catName);
-            product.setCategorySlug(catSlug);
-            product.setDistrict("general");
-            product.setDistrictSlug("general");
-        } else {
-            product.setNavbarCategory("General Notes");
-            product.setNavbarSlug("general-notes");
-            product.setCategory("General Notes");
-            product.setCategorySlug("general-notes");
-            product.setDistrict("general");
-            product.setDistrictSlug("general");
-        }
+        product.setState(ProductMetadataUtil.normalizeName(state));
+        product.setStateSlug(stateSlug);
+        product.setDistrict(ProductMetadataUtil.normalizeName(district));
+        product.setDistrictSlug(districtSlug);
+        product.setNavbarCategory(navbarCategory);
+        product.setNavbarSlug(navbarSlug);
+        product.setCategorySlug(navbarSlug);
+        product.setSubcategory(metadata.subcategory);
+        product.setSubcategorySlug(metadata.subcategorySlug);
+        product.setSubfolderPath(metadata.subfolderPath);
 
         List<String> crumbs = new ArrayList<>();
-        if (product.getState() != null) crumbs.add(product.getState());
-        if (product.getCategory() != null) crumbs.add(product.getCategory());
-        if (product.getDistrict() != null && !"general".equalsIgnoreCase(product.getDistrict())) crumbs.add(product.getDistrict());
+        if (state != null) crumbs.add(state);
+        if (navbarCategory != null) crumbs.add(navbarCategory);
+        if (metadata.subcategory != null) crumbs.add(metadata.subcategory);
         product.setBreadcrumbs(crumbs);
 
-        return product;
-    }
+        product.setPublished(true);
+        product.setPublishedField(true);
+        product.setFree(isFree);
+        product.setPrice(price);
+        product.setCategory(navbarCategory != null ? navbarCategory : (isFree ? "Free Resources" : "Paid Resources"));
 
-    private String capitalizeWords(String text) {
-        if (text == null || text.isBlank()) return text;
-        String[] words = text.split("\\s+");
-        StringBuilder sb = new StringBuilder();
-        for (String w : words) {
-            if (!w.isEmpty()) {
-                sb.append(Character.toUpperCase(w.charAt(0))).append(w.substring(1).toLowerCase()).append(" ");
-            }
-        }
-        return sb.toString().trim();
+        product.setS3Key(s3Key);
+        product.setStorageKey(s3Key);
+        product.setS3Url(s3Service.getS3Url(s3Key));
+        product.setIngestionStatus(IngestionStatus.COMPLETED);
+        product.setArchived(false);
+        product.setIsDeleted(false);
+
+        return product;
     }
 }
