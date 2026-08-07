@@ -202,11 +202,15 @@ export default function DistrictResourcesPage() {
           setDistrictName(products[0].district || products[0].districtName || districtSlug);
           setStateName(products[0].state || products[0].stateName || stateSlug);
         }
-        try {
-          const pRes = await api.get("/payment/district/purchased");
-          const list = Array.isArray(pRes) ? pRes : (pRes?.data || []);
-          setPurchased(list.includes(districtSlug));
-        } catch { /* not logged in */ }
+        if (user) {
+          try {
+            const pRes = await api.get("/payment/district/purchased");
+            const list = Array.isArray(pRes) ? pRes : (pRes?.data || []);
+            setPurchased(list.includes(districtSlug));
+          } catch { setPurchased(false); }
+        } else {
+          setPurchased(false);
+        }
       } catch (e) {
         console.error(e);
       } finally {

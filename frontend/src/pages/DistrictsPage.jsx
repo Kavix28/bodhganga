@@ -5,6 +5,8 @@ import toast from "react-hot-toast";
 import { useCart } from '../context/CartContext';
 import { GraduationCap, Mail, MessageCircle, Printer, ArrowLeft, ArrowRight } from 'lucide-react';
 
+import { useAuth } from "../hooks/useAuth";
+
 function ReceiptModal({ receipt, onClose }) {
   const handlePrint = () => window.print();
   return (
@@ -130,6 +132,7 @@ export default function DistrictsPage() {
   const [purchasedSlugs, setPurchasedSlugs] = useState([]);
   const [stateName, setStateName] = useState("");
   const [search, setSearch] = useState("");
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [receipt, setReceipt] = useState(null);
   const [failedDistrict, setFailedDistrict] = useState(null);
@@ -179,12 +182,16 @@ export default function DistrictsPage() {
           setStateName(products[0].state || products[0].stateName || stateSlug);
         }
 
-        // Fetch purchased slugs (requires auth, fail silently)
-        try {
-          const pRes = await api.get("/payment/district/purchased");
-          const list = Array.isArray(pRes) ? pRes : (pRes?.data || []);
-          setPurchasedSlugs(list);
-        } catch {}
+        // Fetch purchased slugs (requires auth, check user first)
+        if (user) {
+          try {
+            const pRes = await api.get("/payment/district/purchased");
+            const list = Array.isArray(pRes) ? pRes : (pRes?.data || []);
+            setPurchasedSlugs(list);
+          } catch {}
+        } else {
+          setPurchasedSlugs([]);
+        }
       } catch (e) {
         console.error("Failed to load districts:", e);
       } finally {

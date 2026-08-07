@@ -181,12 +181,16 @@ export default function StateDistrictProductsPage() {
           setDistrictName(toTitleCase(districtSlug));
           setStateName(toTitleCase(stateSlug));
         }
-        // Check purchase status (silently fail when not logged in)
-        try {
-          const pRes = await api.get("/payment/district/purchased");
-          const list = Array.isArray(pRes) ? pRes : (pRes?.data || []);
-          setPurchased(list.includes(districtSlug));
-        } catch { /* unauthenticated */ }
+        // Check purchase status (only when logged in)
+        if (user) {
+          try {
+            const pRes = await api.get("/payment/district/purchased");
+            const list = Array.isArray(pRes) ? pRes : (pRes?.data || []);
+            setPurchased(list.includes(districtSlug));
+          } catch { setPurchased(false); }
+        } else {
+          setPurchased(false);
+        }
       } catch (err) {
         console.error("Failed to load resources:", err);
       } finally {

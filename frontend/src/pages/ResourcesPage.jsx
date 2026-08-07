@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import toast from "react-hot-toast";
 
+import { useAuth } from "../hooks/useAuth";
+
 const FILE_ICONS = {
   pdf:  { icon: "??", color: "text-red-400",    label: "PDF" },
   docx: { icon: "??", color: "text-blue-400",   label: "DOCX" },
@@ -28,6 +30,7 @@ function formatSize(bytes) {
 export default function ResourcesPage() {
   const { stateSlug, districtSlug } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(true);
   const [districtName, setDistrictName] = useState("");
@@ -50,6 +53,10 @@ export default function ResourcesPage() {
         const allFree = products.every(p => p.isFree === true);
 
         if (!allFree) {
+          if (!user) {
+            setRedirect({ to: "/login", msg: "Please log in to view these resources" });
+            return;
+          }
           try {
             const pRes = await api.get("/payment/district/purchased");
             const purchased = pRes?.data || [];
