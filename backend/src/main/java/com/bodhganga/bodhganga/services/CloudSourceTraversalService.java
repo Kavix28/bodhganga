@@ -107,53 +107,9 @@ public class CloudSourceTraversalService {
     }
 
     private FolderInfo extractStateAndDistrict(List<String> folderPath, String currentFolderName) {
-        List<String> pathList = new ArrayList<>(folderPath);
-        
-        List<String> knownStates = List.of(
-            "andhra-pradesh", "arunachal-pradesh", "assam", "bihar", "chhattisgarh", "goa", "gujarat", 
-            "haryana", "himachal-pradesh", "jharkhand", "karnataka", "kerala", "madhya-pradesh", 
-            "maharashtra", "manipur", "meghalaya", "mizoram", "nagaland", 
-            "odisha", "punjab", "rajasthan", "sikkim", "tamil-nadu", "telangana", "tripura", 
-            "uttar-pradesh", "uttarakhand", "west-bengal", "delhi", "jammu-and-kashmir", 
-            "ladakh", "puducherry", "chandigarh", "lakshadweep", "andaman-and-nicobar-islands"
-        );
-
-        String state = null;
-        int stateIndex = -1;
-
-        // Traverse folders to find the state
-        for (int i = 0; i < pathList.size(); i++) {
-            String folder = pathList.get(i);
-            String slug = Product.generateSlug(folder);
-            if (knownStates.contains(slug)) {
-                state = folder;
-                stateIndex = i;
-                break;
-            }
-        }
-
-        // Fallback to first element if no exact state match
-        if (state == null && !pathList.isEmpty()) {
-            state = pathList.get(0);
-            stateIndex = 0;
-        } else if (state == null) {
-            state = "general";
-            stateIndex = -1;
-        }
-
-        String district = null;
-        List<String> ignoredDistrictNames = List.of("general", "state images", "state-images", "stateimages", "images");
-        
-        // Find the first unique element after state in nesting path that is a valid district folder
-        for (int i = stateIndex + 1; i < pathList.size(); i++) {
-            String current = pathList.get(i);
-            if (!current.equalsIgnoreCase(state) && !ignoredDistrictNames.contains(current.toLowerCase().trim())) {
-                district = current;
-                break;
-            }
-        }
-        
-        return new FolderInfo(state, district != null ? district : "general");
+        com.bodhganga.bodhganga.util.DistrictParser.ParsedLocation loc =
+            com.bodhganga.bodhganga.util.DistrictParser.extractLocation(folderPath, null);
+        return new FolderInfo(loc.getState(), loc.getDistrict());
     }
 
     private static class FolderInfo {

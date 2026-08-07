@@ -49,13 +49,13 @@ public class DriveToS3PipelineTask {
         this.mongoTemplate = mongoTemplate;
     }
 
-    @Value("${google.drive.source-folder-id:#{null}}")
+    @Value("${google.drive.source-folder-id:${QB_SOURCE_FOLDER_ID:#{null}}}")
     private String sourceFolderId;
 
-    @Value("${google.drive.archive-folder-id:#{null}}")
+    @Value("${google.drive.archive-folder-id:${QB_ARCHIVE_FOLDER_ID:#{null}}}")
     private String archiveFolderId;
 
-    @Value("${google.drive.pipeline.enabled:false}")
+    @Value("${google.drive.pipeline.enabled:${QB_PIPELINE_ENABLED:false}}")
     private boolean pipelineEnabled;
 
     @jakarta.annotation.PostConstruct
@@ -377,117 +377,13 @@ public class DriveToS3PipelineTask {
     }
 
     public static String normalizeName(String name) {
-        if (name == null) return "";
-        String cleaned = name.replaceAll("(?i)^(State\\s*\\d+\\s*-\\s*|State\\s*-\\s*|State\\s+\\d+\\s+|\\d+\\s*-\\s*|\\d+\\s+)", "").trim();
-        cleaned = cleaned.replaceAll("(?i)\\s+District$", "").trim();
-        return cleaned;
+        return com.bodhganga.bodhganga.util.DistrictParser.parseDistrict(name).getKey();
     }
 
-    private static final java.util.Map<String, String> CATEGORY_MAP = java.util.Map.of(
-        "history", "history",
-        "geography", "geography",
-        "heritage-sites-monuments", "heritage-sites-monuments",
-        "heritage-sites-and-monuments", "heritage-sites-monuments",
-        "monuments", "heritage-sites-monuments",
-        "heritage", "heritage-sites-monuments",
-        "art-culture", "art-and-culture",
-        "art-and-culture", "art-and-culture"
-    );
-
     private FolderMetadata extractMetadata(List<String> folderPath) {
-        List<String> normalizedList = new java.util.ArrayList<>();
-        boolean isGenericFree = false;
-        String freeCategory = null;
-
-        if (folderPath != null) {
-            boolean hasFreeResources = false;
-            int freeIndex = -1;
-            for (int i = 0; i < folderPath.size(); i++) {
-                if (isFreeFolder(folderPath.get(i))) {
-                    hasFreeResources = true;
-                    freeIndex = i;
-                    break;
-                }
-            }
-
-            boolean hasKnownState = false;
-            java.util.List<String> knownStatesList = java.util.Arrays.asList(
-                "andhra-pradesh", "arunachal-pradesh", "assam", "bihar", "chhattisgarh", "goa",
-                "gujarat", "haryana", "himachal-pradesh", "jharkhand", "karnataka", "kerala",
-                "madhya-pradesh", "maharashtra", "manipur", "meghalaya", "mizoram", "nagaland",
-                "odisha", "punjab", "rajasthan", "sikkim", "tamil-nadu", "telangana", "tripura",
-                "uttar-pradesh", "uttarakhand", "west-bengal", "delhi", "jammu-and-kashmir",
-                "ladakh", "puducherry", "chandigarh", "lakshadweep", "andaman-and-nicobar-islands"
-            );
-            for (String f : folderPath) {
-                if (knownStatesList.contains(Product.generateSlug(normalizeName(f)))) {
-                    hasKnownState = true;
-                    break;
-                }
-            }
-
-            if (hasFreeResources && !hasKnownState) {
-                isGenericFree = true;
-                if (folderPath.size() > freeIndex + 1) {
-                    freeCategory = normalizeName(folderPath.get(freeIndex + 1));
-                } else {
-                    freeCategory = "Free Resources";
-                }
-            }
-        }
-
-        if (isGenericFree) {
-            return new FolderMetadata("general", "general", freeCategory);
-        }
-
-        if (folderPath != null) {
-            for (String f : folderPath) {
-                // Skip free/paid tier folders from state/district extraction
-                if (isFreeFolder(f) || isPaidFolder(f)) continue;
-                String norm = normalizeName(f);
-                if (!norm.isEmpty()) normalizedList.add(norm);
-            }
-        }
-
-        if (normalizedList.isEmpty()) return new FolderMetadata("general", "general", "general");
-
-        java.util.List<String> knownStates = java.util.Arrays.asList(
-            "andhra-pradesh", "arunachal-pradesh", "assam", "bihar", "chhattisgarh", "goa",
-            "gujarat", "haryana", "himachal-pradesh", "jharkhand", "karnataka", "kerala",
-            "madhya-pradesh", "maharashtra", "manipur", "meghalaya", "mizoram", "nagaland",
-            "odisha", "punjab", "rajasthan", "sikkim", "tamil-nadu", "telangana", "tripura",
-            "uttar-pradesh", "uttarakhand", "west-bengal", "delhi", "jammu-and-kashmir",
-            "ladakh", "puducherry", "chandigarh", "lakshadweep", "andaman-and-nicobar-islands"
-        );
-
-        String state = null;
-        int stateIndex = -1;
-        for (int i = 0; i < normalizedList.size(); i++) {
-            String slug = Product.generateSlug(normalizedList.get(i));
-            if (knownStates.contains(slug)) { state = normalizedList.get(i); stateIndex = i; break; }
-        }
-        if (state == null) { state = normalizedList.get(0); stateIndex = 0; }
-
-        String category = "general";
-        int categoryIndex = -1;
-        for (int i = 0; i < normalizedList.size(); i++) {
-            if (i == stateIndex) continue;
-            String slug = Product.generateSlug(normalizedList.get(i));
-            if (CATEGORY_MAP.containsKey(slug)) {
-                category = CATEGORY_MAP.get(slug);
-                categoryIndex = i;
-                break;
-            }
-        }
-
-        String district = "general";
-        for (int i = 0; i < normalizedList.size(); i++) {
-            if (i == stateIndex || i == categoryIndex) continue;
-            district = normalizedList.get(i);
-            break;
-        }
-
-        return new FolderMetadata(state, district, category);
+        com.bodhganga.bodhganga.util.DistrictParser.ParsedLocation loc =
+            com.bodhganga.bodhganga.util.DistrictParser.extractLocation(folderPath, null);
+        return new FolderMetadata(loc.getState(), loc.getDistrict(), loc.getCategory());
     }
 
     private static class FolderMetadata {

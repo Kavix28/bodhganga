@@ -555,20 +555,32 @@ public class DataLoader implements CommandLineRunner {
                     p.setPublished(true);
                     changed = true;
                 }
-                if (p.getState() == null || p.getState().isEmpty()) {
+                // Extract state and district metadata dynamically using DistrictParser
+                java.util.List<String> pathCandidates = new java.util.ArrayList<>();
+                if (p.getStorageKey() != null && !p.getStorageKey().isBlank()) pathCandidates.add(p.getStorageKey());
+                if (p.getCategory() != null && !p.getCategory().isBlank()) pathCandidates.add(p.getCategory());
+                if (p.getDistrict() != null && !p.getDistrict().isBlank()) pathCandidates.add(p.getDistrict());
+
+                com.bodhganga.bodhganga.util.DistrictParser.ParsedLocation loc =
+                    com.bodhganga.bodhganga.util.DistrictParser.extractLocation(pathCandidates, p.getStorageKey());
+
+                if (!loc.getStateSlug().equals("general") && (p.getStateSlug() == null || p.getStateSlug().isEmpty() || p.getStateSlug().equals("general"))) {
+                    p.setState(loc.getState());
+                    p.setStateSlug(loc.getStateSlug());
+                    changed = true;
+                } else if (p.getState() == null || p.getState().isEmpty()) {
                     p.setState("general");
+                    p.setStateSlug("general");
                     changed = true;
                 }
-                if (p.getStateSlug() == null || p.getStateSlug().isEmpty()) {
-                    p.setStateSlug(Product.generateSlug(p.getState()));
+
+                if (!loc.getDistrictSlug().equals("general") && (p.getDistrictSlug() == null || p.getDistrictSlug().isEmpty() || p.getDistrictSlug().equals("general"))) {
+                    p.setDistrict(loc.getDistrict());
+                    p.setDistrictSlug(loc.getDistrictSlug());
                     changed = true;
-                }
-                if (p.getDistrict() == null || p.getDistrict().isEmpty()) {
+                } else if (p.getDistrict() == null || p.getDistrict().isEmpty()) {
                     p.setDistrict("general");
-                    changed = true;
-                }
-                if (p.getDistrictSlug() == null || p.getDistrictSlug().isEmpty()) {
-                    p.setDistrictSlug(Product.generateSlug(p.getDistrict()));
+                    p.setDistrictSlug("general");
                     changed = true;
                 }
                 if (p.getMimeType() == null || p.getMimeType().isEmpty()) {

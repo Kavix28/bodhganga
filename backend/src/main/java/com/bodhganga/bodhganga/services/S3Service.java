@@ -30,7 +30,7 @@ public class S3Service {
     @Value("${aws.s3.bucket-name:${aws.s3.bucket.name:bodhganga-pdf-storage-prod}}")
     private String bucketName;
 
-    @Value("${aws.region:eu-north-1}")
+    @Value("${aws.region:ap-south-1}")
     private String awsRegion;
 
     public S3Service(S3Client s3Client, S3Presigner s3Presigner) {

@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/products")
@@ -98,11 +99,16 @@ public class ProductController {
         product.setPrice(product.isFree() ? 0.0 : 99.0);
         product.setCreatedAt(new Date());
         if (product.getState() != null) {
-            product.setStateSlug(Product.generateSlug(product.getState()));
+            Map.Entry<String, String> st = com.bodhganga.bodhganga.util.DistrictParser.parseState(product.getState());
+            product.setState(st.getKey());
+            product.setStateSlug(st.getValue());
         }
         if (product.getDistrict() != null) {
-            product.setDistrictSlug(Product.generateSlug(product.getDistrict()));
+            Map.Entry<String, String> dist = com.bodhganga.bodhganga.util.DistrictParser.parseDistrict(product.getDistrict());
+            product.setDistrict(dist.getKey());
+            product.setDistrictSlug(dist.getValue());
         } else {
+            product.setDistrict("general");
             product.setDistrictSlug("general");
         }
         Product saved = productRepo.save(product);
@@ -120,11 +126,16 @@ public class ProductController {
         product.setPrice(product.isFree() ? 0.0 : 99.0);
         product.setId(id);
         if (product.getState() != null) {
-            product.setStateSlug(Product.generateSlug(product.getState()));
+            Map.Entry<String, String> st = com.bodhganga.bodhganga.util.DistrictParser.parseState(product.getState());
+            product.setState(st.getKey());
+            product.setStateSlug(st.getValue());
         }
         if (product.getDistrict() != null) {
-            product.setDistrictSlug(Product.generateSlug(product.getDistrict()));
+            Map.Entry<String, String> dist = com.bodhganga.bodhganga.util.DistrictParser.parseDistrict(product.getDistrict());
+            product.setDistrict(dist.getKey());
+            product.setDistrictSlug(dist.getValue());
         } else {
+            product.setDistrict("general");
             product.setDistrictSlug("general");
         }
         Product saved = productRepo.save(product);
