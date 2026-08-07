@@ -21,8 +21,13 @@ import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Service
 public class S3Service {
+
+    private static final Logger log = LoggerFactory.getLogger(S3Service.class);
 
     private final S3Client s3Client;
     private final S3Presigner s3Presigner;
@@ -30,7 +35,7 @@ public class S3Service {
     @Value("${aws.s3.bucket-name:${aws.s3.bucket.name:bodhganga-pdf-storage-prod}}")
     private String bucketName;
 
-    @Value("${aws.region:ap-south-1}")
+    @Value("${aws.region:eu-north-1}")
     private String awsRegion;
 
     public S3Service(S3Client s3Client, S3Presigner s3Presigner) {
@@ -141,6 +146,24 @@ public class S3Service {
 
         PresignedGetObjectRequest presignedGetObjectRequest = s3Presigner.presignGetObject(getObjectPresignRequest);
         return presignedGetObjectRequest.url().toString();
+    }
+
+    /**
+     * Check if an object exists in S3 bucket.
+     */
+    public boolean doesObjectExist(String objectKey) {
+        try {
+            s3Client.headObject(software.amazon.awssdk.services.s3.model.HeadObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(objectKey)
+                    .build());
+            return true;
+        } catch (software.amazon.awssdk.services.s3.model.NoSuchKeyException e) {
+            return false;
+        } catch (Exception e) {
+            log.warn("S3 headObject check failed for key {}: {}", objectKey, e.getMessage());
+            return true;
+        }
     }
 
     /**

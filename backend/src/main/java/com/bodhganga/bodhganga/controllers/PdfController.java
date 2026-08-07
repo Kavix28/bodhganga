@@ -197,6 +197,11 @@ public class PdfController {
                 }
             }
 
+            if (!s3Service.doesObjectExist(key)) {
+                return ResponseEntity.status(404).body(ApiResponseDTO.builder()
+                        .success(false).message("Missing S3 object: The requested document file is not available in storage.").build());
+            }
+
             String signedUrl = s3Service.generatePresignedUrl(key);
 
             if (redirect) {
@@ -214,10 +219,18 @@ public class PdfController {
                     .header("X-Content-Type-Options", "nosniff")
                     .body(response);
 
+        } catch (software.amazon.awssdk.services.s3.model.NoSuchKeyException e) {
+            log.error("S3 object key not found: {}: {}", key, e.getMessage());
+            return ResponseEntity.status(404).body(ApiResponseDTO.builder()
+                    .success(false).message("Missing S3 object: The requested document file is not available in storage.").build());
+        } catch (software.amazon.awssdk.core.exception.SdkClientException e) {
+            log.error("AWS S3 Presigned URL client error for key {}: {}", key, e.getMessage());
+            return ResponseEntity.status(500).body(ApiResponseDTO.builder()
+                    .success(false).message("Presigned URL generation failure: " + e.getMessage()).build());
         } catch (Exception e) {
             log.error("Failed to generate presigned URL for key {}: {}", key, e.getMessage());
-            return ResponseEntity.status(404).body(ApiResponseDTO.builder()
-                    .success(false).message("PDF file not found or failed to generate access link.").build());
+            return ResponseEntity.status(500).body(ApiResponseDTO.builder()
+                    .success(false).message("Presigned URL generation failure: " + e.getMessage()).build());
         }
     }
 

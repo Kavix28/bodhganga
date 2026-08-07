@@ -30,9 +30,39 @@ function formatSize(bytes) {
 function ResourceModal({ resource, onClose }) {
   const { user } = useAuth();
   const [iframeLoading, setIframeLoading] = useState(true);
-  const ext = (resource.fileExtension || "").toLowerCase();
-  const url = resource.s3Url ? resource.s3Url.split('/').map((part, i) => i < 3 ? part : encodeURIComponent(part)).join('/') : null;
+  const [pdfSignedUrl, setPdfSignedUrl] = useState(null);
+  const [pdfError, setPdfError] = useState(null);
+  const [pdfLoading, setPdfLoading] = useState(true);
+
+  const key = resource.storageKey || resource.s3Key;
+  const ext = (resource.fileExtension || key?.split('.').pop() || "").toLowerCase();
   const title = resource.displayTitle || resource.title || resource.fileName;
+  const rawUrl = resource.s3Url ? resource.s3Url.split('/').map((part, i) => i < 3 ? part : encodeURIComponent(part)).join('/') : null;
+
+  useEffect(() => {
+    if (ext === "pdf") {
+      setPdfLoading(true);
+      const accessKey = key || rawUrl;
+      if (!accessKey) {
+        setPdfError("Resource storage key is missing.");
+        setPdfLoading(false);
+        return;
+      }
+      api.get(`/pdf/${accessKey}`)
+        .then(res => {
+          const urlVal = res.url || res.data?.url || (typeof res === 'string' ? res : null);
+          if (urlVal) {
+            setPdfSignedUrl(urlVal);
+          } else {
+            setPdfError(res.message || "Failed to retrieve secure presigned URL.");
+          }
+        })
+        .catch(err => {
+          setPdfError(err.response?.data?.message || err.message || "Failed to load secure PDF material.");
+        })
+        .finally(() => setPdfLoading(false));
+    }
+  }, [key, rawUrl, ext]);
 
   const officeExts = ["docx", "doc", "xlsx", "xls", "pptx", "ppt"];
   const imageExts = ["png", "jpg", "jpeg", "webp"];
@@ -40,12 +70,27 @@ function ResourceModal({ resource, onClose }) {
 
   const renderContent = () => {
     if (ext === "pdf") {
+      if (pdfLoading) {
+        return (
+          <div className="w-full h-full flex items-center justify-center text-white">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-400"></div>
+          </div>
+        );
+      }
+      if (pdfError || !pdfSignedUrl) {
+        return (
+          <div className="w-full h-full flex flex-col items-center justify-center text-white p-6 text-center">
+            <p className="text-red-400 font-bold mb-2">Access Restricted</p>
+            <p className="text-slate-300 text-sm max-w-md">{pdfError || "Failed to load secure PDF material."}</p>
+          </div>
+        );
+      }
       return (
         <div className="relative w-full h-full">
           <SecurePdfViewer
-            pdfUrl={url}
+            pdfUrl={pdfSignedUrl}
             title={title}
-            watermarkText={`${user?.email || 'Student'} • BodhGanga Protected Resource`}
+            watermarkText={`${user?.email || user?.phoneNo || 'Student'} • BodhGanga Protected Resource`}
             onClose={onClose}
             className="w-full h-full border-none rounded-lg"
           />

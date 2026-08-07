@@ -18,17 +18,42 @@ export default function StateDistrictsPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        // Fetch all published drive products for this state
-        const res = await api.get(`/products/state/${stateSlug}`);
+        // Fetch official district list for state as well as state products
+        const [distRes, prodRes] = await Promise.allSettled([
+          api.get(`/states/${stateSlug}/districts`),
+          api.get(`/products/state/${stateSlug}`)
+        ]);
+
+        const distList = distRes.status === "fulfilled" ? (Array.isArray(distRes.value) ? distRes.value : (distRes.value?.data || [])) : [];
+        const res = prodRes.status === "fulfilled" ? prodRes.value : [];
         const products = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : res?.data?.data || res?.data?.content || [];
 
         if (products.length > 0) {
           setStateName(products[0].state || products[0].stateName || stateSlug);
         }
 
-        // Group by districtSlug → count free and paid per district
         const districtMap = {};
         const NON_DISTRICT_KEYS = ["general", "state-images", "stateimages", "images", "state images"];
+
+        // Seed official districts from aggregation endpoint
+        distList.forEach((d) => {
+          const dSlug = d.districtSlug;
+          const dName = d.district || dSlug;
+          if (!dSlug) return;
+          const normSlug = String(dSlug).toLowerCase().trim();
+          const normName = String(dName).toLowerCase().trim();
+          if (NON_DISTRICT_KEYS.includes(normSlug) || NON_DISTRICT_KEYS.includes(normName)) return;
+
+          districtMap[dSlug] = {
+            districtSlug: dSlug,
+            districtName: dName,
+            free: 0,
+            paid: 0,
+            total: d.count || 0
+          };
+        });
+
+        // Compute free and paid counts per district from products
         products.forEach((p) => {
           const dSlug = p.districtSlug;
           const dName = p.district || p.districtName || dSlug;
@@ -40,13 +65,13 @@ export default function StateDistrictsPage() {
           if (!districtMap[dSlug]) {
             districtMap[dSlug] = { districtSlug: dSlug, districtName: dName, free: 0, paid: 0, total: 0 };
           }
-          districtMap[dSlug].total++;
           if (p.free || p.isFree || p.price === 0) districtMap[dSlug].free++;
           else districtMap[dSlug].paid++;
+          districtMap[dSlug].total = districtMap[dSlug].free + districtMap[dSlug].paid;
         });
 
         setDistricts(Object.values(districtMap).sort((a, b) => a.districtName.localeCompare(b.districtName)));
-        setIsActiveState(products.length > 0 || ['haryana', 'himachal-pradesh', 'jharkhand'].includes(stateSlug));
+        setIsActiveState(Object.keys(districtMap).length > 0 || ['haryana', 'himachal-pradesh', 'jharkhand'].includes(stateSlug));
       } catch (err) {
         console.error("Failed to load districts:", err);
         if (import.meta.env.DEV) {

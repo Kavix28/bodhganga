@@ -26,7 +26,12 @@ function formatSize(bytes) {
 
 function ResourceModal({ resource, onClose }) {
   const { user } = useAuth();
-  const ext = (resource.fileExtension || "").toLowerCase();
+  const [pdfSignedUrl, setPdfSignedUrl] = useState(null);
+  const [pdfError, setPdfError] = useState(null);
+  const [pdfLoading, setPdfLoading] = useState(true);
+
+  const key = resource.storageKey || resource.s3Key;
+  const ext = (resource.fileExtension || key?.split('.').pop() || "").toLowerCase();
   const url = resource.s3Url;
   const title = resource.displayTitle || resource.title || resource.fileName;
   const officeExts = ["docx", "doc", "xlsx", "xls", "pptx", "ppt"];
@@ -38,6 +43,31 @@ function ResourceModal({ resource, onClose }) {
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, [onClose]);
+
+  useEffect(() => {
+    if (ext === "pdf") {
+      setPdfLoading(true);
+      const accessKey = key || url;
+      if (!accessKey) {
+        setPdfError("Resource storage key is missing.");
+        setPdfLoading(false);
+        return;
+      }
+      api.get(`/pdf/${accessKey}`)
+        .then(res => {
+          const urlVal = res.url || res.data?.url || (typeof res === 'string' ? res : null);
+          if (urlVal) {
+            setPdfSignedUrl(urlVal);
+          } else {
+            setPdfError(res.message || "Failed to retrieve secure presigned URL.");
+          }
+        })
+        .catch(err => {
+          setPdfError(err.response?.data?.message || err.message || "Failed to load secure PDF material.");
+        })
+        .finally(() => setPdfLoading(false));
+    }
+  }, [key, url, ext]);
 
   return (
     <div
@@ -69,13 +99,24 @@ function ResourceModal({ resource, onClose }) {
         {/* Body */}
         <div className="flex-1 overflow-hidden p-4">
           {ext === "pdf" ? (
-            <SecurePdfViewer
-              pdfUrl={url}
-              title={title}
-              watermarkText={`${user?.email || 'Student'} • BodhGanga Protected Copy`}
-              onClose={onClose}
-              className="w-full h-full border-none rounded-lg"
-            />
+            pdfLoading ? (
+              <div className="w-full h-full flex items-center justify-center text-white">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-400"></div>
+              </div>
+            ) : pdfError || !pdfSignedUrl ? (
+              <div className="w-full h-full flex flex-col items-center justify-center text-white p-6 text-center">
+                <p className="text-red-400 font-bold mb-2">Access Restricted</p>
+                <p className="text-slate-300 text-sm max-w-md">{pdfError || "Failed to load secure PDF material."}</p>
+              </div>
+            ) : (
+              <SecurePdfViewer
+                pdfUrl={pdfSignedUrl}
+                title={title}
+                watermarkText={`${user?.email || user?.phoneNo || 'Student'} • BodhGanga Protected Copy`}
+                onClose={onClose}
+                className="w-full h-full border-none rounded-lg"
+              />
+            )
           ) : imageExts.includes(ext) ? (
             <div className="w-full h-full flex items-center justify-center overflow-auto">
               <img src={url} alt={title} className="max-w-full max-h-full object-contain rounded-lg" />
@@ -132,9 +173,13 @@ export default function StateDistrictProductsPage() {
         const res = await api.get(`/products/state/${stateSlug}/district/${districtSlug}`);
         const products = Array.isArray(res) ? res : (res?.data || []);
         setAllResources(products);
+        const toTitleCase = (str) => String(str || "").replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
         if (products.length > 0) {
-          setDistrictName(products[0].district || products[0].districtName || districtSlug);
-          setStateName(products[0].state || products[0].stateName || stateSlug);
+          setDistrictName(products[0].district || products[0].districtName || toTitleCase(districtSlug));
+          setStateName(products[0].state || products[0].stateName || toTitleCase(stateSlug));
+        } else {
+          setDistrictName(toTitleCase(districtSlug));
+          setStateName(toTitleCase(stateSlug));
         }
         // Check purchase status (silently fail when not logged in)
         try {
