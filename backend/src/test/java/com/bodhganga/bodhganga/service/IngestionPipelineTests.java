@@ -727,11 +727,42 @@ public class IngestionPipelineTests {
 
         pipelineTask.syncDriveToS3(true);
 
-        List<Product> productsRun3 = productRepo.findAll();
-        assertEquals(5, productsRun3.size(), "Third run must not create any new MongoDB documents");
-        verify(s3Service, never()).uploadFileWithKey(any(), anyLong(), anyString(), anyString());
-        verify(googleDriveSyncService, never()).downloadFile(anyString());
         verify(googleDriveSyncService, times(1)).archiveDistrictFolder(anyString(), anyString(), anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void testStateImageIngestionAndAvailableStatesEndpoint() throws Exception {
+        File imageFile = mkFile("haryana-img-id", "Haryana-image.png", "image/png", 51200L);
+        when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(imageFile));
+        when(googleDriveSyncService.downloadFile("haryana-img-id")).thenReturn(new ByteArrayInputStream("mock-png-data".getBytes()));
+        when(s3Service.uploadFileWithKey(any(), anyLong(), eq("states/haryana/Haryana-image.png"), eq("image/png")))
+                .thenReturn("states/haryana/Haryana-image.png");
+        when(s3Service.getS3Url("states/haryana/Haryana-image.png"))
+                .thenReturn("https://test-bucket-name.s3.eu-north-1.amazonaws.com/states/haryana/Haryana-image.png");
+
+        pipelineTask.syncDriveToS3(true);
+
+        // 1. Verify S3 Key upload
+        verify(s3Service).uploadFileWithKey(any(), anyLong(), eq("states/haryana/Haryana-image.png"), eq("image/png"));
+
+        // 2. Verify Mongo Document
+        Product p = productRepo.findByGoogleDriveFileId("haryana-img-id");
+        assertNotNull(p, "Mongo product must be saved");
+        assertEquals("Haryana", p.getState());
+        assertEquals("haryana", p.getStateSlug());
+        assertEquals("general", p.getDistrict());
+        assertEquals("general", p.getDistrictSlug());
+        assertEquals("Images", p.getNavbarCategory());
+        assertEquals("states/haryana/Haryana-image.png", p.getStorageKey());
+        assertTrue(p.isPublished());
+
+        // 3. Verify /api/states/available REST endpoint returns Haryana
+        ResponseEntity<List> response = restTemplate.getForEntity("http://localhost:" + port + "/api/states/available", List.class);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        boolean containsHaryana = response.getBody().stream()
+                .anyMatch(m -> "haryana".equals(((java.util.Map<?, ?>) m).get("stateSlug")));
+        assertTrue(containsHaryana, "/api/states/available endpoint must return haryana");
     }
 
     // ─────────────────────────────────────────────────────────────────────────

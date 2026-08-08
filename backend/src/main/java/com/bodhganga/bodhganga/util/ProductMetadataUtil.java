@@ -28,6 +28,9 @@ public class ProductMetadataUtil {
 
     public static HierarchicalMetadata parseStateImage(List<String> folderPath, String fileName) {
         if (fileName == null || fileName.isBlank()) return null;
+        if (folderPath != null && !folderPath.isEmpty()) {
+            return null;
+        }
 
         String ext = Product.getFileExtension(fileName).toLowerCase();
         List<String> imageExts = List.of("png", "jpg", "jpeg", "webp", "gif", "svg");
