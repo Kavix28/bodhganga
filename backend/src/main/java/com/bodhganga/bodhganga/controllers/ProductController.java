@@ -61,7 +61,7 @@ public class ProductController {
      */
     @GetMapping("/state/{stateSlug}/district/{districtSlug}")
     public ResponseEntity<ApiResponseDTO> getProductsByStateAndDistrict(@PathVariable String stateSlug, @PathVariable String districtSlug) {
-        List<Product> products = productRepo.findByStateSlugAndDistrictSlugAndIsPublishedTrue(stateSlug, districtSlug);
+        List<Product> products = productRepo.findByStateSlugAndNavbarSlugAndIsPublishedTrue(stateSlug, districtSlug);
         return ResponseEntity.ok(ApiResponseDTO.builder()
                 .success(true)
                 .data(products)

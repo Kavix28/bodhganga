@@ -1,7 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Lock, History, Award, Landmark, Map, Music, ChevronRight } from 'lucide-react';
+import { Lock, History, Landmark, Map, Music, BookOpen } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import api from '../../services/api';
+
+const DEFAULT_TABS = [
+  { id: 'history', label: 'History', icon: History },
+  { id: 'heritage-monuments', label: 'Heritage Sites & Monuments', icon: Landmark },
+  { id: 'geography', label: 'Geography', icon: Map },
+  { id: 'art-culture', label: 'Art & Culture', icon: Music },
+];
+
+const ICON_MAP = {
+  history: History,
+  geography: Map,
+  'heritage-sites-monuments': Landmark,
+  'heritage-monuments': Landmark,
+  'art-culture': Music,
+  'art-and-culture': Music,
+};
 
 export default function StateSectionTabs({ stateSlug, activeSection }) {
   const navigate = useNavigate();
@@ -9,13 +26,37 @@ export default function StateSectionTabs({ stateSlug, activeSection }) {
   const { isAuthenticated } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [pendingTab, setPendingTab] = useState(null);
+  const [dynamicTabs, setDynamicTabs] = useState([]);
 
-  const TABS = [
-    { id: 'history', label: 'History', icon: History, path: `/state/${stateSlug}/history` },
-    { id: 'heritage-monuments', label: 'Heritage Sites & Monuments', icon: Landmark, path: `/state/${stateSlug}/heritage-monuments` },
-    { id: 'geography', label: 'Geography', icon: Map, path: `/state/${stateSlug}/geography` },
-    { id: 'art-culture', label: 'Art & Culture', icon: Music, path: `/state/${stateSlug}/art-culture` },
-  ];
+  useEffect(() => {
+    let isMounted = true;
+    const fetchCategories = async () => {
+      try {
+        const res = await api.get(`/states/${stateSlug}/categories`);
+        const cats = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
+        if (isMounted && cats.length > 0) {
+          const parsed = cats.map(c => {
+            const slug = c.navbarSlug || c.navbarCategory?.toLowerCase().replace(/\s+/g, '-') || 'general';
+            return {
+              id: slug,
+              label: c.navbarCategory || slug,
+              icon: ICON_MAP[slug] || BookOpen,
+              path: `/state/${stateSlug}/${slug}`
+            };
+          });
+          setDynamicTabs(parsed);
+        }
+      } catch (e) {
+        console.warn("Could not load dynamic categories for state", e);
+      }
+    };
+    if (stateSlug) fetchCategories();
+    return () => { isMounted = false; };
+  }, [stateSlug]);
+
+  const tabsToRender = dynamicTabs.length > 0
+    ? dynamicTabs
+    : DEFAULT_TABS.map(t => ({ ...t, path: `/state/${stateSlug}/${t.id}` }));
 
   const handleTabClick = (tab) => {
     if (isAuthenticated) {
@@ -45,7 +86,7 @@ export default function StateSectionTabs({ stateSlug, activeSection }) {
       {/* Tab Container */}
       <div className="bg-emerald-950/40 rounded-2xl p-1.5 border border-emerald-900/60 shadow-lg backdrop-blur-sm overflow-x-auto scrollbar-none">
         <div className="flex gap-2 min-w-max md:min-w-0 md:grid md:grid-cols-4">
-          {TABS.map((tab) => {
+          {tabsToRender.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeSection === tab.id;
             

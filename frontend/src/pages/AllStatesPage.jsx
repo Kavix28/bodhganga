@@ -1,8 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
-//change
-import StateNavbar from "../components/states/StateNavbar";
 
 import imgAndhra from "../assets/states/andhra-pradesh-image.png";
 import imgArunachal from "../assets/states/arunachal-pradesh-image.png";

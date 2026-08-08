@@ -14,6 +14,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.bodhganga.bodhganga.services.SelfHealingService;
+
 /**
  * Admin API for the Bodhganga ingestion pipeline.
  * Single pipeline: DriveToS3PipelineTask (legacy PipelineTask is disabled).
@@ -27,13 +29,16 @@ public class PipelineController {
     private final DriveToS3PipelineTask driveToS3PipelineTask;
     private final ProductRepo productRepo;
     private final ProductionVerificationService productionVerificationService;
+    private final SelfHealingService selfHealingService;
 
     public PipelineController(DriveToS3PipelineTask driveToS3PipelineTask,
                                ProductRepo productRepo,
-                               ProductionVerificationService productionVerificationService) {
+                               ProductionVerificationService productionVerificationService,
+                               SelfHealingService selfHealingService) {
         this.driveToS3PipelineTask = driveToS3PipelineTask;
         this.productRepo = productRepo;
         this.productionVerificationService = productionVerificationService;
+        this.selfHealingService = selfHealingService;
     }
 
     // =========================================================================
@@ -59,19 +64,42 @@ public class PipelineController {
     }
 
     // =========================================================================
+    // POST /api/admin/pipeline/self-heal
+    // Triggers self-healing consistency and integrity audit.
+    // =========================================================================
+    @PostMapping("/self-heal")
+    public ResponseEntity<Map<String, Object>> runSelfHealing() {
+        log.info("[PIPELINE] Self-healing audit triggered via admin API.");
+        Map<String, Object> result = selfHealingService.runSelfHealingAudit();
+        return ResponseEntity.ok(result);
+    }
+
+    // =========================================================================
     // GET /api/admin/pipeline/status — current run state
     // =========================================================================
     @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> getPipelineStatus() {
         Map<String, Object> response = new HashMap<>();
-        response.put("activePipeline", "DriveToS3PipelineTask");
+        Map<String, Object> auditSummary = productionVerificationService.getSummary();
+
+        response.put("activePipeline", "GenericDriveToS3Pipeline");
         response.put("legacyPipelineDisabled", true);
         response.put("running", driveToS3PipelineTask.isRunning());
         response.put("lastRun", driveToS3PipelineTask.getLastRun());
         response.put("filesProcessed", driveToS3PipelineTask.getFilesProcessed());
+        response.put("driveFiles", driveToS3PipelineTask.getFilesProcessed());
         response.put("filesUploaded", driveToS3PipelineTask.getFilesUploaded());
+        response.put("s3Files", driveToS3PipelineTask.getFilesUploaded());
         response.put("filesFailed", driveToS3PipelineTask.getFilesFailed());
+        response.put("failedUploads", driveToS3PipelineTask.getFilesFailed());
         response.put("filesSkipped", driveToS3PipelineTask.getFilesSkipped());
+        response.put("skipped", driveToS3PipelineTask.getFilesSkipped());
+        response.put("duplicatesFound", driveToS3PipelineTask.getDuplicatesFound());
+        response.put("duplicates", driveToS3PipelineTask.getDuplicatesFound());
+        response.put("syncDurationMs", driveToS3PipelineTask.getSyncDurationMs());
+        response.put("syncDuration", driveToS3PipelineTask.getSyncDurationMs());
+
+        response.putAll(auditSummary);
         return ResponseEntity.ok(response);
     }
 

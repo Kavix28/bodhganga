@@ -169,13 +169,12 @@ export default function StateDistrictProductsPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        // Use the existing district-level endpoint
         const res = await api.get(`/products/state/${stateSlug}/district/${districtSlug}`);
         const products = Array.isArray(res) ? res : (res?.data || []);
         setAllResources(products);
         const toTitleCase = (str) => String(str || "").replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
         if (products.length > 0) {
-          setDistrictName(products[0].district || products[0].districtName || toTitleCase(districtSlug));
+          setDistrictName(products[0].district || products[0].navbarCategory || products[0].districtName || toTitleCase(districtSlug));
           setStateName(products[0].state || products[0].stateName || toTitleCase(stateSlug));
         } else {
           setDistrictName(toTitleCase(districtSlug));

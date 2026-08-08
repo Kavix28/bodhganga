@@ -15,4 +15,6 @@ public interface QuizAttemptRepo extends MongoRepository<QuizAttempt, String> {
     List<QuizAttempt> findByUserIdAndStateSlugOrderByAttemptedAtDesc(String userId, String stateSlug);
 
     List<QuizAttempt> findByUserIdAndStateSlugAndDistrictSlugOrderByAttemptedAtDesc(String userId, String stateSlug, String districtSlug);
+
+    List<QuizAttempt> findTop20ByOrderByAttemptedAtDesc();
 }

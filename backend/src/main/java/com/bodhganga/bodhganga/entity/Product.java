@@ -1,17 +1,26 @@
 package com.bodhganga.bodhganga.entity;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.index.CompoundIndexes;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.Date;
 
 @Document(collection = "products")
+@CompoundIndexes({
+    @CompoundIndex(name = "state_category_idx", def = "{'stateSlug': 1, 'categorySlug': 1, 'isPublished': 1}"),
+    @CompoundIndex(name = "state_navbar_idx", def = "{'stateSlug': 1, 'navbarSlug': 1, 'isPublished': 1}"),
+    @CompoundIndex(name = "search_idx", def = "{'stateSlug': 1, 'categorySlug': 1, 'tags': 1, 'isPublished': 1}")
+})
 public class Product {
     @Id
     private String id;
     
     private String title;
     private String description;
+    @Indexed
     private String stateSlug; // To associate with a specific state
     private String type; // "PDF", "AUDIO", "VIDEO"
     
@@ -19,16 +28,23 @@ public class Product {
     private String previewUrl; // Thumbnail or sample audio
     private String storageKey; // AWS S3 Object Key for secure download
     
+    @Indexed
     private boolean isPublished;
     private Date createdAt;
  
     // Fields for PDF import from Google Drive
     private String category;
+    @Indexed
+    private String categorySlug;
     private String courseId;
     private String fileName;
     private Long fileSize;
+    
+    @Indexed(unique = true, sparse = true)
     private String s3Key;
     private String driveUrl;
+    
+    @Indexed
     private Boolean importedFromDrive;
     
     // Recursive State/District Ingestion Fields
@@ -46,6 +62,8 @@ public class Product {
 
     // Hardened pipeline fields
     private String fileExtension;
+    
+    @Indexed(unique = true, sparse = true)
     private String googleDriveFileId;
     private IngestionStatus ingestionStatus;
     private Date updatedAt;
@@ -57,6 +75,38 @@ public class Product {
     private String stateName;
     private String districtName;
     private boolean published;
+
+    // Generic Hierarchical Pipeline Fields
+    private String navbarCategory;
+    @Indexed
+    private String navbarSlug;
+    private String subcategory;
+    private String subcategorySlug;
+    private String subfolderPath;
+    private String googleDriveParentId;
+    private Date lastSync;
+    private String checksum;
+    private Integer version = 1;
+
+    // Zero-Leakage & Multiversioning Fields
+    @Indexed
+    private Boolean isLatestVersion = true;
+    private String previousVersionId;
+    @Indexed
+    private Boolean isDeleted = false;
+    private String md5;
+    private String etag;
+    private Date driveModifiedTime;
+
+    // Smart Metadata & AI Ready Schema Fields
+    private java.util.List<String> breadcrumbs;
+    private java.util.List<String> tags;
+    private java.util.List<String> keywords;
+    private String language = "en";
+    private String thumbnailUrl;
+    private String ocrText;
+    private String summary;
+    private java.util.List<Double> embeddings;
     
     public Product() {
         this.createdAt = new Date();
@@ -200,6 +250,78 @@ public class Product {
         }
         return fileName;
     }
+
+    public Boolean getIsLatestVersion() { return isLatestVersion; }
+    public void setIsLatestVersion(Boolean isLatestVersion) { this.isLatestVersion = isLatestVersion; }
+
+    public String getPreviousVersionId() { return previousVersionId; }
+    public void setPreviousVersionId(String previousVersionId) { this.previousVersionId = previousVersionId; }
+
+    public Boolean getIsDeleted() { return isDeleted; }
+    public void setIsDeleted(Boolean isDeleted) { this.isDeleted = isDeleted; }
+
+    public String getMd5() { return md5; }
+    public void setMd5(String md5) { this.md5 = md5; }
+
+    public String getEtag() { return etag; }
+    public void setEtag(String etag) { this.etag = etag; }
+
+    public Date getDriveModifiedTime() { return driveModifiedTime; }
+    public void setDriveModifiedTime(Date driveModifiedTime) { this.driveModifiedTime = driveModifiedTime; }
+
+    public java.util.List<String> getBreadcrumbs() { return breadcrumbs; }
+    public void setBreadcrumbs(java.util.List<String> breadcrumbs) { this.breadcrumbs = breadcrumbs; }
+
+    public java.util.List<String> getTags() { return tags; }
+    public void setTags(java.util.List<String> tags) { this.tags = tags; }
+
+    public java.util.List<String> getKeywords() { return keywords; }
+    public void setKeywords(java.util.List<String> keywords) { this.keywords = keywords; }
+
+    public String getLanguage() { return language; }
+    public void setLanguage(String language) { this.language = language; }
+
+    public String getThumbnailUrl() { return thumbnailUrl; }
+    public void setThumbnailUrl(String thumbnailUrl) { this.thumbnailUrl = thumbnailUrl; }
+
+    public String getOcrText() { return ocrText; }
+    public void setOcrText(String ocrText) { this.ocrText = ocrText; }
+
+    public String getSummary() { return summary; }
+    public void setSummary(String summary) { this.summary = summary; }
+
+    public java.util.List<Double> getEmbeddings() { return embeddings; }
+    public void setEmbeddings(java.util.List<Double> embeddings) { this.embeddings = embeddings; }
+
+    public String getCategorySlug() { return categorySlug; }
+    public void setCategorySlug(String categorySlug) { this.categorySlug = categorySlug; }
+
+    public String getSubcategory() { return subcategory; }
+    public void setSubcategory(String subcategory) { this.subcategory = subcategory; }
+
+    public String getSubcategorySlug() { return subcategorySlug; }
+    public void setSubcategorySlug(String subcategorySlug) { this.subcategorySlug = subcategorySlug; }
+
+    public String getSubfolderPath() { return subfolderPath; }
+    public void setSubfolderPath(String subfolderPath) { this.subfolderPath = subfolderPath; }
+
+    public String getNavbarCategory() { return navbarCategory; }
+    public void setNavbarCategory(String navbarCategory) { this.navbarCategory = navbarCategory; }
+
+    public String getNavbarSlug() { return navbarSlug; }
+    public void setNavbarSlug(String navbarSlug) { this.navbarSlug = navbarSlug; }
+
+    public String getGoogleDriveParentId() { return googleDriveParentId; }
+    public void setGoogleDriveParentId(String googleDriveParentId) { this.googleDriveParentId = googleDriveParentId; }
+
+    public Date getLastSync() { return lastSync; }
+    public void setLastSync(Date lastSync) { this.lastSync = lastSync; }
+
+    public String getChecksum() { return checksum; }
+    public void setChecksum(String checksum) { this.checksum = checksum; }
+
+    public Integer getVersion() { return version; }
+    public void setVersion(Integer version) { this.version = version; }
 
     public static String determineContentType(String mimeType, String fileName) {
         if (mimeType != null) {

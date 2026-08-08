@@ -26,4 +26,7 @@ public interface UserRepo extends MongoRepository<User, String> {
 
     /** Count users registered after the given date (for weekly/monthly growth) */
     long countByCreatedAtAfter(Date date);
+
+    /** Fetch recent user registrations */
+    java.util.List<User> findTop20ByOrderByCreatedAtDesc();
 }

@@ -68,11 +68,10 @@ const StateDistrictsPage         = lazy(() => import('./pages/StateDistrictsPage
 const StateDistrictProductsPage  = lazy(() => import('./pages/StateDistrictProductsPage'));
 const StateSectionPage           = lazy(() => import('./pages/StateSectionPage'));
 
-// Test Your Knowledge Series Pages
 const TestYourKnowledge = lazy(() => import('./pages/TestYourKnowledge'));
 const StateTestZone      = lazy(() => import('./pages/StateTestZone'));
 const DistrictTestPage   = lazy(() => import('./pages/DistrictTestPage'));
-const QuizEngine         = lazy(() => import('./pages/QuizEngine'));
+const QBTestEngine       = lazy(() => import('./pages/QBTestEngine'));
 const TestResult         = lazy(() => import('./pages/TestResult'));
 
 // Admin Pages
@@ -165,14 +164,19 @@ function App() {
                                             <Route path="/state/:stateSlug/art-and-culture" element={<StateSectionPage />} />
                                             
                                             <Route path="/state/:stateSlug/districts" element={<StateDistrictsPage />} />
+                                            <Route path="/state/:stateSlug/district/:districtSlug" element={<StateDistrictProductsPage />} />
                                             <Route path="/state/:stateSlug/district/:districtSlug/products" element={<StateDistrictProductsPage />} />
 
                                             {/* ── Test Your Knowledge Routes ─────────────────── */}
                                             <Route path="/test-series" element={<TestYourKnowledge />} />
                                             <Route path="/test-series/:stateId" element={<StateTestZone />} />
                                             <Route path="/test-series/:stateId/:districtId" element={<DistrictTestPage />} />
-                                            <Route path="/test-series/:stateId/:districtId/quiz/:testType" element={<QuizEngine />} />
+                                            {/* Legacy quiz route — redirect to Question Bank (hardcoded demo data removed) */}
+                                            <Route path="/test-series/:stateId/:districtId/quiz/:testType" element={<Navigate to="/question-bank" replace />} />
                                             <Route path="/test-series/:stateId/:districtId/result" element={<TestResult />} />
+
+                                            {/* ── Question Bank Test Engine ───────────────────── */}
+                                            <Route path="/question-bank/tests/:testId" element={<QBTestEngine />} />
 
                                             <Route path="/states/:stateSlug/history" element={<StateSectionPage />} />
                                             <Route path="/states/:stateSlug/heritage-monuments" element={<StateSectionPage />} />

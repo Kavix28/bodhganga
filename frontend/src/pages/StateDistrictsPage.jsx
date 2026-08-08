@@ -3,8 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import StateSectionTabs from "../components/states/StateSectionTabs";
 
-import StateNavbar from "../components/states/StateNavbar";
-
 export default function StateDistrictsPage() {
   const { stateSlug } = useParams();
   const navigate = useNavigate();
@@ -29,9 +27,7 @@ export default function StateDistrictsPage() {
         const products = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : res?.data?.data || res?.data?.content || [];
 
         if (products.length > 0) {
-          setStateName(products[0].state || products[0].stateName || stateSlug);
-        }
-
+        // Group by navbarSlug → count free and paid per district
         const districtMap = {};
         const NON_DISTRICT_KEYS = ["general", "state-images", "stateimages", "images", "state images"];
 
@@ -55,15 +51,23 @@ export default function StateDistrictsPage() {
 
         // Compute free and paid counts per district from products
         products.forEach((p) => {
-          const dSlug = p.districtSlug;
-          const dName = p.district || p.districtName || dSlug;
+          const dSlug = p.navbarSlug || p.categorySlug || p.districtSlug;
+          const dName = p.navbarCategory || p.district || dSlug;
           if (!dSlug) return;
           const normSlug = String(dSlug).toLowerCase().trim();
           const normName = String(dName).toLowerCase().trim();
           if (NON_DISTRICT_KEYS.includes(normSlug) || NON_DISTRICT_KEYS.includes(normName)) return;
 
           if (!districtMap[dSlug]) {
-            districtMap[dSlug] = { districtSlug: dSlug, districtName: dName, free: 0, paid: 0, total: 0 };
+            districtMap[dSlug] = {
+              districtSlug: dSlug,
+              districtName: dName,
+              navbarSlug: p.navbarSlug || dSlug,
+              navbarCategory: p.navbarCategory || dName,
+              free: 0,
+              paid: 0,
+              total: 0
+            };
           }
           if (p.free || p.isFree || p.price === 0) districtMap[dSlug].free++;
           else districtMap[dSlug].paid++;
@@ -78,13 +82,13 @@ export default function StateDistrictsPage() {
           setIsActiveState(['haryana', 'himachal-pradesh', 'jharkhand'].includes(stateSlug));
           if (stateSlug === 'haryana') {
             setDistricts([
-              { districtSlug: 'kurukshetra', districtName: 'Kurukshetra', free: 3, paid: 5, total: 8 },
-              { districtSlug: 'panchkula', districtName: 'Panchkula', free: 2, paid: 4, total: 6 },
-              { districtSlug: 'ambala', districtName: 'Ambala', free: 1, paid: 3, total: 4 }
+              { districtSlug: 'district-44-kurukshetra', districtName: 'District 44 - Kurukshetra', navbarSlug: 'district-44-kurukshetra', navbarCategory: 'District 44 - Kurukshetra', free: 3, paid: 5, total: 8 },
+              { districtSlug: 'panchkula', districtName: 'Panchkula', navbarSlug: 'panchkula', navbarCategory: 'Panchkula', free: 2, paid: 4, total: 6 },
+              { districtSlug: 'ambala', districtName: 'Ambala', navbarSlug: 'ambala', navbarCategory: 'Ambala', free: 1, paid: 3, total: 4 }
             ]);
           } else {
             setDistricts([
-              { districtSlug: 'mock-district', districtName: 'Mock District', free: 1, paid: 2, total: 3 }
+              { districtSlug: 'mock-district', districtName: 'Mock District', navbarSlug: 'mock-district', navbarCategory: 'Mock District', free: 1, paid: 2, total: 3 }
             ]);
           }
         } else {
@@ -138,8 +142,6 @@ export default function StateDistrictsPage() {
       {/* <div className="max-w-6xl mx-auto px-4 py-8"> */}
         <div className="max-w-6xl mx-auto px-4 py-8">
 
-        <StateNavbar />
-
         {error ? (
           <div className="text-red-400 text-center py-20 space-y-3">
             <div className="text-4xl">⚠️</div>
@@ -180,7 +182,7 @@ export default function StateDistrictsPage() {
                     key={d.districtSlug}
                     district={d}
                     onClick={() =>
-                      navigate(`/state/${stateSlug}/district/${d.districtSlug}/products`)
+                      navigate(`/state/${stateSlug}/district/${d.navbarSlug}/products`)
                     }
                   />
                 ))}
