@@ -20,7 +20,7 @@ services:
       - key: AWS_REGION
         value: eu-north-1
       - key: AWS_S3_BUCKET
-        value: bodhganga-prod
+        value: bodhganga-pdf-storage-prod
       - key: SMTP_HOST
         value: smtp.gmail.com
       - key: SMTP_PORT

@@ -32,7 +32,7 @@ public class AdminSystemHealthController {
     private final DriveToS3PipelineTask stateTask;
     private final QuestionBankPipelineTask qbTask;
 
-    @Value("${aws.region:ap-south-1}")
+    @Value("${aws.region:eu-north-1}")
     private String awsRegion;
 
     @Value("${google.drive.source-folder-id:}")

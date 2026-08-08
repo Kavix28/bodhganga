@@ -40,7 +40,7 @@ public class DashboardController {
     private final QuizAttemptRepo quizAttemptRepo;
     private final S3Client s3Client;
 
-    @Value("${aws.s3.bucket-name:${aws.s3.bucket.name:bodhganga-prod}}")
+    @Value("${aws.s3.bucket-name:${aws.s3.bucket.name:bodhganga-pdf-storage-prod}}")
     private String s3BucketName;
 
     public DashboardController(EnrollmentRepo enrollmentRepo, UserRepo userRepo,

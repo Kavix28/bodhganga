@@ -14,7 +14,7 @@ public class S3StartupValidator {
 
     private final S3Service s3Service;
 
-    @Value("${aws.region:ap-south-1}")
+    @Value("${aws.region:eu-north-1}")
     private String awsRegion;
 
     public S3StartupValidator(S3Service s3Service) {
