@@ -274,7 +274,11 @@ export default function StateDistrictProductsPage() {
               Get access to all {paidRes.length} paid resources for this district
             </p>
             <button
-              onClick={() => navigate(`/states-browse/${stateSlug}`)}
+              onClick={() => {
+                if (!isAuthenticated) {
+                  openAuthModal('login');
+                }
+              }}
               className="bg-amber-500 hover:bg-amber-400 text-black font-bold py-3 px-8 rounded-lg transition-colors"
             >
               Unlock District →
