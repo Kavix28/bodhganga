@@ -159,7 +159,7 @@ export default function StateDistrictProductsPage() {
   const [loading, setLoading] = useState(true);
   const [purchased, setPurchased] = useState(false);
   const [selected, setSelected] = useState(null);
-  const { isAuthenticated, openAuthModal } = useAuth();
+  const { user, isAuthenticated, openAuthModal } = useAuth();
   const [mcqFlowState, setMcqFlowState] = useState(null);
 
   useEffect(() => {

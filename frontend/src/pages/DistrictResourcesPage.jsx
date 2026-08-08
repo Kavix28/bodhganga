@@ -185,7 +185,7 @@ export default function DistrictResourcesPage() {
   const [purchased, setPurchased] = useState(false);
   const [selectedResource, setSelectedResource] = useState(null);
   const activeTab = searchParams.get("tab") || "free";
-  const { isAuthenticated, openAuthModal } = useAuth();
+  const { user, isAuthenticated, openAuthModal } = useAuth();
   const [mcqFlowState, setMcqFlowState] = useState(null);
 
   useEffect(() => {
