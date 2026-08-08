@@ -61,7 +61,13 @@ public class ProductController {
      */
     @GetMapping("/state/{stateSlug}/district/{districtSlug}")
     public ResponseEntity<ApiResponseDTO> getProductsByStateAndDistrict(@PathVariable String stateSlug, @PathVariable String districtSlug) {
-        List<Product> products = productRepo.findByStateSlugAndNavbarSlugAndIsPublishedTrue(stateSlug, districtSlug);
+        List<Product> products = productRepo.findByStateSlugAndDistrictSlugAndIsPublishedTrue(stateSlug, districtSlug);
+        if (products.isEmpty()) {
+            products = productRepo.findByStateSlugAndNavbarSlugAndIsPublishedTrue(stateSlug, districtSlug);
+        }
+        if (products.isEmpty()) {
+            products = productRepo.findByStateSlugAndCategoryAndIsPublishedTrue(stateSlug, districtSlug);
+        }
         return ResponseEntity.ok(ApiResponseDTO.builder()
                 .success(true)
                 .data(products)

@@ -185,7 +185,7 @@ export default function StateDistrictsPage() {
                     key={d.districtSlug}
                     district={d}
                     onClick={() =>
-                      navigate(`/state/${stateSlug}/district/${d.navbarSlug}/products`)
+                      navigate(`/state/${stateSlug}/district/${d.districtSlug || d.navbarSlug}`)
                     }
                   />
                 ))}
