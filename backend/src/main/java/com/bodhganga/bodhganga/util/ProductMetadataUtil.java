@@ -26,10 +26,43 @@ public class ProductMetadataUtil {
         return cleaned;
     }
 
+    public static HierarchicalMetadata parseStateImage(List<String> folderPath, String fileName) {
+        if (fileName == null || fileName.isBlank()) return null;
+
+        String ext = Product.getFileExtension(fileName).toLowerCase();
+        List<String> imageExts = List.of("png", "jpg", "jpeg", "webp", "gif", "svg");
+        if (!imageExts.contains(ext)) {
+            return null;
+        }
+
+        String nameWithoutExt = Product.stripExtension(fileName);
+        String cleanedName = nameWithoutExt.replaceAll("(?i)[\\s_\\-]*(image|img|thumbnail|photo|pic|picture)$", "").trim();
+        cleanedName = cleanedName.replaceAll("(?i)^(state\\s*\\d+\\s*-\\s*|state\\s*-\\s*|state\\s+\\d+\\s+|\\d+\\s*-\\s*|\\d+\\s+)", "").trim();
+
+        String slug = Product.generateSlug(cleanedName);
+
+        if (DistrictParser.isKnownState(slug)) {
+            String state = DistrictParser.getKnownStateName(slug);
+            return new HierarchicalMetadata(
+                state, slug,
+                "Images", "images",
+                "state-image", "state-image", null,
+                "general", "general", true
+            );
+        }
+
+        return null;
+    }
+
     /**
      * Generic & Backward-Compatible Folder Metadata Extractor
      */
     public static HierarchicalMetadata extractMetadata(List<String> folderPath, String fileName) {
+        HierarchicalMetadata stateImageMeta = parseStateImage(folderPath, fileName);
+        if (stateImageMeta != null) {
+            return stateImageMeta;
+        }
+
         if (folderPath == null || folderPath.isEmpty()) {
             return new HierarchicalMetadata("General", "general", "General Notes", "general-notes", null, null, null, "general", "general", true);
         }
@@ -120,7 +153,9 @@ public class ProductMetadataUtil {
         }
 
         public String buildS3Key(String fileName) {
-            if (district != null && !district.equals("general") && (subcategory == null || subcategory.equals(district))) {
+            if ("images".equals(navbarSlug) && "state-image".equals(subcategorySlug)) {
+                return String.format("states/%s/%s", stateSlug, fileName);
+            } else if (district != null && !district.equals("general") && (subcategory == null || subcategory.equals(district))) {
                 // Backward compatible district S3 path: state-slug/navbar-slug/district-slug/free|paid/filename.pdf
                 return String.format("%s/%s/%s/%s/%s",
                     stateSlug, navbarSlug, districtSlug, (isFree ? "free" : "paid"), fileName);

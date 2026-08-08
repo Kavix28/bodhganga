@@ -73,4 +73,31 @@ public class DistrictParserTests {
         assertEquals("Kurukshetra", loc.getDistrict());
         assertEquals("kurukshetra", loc.getDistrictSlug());
     }
+
+    @Test
+    public void testStateImageParsing() {
+        // Haryana-image.png
+        ProductMetadataUtil.HierarchicalMetadata meta1 = ProductMetadataUtil.extractMetadata(List.of(), "Haryana-image.png");
+        assertEquals("Haryana", meta1.state);
+        assertEquals("haryana", meta1.stateSlug);
+        assertEquals("Images", meta1.navbarCategory);
+        assertEquals("states/haryana/Haryana-image.png", meta1.buildS3Key("Haryana-image.png"));
+
+        // Punjab_image.jpg
+        ProductMetadataUtil.HierarchicalMetadata meta2 = ProductMetadataUtil.extractMetadata(null, "Punjab_image.jpg");
+        assertEquals("Punjab", meta2.state);
+        assertEquals("punjab", meta2.stateSlug);
+        assertEquals("states/punjab/Punjab_image.jpg", meta2.buildS3Key("Punjab_image.jpg"));
+
+        // State 05 - Gujarat-image.png
+        ProductMetadataUtil.HierarchicalMetadata meta3 = ProductMetadataUtil.extractMetadata(List.of(), "State 05 - Gujarat-image.png");
+        assertEquals("Gujarat", meta3.state);
+        assertEquals("gujarat", meta3.stateSlug);
+        assertEquals("states/gujarat/State 05 - Gujarat-image.png", meta3.buildS3Key("State 05 - Gujarat-image.png"));
+
+        // Normal PDF should still fall back to generic
+        ProductMetadataUtil.HierarchicalMetadata meta4 = ProductMetadataUtil.extractMetadata(List.of(), "Haryana-Notes.pdf");
+        assertEquals("General", meta4.state);
+        assertEquals("general", meta4.stateSlug);
+    }
 }

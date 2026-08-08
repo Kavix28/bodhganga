@@ -107,6 +107,14 @@ public class DistrictParser {
         }
     }
 
+    public static String getKnownStateName(String slug) {
+        return KNOWN_STATES_MAP.get(slug);
+    }
+
+    public static boolean isKnownState(String slug) {
+        return slug != null && KNOWN_STATES_MAP.containsKey(slug);
+    }
+
     public static String generateSlug(String text) {
         if (text == null || text.isBlank()) return "general";
         return text.toLowerCase()
