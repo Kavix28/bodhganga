@@ -27,6 +27,9 @@ export default function StateDistrictsPage() {
         const products = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : res?.data?.data || res?.data?.content || [];
 
         if (products.length > 0) {
+          setStateName(products[0].state || products[0].stateName || stateSlug);
+        }
+
         // Group by navbarSlug → count free and paid per district
         const districtMap = {};
         const NON_DISTRICT_KEYS = ["general", "state-images", "stateimages", "images", "state images"];

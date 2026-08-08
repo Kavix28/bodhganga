@@ -41,17 +41,6 @@ services:
       - ./secrets/google-qb-credentials.json:/run/secrets/google-qb-credentials.json:ro
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      # -----------------------
-      # Question Bank Pipeline
-      # -----------------------
-      QB_PIPELINE_ENABLED: ${QB_PIPELINE_ENABLED}
-      QB_SOURCE_FOLDER_ID: ${QB_SOURCE_FOLDER_ID}
-      QB_ARCHIVE_FOLDER_ID: ${QB_ARCHIVE_FOLDER_ID}
-      QB_CREDENTIALS_PATH: ${QB_CREDENTIALS_PATH}
-      GOOGLE_DRIVE_QB_PIPELINE_ENABLED: ${QB_PIPELINE_ENABLED}
-      GOOGLE_DRIVE_QB_SOURCE_FOLDER_ID: ${QB_SOURCE_FOLDER_ID}
-      GOOGLE_DRIVE_QB_ARCHIVE_FOLDER_ID: ${QB_ARCHIVE_FOLDER_ID}
-      GOOGLE_DRIVE_QB_CREDENTIALS: ${QB_CREDENTIALS_PATH}
       # MongoDB
       MONGO_URI: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASS}@mongodb:27017/bodhganga?authSource=admin
       # JWT

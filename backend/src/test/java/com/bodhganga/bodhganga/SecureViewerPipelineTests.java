@@ -179,4 +179,28 @@ public class SecureViewerPipelineTests {
         mockMvc.perform(get("/api/pdf/haryana/free_history.pdf"))
                 .andExpect(status().isForbidden());
     }
+
+    @Test
+    @DisplayName("7. Guest User Purchased Districts - Returns 403 Forbidden from Spring Security")
+    void testGuestUserPurchasedDistricts_Unauthorized() throws Exception {
+        mockMvc.perform(get("/api/payment/district/purchased"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("8. Authenticated User Purchased Districts - Resolves email/phone and returns 200 OK with unlocked district list")
+    void testAuthenticatedUserPurchasedDistricts_Success() throws Exception {
+        Purchase purchase = new Purchase();
+        purchase.setUserId(testUser.getId());
+        purchase.setDistrictSlug("kurukshetra");
+        purchase.setAmountPaid(299.0);
+        purchase.setPurchaseDate(new Date());
+        purchaseRepo.save(purchase);
+
+        mockMvc.perform(get("/api/payment/district/purchased")
+                        .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data[0]").value("kurukshetra"));
+    }
 }

@@ -136,10 +136,8 @@ public class PaymentController {
         }
 
         try {
-            String userEmail = authentication.getName();
-            User user = userRepo.findByEmailIgnoreCase(userEmail.trim())
-                    .or(() -> userRepo.findByPhoneNo(userEmail.trim()))
-                    .orElseThrow(() -> new RuntimeException("User not found: " + userEmail));
+            User user = resolveAuthenticatedUser(authentication)
+                    .orElseThrow(() -> new RuntimeException("User not found: " + (authentication != null ? authentication.getName() : "null")));
 
             boolean isCart = req.isCart() != null && req.isCart();
             int amountPaise = 0;
@@ -195,7 +193,7 @@ public class PaymentController {
             if (productId != null && !productId.trim().isEmpty()) {
                 notes.put("productId", productId);
             }
-            notes.put("userEmail", userEmail);
+            notes.put("userEmail", user.getEmail() != null ? user.getEmail() : user.getPhoneNo());
             orderRequest.put("notes", notes);
 
             Order order = client.orders.create(orderRequest);
@@ -266,9 +264,8 @@ public class PaymentController {
                     req.razorpayOrderId(), req.razorpayPaymentId(), authentication.getName());
 
             // Fetch user from DB
-            User user = userRepo.findByEmailIgnoreCase(authentication.getName().trim())
-                    .or(() -> userRepo.findByPhoneNo(authentication.getName().trim()))
-                    .orElseThrow(() -> new RuntimeException("User not found: " + authentication.getName()));
+            User user = resolveAuthenticatedUser(authentication)
+                    .orElseThrow(() -> new RuntimeException("User not found: " + (authentication != null ? authentication.getName() : "null")));
 
             String resolvedProductName = "Digital Study Notes";
             Double resolvedAmount = null;
@@ -381,6 +378,15 @@ public class PaymentController {
         }
     }
 
+    private Optional<User> resolveAuthenticatedUser(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getName())) {
+            return Optional.empty();
+        }
+        String identifier = authentication.getName().trim();
+        return userRepo.findByEmailIgnoreCase(identifier)
+                .or(() -> userRepo.findByPhoneNo(identifier));
+    }
+
     /**
      * GET /api/payment/district/purchased
      * Returns list of districtSlugs the current user has unlocked.
@@ -388,12 +394,11 @@ public class PaymentController {
     @GetMapping("/district/purchased")
     public ResponseEntity<ApiResponseDTO> getPurchasedDistricts(Authentication authentication) {
         try {
-            if (authentication == null || "anonymousUser".equals(authentication.getName())) {
+            User user = resolveAuthenticatedUser(authentication).orElse(null);
+            if (user == null) {
                 return ResponseEntity.status(401).body(ApiResponseDTO.builder()
                         .success(false).message("Authentication required.").build());
             }
-            User user = userRepo.findByEmail(authentication.getName())
-                    .orElseThrow(() -> new RuntimeException("User not found"));
 
             List<Purchase> purchases = purchaseRepo.findByUserId(user.getId());
 
@@ -419,15 +424,8 @@ public class PaymentController {
     @GetMapping("/my-purchases")
     public ResponseEntity<ApiResponseDTO> getMyPurchases(Authentication authentication) {
         try {
-            if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getName())) {
-                return ResponseEntity.status(401).body(ApiResponseDTO.builder()
-                        .success(false)
-                        .message("Authentication required.")
-                        .build());
-            }
-
-            User user = userRepo.findByEmail(authentication.getName())
-                    .orElseThrow(() -> new RuntimeException("User not found: " + authentication.getName()));
+            User user = resolveAuthenticatedUser(authentication)
+                    .orElseThrow(() -> new RuntimeException("User not found: " + (authentication != null ? authentication.getName() : "null")));
 
             java.util.List<Purchase> purchases = purchaseRepo.findByUserId(user.getId());
 
@@ -448,22 +446,15 @@ public class PaymentController {
                     Map<String, Object> productDetails = new HashMap<>();
                     productDetails.put("id", product.getId());
                     productDetails.put("title", product.getTitle());
-                    productDetails.put("type", product.getType());
+                    productDetails.put("description", product.getDescription());
                     productDetails.put("price", product.getPrice());
+                    productDetails.put("type", product.getType());
+                    productDetails.put("category", product.getCategory());
+                    productDetails.put("previewUrl", product.getPreviewUrl());
                     productDetails.put("storageKey", product.getStorageKey());
-                    productDetails.put("thumbnail", product.getPreviewUrl()); // mapping previewUrl to thumbnail
-                    productDetails.put("state", product.getState());
-                    productDetails.put("district", product.getDistrict());
-                    map.put("product", productDetails);
+                    productDetails.put("fileExtension", product.getFileExtension());
                     
-                    // Flatten fields directly for convenience/backward compatibility
-                    map.put("title", product.getTitle());
-                    map.put("type", product.getType());
-                    map.put("price", product.getPrice());
-                    map.put("storageKey", product.getStorageKey());
-                    map.put("thumbnail", product.getPreviewUrl());
-                    map.put("state", product.getState());
-                    map.put("district", product.getDistrict());
+                    map.put("product", productDetails);
                 } else {
                     // Try checking if it's a course
                     Optional<Courses> courseOpt = courseRepo.findById(purchase.getProductId());
@@ -492,7 +483,7 @@ public class PaymentController {
 
             return ResponseEntity.ok(ApiResponseDTO.builder()
                     .success(true)
-                    .message("User purchases retrieved successfully.")
+                    .message("Purchases retrieved successfully.")
                     .data(dataList)
                     .build());
 
@@ -514,10 +505,7 @@ public class PaymentController {
             @PathVariable String productId,
             Authentication authentication) {
         try {
-            if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getName())) {
-                return ResponseEntity.ok(ApiResponseDTO.builder().success(true).data(false).build());
-            }
-            User user = userRepo.findByEmail(authentication.getName()).orElse(null);
+            User user = resolveAuthenticatedUser(authentication).orElse(null);
             if (user == null) {
                 return ResponseEntity.ok(ApiResponseDTO.builder().success(true).data(false).build());
             }
@@ -543,15 +531,8 @@ public class PaymentController {
             @PathVariable String productId,
             Authentication authentication) {
         try {
-            if (authentication == null || !authentication.isAuthenticated() 
-                    || "anonymousUser".equals(authentication.getName())) {
-                return ResponseEntity.status(401).body(ApiResponseDTO.builder()
-                        .success(false).message("Authentication required.").build());
-            }
-
-            String userEmail = authentication.getName();
-            User user = userRepo.findByEmail(userEmail)
-                    .orElseThrow(() -> new RuntimeException("User not found: " + userEmail));
+            User user = resolveAuthenticatedUser(authentication)
+                    .orElseThrow(() -> new RuntimeException("User not found: " + (authentication != null ? authentication.getName() : "null")));
 
             Product product = productRepo.findById(productId)
                     .orElseThrow(() -> new RuntimeException("Product not found: " + productId));
