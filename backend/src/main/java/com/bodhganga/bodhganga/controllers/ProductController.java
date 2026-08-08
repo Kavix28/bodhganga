@@ -63,10 +63,19 @@ public class ProductController {
     public ResponseEntity<ApiResponseDTO> getProductsByStateAndDistrict(@PathVariable String stateSlug, @PathVariable String districtSlug) {
         List<Product> products = productRepo.findByStateSlugAndDistrictSlugAndIsPublishedTrue(stateSlug, districtSlug);
         if (products.isEmpty()) {
+            products = productRepo.findByStateSlugAndDistrictSlugAndPublishedTrue(stateSlug, districtSlug);
+        }
+        if (products.isEmpty()) {
             products = productRepo.findByStateSlugAndNavbarSlugAndIsPublishedTrue(stateSlug, districtSlug);
         }
         if (products.isEmpty()) {
             products = productRepo.findByStateSlugAndCategoryAndIsPublishedTrue(stateSlug, districtSlug);
+        }
+        if (products.isEmpty()) {
+            products = productRepo.findByStateSlugAndCategoryRegexAndIsPublishedTrue(stateSlug, ".*" + districtSlug + ".*");
+        }
+        if (products.isEmpty()) {
+            products = productRepo.findByStateSlugAndDistrictIgnoreCaseAndIsPublishedTrue(stateSlug, districtSlug);
         }
         return ResponseEntity.ok(ApiResponseDTO.builder()
                 .success(true)
