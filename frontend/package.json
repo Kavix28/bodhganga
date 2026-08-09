@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint . || echo Done"
+    "lint": "eslint ."
   },
   "dependencies": {
     "@tanstack/react-query": "^5.95.2",

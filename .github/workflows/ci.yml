@@ -30,11 +30,15 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      - name: Make Maven Wrapper Executable
+        run: chmod +x mvnw
+
       - name: Build & Test
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-secret-key-minimum-64-characters-long-for-testing-only' }}
+          SPRING_DATA_MONGODB_URI: mongodb://localhost:27017/bodhganga_test
           MONGO_URI: mongodb://localhost:27017/bodhganga_test
-        run: mvn verify -q
+        run: ./mvnw verify -B
 
       - name: Upload JAR artifact
         if: github.ref == 'refs/heads/main'
