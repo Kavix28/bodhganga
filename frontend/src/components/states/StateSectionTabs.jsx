@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Lock, History, Landmark, Map, Music, BookOpen } from 'lucide-react';
+import { Lock, History, Landmark, Map, Music, BookOpen, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import api from '../../services/api';
 

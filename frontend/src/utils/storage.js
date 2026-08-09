@@ -66,7 +66,7 @@ export const getAuthToken = () => {
     } catch {
         return null;
     }
-};;
+};
 
 /**
  * Set auth token in localStorage
@@ -102,7 +102,7 @@ export const getUserData = () => {
     } catch {
         return null;
     }
-};;
+};
 
 /**
  * Set user data in localStorage

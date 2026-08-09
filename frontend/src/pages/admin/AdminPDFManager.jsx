@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, FileText, Trash2, Check, X, Filter, Download, ExternalLink, RefreshCw, Plus, Eye } from 'lucide-react';
+import { Upload, FileText, Trash2, Check, X, Filter, Download, ExternalLink, RefreshCw, Plus, Eye, Loader2 } from 'lucide-react';
 import api from '../../services/api';
 import AdminPdfUploadModal from '../../components/admin/AdminPdfUploadModal';
 import SecurePdfViewerModal from '../../components/SecurePdfViewerModal';
