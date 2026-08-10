@@ -174,14 +174,46 @@ public class SecureViewerPipelineTests {
     }
 
     @Test
-    @DisplayName("6. Missing or Invalid JWT Token - Returns 403 Forbidden from Spring Security")
-    void testExpiredOrMissingJWT_Unauthorized() throws Exception {
-        mockMvc.perform(get("/api/pdf/haryana/free_history.pdf"))
-                .andExpect(status().isForbidden());
+    @DisplayName("6. Guest User Free PDF - Returns 200 OK and presigned URL without JWT")
+    void testGuestUserFreePdf_Success() throws Exception {
+        Product freeProd = new Product();
+        freeProd.setTitle("Free Punjab History Notes");
+        freeProd.setType("PDF");
+        freeProd.setFree(true);
+        freeProd.setPrice(0.0);
+        freeProd.setStorageKey("punjab/free_history.pdf");
+        freeProd.setPublished(true);
+        productRepo.save(freeProd);
+
+        Mockito.when(s3Service.doesObjectExist("punjab/free_history.pdf")).thenReturn(true);
+        Mockito.when(s3Service.generatePresignedUrl("punjab/free_history.pdf"))
+                .thenReturn("https://s3.eu-north-1.amazonaws.com/bodhganga-pdf-storage-prod/punjab/free_history.pdf?X-Amz-Signature=guest1234");
+
+        mockMvc.perform(get("/api/pdf/punjab/free_history.pdf"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.url").value("https://s3.eu-north-1.amazonaws.com/bodhganga-pdf-storage-prod/punjab/free_history.pdf?X-Amz-Signature=guest1234"));
     }
 
     @Test
-    @DisplayName("7. Guest User Purchased Districts - Returns 403 Forbidden from Spring Security")
+    @DisplayName("7. Guest User Paid PDF - Returns 401 Unauthorized without JWT")
+    void testGuestUserPaidPdf_Unauthorized() throws Exception {
+        Product paidProd = new Product();
+        paidProd.setTitle("Premium Punjab Notes");
+        paidProd.setType("PDF");
+        paidProd.setFree(false);
+        paidProd.setPrice(299.0);
+        paidProd.setStorageKey("punjab/paid_notes.pdf");
+        paidProd.setPublished(true);
+        productRepo.save(paidProd);
+
+        mockMvc.perform(get("/api/pdf/punjab/paid_notes.pdf"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Authentication required to access paid document."));
+    }
+
+    @Test
+    @DisplayName("8. Guest User Purchased Districts - Returns 403 Forbidden from Spring Security")
     void testGuestUserPurchasedDistricts_Unauthorized() throws Exception {
         mockMvc.perform(get("/api/payment/district/purchased"))
                 .andExpect(status().isForbidden());
