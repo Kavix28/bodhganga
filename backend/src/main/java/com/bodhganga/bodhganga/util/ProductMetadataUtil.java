@@ -23,6 +23,7 @@ public class ProductMetadataUtil {
         if (name == null) return "";
         String cleaned = name.replaceAll("(?i)^(State\\s*\\d+\\s*-\\s*|State\\s*-\\s*|State\\s+\\d+\\s+|\\d+\\s*-\\s*|\\d+\\s+)", "").trim();
         cleaned = cleaned.replaceAll("(?i)\\s+District$", "").trim();
+        cleaned = cleaned.replaceAll("\\s+", " ").trim();
         return cleaned;
     }
 

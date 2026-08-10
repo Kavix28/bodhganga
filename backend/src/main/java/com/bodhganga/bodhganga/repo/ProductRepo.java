@@ -29,6 +29,8 @@ public interface ProductRepo extends MongoRepository<Product, String> {
     Product findBySourceFileId(String sourceFileId);
     Optional<Product> findByS3Key(String s3Key);
     Optional<Product> findByStorageKey(String storageKey);
+    @org.springframework.data.mongodb.repository.Query("{ '$or': [ { 's3Key': { '$regex': ?0, '$options': 'i' } }, { 'storageKey': { '$regex': ?0, '$options': 'i' } } ] }")
+    List<Product> findByS3KeyOrStorageKeyRegex(String regexPattern);
     Optional<Product> findByChecksum(String checksum);
     Product findByStateSlugAndDistrictSlugAndFileName(String stateSlug, String districtSlug, String fileName);
 

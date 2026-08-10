@@ -120,24 +120,38 @@ public class PdfController {
             boolean isAdmin = isAuthenticated && authentication.getAuthorities().contains(
                     new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN"));
 
+            Product matchedProduct = null;
             if (!isAdmin) {
-                // Try to find the product matching this key in DB
+                // Tier 1: Exact s3Key lookup
                 Optional<Product> prodOpt = productRepo.findByS3Key(key);
                 if (prodOpt.isEmpty()) {
+                    // Tier 2: Exact storageKey lookup
                     prodOpt = productRepo.findByStorageKey(key);
                 }
-
-                Product matchedProduct = prodOpt.orElse(null);
-                if (matchedProduct == null) {
-                    // Search dynamically matching suffix/substring
-                    final String finalKey = key;
-                    List<Product> matches = productRepo.findAll().stream()
-                            .filter(p -> (p.getS3Key() != null && p.getS3Key().contains(finalKey)) || 
-                                         (p.getStorageKey() != null && p.getStorageKey().contains(finalKey)))
-                            .collect(java.util.stream.Collectors.toList());
+                if (prodOpt.isEmpty()) {
+                    // Tier 3: Whitespace-insensitive regex lookup
+                    String regexPattern = buildWhitespaceInsensitiveRegex(key);
+                    List<Product> matches = productRepo.findByS3KeyOrStorageKeyRegex(regexPattern);
                     if (!matches.isEmpty()) {
-                        matchedProduct = matches.get(0);
+                        List<Product> validMatches = matches.stream()
+                                .filter(p -> p.isPublished() && !p.isArchived())
+                                .collect(java.util.stream.Collectors.toList());
+                        if (validMatches.size() == 1) {
+                            matchedProduct = validMatches.get(0);
+                        } else if (!validMatches.isEmpty()) {
+                            validMatches.sort((a, b) -> {
+                                java.util.Date d1 = a.getCreatedAt() != null ? a.getCreatedAt() : new java.util.Date(0);
+                                java.util.Date d2 = b.getCreatedAt() != null ? b.getCreatedAt() : new java.util.Date(0);
+                                return d2.compareTo(d1);
+                            });
+                            matchedProduct = validMatches.get(0);
+                            log.warn("Multiple catalog products matched key regex '{}'. Resolved to latest product ID {}", key, matchedProduct.getId());
+                        } else {
+                            matchedProduct = matches.get(0);
+                        }
                     }
+                } else {
+                    matchedProduct = prodOpt.get();
                 }
 
                 final Product product = matchedProduct;
@@ -182,12 +196,19 @@ public class PdfController {
                 }
             }
 
-            if (!s3Service.doesObjectExist(key)) {
+            // Determine authoritative S3 key from matched product, fallback to incoming key
+            String s3KeyToUse = (matchedProduct != null && matchedProduct.getS3Key() != null && !matchedProduct.getS3Key().isBlank())
+                    ? matchedProduct.getS3Key()
+                    : ((matchedProduct != null && matchedProduct.getStorageKey() != null && !matchedProduct.getStorageKey().isBlank())
+                            ? matchedProduct.getStorageKey()
+                            : key);
+
+            if (!s3Service.doesObjectExist(s3KeyToUse)) {
                 return ResponseEntity.status(404).body(ApiResponseDTO.builder()
                         .success(false).message("Missing S3 object: The requested document file is not available in storage.").build());
             }
 
-            String signedUrl = s3Service.generatePresignedUrl(key);
+            String signedUrl = s3Service.generatePresignedUrl(s3KeyToUse);
 
             if (redirect) {
                 return ResponseEntity.status(302)
@@ -348,6 +369,25 @@ public class PdfController {
             return ResponseEntity.status(500).body(ApiResponseDTO.builder()
                     .success(false).message("Google Drive import failed: " + e.getMessage()).build());
         }
+    }
+
+    private String buildWhitespaceInsensitiveRegex(String inputKey) {
+        if (inputKey == null || inputKey.isBlank()) {
+            return "^$";
+        }
+        String norm = inputKey.trim().replaceAll("\\s+", " ");
+        StringBuilder sb = new StringBuilder("^");
+        for (char c : norm.toCharArray()) {
+            if ("\\.^$*+?()[]{}|".indexOf(c) != -1) {
+                sb.append('\\').append(c);
+            } else if (c == ' ') {
+                sb.append("\\s+");
+            } else {
+                sb.append(c);
+            }
+        }
+        sb.append("$");
+        return sb.toString();
     }
 
     private String extractFileId(String url) {

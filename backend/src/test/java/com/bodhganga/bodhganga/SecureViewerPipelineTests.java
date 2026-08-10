@@ -213,6 +213,52 @@ public class SecureViewerPipelineTests {
     }
 
     @Test
+    @DisplayName("9. Kurukshetra Sample Notes - Double Space Catalog Key matched via single space request")
+    void testKurukshetraSampleNotes_WhitespaceTolerantMatching() throws Exception {
+        Product doubleSpaceProd = new Product();
+        doubleSpaceProd.setTitle("Sample  Notes Kurukshetra District");
+        doubleSpaceProd.setType("PDF");
+        doubleSpaceProd.setFree(true);
+        doubleSpaceProd.setPrice(0.0);
+        doubleSpaceProd.setS3Key("haryana/district-44-kurukshetra/free/Sample  Notes Kurukshetra District.pdf");
+        doubleSpaceProd.setStorageKey("haryana/district-44-kurukshetra/free/Sample  Notes Kurukshetra District.pdf");
+        doubleSpaceProd.setPublished(true);
+        productRepo.save(doubleSpaceProd);
+
+        // Expect S3 check and presigned URL generation to use the authoritative 2-space key from DB
+        Mockito.when(s3Service.doesObjectExist("haryana/district-44-kurukshetra/free/Sample  Notes Kurukshetra District.pdf")).thenReturn(true);
+        Mockito.when(s3Service.generatePresignedUrl("haryana/district-44-kurukshetra/free/Sample  Notes Kurukshetra District.pdf"))
+                .thenReturn("https://s3.eu-north-1.amazonaws.com/bodhganga-pdf-storage-prod/haryana/district-44-kurukshetra/free/Sample%20%20Notes%20Kurukshetra%20District.pdf?X-Amz-Signature=notes1234");
+
+        // Incoming single space request
+        mockMvc.perform(get("/api/pdf/haryana/district-44-kurukshetra/free/Sample Notes Kurukshetra District.pdf"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.url").value("https://s3.eu-north-1.amazonaws.com/bodhganga-pdf-storage-prod/haryana/district-44-kurukshetra/free/Sample%20%20Notes%20Kurukshetra%20District.pdf?X-Amz-Signature=notes1234"));
+    }
+
+    @Test
+    @DisplayName("10. Kurukshetra Sample MCQs - Working single space key continues to work")
+    void testKurukshetraSampleMCQs_Success() throws Exception {
+        Product mcqProd = new Product();
+        mcqProd.setTitle("Sample MCQs Question bank Kurukshetra District");
+        mcqProd.setType("PDF");
+        mcqProd.setFree(true);
+        mcqProd.setPrice(0.0);
+        mcqProd.setS3Key("haryana/district-44-kurukshetra/free/Sample MCQs Question bank Kurukshetra District.pdf");
+        mcqProd.setStorageKey("haryana/district-44-kurukshetra/free/Sample MCQs Question bank Kurukshetra District.pdf");
+        mcqProd.setPublished(true);
+        productRepo.save(mcqProd);
+
+        Mockito.when(s3Service.doesObjectExist("haryana/district-44-kurukshetra/free/Sample MCQs Question bank Kurukshetra District.pdf")).thenReturn(true);
+        Mockito.when(s3Service.generatePresignedUrl("haryana/district-44-kurukshetra/free/Sample MCQs Question bank Kurukshetra District.pdf"))
+                .thenReturn("https://s3.eu-north-1.amazonaws.com/bodhganga-pdf-storage-prod/haryana/district-44-kurukshetra/free/Sample%20MCQs%20Question%20bank%20Kurukshetra%20District.pdf?X-Amz-Signature=mcq1234");
+
+        mockMvc.perform(get("/api/pdf/haryana/district-44-kurukshetra/free/Sample MCQs Question bank Kurukshetra District.pdf"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.url").value("https://s3.eu-north-1.amazonaws.com/bodhganga-pdf-storage-prod/haryana/district-44-kurukshetra/free/Sample%20MCQs%20Question%20bank%20Kurukshetra%20District.pdf?X-Amz-Signature=mcq1234"));
+    }
+
+    @Test
     @DisplayName("8. Guest User Purchased Districts - Returns 403 Forbidden from Spring Security")
     void testGuestUserPurchasedDistricts_Unauthorized() throws Exception {
         mockMvc.perform(get("/api/payment/district/purchased"))
