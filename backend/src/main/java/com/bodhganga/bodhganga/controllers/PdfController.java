@@ -406,6 +406,27 @@ public class PdfController {
         }
     }
 
+    @org.springframework.web.bind.annotation.GetMapping("/admin/s3-cors")
+    public ResponseEntity<?> getS3CorsStatus() {
+        var rules = s3Service.getBucketCors();
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+                .success(true)
+                .message("Current S3 Bucket CORS rules for " + s3Service.getBucketName())
+                .data(rules)
+                .build());
+    }
+
+    @org.springframework.web.bind.annotation.PostMapping("/admin/s3-cors")
+    public ResponseEntity<?> configureS3Cors() {
+        List<String> origins = List.of("https://bodhganga.in", "https://www.bodhganga.in");
+        s3Service.configureBucketCors(origins);
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+                .success(true)
+                .message("S3 Bucket CORS rules updated for origins: " + origins)
+                .data(s3Service.getBucketCors())
+                .build());
+    }
+
     public record ImportDriveRequest(
         String title,
         String description,

@@ -19,6 +19,12 @@ import java.util.stream.Collectors;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.S3Object;
+import software.amazon.awssdk.services.s3.model.CORSRule;
+import software.amazon.awssdk.services.s3.model.CORSConfiguration;
+import software.amazon.awssdk.services.s3.model.PutBucketCorsRequest;
+import software.amazon.awssdk.services.s3.model.GetBucketCorsRequest;
+import software.amazon.awssdk.services.s3.model.GetBucketCorsResponse;
+import software.amazon.awssdk.services.s3.model.NoSuchCorsConfigurationException;
 
 
 import org.slf4j.Logger;
@@ -238,6 +244,53 @@ public class S3Service {
             return true;
         } catch (software.amazon.awssdk.services.s3.model.NoSuchKeyException e) {
             return false;
+        }
+    }
+
+    /**
+     * Get current CORS rules for S3 bucket.
+     */
+    public List<CORSRule> getBucketCors() {
+        try {
+            GetBucketCorsResponse response = s3Client.getBucketCors(
+                    GetBucketCorsRequest.builder().bucket(bucketName).build());
+            return response.corsRules();
+        } catch (NoSuchCorsConfigurationException e) {
+            log.info("No CORS configuration currently set on S3 bucket: {}", bucketName);
+            return List.of();
+        } catch (Exception e) {
+            log.warn("Failed to retrieve S3 bucket CORS configuration for {}: {}", bucketName, e.getMessage());
+            return List.of();
+        }
+    }
+
+    /**
+     * Configure CORS on S3 bucket for production frontend origins.
+     */
+    public void configureBucketCors(List<String> allowedOrigins) {
+        try {
+            log.info("Configuring S3 bucket CORS for origins: {} on bucket: {}", allowedOrigins, bucketName);
+            CORSRule rule = CORSRule.builder()
+                    .allowedOrigins(allowedOrigins)
+                    .allowedMethods("GET", "HEAD")
+                    .allowedHeaders("*")
+                    .exposeHeaders("Content-Length", "Content-Type", "Accept-Ranges", "ETag")
+                    .maxAgeSeconds(3000)
+                    .build();
+
+            CORSConfiguration configuration = CORSConfiguration.builder()
+                    .corsRules(rule)
+                    .build();
+
+            PutBucketCorsRequest putCorsRequest = PutBucketCorsRequest.builder()
+                    .bucket(bucketName)
+                    .corsConfiguration(configuration)
+                    .build();
+
+            s3Client.putBucketCors(putCorsRequest);
+            log.info("Successfully updated S3 bucket CORS configuration on {}", bucketName);
+        } catch (Exception e) {
+            log.error("Failed to configure S3 bucket CORS on {}: {}", bucketName, e.getMessage(), e);
         }
     }
 }
