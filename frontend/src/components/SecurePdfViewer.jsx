@@ -77,7 +77,7 @@ export default function SecurePdfViewer({
     };
   }, []);
 
-  // Load PDF Document
+  // Load PDF Document via direct ArrayBuffer fetch to avoid PDF.js Range header S3 signature mismatches
   useEffect(() => {
     if (!pdfUrl) {
       setError("No PDF document URL provided.");
@@ -88,34 +88,63 @@ export default function SecurePdfViewer({
     let isMounted = true;
     setLoading(true);
     setError(null);
+    let currentLoadingTask = null;
 
-    const loadingTask = pdfjsLib.getDocument({
-      url: pdfUrl,
-      cMapUrl: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version || '3.11.174'}/cmaps/`,
-      cMapPacked: true,
-      withCredentials: false
-    });
+    async function loadPdf() {
+      try {
+        const response = await fetch(pdfUrl);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status} ${response.statusText} fetching S3 PDF`);
+        }
 
-    loadingTask.promise
-      .then((loadedPdf) => {
+        const arrayBuffer = await response.arrayBuffer();
+        if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+          throw new Error("Received empty PDF data buffer from storage.");
+        }
+
+        const bytes = new Uint8Array(arrayBuffer);
+        const magicHeader = String.fromCharCode(...bytes.subarray(0, 4));
+
+        if (!magicHeader.startsWith("%PDF")) {
+          console.warn("SecurePdfViewer: Magic header is not %PDF:", magicHeader);
+        }
+
         if (!isMounted) return;
+
+        const loadingTask = pdfjsLib.getDocument({
+          data: bytes,
+          cMapUrl: `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version || '6.2.108'}/cmaps/`,
+          cMapPacked: true,
+        });
+
+        currentLoadingTask = loadingTask;
+
+        const loadedPdf = await loadingTask.promise;
+        if (!isMounted) return;
+
         setPdfDoc(loadedPdf);
         setNumPages(loadedPdf.numPages);
         setPageNumber(1);
         setPageInput('1');
         setLoading(false);
-      })
-      .catch((err) => {
+      } catch (err) {
         if (!isMounted) return;
-        console.error("SecurePdfViewer document load error:", err);
-        setError("Failed to load secure PDF material. Please verify access permissions.");
+        console.error("SecurePdfViewer document load error:", {
+          message: err?.message,
+          name: err?.name,
+          stack: err?.stack,
+        });
+        setError(err?.message || "Failed to load secure PDF material. Please verify access permissions.");
         setLoading(false);
-      });
+      }
+    }
+
+    loadPdf();
 
     return () => {
       isMounted = false;
-      if (loadingTask && loadingTask.destroy) {
-        loadingTask.destroy();
+      if (currentLoadingTask && currentLoadingTask.destroy) {
+        currentLoadingTask.destroy();
       }
     };
   }, [pdfUrl]);
