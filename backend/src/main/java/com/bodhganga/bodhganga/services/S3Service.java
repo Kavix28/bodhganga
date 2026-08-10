@@ -24,7 +24,7 @@ import software.amazon.awssdk.services.s3.model.CORSConfiguration;
 import software.amazon.awssdk.services.s3.model.PutBucketCorsRequest;
 import software.amazon.awssdk.services.s3.model.GetBucketCorsRequest;
 import software.amazon.awssdk.services.s3.model.GetBucketCorsResponse;
-import software.amazon.awssdk.services.s3.model.NoSuchCorsConfigurationException;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 
 import org.slf4j.Logger;
@@ -255,12 +255,17 @@ public class S3Service {
             GetBucketCorsResponse response = s3Client.getBucketCors(
                     GetBucketCorsRequest.builder().bucket(bucketName).build());
             return response.corsRules();
-        } catch (NoSuchCorsConfigurationException e) {
-            log.info("No CORS configuration currently set on S3 bucket: {}", bucketName);
-            return List.of();
+        } catch (S3Exception e) {
+            if (e.statusCode() == 404 || (e.awsErrorDetails() != null && "NoSuchCORSConfiguration".equalsIgnoreCase(e.awsErrorDetails().errorCode()))) {
+                log.info("No CORS configuration currently set on S3 bucket: {}", bucketName);
+                return List.of();
+            }
+            log.error("AWS S3 error while retrieving CORS configuration for {}: {} (Status Code: {}, Error Code: {})",
+                    bucketName, e.getMessage(), e.statusCode(), e.awsErrorDetails() != null ? e.awsErrorDetails().errorCode() : "N/A", e);
+            throw e;
         } catch (Exception e) {
-            log.warn("Failed to retrieve S3 bucket CORS configuration for {}: {}", bucketName, e.getMessage());
-            return List.of();
+            log.error("Failed to retrieve S3 bucket CORS configuration for {}: {}", bucketName, e.getMessage(), e);
+            throw e;
         }
     }
 
