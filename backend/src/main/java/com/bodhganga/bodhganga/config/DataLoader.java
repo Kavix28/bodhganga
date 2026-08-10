@@ -82,13 +82,52 @@ public class DataLoader implements CommandLineRunner {
             log.info("Blog posts already exist in database. Skipping blog seed.");
         }
 
-        // Sample product seeding disabled — products managed via Google Drive pipeline
+        // Seed sample Kurukshetra products if missing for local dev testing
+        ensureSampleKurukshetraProducts();
 
         // Run idempotent product migration
         migrateImportedProducts();
 
         // Ensure admin user exists with ADMIN role
         ensureAdminUser();
+    }
+
+    private void ensureSampleKurukshetraProducts() {
+        if (productRepo.findByS3Key("haryana/district-44-kurukshetra/free/Sample  Notes Kurukshetra District.pdf").isEmpty()) {
+            Product sampleNotes = new Product();
+            sampleNotes.setId("6a749b756441345ceeea12cb");
+            sampleNotes.setTitle("Sample  Notes Kurukshetra District");
+            sampleNotes.setDisplayTitle("Sample  Notes Kurukshetra District");
+            sampleNotes.setState("Haryana");
+            sampleNotes.setStateSlug("haryana");
+            sampleNotes.setDistrict("Kurukshetra");
+            sampleNotes.setDistrictSlug("kurukshetra");
+            sampleNotes.setType("PDF");
+            sampleNotes.setPrice(0.0);
+            sampleNotes.setFree(true);
+            sampleNotes.setPublished(true);
+            sampleNotes.setS3Key("haryana/district-44-kurukshetra/free/Sample  Notes Kurukshetra District.pdf");
+            sampleNotes.setStorageKey("haryana/district-44-kurukshetra/free/Sample  Notes Kurukshetra District.pdf");
+            productRepo.save(sampleNotes);
+
+            Product sampleMcqs = new Product();
+            sampleMcqs.setId("6a749b756441345ceeea12cc");
+            sampleMcqs.setTitle("Sample MCQs Question bank Kurukshetra District");
+            sampleMcqs.setDisplayTitle("Sample MCQs Question bank Kurukshetra District");
+            sampleMcqs.setState("Haryana");
+            sampleMcqs.setStateSlug("haryana");
+            sampleMcqs.setDistrict("Kurukshetra");
+            sampleMcqs.setDistrictSlug("kurukshetra");
+            sampleMcqs.setType("PDF");
+            sampleMcqs.setPrice(0.0);
+            sampleMcqs.setFree(true);
+            sampleMcqs.setPublished(true);
+            sampleMcqs.setS3Key("haryana/district-44-kurukshetra/free/Sample MCQs Question bank Kurukshetra District.pdf");
+            sampleMcqs.setStorageKey("haryana/district-44-kurukshetra/free/Sample MCQs Question bank Kurukshetra District.pdf");
+            productRepo.save(sampleMcqs);
+
+            log.info("Seeded sample Kurukshetra products into database.");
+        }
     }
 
     private void ensureAdminUser() {
