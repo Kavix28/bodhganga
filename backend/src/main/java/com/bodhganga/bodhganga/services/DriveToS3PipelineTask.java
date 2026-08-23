@@ -285,6 +285,16 @@ public class DriveToS3PipelineTask {
         // ── Extract Hierarchical Metadata (State, NavbarCategory, District, Tier)
         // ───────────
         HierarchicalMetadata metadata = ProductMetadataUtil.extractMetadata(folderPath, fileName);
+
+        // ── FAIL-CLOSED PIPELINE VALIDATION ─────────────────────────────────────────
+        if (!metadata.hasTierFolder || metadata.accessType == ProductMetadataUtil.AccessType.UNKNOWN) {
+            log.error(
+                    "[FAIL-CLOSED PIPELINE] REJECTED INGESTION for file '{}' (Drive ID: {}): Folder path {} lacks an explicit Free or Paid tier folder.",
+                    fileName, file.getId(), folderPath);
+            filesFailed.incrementAndGet();
+            return;
+        }
+
         String state = metadata.state;
         String stateSlug = metadata.stateSlug;
         String navbarCategory = metadata.navbarCategory;
