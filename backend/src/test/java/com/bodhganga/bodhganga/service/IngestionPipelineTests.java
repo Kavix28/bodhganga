@@ -1056,6 +1056,133 @@ public class IngestionPipelineTests {
                 assertEquals("Kurukshetra", ProductMetadataUtil.normalizeName("  Kurukshetra District  "));
         }
 
+        @Test
+        void testMandatoryCanonicalTierFolderNormalization() {
+                // 1. "Paid Resources" -> PAID
+                assertTrue(ProductMetadataUtil.isPaidFolder("Paid Resources"));
+                // 2. "Paid Resources" -> PAID
+                assertTrue(ProductMetadataUtil.isPaidFolder("Paid  Resources"));
+                // 3. "Paid Resources" -> PAID
+                assertTrue(ProductMetadataUtil.isPaidFolder("Paid   Resources"));
+                // 4. " paid resources " -> PAID
+                assertTrue(ProductMetadataUtil.isPaidFolder(" paid resources "));
+                // 5. "PAID RESOURCES" -> PAID
+                assertTrue(ProductMetadataUtil.isPaidFolder("PAID RESOURCES"));
+
+                // 6. "Free Resources" -> FREE
+                assertTrue(ProductMetadataUtil.isFreeFolder("Free Resources"));
+                // 7. "Free Resources" -> FREE
+                assertTrue(ProductMetadataUtil.isFreeFolder("Free  Resources"));
+                // 8. "Free Resources" -> FREE
+                assertTrue(ProductMetadataUtil.isFreeFolder("Free   Resources"));
+                // 9. " free resources " -> FREE
+                assertTrue(ProductMetadataUtil.isFreeFolder(" free resources "));
+                // 10. "FREE RESOURCES" -> FREE
+                assertTrue(ProductMetadataUtil.isFreeFolder("FREE RESOURCES"));
+        }
+
+        @Test
+        void testMandatory11_DistrictPaidDoubleSpaceResources_ExpectedResourcePaid() throws Exception {
+                File state = mkFolder("m11-state", "15-Manipur");
+                File dist = mkFolder("m11-dist", "District 51- Chandel District");
+                File paidDoubleSpace = mkFolder("m11-paid", "Paid  Resources");
+                File file = mkFile("m11-file-id", "Chandel Infographic Hindi.png", "image/png", 100L);
+
+                when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(state));
+                when(googleDriveSyncService.listFilesInFolder("m11-state")).thenReturn(List.of(dist));
+                when(googleDriveSyncService.listFilesInFolder("m11-dist")).thenReturn(List.of(paidDoubleSpace));
+                when(googleDriveSyncService.listFilesInFolder("m11-paid")).thenReturn(List.of(file));
+                when(googleDriveSyncService.downloadFile("m11-file-id"))
+                                .thenReturn(new ByteArrayInputStream("data".getBytes()));
+                when(s3Service.uploadFileWithKey(any(), anyLong(), anyString(), anyString()))
+                                .thenAnswer(i -> i.getArgument(2));
+                when(s3Service.getS3Url(anyString())).thenAnswer(i -> "https://s3.example.com/" + i.getArgument(0));
+
+                pipelineTask.syncDriveToS3(true);
+
+                Product p = productRepo.findByGoogleDriveFileId("m11-file-id");
+                assertNotNull(p, "Paid  Resources file must NOT be rejected!");
+                assertFalse(p.isFree());
+                assertEquals(99.0, p.getPrice());
+        }
+
+        @Test
+        void testMandatory12_DistrictFreeDoubleSpaceResources_ExpectedResourceFree() throws Exception {
+                File state = mkFolder("m12-state", "15-Manipur");
+                File dist = mkFolder("m12-dist", "District 51- Chandel District");
+                File freeDoubleSpace = mkFolder("m12-free", "Free  Resources");
+                File file = mkFile("m12-file-id", "Chandel Free Guide.pdf", "application/pdf", 100L);
+
+                when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(state));
+                when(googleDriveSyncService.listFilesInFolder("m12-state")).thenReturn(List.of(dist));
+                when(googleDriveSyncService.listFilesInFolder("m12-dist")).thenReturn(List.of(freeDoubleSpace));
+                when(googleDriveSyncService.listFilesInFolder("m12-free")).thenReturn(List.of(file));
+                when(googleDriveSyncService.downloadFile("m12-file-id"))
+                                .thenReturn(new ByteArrayInputStream("data".getBytes()));
+                when(s3Service.uploadFileWithKey(any(), anyLong(), anyString(), anyString()))
+                                .thenAnswer(i -> i.getArgument(2));
+                when(s3Service.getS3Url(anyString())).thenAnswer(i -> "https://s3.example.com/" + i.getArgument(0));
+
+                pipelineTask.syncDriveToS3(true);
+
+                Product p = productRepo.findByGoogleDriveFileId("m12-file-id");
+                assertNotNull(p, "Free  Resources file must NOT be rejected!");
+                assertTrue(p.isFree());
+                assertEquals(0.0, p.getPrice());
+        }
+
+        @Test
+        void testMandatory13_DistrictDirectFile_ExpectedUnknownAndRejected() throws Exception {
+                File state = mkFolder("m13-state", "Haryana");
+                File dist = mkFolder("m13-dist", "Kurukshetra");
+                File file = mkFile("m13-file-id", "DirectFile.pdf", "application/pdf", 100L);
+
+                when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(state));
+                when(googleDriveSyncService.listFilesInFolder("m13-state")).thenReturn(List.of(dist));
+                when(googleDriveSyncService.listFilesInFolder("m13-dist")).thenReturn(List.of(file));
+
+                pipelineTask.syncDriveToS3(true);
+
+                Product p = productRepo.findByGoogleDriveFileId("m13-file-id");
+                assertNull(p, "Ambiguous direct file MUST still be rejected!");
+                assertEquals(1, pipelineTask.getFilesFailed());
+        }
+
+        @Test
+        void testMandatory14_DistrictOtherFolderFile_ExpectedUnknownAndRejected() throws Exception {
+                File state = mkFolder("m14-state", "Haryana");
+                File dist = mkFolder("m14-dist", "Kurukshetra");
+                File otherFolder = mkFolder("m14-other", "Random Notes");
+                File file = mkFile("m14-file-id", "OtherFile.pdf", "application/pdf", 100L);
+
+                when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(state));
+                when(googleDriveSyncService.listFilesInFolder("m14-state")).thenReturn(List.of(dist));
+                when(googleDriveSyncService.listFilesInFolder("m14-dist")).thenReturn(List.of(otherFolder));
+                when(googleDriveSyncService.listFilesInFolder("m14-other")).thenReturn(List.of(file));
+
+                pipelineTask.syncDriveToS3(true);
+
+                Product p = productRepo.findByGoogleDriveFileId("m14-file-id");
+                assertNull(p, "Ambiguous subfolder file MUST still be rejected!");
+                assertEquals(1, pipelineTask.getFilesFailed());
+        }
+
+        @Test
+        void testMandatory15_StateImagesHaryanaImage_ExpectedStateImageSkippedFilesFailedZero() throws Exception {
+                File stateImgFolder = mkFolder("m15-folder", "State images");
+                File file = mkFile("m15-file-id", "Haryana-image.png", "image/png", 100L);
+
+                when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(stateImgFolder));
+                when(googleDriveSyncService.listFilesInFolder("m15-folder")).thenReturn(List.of(file));
+
+                pipelineTask.syncDriveToS3(true);
+
+                Product p = productRepo.findByGoogleDriveFileId("m15-file-id");
+                assertNull(p);
+                assertEquals(0, pipelineTask.getFilesFailed(), "filesFailed must remain 0 for state image skip!");
+                assertEquals(1, pipelineTask.getFilesSkipped());
+        }
+
         // ─────────────────────────────────────────────────────────────────────────
         // HELPERS
         // ─────────────────────────────────────────────────────────────────────────

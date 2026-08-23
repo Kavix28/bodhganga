@@ -25,29 +25,36 @@ public class ProductMetadataUtil {
             "pdf", "pdfs", "docx", "doc", "xlsx", "xls", "pptx", "ppt",
             "png", "jpg", "jpeg", "webp", "mp3", "m4a", "wav", "audio", "video", "zip", "txt");
 
+    public static String normalizeFolderName(String folderName) {
+        if (folderName == null) {
+            return "";
+        }
+        return folderName.trim().replaceAll("\\s+", " ").toLowerCase(java.util.Locale.ROOT);
+    }
+
     public static boolean isFreeFolder(String folderName) {
         if (folderName == null)
             return false;
-        String lower = folderName.trim().toLowerCase();
-        return lower.equals("free") || lower.equals("free resources") || lower.equals("free-resources")
-                || lower.equals("free materials") || lower.equals("free notes");
+        String canonical = normalizeFolderName(folderName);
+        return canonical.equals("free") || canonical.equals("free resources") || canonical.equals("free-resources")
+                || canonical.equals("free materials") || canonical.equals("free notes");
     }
 
     public static boolean isPaidFolder(String folderName) {
         if (folderName == null)
             return false;
-        String lower = folderName.trim().toLowerCase();
-        return lower.equals("paid") || lower.equals("paid resources") || lower.equals("paid-resources")
-                || lower.equals("paid materials") || lower.equals("paid notes");
+        String canonical = normalizeFolderName(folderName);
+        return canonical.equals("paid") || canonical.equals("paid resources") || canonical.equals("paid-resources")
+                || canonical.equals("paid materials") || canonical.equals("paid notes");
     }
 
     public static boolean isStateImagesFolder(String folderName) {
         if (folderName == null)
             return false;
-        String lower = folderName.trim().toLowerCase();
-        return lower.equals("state images") || lower.equals("state-images")
-                || lower.equals("state_images") || lower.equals("state image")
-                || lower.equals("images");
+        String canonical = normalizeFolderName(folderName);
+        return canonical.equals("state images") || canonical.equals("state-images")
+                || canonical.equals("state_images") || canonical.equals("state image")
+                || canonical.equals("images");
     }
 
     public static String normalizeName(String name) {
