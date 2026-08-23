@@ -277,22 +277,49 @@ public class DriveToS3PipelineTask {
 
         String fileExtension = Product.getFileExtension(fileName);
         if (!SUPPORTED_EXTENSIONS.contains(fileExtension)) {
-            log.info("[GENERIC PIPELINE] Unsupported extension: {} - skipping: {}", fileExtension, fileName);
+            log.info("[PIPELINE][NON_RESOURCE][SKIPPED] Unsupported extension: {} - skipping: {}", fileExtension,
+                    fileName);
             filesSkipped.incrementAndGet();
             return;
         }
 
-        // ── Extract Hierarchical Metadata (State, NavbarCategory, District, Tier)
-        // ───────────
+        // ── Extract Hierarchical Metadata (ItemType, State, NavbarCategory, District,
+        // Tier)
         HierarchicalMetadata metadata = ProductMetadataUtil.extractMetadata(folderPath, fileName);
 
-        // ── FAIL-CLOSED PIPELINE VALIDATION ─────────────────────────────────────────
+        // ── 1. STATE IMAGE HANDLING ────────────────────────────────────────────────
+        if (metadata.itemType == ProductMetadataUtil.ItemType.STATE_IMAGE) {
+            log.info(
+                    "[PIPELINE][STATE_IMAGE][SKIPPED] File '{}' (Drive ID: {}) in path {} is a state image. Skipping product ingestion.",
+                    fileName, file.getId(), folderPath);
+            filesSkipped.incrementAndGet();
+            return;
+        }
+
+        // ── 2. NON-RESOURCE HANDLING ──────────────────────────────────────────────
+        if (metadata.itemType == ProductMetadataUtil.ItemType.NON_RESOURCE) {
+            log.info(
+                    "[PIPELINE][NON_RESOURCE][SKIPPED] File '{}' (Drive ID: {}) in path {} is not an educational resource. Skipping.",
+                    fileName, file.getId(), folderPath);
+            filesSkipped.incrementAndGet();
+            return;
+        }
+
+        // ── 3. FAIL-CLOSED PIPELINE VALIDATION FOR EDUCATIONAL RESOURCE ─────────────
         if (!metadata.hasTierFolder || metadata.accessType == ProductMetadataUtil.AccessType.UNKNOWN) {
             log.error(
-                    "[FAIL-CLOSED PIPELINE] REJECTED INGESTION for file '{}' (Drive ID: {}): Folder path {} lacks an explicit Free or Paid tier folder.",
+                    "[PIPELINE][RESOURCE][UNKNOWN][REJECTED] File '{}' (Drive ID: {}): Folder path {} lacks an explicit Free or Paid tier folder.",
                     fileName, file.getId(), folderPath);
             filesFailed.incrementAndGet();
             return;
+        }
+
+        if (metadata.accessType == ProductMetadataUtil.AccessType.FREE) {
+            log.info("[PIPELINE][RESOURCE][FREE] File '{}' (Drive ID: {}) in path {} classified as FREE.",
+                    fileName, file.getId(), folderPath);
+        } else if (metadata.accessType == ProductMetadataUtil.AccessType.PAID) {
+            log.info("[PIPELINE][RESOURCE][PAID] File '{}' (Drive ID: {}) in path {} classified as PAID.",
+                    fileName, file.getId(), folderPath);
         }
 
         String state = metadata.state;

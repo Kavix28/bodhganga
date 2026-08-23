@@ -15,6 +15,12 @@ public class ProductMetadataUtil {
         UNKNOWN
     }
 
+    public enum ItemType {
+        RESOURCE,
+        STATE_IMAGE,
+        NON_RESOURCE
+    }
+
     private static final Set<String> TYPE_FOLDER_SLUGS = Set.of(
             "pdf", "pdfs", "docx", "doc", "xlsx", "xls", "pptx", "ppt",
             "png", "jpg", "jpeg", "webp", "mp3", "m4a", "wav", "audio", "video", "zip", "txt");
@@ -35,6 +41,15 @@ public class ProductMetadataUtil {
                 || lower.equals("paid materials") || lower.equals("paid notes");
     }
 
+    public static boolean isStateImagesFolder(String folderName) {
+        if (folderName == null)
+            return false;
+        String lower = folderName.trim().toLowerCase();
+        return lower.equals("state images") || lower.equals("state-images")
+                || lower.equals("state_images") || lower.equals("state image")
+                || lower.equals("images");
+    }
+
     public static String normalizeName(String name) {
         if (name == null)
             return "";
@@ -49,9 +64,6 @@ public class ProductMetadataUtil {
     public static HierarchicalMetadata parseStateImage(List<String> folderPath, String fileName) {
         if (fileName == null || fileName.isBlank())
             return null;
-        if (folderPath != null && !folderPath.isEmpty()) {
-            return null;
-        }
 
         String ext = Product.getFileExtension(fileName).toLowerCase();
         List<String> imageExts = List.of("png", "jpg", "jpeg", "webp", "gif", "svg");
@@ -59,22 +71,43 @@ public class ProductMetadataUtil {
             return null;
         }
 
-        String nameWithoutExt = Product.stripExtension(fileName);
-        String cleanedName = nameWithoutExt.replaceAll("(?i)[\\s_\\-]*(image|img|thumbnail|photo|pic|picture)$", "")
-                .trim();
-        cleanedName = cleanedName
-                .replaceAll("(?i)^(state\\s*\\d+\\s*-\\s*|state\\s*-\\s*|state\\s+\\d+\\s+|\\d+\\s*-\\s*|\\d+\\s+)", "")
-                .trim();
+        boolean isStateImgFolder = false;
+        if (folderPath != null) {
+            for (String folder : folderPath) {
+                if (isStateImagesFolder(folder)) {
+                    isStateImgFolder = true;
+                    break;
+                }
+            }
+        }
 
-        String slug = Product.generateSlug(cleanedName);
+        if (folderPath == null || folderPath.isEmpty() || isStateImgFolder) {
+            String nameWithoutExt = Product.stripExtension(fileName);
+            String cleanedName = nameWithoutExt.replaceAll("(?i)[\\s_\\-]*(image|img|thumbnail|photo|pic|picture)$", "")
+                    .trim();
+            cleanedName = cleanedName
+                    .replaceAll("(?i)^(state\\s*\\d+\\s*-\\s*|state\\s*-\\s*|state\\s+\\d+\\s+|\\d+\\s*-\\s*|\\d+\\s+)",
+                            "")
+                    .trim();
 
-        if (DistrictParser.isKnownState(slug)) {
-            String state = DistrictParser.getKnownStateName(slug);
-            return new HierarchicalMetadata(
-                    state, slug,
-                    "Images", "images",
-                    "state-image", "state-image", null,
-                    "general", "general", AccessType.FREE, true, true);
+            String slug = Product.generateSlug(cleanedName);
+
+            if (DistrictParser.isKnownState(slug)) {
+                String state = DistrictParser.getKnownStateName(slug);
+                return new HierarchicalMetadata(
+                        ItemType.STATE_IMAGE,
+                        state, slug,
+                        "Images", "images",
+                        "state-image", "state-image", null,
+                        "general", "general", AccessType.UNKNOWN, false, false);
+            } else if (isStateImgFolder) {
+                return new HierarchicalMetadata(
+                        ItemType.STATE_IMAGE,
+                        "General", "general",
+                        "Images", "images",
+                        "state-image", "state-image", null,
+                        "general", "general", AccessType.UNKNOWN, false, false);
+            }
         }
 
         return null;
@@ -91,8 +124,23 @@ public class ProductMetadataUtil {
             return stateImageMeta;
         }
 
+        if (folderPath != null) {
+            for (String folder : folderPath) {
+                if (isStateImagesFolder(folder)) {
+                    return new HierarchicalMetadata(
+                            ItemType.STATE_IMAGE,
+                            "General", "general",
+                            "Images", "images",
+                            "state-image", "state-image", null,
+                            "general", "general",
+                            AccessType.UNKNOWN, false, false);
+                }
+            }
+        }
+
         if (folderPath == null || folderPath.isEmpty()) {
             return new HierarchicalMetadata(
+                    ItemType.RESOURCE,
                     "General", "general",
                     "General Notes", "general-notes",
                     null, null, null,
@@ -120,8 +168,6 @@ public class ProductMetadataUtil {
             }
             String norm = normalizeName(folder);
             if (!norm.isEmpty()) {
-                // Collapse consecutive identical path segments (e.g. state 1 - andhra pradesh
-                // -> 1 - andhra pradesh)
                 String lastSlug = cleanedPath.isEmpty() ? ""
                         : Product.generateSlug(cleanedPath.get(cleanedPath.size() - 1));
                 String currentSlug = Product.generateSlug(norm);
@@ -133,6 +179,7 @@ public class ProductMetadataUtil {
 
         if (cleanedPath.isEmpty()) {
             return new HierarchicalMetadata(
+                    ItemType.RESOURCE,
                     "General", "general",
                     "General Notes", "general-notes",
                     null, null, null,
@@ -211,6 +258,7 @@ public class ProductMetadataUtil {
         }
 
         return new HierarchicalMetadata(
+                ItemType.RESOURCE,
                 state, stateSlug,
                 navbarCategory, navbarSlug,
                 subcategory, subcategorySlug, subfolderPath,
@@ -219,6 +267,7 @@ public class ProductMetadataUtil {
     }
 
     public static class HierarchicalMetadata {
+        public final ItemType itemType;
         public final String state;
         public final String stateSlug;
         public final String navbarCategory;
@@ -232,11 +281,12 @@ public class ProductMetadataUtil {
         public final boolean hasTierFolder;
         public final boolean isFree;
 
-        public HierarchicalMetadata(String state, String stateSlug,
+        public HierarchicalMetadata(ItemType itemType, String state, String stateSlug,
                 String navbarCategory, String navbarSlug,
                 String subcategory, String subcategorySlug, String subfolderPath,
                 String district, String districtSlug,
                 AccessType accessType, boolean hasTierFolder, boolean isFree) {
+            this.itemType = itemType != null ? itemType : ItemType.RESOURCE;
             this.state = state;
             this.stateSlug = stateSlug;
             this.navbarCategory = navbarCategory;
@@ -251,6 +301,16 @@ public class ProductMetadataUtil {
             this.isFree = isFree;
         }
 
+        public HierarchicalMetadata(String state, String stateSlug,
+                String navbarCategory, String navbarSlug,
+                String subcategory, String subcategorySlug, String subfolderPath,
+                String district, String districtSlug,
+                AccessType accessType, boolean hasTierFolder, boolean isFree) {
+            this(ItemType.RESOURCE, state, stateSlug, navbarCategory, navbarSlug,
+                    subcategory, subcategorySlug, subfolderPath, district, districtSlug,
+                    accessType, hasTierFolder, isFree);
+        }
+
         public String buildS3Key(String fileName) {
             if ("images".equals(navbarSlug) && "state-image".equals(subcategorySlug)) {
                 return String.format("states/%s/%s", stateSlug, fileName);
@@ -258,7 +318,6 @@ public class ProductMetadataUtil {
                     && ("free-resources".equals(navbarSlug) || "physics".equals(navbarSlug))) {
                 return String.format("free-resources/%s/%s", navbarSlug, fileName);
             } else if (district != null && !district.equals("general")) {
-                // District S3 path: state-slug/district-slug/free|paid/filename.pdf
                 return String.format("%s/%s/%s/%s",
                         stateSlug, districtSlug, (isFree ? "free" : "paid"), fileName);
             } else if (subfolderPath != null && !subfolderPath.isEmpty()) {

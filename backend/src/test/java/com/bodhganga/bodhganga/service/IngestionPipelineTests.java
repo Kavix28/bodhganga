@@ -7,6 +7,7 @@ import com.bodhganga.bodhganga.repo.ProductRepo;
 import com.bodhganga.bodhganga.services.DriveToS3PipelineTask;
 import com.bodhganga.bodhganga.services.GoogleDriveSyncService;
 import com.bodhganga.bodhganga.services.S3Service;
+import com.bodhganga.bodhganga.util.ProductMetadataUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -808,7 +809,6 @@ public class IngestionPipelineTests {
 
                 when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(stateFolder));
                 when(googleDriveSyncService.listFilesInFolder("nt-state-id")).thenReturn(List.of(districtFolder));
-                // districtFolder contains paidFolder AND direct unknownFile
                 when(googleDriveSyncService.listFilesInFolder("nt-dist-id"))
                                 .thenReturn(List.of(paidFolder, unknownFile));
                 when(googleDriveSyncService.listFilesInFolder("nt-paid-id")).thenReturn(List.of(validFile));
@@ -832,6 +832,228 @@ public class IngestionPipelineTests {
 
                 // filesFailed count should be 1
                 assertEquals(1, pipelineTask.getFilesFailed());
+        }
+
+        @Test
+        void test1_StateDistrictFreeResourcesFile_ExpectedFree() throws Exception {
+                File state = mkFolder("t1-state", "Haryana");
+                File dist = mkFolder("t1-dist", "Kurukshetra");
+                File freeResFolder = mkFolder("t1-free-res", "Free Resources");
+                File file = mkFile("t1-file-id", "Free_Notes.pdf", "application/pdf", 100L);
+
+                when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(state));
+                when(googleDriveSyncService.listFilesInFolder("t1-state")).thenReturn(List.of(dist));
+                when(googleDriveSyncService.listFilesInFolder("t1-dist")).thenReturn(List.of(freeResFolder));
+                when(googleDriveSyncService.listFilesInFolder("t1-free-res")).thenReturn(List.of(file));
+                when(googleDriveSyncService.downloadFile("t1-file-id"))
+                                .thenReturn(new ByteArrayInputStream("data".getBytes()));
+                when(s3Service.uploadFileWithKey(any(), anyLong(), anyString(), anyString()))
+                                .thenAnswer(i -> i.getArgument(2));
+                when(s3Service.getS3Url(anyString())).thenAnswer(i -> "https://s3.example.com/" + i.getArgument(0));
+
+                pipelineTask.syncDriveToS3(true);
+
+                Product p = productRepo.findByGoogleDriveFileId("t1-file-id");
+                assertNotNull(p);
+                assertTrue(p.isFree());
+                assertEquals(0.0, p.getPrice());
+        }
+
+        @Test
+        void test2_StateDistrictPaidResourcesFile_ExpectedPaid() throws Exception {
+                File state = mkFolder("t2-state", "Maharashtra");
+                File dist = mkFolder("t2-dist", "Akola");
+                File paidResFolder = mkFolder("t2-paid-res", "Paid Resources");
+                File file = mkFile("t2-file-id", "Paid_Polity.pdf", "application/pdf", 100L);
+
+                when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(state));
+                when(googleDriveSyncService.listFilesInFolder("t2-state")).thenReturn(List.of(dist));
+                when(googleDriveSyncService.listFilesInFolder("t2-dist")).thenReturn(List.of(paidResFolder));
+                when(googleDriveSyncService.listFilesInFolder("t2-paid-res")).thenReturn(List.of(file));
+                when(googleDriveSyncService.downloadFile("t2-file-id"))
+                                .thenReturn(new ByteArrayInputStream("data".getBytes()));
+                when(s3Service.uploadFileWithKey(any(), anyLong(), anyString(), anyString()))
+                                .thenAnswer(i -> i.getArgument(2));
+                when(s3Service.getS3Url(anyString())).thenAnswer(i -> "https://s3.example.com/" + i.getArgument(0));
+
+                pipelineTask.syncDriveToS3(true);
+
+                Product p = productRepo.findByGoogleDriveFileId("t2-file-id");
+                assertNotNull(p);
+                assertFalse(p.isFree());
+                assertEquals(99.0, p.getPrice());
+        }
+
+        @Test
+        void test3_StateDistrictFile_ExpectedUnknownAndReject() throws Exception {
+                File state = mkFolder("t3-state", "Haryana");
+                File dist = mkFolder("t3-dist", "Kurukshetra");
+                File file = mkFile("t3-file-id", "Ambiguous.pdf", "application/pdf", 100L);
+
+                when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(state));
+                when(googleDriveSyncService.listFilesInFolder("t3-state")).thenReturn(List.of(dist));
+                when(googleDriveSyncService.listFilesInFolder("t3-dist")).thenReturn(List.of(file));
+
+                pipelineTask.syncDriveToS3(true);
+
+                Product p = productRepo.findByGoogleDriveFileId("t3-file-id");
+                assertNull(p);
+                assertEquals(1, pipelineTask.getFilesFailed());
+        }
+
+        @Test
+        void test4_StateDistrictOtherFile_ExpectedUnknownAndReject() throws Exception {
+                File state = mkFolder("t4-state", "Bihar");
+                File dist = mkFolder("t4-dist", "Patna");
+                File otherFolder = mkFolder("t4-other", "Random Notes");
+                File file = mkFile("t4-file-id", "OtherNotes.pdf", "application/pdf", 100L);
+
+                when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(state));
+                when(googleDriveSyncService.listFilesInFolder("t4-state")).thenReturn(List.of(dist));
+                when(googleDriveSyncService.listFilesInFolder("t4-dist")).thenReturn(List.of(otherFolder));
+                when(googleDriveSyncService.listFilesInFolder("t4-other")).thenReturn(List.of(file));
+
+                pipelineTask.syncDriveToS3(true);
+
+                Product p = productRepo.findByGoogleDriveFileId("t4-file-id");
+                assertNull(p);
+                assertEquals(1, pipelineTask.getFilesFailed());
+        }
+
+        @Test
+        void test5_StateImagesMaharashtraImage_ExpectedStateImageAndSkip() throws Exception {
+                File stateImgFolder = mkFolder("t5-folder", "State images");
+                File file = mkFile("t5-file-id", "Maharashtra-image.png", "image/png", 100L);
+
+                when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(stateImgFolder));
+                when(googleDriveSyncService.listFilesInFolder("t5-folder")).thenReturn(List.of(file));
+
+                pipelineTask.syncDriveToS3(true);
+
+                Product p = productRepo.findByGoogleDriveFileId("t5-file-id");
+                assertNull(p);
+                assertEquals(0, pipelineTask.getFilesFailed());
+                assertEquals(1, pipelineTask.getFilesSkipped());
+        }
+
+        @Test
+        void test6_StateImagesHaryanaImage_ExpectedStateImageAndSkip() throws Exception {
+                File stateImgFolder = mkFolder("t6-folder", "State images");
+                File file = mkFile("t6-file-id", "Haryana-image.png", "image/png", 100L);
+
+                when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(stateImgFolder));
+                when(googleDriveSyncService.listFilesInFolder("t6-folder")).thenReturn(List.of(file));
+
+                pipelineTask.syncDriveToS3(true);
+
+                Product p = productRepo.findByGoogleDriveFileId("t6-file-id");
+                assertNull(p);
+                assertEquals(0, pipelineTask.getFilesFailed());
+                assertEquals(1, pipelineTask.getFilesSkipped());
+        }
+
+        @Test
+        void test7_BatchProcessing_FreePaidInvalidStateImage() throws Exception {
+                File state = mkFolder("t7-state", "Haryana");
+                File dist = mkFolder("t7-dist", "Kurukshetra");
+                File freeFolder = mkFolder("t7-free-dir", "Free Resources");
+                File paidFolder = mkFolder("t7-paid-dir", "Paid Resources");
+                File freeFile = mkFile("t7-free-id", "FreeResource.pdf", "application/pdf", 100L);
+                File paidFile = mkFile("t7-paid-id", "PaidResource.pdf", "application/pdf", 100L);
+                File invalidFile = mkFile("t7-invalid-id", "InvalidDirectResource.pdf", "application/pdf", 100L);
+
+                File stateImgFolder = mkFolder("t7-img-folder", "State images");
+                File stateImgFile = mkFile("t7-img-file", "Haryana-image.png", "image/png", 100L);
+
+                when(googleDriveSyncService.listFilesInFolder("source-folder-id"))
+                                .thenReturn(List.of(state, stateImgFolder));
+                when(googleDriveSyncService.listFilesInFolder("t7-state")).thenReturn(List.of(dist));
+                when(googleDriveSyncService.listFilesInFolder("t7-dist"))
+                                .thenReturn(List.of(freeFolder, paidFolder, invalidFile));
+
+                when(googleDriveSyncService.listFilesInFolder("t7-free-dir")).thenReturn(List.of(freeFile));
+                when(googleDriveSyncService.listFilesInFolder("t7-paid-dir")).thenReturn(List.of(paidFile));
+                when(googleDriveSyncService.listFilesInFolder("t7-img-folder")).thenReturn(List.of(stateImgFile));
+
+                when(googleDriveSyncService.downloadFile("t7-free-id"))
+                                .thenReturn(new ByteArrayInputStream("free content".getBytes()));
+                when(googleDriveSyncService.downloadFile("t7-paid-id"))
+                                .thenReturn(new ByteArrayInputStream("paid content".getBytes()));
+                when(s3Service.uploadFileWithKey(any(), anyLong(), anyString(), anyString()))
+                                .thenAnswer(i -> i.getArgument(2));
+                when(s3Service.getS3Url(anyString())).thenAnswer(i -> "https://s3.example.com/" + i.getArgument(0));
+
+                pipelineTask.syncDriveToS3(true);
+
+                // Free ingested
+                Product freeP = productRepo.findByGoogleDriveFileId("t7-free-id");
+                assertNotNull(freeP);
+                assertTrue(freeP.isFree());
+
+                // Paid ingested
+                Product paidP = productRepo.findByGoogleDriveFileId("t7-paid-id");
+                assertNotNull(paidP);
+                assertFalse(paidP.isFree());
+
+                // Invalid rejected
+                Product invalidP = productRepo.findByGoogleDriveFileId("t7-invalid-id");
+                assertNull(invalidP);
+                assertEquals(1, pipelineTask.getFilesFailed());
+
+                // State image skipped
+                Product imgP = productRepo.findByGoogleDriveFileId("t7-img-file");
+                assertNull(imgP);
+                assertEquals(1, pipelineTask.getFilesSkipped());
+        }
+
+        @Test
+        void test8_ExistingProductGoogleDriveFileId_IdempotentBehavior() throws Exception {
+                Product existing = new Product();
+                existing.setTitle("Existing Haryana Notes");
+                existing.setGoogleDriveFileId("t8-file-id");
+                existing.setChecksum("d2a84f4b8b650937ec8f73cd8be2c74add5a911364f832738b0077d22d164c9c");
+                existing.setIsLatestVersion(true);
+                existing.setS3Key("haryana/kurukshetra/free/Existing.pdf");
+                existing = productRepo.save(existing);
+
+                String existingMongoId = existing.getId();
+
+                File state = mkFolder("t8-state", "Haryana");
+                File dist = mkFolder("t8-dist", "Kurukshetra");
+                File freeFolder = mkFolder("t8-free-dir", "Free Resources");
+                File file = mkFile("t8-file-id", "Existing.pdf", "application/pdf", 100L);
+
+                when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(state));
+                when(googleDriveSyncService.listFilesInFolder("t8-state")).thenReturn(List.of(dist));
+                when(googleDriveSyncService.listFilesInFolder("t8-dist")).thenReturn(List.of(freeFolder));
+                when(googleDriveSyncService.listFilesInFolder("t8-free-dir")).thenReturn(List.of(file));
+                when(googleDriveSyncService.downloadFile("t8-file-id"))
+                                .thenReturn(new ByteArrayInputStream("idempotent content".getBytes()));
+
+                pipelineTask.syncDriveToS3(true);
+
+                List<Product> allProds = productRepo.findAll();
+                assertEquals(1, allProds.size());
+                assertEquals(existingMongoId, allProds.get(0).getId());
+        }
+
+        @Test
+        void test9_CaseVariations_FreeAndPaidResources() {
+                assertTrue(ProductMetadataUtil.isFreeFolder("Free Resources"));
+                assertTrue(ProductMetadataUtil.isFreeFolder("free resources"));
+                assertTrue(ProductMetadataUtil.isFreeFolder("FREE RESOURCES"));
+                assertTrue(ProductMetadataUtil.isFreeFolder("Free"));
+
+                assertTrue(ProductMetadataUtil.isPaidFolder("Paid Resources"));
+                assertTrue(ProductMetadataUtil.isPaidFolder("paid resources"));
+                assertTrue(ProductMetadataUtil.isPaidFolder("PAID RESOURCES"));
+                assertTrue(ProductMetadataUtil.isPaidFolder("Paid"));
+        }
+
+        @Test
+        void test10_WhitespaceAndPathNormalization() {
+                assertEquals("Andhra Pradesh", ProductMetadataUtil.normalizeName("  State 1 - Andhra Pradesh  "));
+                assertEquals("Kurukshetra", ProductMetadataUtil.normalizeName("  Kurukshetra District  "));
         }
 
         // ─────────────────────────────────────────────────────────────────────────
