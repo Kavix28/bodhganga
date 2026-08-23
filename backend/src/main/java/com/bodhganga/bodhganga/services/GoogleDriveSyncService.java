@@ -59,7 +59,14 @@ public class GoogleDriveSyncService {
                     throw new IOException(resourcePath + " not found in classpath");
                 }
             } else {
-                credentialsStream = new FileInputStream(credentialsFilePath);
+                java.io.File credFile = new java.io.File(credentialsFilePath);
+                if (credFile.isDirectory() || !credFile.exists()) {
+                    log.warn(
+                            "Google Drive credentials path '{}' does not exist or is a directory. Integration disabled.",
+                            credentialsFilePath);
+                    return;
+                }
+                credentialsStream = new FileInputStream(credFile);
             }
 
             GoogleCredentials credentials = GoogleCredentials.fromStream(credentialsStream)
@@ -82,18 +89,25 @@ public class GoogleDriveSyncService {
     /**
      * Lists ALL files and subfolders directly inside the given Drive folder.
      *
-     * <p>Fixes applied vs original:
+     * <p>
+     * Fixes applied vs original:
      * <ol>
-     *   <li>{@code supportsAllDrives(true)} — required to access Shared / Team Drive items.</li>
-     *   <li>{@code includeItemsFromAllDrives(true)} — required companion flag; without it,
-     *       Shared Drive contents are silently excluded even when the folder is accessible.</li>
-     *   <li>Full pagination via {@code nextPageToken} — the original code fetched only the first
-     *       page (≤100 items by default) and discarded the rest; now all pages are consumed.</li>
-     *   <li>Page size raised to 1000 (API maximum) to reduce round-trips.</li>
-     *   <li>Detailed per-file logging for production observability.</li>
+     * <li>{@code supportsAllDrives(true)} — required to access Shared / Team Drive
+     * items.</li>
+     * <li>{@code includeItemsFromAllDrives(true)} — required companion flag;
+     * without it,
+     * Shared Drive contents are silently excluded even when the folder is
+     * accessible.</li>
+     * <li>Full pagination via {@code nextPageToken} — the original code fetched
+     * only the first
+     * page (≤100 items by default) and discarded the rest; now all pages are
+     * consumed.</li>
+     * <li>Page size raised to 1000 (API maximum) to reduce round-trips.</li>
+     * <li>Detailed per-file logging for production observability.</li>
      * </ol>
      *
-     * @param folderId the Google Drive folder ID whose direct children should be listed
+     * @param folderId the Google Drive folder ID whose direct children should be
+     *                 listed
      * @return all files and sub-folders found, never {@code null}
      */
     public List<File> listFilesInFolder(String folderId) throws IOException {
@@ -170,18 +184,21 @@ public class GoogleDriveSyncService {
 
     /**
      * Downloads a file from Google Drive as an InputStream.
-     * Automatically exports Google Workspace documents (Docs, Sheets, Slides) to PDF.
+     * Automatically exports Google Workspace documents (Docs, Sheets, Slides) to
+     * PDF.
      *
-     * <p>Requires {@code supportsAllDrives(true)} for regular files.
+     * <p>
+     * Requires {@code supportsAllDrives(true)} for regular files.
      */
     public InputStream downloadFile(String fileId, String mimeType) throws IOException {
-        if (!isConfigured()) return null;
+        if (!isConfigured())
+            return null;
         log.info("[DRIVE] Downloading file — ID={}, MimeType={}", fileId, mimeType);
 
         if (mimeType != null && mimeType.startsWith("application/vnd.google-apps.")) {
             if (mimeType.equals("application/vnd.google-apps.document") ||
-                mimeType.equals("application/vnd.google-apps.spreadsheet") ||
-                mimeType.equals("application/vnd.google-apps.presentation")) {
+                    mimeType.equals("application/vnd.google-apps.spreadsheet") ||
+                    mimeType.equals("application/vnd.google-apps.presentation")) {
                 log.info("[DRIVE] Exporting Google Workspace document {} to PDF", fileId);
                 return driveService.files().export(fileId, "application/pdf").executeMediaAsInputStream();
             } else {
@@ -205,11 +222,14 @@ public class GoogleDriveSyncService {
     /**
      * Moves a file to an 'Archived/Processed' folder so it is not processed again.
      *
-     * <p>Requires {@code supportsAllDrives(true)} at both the {@code get} (to read current parents)
+     * <p>
+     * Requires {@code supportsAllDrives(true)} at both the {@code get} (to read
+     * current parents)
      * and the {@code update} (to perform the parent swap) steps.
      */
     public void moveFileToArchive(String fileId, String currentFolderId, String archiveFolderId) throws IOException {
-        if (!isConfigured()) return;
+        if (!isConfigured())
+            return;
 
         log.info("[DRIVE] moveFileToArchive — FileID={} CurrentParent={} ArchiveFolder={}",
                 fileId, currentFolderId, archiveFolderId);
@@ -246,7 +266,8 @@ public class GoogleDriveSyncService {
      * Find a folder under parentId or create it if not exists.
      */
     public String findOrCreateFolder(String parentId, String folderName) throws IOException {
-        String query = "'" + parentId + "' in parents and name='" + folderName.replace("'", "\\'") + "' and mimeType='application/vnd.google-apps.folder' and trashed=false";
+        String query = "'" + parentId + "' in parents and name='" + folderName.replace("'", "\\'")
+                + "' and mimeType='application/vnd.google-apps.folder' and trashed=false";
         FileList result = driveService.files().list()
                 .setQ(query)
                 .setSpaces("drive")
@@ -285,7 +306,8 @@ public class GoogleDriveSyncService {
     }
 
     /**
-     * Recursively merge sourceFolder contents into targetFolder and delete sourceFolder.
+     * Recursively merge sourceFolder contents into targetFolder and delete
+     * sourceFolder.
      */
     public void mergeFolders(String sourceFolderId, String targetFolderId) throws IOException {
         List<File> items = listFilesInFolder(sourceFolderId);
@@ -304,11 +326,14 @@ public class GoogleDriveSyncService {
     /**
      * Move or merge a district folder into the archived state folder.
      */
-    public String archiveDistrictFolder(String sourceDistrictFolderId, String sourceDistrictFolderName, String sourceStateFolderName, String sourceStateFolderId, String archiveRootFolderId) throws IOException {
+    public String archiveDistrictFolder(String sourceDistrictFolderId, String sourceDistrictFolderName,
+            String sourceStateFolderName, String sourceStateFolderId, String archiveRootFolderId) throws IOException {
         log.info("[DRIVE] Archiving district folder: {} (State: {})", sourceDistrictFolderName, sourceStateFolderName);
         String archivedStateFolderId = findOrCreateFolder(archiveRootFolderId, sourceStateFolderName);
 
-        String query = "'" + archivedStateFolderId + "' in parents and name='" + sourceDistrictFolderName.replace("'", "\\'") + "' and mimeType='application/vnd.google-apps.folder' and trashed=false";
+        String query = "'" + archivedStateFolderId + "' in parents and name='"
+                + sourceDistrictFolderName.replace("'", "\\'")
+                + "' and mimeType='application/vnd.google-apps.folder' and trashed=false";
         FileList result = driveService.files().list()
                 .setQ(query)
                 .setSpaces("drive")
@@ -320,12 +345,14 @@ public class GoogleDriveSyncService {
         List<File> existing = result.getFiles();
         if (existing == null || existing.isEmpty()) {
             moveFolderOrFile(sourceDistrictFolderId, sourceStateFolderId, archivedStateFolderId);
-            log.info("[DRIVE] Successfully moved entire district folder {} to archived state folder", sourceDistrictFolderName);
+            log.info("[DRIVE] Successfully moved entire district folder {} to archived state folder",
+                    sourceDistrictFolderName);
             return sourceDistrictFolderId; // The source ID is now the archived ID
         } else {
             String archivedDistrictFolderId = existing.get(0).getId();
             mergeFolders(sourceDistrictFolderId, archivedDistrictFolderId);
-            log.info("[DRIVE] Successfully merged district folder {} into archived district folder", sourceDistrictFolderName);
+            log.info("[DRIVE] Successfully merged district folder {} into archived district folder",
+                    sourceDistrictFolderName);
             return archivedDistrictFolderId;
         }
     }
@@ -339,9 +366,9 @@ public class GoogleDriveSyncService {
         fileMetadata.setParents(Collections.singletonList(parentId));
         fileMetadata.setMimeType("application/json");
 
-        com.google.api.client.http.InputStreamContent mediaContent =
-                new com.google.api.client.http.InputStreamContent("application/json",
-                        new java.io.ByteArrayInputStream(jsonContent.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        com.google.api.client.http.InputStreamContent mediaContent = new com.google.api.client.http.InputStreamContent(
+                "application/json",
+                new java.io.ByteArrayInputStream(jsonContent.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
 
         File file = driveService.files().create(fileMetadata, mediaContent)
                 .setFields("id")
@@ -350,4 +377,3 @@ public class GoogleDriveSyncService {
         return file.getId();
     }
 }
-

@@ -37,6 +37,16 @@ public class QuestionBankDriveService {
             return;
         }
 
+        if (!credPath.startsWith("classpath:")) {
+            java.io.File credFile = new java.io.File(credPath);
+            if (credFile.isDirectory() || !credFile.exists()) {
+                log.warn(
+                        "[QB DRIVE] Credentials path '{}' does not exist or is a directory — QB Drive client disabled.",
+                        credPath);
+                return;
+            }
+        }
+
         try {
             drive = DriveConfig.createDriveClient(credPath, APP_NAME);
             log.info("[QB DRIVE] Drive client initialized successfully using credentials: {}", credPath);
@@ -67,7 +77,8 @@ public class QuestionBankDriveService {
                     .setSupportsAllDrives(true)
                     .setIncludeItemsFromAllDrives(true);
 
-            if (pageToken != null) req.setPageToken(pageToken);
+            if (pageToken != null)
+                req.setPageToken(pageToken);
 
             FileList result = req.execute();
             List<File> fetched = result.getFiles();
@@ -101,7 +112,8 @@ public class QuestionBankDriveService {
     public void moveToArchive(String fileId, String archiveFolderId) throws IOException {
         requireConfigured("moveToArchive");
 
-        if (archiveFolderId == null || archiveFolderId.isBlank()) return;
+        if (archiveFolderId == null || archiveFolderId.isBlank())
+            return;
 
         File meta = drive.files().get(fileId)
                 .setFields("parents")
@@ -110,7 +122,8 @@ public class QuestionBankDriveService {
 
         StringBuilder previousParents = new StringBuilder();
         if (meta.getParents() != null) {
-            for (String p : meta.getParents()) previousParents.append(p).append(",");
+            for (String p : meta.getParents())
+                previousParents.append(p).append(",");
         }
 
         drive.files().update(fileId, null)
@@ -123,7 +136,8 @@ public class QuestionBankDriveService {
 
     private void requireConfigured(String operation) {
         if (!isConfigured()) {
-            throw new IllegalStateException("[QB DRIVE] Drive client not configured. Cannot execute '" + operation + "'.");
+            throw new IllegalStateException(
+                    "[QB DRIVE] Drive client not configured. Cannot execute '" + operation + "'.");
         }
     }
 }
