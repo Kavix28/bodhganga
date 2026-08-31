@@ -57,12 +57,30 @@ export const clearStorage = () => {
  */
 export const getAuthToken = () => {
     try {
-        const raw = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        // Handle double-encoded tokens (stored as "\"token\"" instead of "token")
-        if (typeof parsed === 'string') return parsed.replace(/^"|"$/g, '');
-        return null;
+        let raw = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+        if (!raw) {
+            const legacyToken = localStorage.getItem('authToken') || localStorage.getItem('token');
+            if (legacyToken) {
+                const cleanedLegacy = typeof legacyToken === 'string' ? legacyToken.replace(/^"|"$/g, '').trim() : legacyToken;
+                if (cleanedLegacy) {
+                    localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, cleanedLegacy);
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('token');
+                    return cleanedLegacy;
+                }
+            }
+            return null;
+        }
+        let token = raw;
+        if (token.startsWith('"') && token.endsWith('"')) {
+            try {
+                token = JSON.parse(raw);
+            } catch {
+                token = raw.replace(/^"|"$/g, '');
+            }
+        }
+        token = typeof token === 'string' ? token.replace(/^"|"$/g, '').trim() : token;
+        return token || null;
     } catch {
         return null;
     }
@@ -74,8 +92,12 @@ export const getAuthToken = () => {
  */
 export const setAuthToken = (token) => {
     try {
-        // Store raw string directly, not JSON.stringify'd, to avoid double-encoding
-        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, JSON.stringify(token));
+        if (!token) {
+            localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+            return;
+        }
+        const cleaned = typeof token === 'string' ? token.replace(/^"|"$/g, '').trim() : token;
+        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, cleaned);
     } catch (error) {
         console.error('Error saving auth token:', error);
     }
@@ -125,6 +147,10 @@ export const removeUserData = () => {
 export const clearAuthData = () => {
     removeAuthToken();
     removeUserData();
+    try {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('token');
+    } catch (_) {}
 };
 
 

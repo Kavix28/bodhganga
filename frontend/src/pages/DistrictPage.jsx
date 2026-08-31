@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import toast from "react-hot-toast";
+import { getAuthToken } from "../utils/storage";
 
 const loadRazorpayScript = () => {
   return new Promise((resolve) => {
@@ -72,7 +73,7 @@ export default function DistrictPage() {
   }, [stateSlug]);
 
   const handleUnlock = async (district) => {
-    const token = localStorage.getItem("authToken") || localStorage.getItem("token") || sessionStorage.getItem("admin_jwt");
+    const token = getAuthToken() || sessionStorage.getItem("admin_jwt");
     if (!token) {
       toast.error("Please log in to unlock this district");
       navigate("/login");

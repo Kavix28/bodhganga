@@ -41,7 +41,14 @@ api.interceptors.response.use(
             // Handle 401 Unauthorized - Token expired or invalid
             if (status === 401) {
                 clearAuthData();
-                window.location.href = '/login';
+                const currentPath = window.location.pathname;
+                if (currentPath !== '/login' && currentPath !== '/admin/login') {
+                    if (currentPath.startsWith('/admin')) {
+                        window.location.href = '/admin/login';
+                    } else {
+                        window.location.href = '/login';
+                    }
+                }
                 return Promise.reject({
                     message: ERROR_MESSAGES.SESSION_EXPIRED,
                     code: ERROR_CODES.UNAUTHORIZED,

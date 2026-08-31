@@ -20,14 +20,11 @@ export const AuthProvider = ({ children }) => {
             const savedUser = getUserData();
 
             if (savedToken && savedUser) {
-                // Self-heal: if token looks malformed (has extra quotes), clear and re-login
-                if (savedToken.startsWith('"') || savedToken.endsWith('"')) {
-                    clearAuthData();
-                    setIsLoading(false);
-                    return;
-                }
                 setToken(savedToken);
                 setUser(savedUser);
+                setIsAuthenticated(true);
+            } else if (savedToken) {
+                setToken(savedToken);
                 setIsAuthenticated(true);
             }
 
