@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.List;
-import java.util.stream.Collectors;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.S3Object;
@@ -25,7 +24,6 @@ import software.amazon.awssdk.services.s3.model.PutBucketCorsRequest;
 import software.amazon.awssdk.services.s3.model.GetBucketCorsRequest;
 import software.amazon.awssdk.services.s3.model.GetBucketCorsResponse;
 import software.amazon.awssdk.services.s3.model.S3Exception;
-
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,10 +53,10 @@ public class S3Service {
      */
     public String uploadPdf(MultipartFile file) throws IOException {
         String originalFilename = file.getOriginalFilename();
-        String sanitizedFilename = originalFilename != null 
-                ? originalFilename.replaceAll("[^a-zA-Z0-9.-]", "_") 
+        String sanitizedFilename = originalFilename != null
+                ? originalFilename.replaceAll("[^a-zA-Z0-9.-]", "_")
                 : "document.pdf";
-        
+
         String key = "pdfs/" + UUID.randomUUID().toString() + "-" + sanitizedFilename;
 
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
@@ -67,7 +65,7 @@ public class S3Service {
                 .contentType("application/pdf")
                 .build();
 
-        s3Client.putObject(putObjectRequest, 
+        s3Client.putObject(putObjectRequest,
                 RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
         return key;
@@ -78,10 +76,10 @@ public class S3Service {
      * Returns the S3 key.
      */
     public String uploadPdf(byte[] bytes, String originalFilename) {
-        String sanitizedFilename = originalFilename != null 
-                ? originalFilename.replaceAll("[^a-zA-Z0-9.-]", "_") 
+        String sanitizedFilename = originalFilename != null
+                ? originalFilename.replaceAll("[^a-zA-Z0-9.-]", "_")
                 : "document.pdf";
-        
+
         String key = "pdfs/" + UUID.randomUUID().toString() + "-" + sanitizedFilename;
 
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
@@ -90,7 +88,7 @@ public class S3Service {
                 .contentType("application/pdf")
                 .build();
 
-        s3Client.putObject(putObjectRequest, 
+        s3Client.putObject(putObjectRequest,
                 RequestBody.fromBytes(bytes));
 
         return key;
@@ -98,21 +96,23 @@ public class S3Service {
 
     /**
      * Upload a PDF file from an InputStream to S3 under pdfs/{uuid}-{filename}
-     * Returns the S3 key. Useful for streaming from external sources like Google Drive.
+     * Returns the S3 key. Useful for streaming from external sources like Google
+     * Drive.
      */
     public String uploadPdf(java.io.InputStream inputStream, long size, String originalFilename) {
         return uploadPdf(inputStream, size, originalFilename, "pdfs");
     }
 
     /**
-     * Upload a PDF file from an InputStream to S3 under a custom path {customPath}/{uuid}-{filename}
+     * Upload a PDF file from an InputStream to S3 under a custom path
+     * {customPath}/{uuid}-{filename}
      */
     public String uploadPdf(java.io.InputStream inputStream, long size, String originalFilename, String customPath) {
-        String sanitizedFilename = originalFilename != null 
-                ? originalFilename.replaceAll("[^a-zA-Z0-9.-]", "_") 
+        String sanitizedFilename = originalFilename != null
+                ? originalFilename.replaceAll("[^a-zA-Z0-9.-]", "_")
                 : "document.pdf";
-        
-        String key = (customPath != null && !customPath.isEmpty() ? customPath + "/" : "") 
+
+        String key = (customPath != null && !customPath.isEmpty() ? customPath + "/" : "")
                 + UUID.randomUUID().toString() + "-" + sanitizedFilename;
 
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
@@ -121,7 +121,7 @@ public class S3Service {
                 .contentType("application/pdf")
                 .build();
 
-        s3Client.putObject(putObjectRequest, 
+        s3Client.putObject(putObjectRequest,
                 RequestBody.fromInputStream(inputStream, size));
 
         return key;
@@ -136,7 +136,8 @@ public class S3Service {
     }
 
     /**
-     * Generate a short-lived (temporary) signed URL for secure download with custom expiry minutes
+     * Generate a short-lived (temporary) signed URL for secure download with custom
+     * expiry minutes
      */
     public String generatePresignedUrl(String objectKey, int expiryMinutes) {
         GetObjectRequest getObjectRequest = GetObjectRequest.builder()
@@ -184,11 +185,13 @@ public class S3Service {
 
         try {
             if (size <= 0) {
-                // For Google Workspace exports, size is unknown (0). We must read the stream into memory.
+                // For Google Workspace exports, size is unknown (0). We must read the stream
+                // into memory.
                 byte[] bytes = inputStream.readAllBytes();
                 s3Client.putObject(putObjectRequest, software.amazon.awssdk.core.sync.RequestBody.fromBytes(bytes));
             } else {
-                s3Client.putObject(putObjectRequest, software.amazon.awssdk.core.sync.RequestBody.fromInputStream(inputStream, size));
+                s3Client.putObject(putObjectRequest,
+                        software.amazon.awssdk.core.sync.RequestBody.fromInputStream(inputStream, size));
             }
         } catch (java.io.IOException e) {
             throw new RuntimeException("Failed to read input stream for S3 upload", e);
@@ -256,12 +259,14 @@ public class S3Service {
                     GetBucketCorsRequest.builder().bucket(bucketName).build());
             return response.corsRules();
         } catch (S3Exception e) {
-            if (e.statusCode() == 404 || (e.awsErrorDetails() != null && "NoSuchCORSConfiguration".equalsIgnoreCase(e.awsErrorDetails().errorCode()))) {
+            if (e.statusCode() == 404 || (e.awsErrorDetails() != null
+                    && "NoSuchCORSConfiguration".equalsIgnoreCase(e.awsErrorDetails().errorCode()))) {
                 log.info("No CORS configuration currently set on S3 bucket: {}", bucketName);
                 return List.of();
             }
             log.error("AWS S3 error while retrieving CORS configuration for {}: {} (Status Code: {}, Error Code: {})",
-                    bucketName, e.getMessage(), e.statusCode(), e.awsErrorDetails() != null ? e.awsErrorDetails().errorCode() : "N/A", e);
+                    bucketName, e.getMessage(), e.statusCode(),
+                    e.awsErrorDetails() != null ? e.awsErrorDetails().errorCode() : "N/A", e);
             throw e;
         } catch (Exception e) {
             log.error("Failed to retrieve S3 bucket CORS configuration for {}: {}", bucketName, e.getMessage(), e);
@@ -297,5 +302,41 @@ public class S3Service {
         } catch (Exception e) {
             log.error("Failed to configure S3 bucket CORS on {}: {}", bucketName, e.getMessage(), e);
         }
+    }
+
+    /**
+     * Copy an S3 object from sourceKey to destinationKey within the same bucket.
+     */
+    public void copyObject(String sourceKey, String destinationKey) {
+        if (sourceKey == null || destinationKey == null || sourceKey.equals(destinationKey)) {
+            return;
+        }
+        log.info("[S3] Copying object from '{}' to '{}' in bucket '{}'", sourceKey, destinationKey, bucketName);
+        software.amazon.awssdk.services.s3.model.CopyObjectRequest copyReq = software.amazon.awssdk.services.s3.model.CopyObjectRequest
+                .builder()
+                .sourceBucket(bucketName)
+                .sourceKey(sourceKey)
+                .destinationBucket(bucketName)
+                .destinationKey(destinationKey)
+                .build();
+        s3Client.copyObject(copyReq);
+        log.info("[S3] Successfully copied object to '{}'", destinationKey);
+    }
+
+    /**
+     * Delete an S3 object from the bucket.
+     */
+    public void deleteObject(String objectKey) {
+        if (objectKey == null || objectKey.isBlank()) {
+            return;
+        }
+        log.info("[S3] Deleting object '{}' from bucket '{}'", objectKey, bucketName);
+        software.amazon.awssdk.services.s3.model.DeleteObjectRequest deleteReq = software.amazon.awssdk.services.s3.model.DeleteObjectRequest
+                .builder()
+                .bucket(bucketName)
+                .key(objectKey)
+                .build();
+        s3Client.deleteObject(deleteReq);
+        log.info("[S3] Successfully deleted object '{}'", objectKey);
     }
 }

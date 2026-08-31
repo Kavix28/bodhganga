@@ -12,7 +12,8 @@ public class ProductMetadataUtil {
     public enum AccessType {
         FREE,
         PAID,
-        UNKNOWN
+        UNKNOWN,
+        CONFLICT
     }
 
     public enum ItemType {
@@ -37,7 +38,8 @@ public class ProductMetadataUtil {
             return false;
         String canonical = normalizeFolderName(folderName);
         return canonical.equals("free") || canonical.equals("free resources") || canonical.equals("free-resources")
-                || canonical.equals("free materials") || canonical.equals("free notes");
+                || canonical.equals("free materials") || canonical.equals("free notes")
+                || canonical.equals("free resource");
     }
 
     public static boolean isPaidFolder(String folderName) {
@@ -45,7 +47,8 @@ public class ProductMetadataUtil {
             return false;
         String canonical = normalizeFolderName(folderName);
         return canonical.equals("paid") || canonical.equals("paid resources") || canonical.equals("paid-resources")
-                || canonical.equals("paid materials") || canonical.equals("paid notes");
+                || canonical.equals("paid materials") || canonical.equals("paid notes")
+                || canonical.equals("paid resource");
     }
 
     public static boolean isStateImagesFolder(String folderName) {
@@ -53,14 +56,17 @@ public class ProductMetadataUtil {
             return false;
         String canonical = normalizeFolderName(folderName);
         return canonical.equals("state images") || canonical.equals("state-images")
-                || canonical.equals("state_images") || canonical.equals("state image")
-                || canonical.equals("images");
+                || canonical.equals("state_images") || canonical.equals("state image");
     }
 
     public static String normalizeName(String name) {
         if (name == null)
             return "";
-        String cleaned = name
+        // Trim first so leading whitespace does not prevent prefix-stripping regex
+        // anchored at ^
+        // Strip leading numbering/state prefixes: "State 1- ", "State 1 - ", "1- ",
+        // "15-", etc.
+        String cleaned = name.trim()
                 .replaceAll("(?i)^(State\\s*\\d+\\s*-\\s*|State\\s*-\\s*|State\\s+\\d+\\s+|\\d+\\s*-\\s*|\\d+\\s+)", "")
                 .trim();
         cleaned = cleaned.replaceAll("(?i)\\s+District$", "").trim();
@@ -122,8 +128,11 @@ public class ProductMetadataUtil {
 
     /**
      * Generic & Backward-Compatible Folder Metadata Extractor
-     * FAIL-CLOSED: If no explicit Free/Paid tier folder is found in the path,
-     * accessType is set to UNKNOWN and hasTierFolder to false.
+     * FAIL-CLOSED & CONFLICT-SAFE:
+     * - 0 tier folders => UNKNOWN
+     * - FREE tier folder only => FREE
+     * - PAID tier folder only => PAID
+     * - FREE and PAID both present => CONFLICT (reject)
      */
     public static HierarchicalMetadata extractMetadata(List<String> folderPath, String fileName) {
         HierarchicalMetadata stateImageMeta = parseStateImage(folderPath, fileName);
@@ -156,21 +165,16 @@ public class ProductMetadataUtil {
         }
 
         List<String> cleanedPath = new ArrayList<>();
-        boolean isFree = false;
-        boolean hasTierFolder = false;
-        AccessType accessType = AccessType.UNKNOWN;
+        boolean sawFree = false;
+        boolean sawPaid = false;
 
         for (String folder : folderPath) {
             if (isFreeFolder(folder)) {
-                isFree = true;
-                hasTierFolder = true;
-                accessType = AccessType.FREE;
+                sawFree = true;
                 continue;
             }
             if (isPaidFolder(folder)) {
-                isFree = false;
-                hasTierFolder = true;
-                accessType = AccessType.PAID;
+                sawPaid = true;
                 continue;
             }
             String norm = normalizeName(folder);
@@ -182,6 +186,28 @@ public class ProductMetadataUtil {
                     cleanedPath.add(norm);
                 }
             }
+        }
+
+        AccessType accessType;
+        boolean hasTierFolder;
+        boolean isFree;
+
+        if (sawFree && sawPaid) {
+            accessType = AccessType.CONFLICT;
+            hasTierFolder = false;
+            isFree = false;
+        } else if (sawFree) {
+            accessType = AccessType.FREE;
+            hasTierFolder = true;
+            isFree = true;
+        } else if (sawPaid) {
+            accessType = AccessType.PAID;
+            hasTierFolder = true;
+            isFree = false;
+        } else {
+            accessType = AccessType.UNKNOWN;
+            hasTierFolder = false;
+            isFree = false;
         }
 
         if (cleanedPath.isEmpty()) {
@@ -319,8 +345,12 @@ public class ProductMetadataUtil {
         }
 
         public String buildS3Key(String fileName) {
-            if ("images".equals(navbarSlug) && "state-image".equals(subcategorySlug)) {
+            if (itemType == ItemType.STATE_IMAGE
+                    || ("images".equals(navbarSlug) && "state-image".equals(subcategorySlug))) {
                 return String.format("states/%s/%s", stateSlug, fileName);
+            }
+            if (accessType == AccessType.UNKNOWN || accessType == AccessType.CONFLICT || !hasTierFolder) {
+                return String.format("quarantined/%s", fileName);
             } else if ("general".equals(stateSlug)
                     && ("free-resources".equals(navbarSlug) || "physics".equals(navbarSlug))) {
                 return String.format("free-resources/%s/%s", navbarSlug, fileName);

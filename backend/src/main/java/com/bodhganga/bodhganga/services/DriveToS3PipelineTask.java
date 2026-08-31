@@ -13,7 +13,6 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.security.MessageDigest;
 import java.util.*;
@@ -30,6 +29,7 @@ public class DriveToS3PipelineTask {
     private final S3Service s3Service;
     private final ProductRepo productRepo;
     private final MongoTemplate mongoTemplate;
+    private final ProductReconciliationService productReconciliationService;
 
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
     private volatile Date lastRun;
@@ -47,10 +47,6 @@ public class DriveToS3PipelineTask {
             "mp4", "avi", "mkv", "mov",
             "zip", "txt");
 
-    /**
-     * Backward compatibility wrapper.
-     * Metadata parsing now lives in ProductMetadataUtil.
-     */
     public static String normalizeName(String name) {
         return ProductMetadataUtil.normalizeName(name);
     }
@@ -58,11 +54,13 @@ public class DriveToS3PipelineTask {
     public DriveToS3PipelineTask(GoogleDriveSyncService googleDriveSyncService,
             S3Service s3Service,
             ProductRepo productRepo,
-            MongoTemplate mongoTemplate) {
+            MongoTemplate mongoTemplate,
+            ProductReconciliationService productReconciliationService) {
         this.googleDriveSyncService = googleDriveSyncService;
         this.s3Service = s3Service;
         this.productRepo = productRepo;
         this.mongoTemplate = mongoTemplate;
+        this.productReconciliationService = productReconciliationService;
     }
 
     @Value("${google.drive.source-folder-id:${QB_SOURCE_FOLDER_ID:#{null}}}")
@@ -189,7 +187,7 @@ public class DriveToS3PipelineTask {
         try {
             traverseAndSync(sourceFolderId, "BodhGanga", new ArrayList<>(), scannedDriveFileIds);
 
-            // Delete Synchronization Pass
+            // Delete Synchronization Pass (soft-delete)
             performDeleteSync(scannedDriveFileIds);
 
             lastRun = new Date();
@@ -229,9 +227,6 @@ public class DriveToS3PipelineTask {
         log.info("[DELETE SYNC] Synchronized {} deletions.", deletedCount);
     }
 
-    /**
-     * Recursive folder traversal with unlimited depth & pagination.
-     */
     private void traverseAndSync(String folderId, String folderName, List<String> folderPath,
             Set<String> scannedDriveFileIds) {
         log.info("[GENERIC PIPELINE] FOLDER: {} ({}) Path: {}", folderName, folderId, folderPath);
@@ -252,6 +247,7 @@ public class DriveToS3PipelineTask {
                         processFile(item, folderId, folderPath);
                     } catch (Exception e) {
                         log.error("[GENERIC PIPELINE] Failed processing file {}: {}", item.getName(), e.getMessage());
+                        filesFailed.incrementAndGet();
                     }
                 }
             }
@@ -283,20 +279,15 @@ public class DriveToS3PipelineTask {
             return;
         }
 
-        // ── Extract Hierarchical Metadata (ItemType, State, NavbarCategory, District,
-        // Tier)
         HierarchicalMetadata metadata = ProductMetadataUtil.extractMetadata(folderPath, fileName);
 
-        // ── 1. STATE IMAGE HANDLING ────────────────────────────────────────────────
         if (metadata.itemType == ProductMetadataUtil.ItemType.STATE_IMAGE) {
-            log.info(
-                    "[PIPELINE][STATE_IMAGE][SKIPPED] File '{}' (Drive ID: {}) in path {} is a state image. Skipping product ingestion.",
+            log.info("[PIPELINE][STATE_IMAGE][SKIPPED] File '{}' (Drive ID: {}) in path {} is a state image. Skipping.",
                     fileName, file.getId(), folderPath);
             filesSkipped.incrementAndGet();
             return;
         }
 
-        // ── 2. NON-RESOURCE HANDLING ──────────────────────────────────────────────
         if (metadata.itemType == ProductMetadataUtil.ItemType.NON_RESOURCE) {
             log.info(
                     "[PIPELINE][NON_RESOURCE][SKIPPED] File '{}' (Drive ID: {}) in path {} is not an educational resource. Skipping.",
@@ -305,44 +296,7 @@ public class DriveToS3PipelineTask {
             return;
         }
 
-        // ── 3. FAIL-CLOSED PIPELINE VALIDATION FOR EDUCATIONAL RESOURCE ─────────────
-        if (!metadata.hasTierFolder || metadata.accessType == ProductMetadataUtil.AccessType.UNKNOWN) {
-            log.error(
-                    "[PIPELINE][RESOURCE][UNKNOWN][REJECTED] File '{}' (Drive ID: {}): Folder path {} lacks an explicit Free or Paid tier folder.",
-                    fileName, file.getId(), folderPath);
-            filesFailed.incrementAndGet();
-            return;
-        }
-
-        if (metadata.accessType == ProductMetadataUtil.AccessType.FREE) {
-            log.info("[PIPELINE][RESOURCE][FREE] File '{}' (Drive ID: {}) in path {} classified as FREE.",
-                    fileName, file.getId(), folderPath);
-        } else if (metadata.accessType == ProductMetadataUtil.AccessType.PAID) {
-            log.info("[PIPELINE][RESOURCE][PAID] File '{}' (Drive ID: {}) in path {} classified as PAID.",
-                    fileName, file.getId(), folderPath);
-        }
-
-        String state = metadata.state;
-        String stateSlug = metadata.stateSlug;
-        String navbarCategory = metadata.navbarCategory;
-        String navbarSlug = metadata.navbarSlug;
-        String district = metadata.district;
-        String districtSlug = metadata.districtSlug;
-        boolean isFree = metadata.isFree;
-        double price = isFree ? 0.0 : 99.0;
-
-        // ── Construct S3 Key ────────────────────────────────────────────────────────
-        // Generic structure: state-slug/navbar-slug/filename.pdf
-        // District structure: state-slug/category-slug/district-slug/tier/filename.pdf
-        String s3Key = metadata.buildS3Key(fileName);
-        long size = file.getSize() != null ? file.getSize() : 0;
-        String fileMimeType = targetMimeType != null ? targetMimeType : Product.determineMimeType(fileName);
-        String contentType = Product.determineContentType(fileMimeType, fileName);
-
-        log.info("[GENERIC PIPELINE] state={} navbarCategory={} district={} s3Key={}",
-                state, navbarCategory, district, s3Key);
-
-        // ── Step 1: Download & Compute Checksum ──────────────────────────────
+        // Download bytes and compute checksum
         byte[] fileBytes;
         String checksum;
         try (InputStream inputStream = isGoogleDoc
@@ -353,135 +307,53 @@ public class DriveToS3PipelineTask {
                 throw new java.io.IOException("Failed to open stream for Google Drive file: " + fileName);
             }
             fileBytes = inputStream.readAllBytes();
-            if (size <= 0) {
-                size = fileBytes.length;
-            }
             checksum = calculateSHA256(fileBytes);
         }
 
-        // ── Step 2: Idempotent & Incremental Sync Check ───────────────────────────
-        Product existing = productRepo.findByGoogleDriveFileId(file.getId());
-        if (existing == null)
-            existing = productRepo.findByS3Key(s3Key).orElse(null);
-        if (existing == null && checksum != null)
-            existing = productRepo.findByChecksum(checksum).orElse(null);
+        // Delegate to ProductReconciliationService for deterministic decision & S3
+        // relocation
+        ProductReconciliationService.ReconciliationResult result = productReconciliationService.reconcile(
+                file, parentFolderId, folderPath, fileBytes, checksum, fileName, targetMimeType, metadata);
 
-        // Incremental sync: If checksum matches existing record, skip re-uploading
-        if (existing != null && checksum != null && checksum.equals(existing.getChecksum())
-                && Boolean.TRUE.equals(existing.getIsLatestVersion())) {
-            log.info("[INCREMENTAL SYNC] File unchanged, skipping re-upload: {}", fileName);
-            existing.setLastSync(new Date());
-            productRepo.save(existing);
-            filesSkipped.incrementAndGet();
-            return;
+        switch (result.getAction()) {
+            case CREATE:
+                filesUploaded.incrementAndGet();
+                log.info("[PIPELINE][SUCCESS] Created product for file: {}", fileName);
+                break;
+            case UPDATE_VERSION:
+                filesUploaded.incrementAndGet();
+                duplicatesFound.incrementAndGet();
+                log.info("[PIPELINE][SUCCESS] Versioned product for file: {}", fileName);
+                break;
+            case RECONCILE_METADATA_AND_S3:
+                filesUploaded.incrementAndGet();
+                log.info("[PIPELINE][RECONCILED] Reconciled metadata & S3 for file: {}", fileName);
+                break;
+            case NO_CHANGE:
+                filesSkipped.incrementAndGet();
+                log.info("[PIPELINE][SKIP] No change for file: {}", fileName);
+                break;
+            case QUARANTINE:
+                filesFailed.incrementAndGet();
+                log.error("[PIPELINE][QUARANTINED] Quarantined invalid/conflicting tier file: {}", fileName);
+                break;
+            case REJECT:
+                filesSkipped.incrementAndGet();
+                log.info("[PIPELINE][REJECT] Rejected non-resource file: {}", fileName);
+                break;
         }
 
-        Product product;
-        if (existing != null && checksum != null && !checksum.equals(existing.getChecksum())) {
-            // Versioning: File modified on Drive → create new version (v2, v3...)
-            log.info("[VERSIONING] Modifying file {}, creating version {}", fileName,
-                    (existing.getVersion() != null ? existing.getVersion() : 1) + 1);
-            existing.setIsLatestVersion(false);
-            existing.setPublished(false);
-            productRepo.save(existing);
-
-            product = new Product();
-            product.setVersion((existing.getVersion() != null ? existing.getVersion() : 1) + 1);
-            product.setPreviousVersionId(existing.getId());
-            product.setIsLatestVersion(true);
-            duplicatesFound.incrementAndGet();
-        } else if (existing != null) {
-            product = existing;
-            product.setIsLatestVersion(true);
-        } else {
-            product = new Product();
-            product.setVersion(1);
-            product.setIsLatestVersion(true);
-            product.setOriginalFileName(fileName);
-            product.setFileName(fileName);
-            product.setFileExtension(fileExtension);
-            product.setImportedFromDrive(true);
-            product.setCreatedAt(new Date());
-            log.info("[GENERIC PIPELINE] Creating new product record for: {}", fileName);
-        }
-
-        // ── Step 3: Populate Smart Metadata ────────────────────────────────────────
-        String displayTitle = Product.stripExtension(fileName);
-        product.setTitle(displayTitle);
-        product.setDisplayTitle(displayTitle);
-        product.setType(contentType);
-        product.setContentType(contentType);
-        product.setMimeType(fileMimeType);
-        product.setFileSize(size);
-        product.setState(ProductMetadataUtil.normalizeName(state));
-        product.setStateSlug(stateSlug);
-        product.setDistrict(ProductMetadataUtil.normalizeName(district));
-        product.setDistrictSlug(districtSlug);
-        product.setNavbarCategory(navbarCategory);
-        product.setNavbarSlug(navbarSlug);
-        product.setCategorySlug(navbarSlug);
-        product.setSubcategory(metadata.subcategory);
-        product.setSubcategorySlug(metadata.subcategorySlug);
-        product.setSubfolderPath(metadata.subfolderPath);
-
-        List<String> crumbs = new ArrayList<>();
-        if (state != null)
-            crumbs.add(state);
-        if (navbarCategory != null)
-            crumbs.add(navbarCategory);
-        if (metadata.subcategory != null)
-            crumbs.add(metadata.subcategory);
-        product.setBreadcrumbs(crumbs);
-
-        product.setGoogleDriveFileId(file.getId());
-        product.setGoogleDriveParentId(parentFolderId);
-        product.setChecksum(checksum);
-        product.setLastSync(new Date());
-        product.setSource("Google Drive");
-        product.setPublished(true);
-        product.setFree(isFree);
-        product.setPrice(price);
-        product.setCategory(navbarCategory != null ? navbarCategory : (isFree ? "Free Resources" : "Paid Resources"));
-        product.setIngestionStatus(IngestionStatus.PROCESSING);
-        product.setUpdatedAt(new Date());
-
-        product = productRepo.save(product);
-
-        // ── Step 4: Atomic S3 Upload ─────────────────────────────────────────
-        try (InputStream uploadStream = new java.io.ByteArrayInputStream(fileBytes)) {
-            String returnedKey = s3Service.uploadFileWithKey(uploadStream, size, s3Key, fileMimeType);
-            String s3Url = s3Service.getS3Url(returnedKey);
-
-            product.setS3Key(returnedKey);
-            product.setStorageKey(returnedKey);
-            product.setS3Url(s3Url);
-            product.setIngestionStatus(IngestionStatus.COMPLETED);
-            product.setUpdatedAt(new Date());
-            product = productRepo.save(product);
-
-            log.info("[GENERIC PIPELINE] SUCCESS state={} navbarCategory={} s3Url={}",
-                    state, navbarCategory, s3Url);
-
-            // ── Step 5: Archive ONLY After S3 + Mongo Success ─────────────────────
-            if (archiveFolderId != null && !archiveFolderId.isEmpty() && !archiveFolderId.equals("null")) {
-                googleDriveSyncService.moveFileToArchive(file.getId(), parentFolderId, archiveFolderId);
+        // Archive ONLY after successful creation/reconciliation
+        if ((result.getAction() == ProductReconciliationService.ReconciliationAction.CREATE ||
+                result.getAction() == ProductReconciliationService.ReconciliationAction.UPDATE_VERSION) &&
+                archiveFolderId != null && !archiveFolderId.isEmpty() && !archiveFolderId.equals("null")) {
+            googleDriveSyncService.moveFileToArchive(file.getId(), parentFolderId, archiveFolderId);
+            Product product = result.getProduct();
+            if (product != null) {
                 product.setArchived(true);
                 productRepo.save(product);
-                log.info("[GENERIC PIPELINE] Archived in Drive: {}", fileName);
             }
-
-            if (existing != null) {
-                filesSkipped.incrementAndGet();
-            } else {
-                filesUploaded.incrementAndGet();
-            }
-        } catch (Exception e) {
-            filesFailed.incrementAndGet();
-            product.setIngestionStatus(IngestionStatus.FAILED);
-            product.setUpdatedAt(new Date());
-            productRepo.save(product);
-            log.error("[GENERIC PIPELINE] FAILED file={} error={}", fileName, e.getMessage());
-            throw e;
+            log.info("[GENERIC PIPELINE] Archived in Drive: {}", fileName);
         }
     }
 

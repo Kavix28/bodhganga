@@ -1,66 +1,66 @@
-# BODHGANGA DIGITAL LEARNING — CANONICAL DATA CONTRACT
+# BodhGanga Data Contract Specification
 
----
+## 1. Canonical Resource Model
 
-## 1. Educational Resource Domain Specification
+### Item Types (`ItemType`)
 
-Every educational resource ingested into or served by BodhGanga MUST satisfy the following strict data contract:
+- **`RESOURCE`**: Educational learning material (PDFs, videos, podcasts, infographics). Processed into MongoDB `Product` records.
+- **`STATE_IMAGE`**: Header/banner images representing states. Skipped from `Product` creation; stored in `states/<stateSlug>/<filename>` when managed.
+- **`NON_RESOURCE`**: Administrative or unsupported files (e.g. `.DS_Store`, hidden system files). Skipped during ingestion.
 
-### A. Classification Properties
+### Access Types (`AccessType`)
 
-- **`itemType`**: MUST be `RESOURCE`.
-- **`accessType`**: MUST be explicitly resolved to `FREE` or `PAID`. (An `UNKNOWN` access type violates the contract and is rejected by fail-closed guards).
-- **`hasTierFolder`**: MUST be `true` (indicating an explicit ancestor folder matching a recognized tier name was found in Google Drive).
+- **`FREE`**: Resource located inside an explicit Free tier folder (`Free Resources`, `Free Notes`, etc.).
+  - Data Invariants: `isFree = true`, `price = 0.0`.
+- **`PAID`**: Resource located inside an explicit Paid tier folder (`Paid Resources`, `Paid Notes`, etc.).
+  - Data Invariants: `isFree = false`, `price > 0.0` (default 99.0).
+- **`UNKNOWN`**: Resource path lacks any explicit Free or Paid tier folder.
+  - Data Invariants: Must **NEVER** be published. Quarantined automatically (`IngestionStatus.QUARANTINED`).
+- **`CONFLICT`**: Resource path contains **BOTH** Free and Paid tier folders in its ancestor hierarchy (e.g. `Free Resources/Paid Resources/notes.pdf`).
+  - Data Invariants: Must **NEVER** be published. Quarantined automatically (`IngestionStatus.QUARANTINED`).
 
-### B. Product Entity Field Alignments
+### Ingestion Status (`IngestionStatus`)
 
-| Property              | `FREE` Resource | `PAID` Resource                        |
-| :-------------------- | :-------------- | :------------------------------------- |
-| **`isFree`**          | `true`          | `false`                                |
-| **`price`**           | `0.0`           | `99.0` (or configured non-zero amount) |
-| **`isPublished`**     | `true`          | `true`                                 |
-| **`isLatestVersion`** | `true`          | `true`                                 |
+- **`PROCESSING`**: File ingestion / S3 upload in progress.
+- **`COMPLETED`**: Successfully reconciled, uploaded to S3, and published.
+- **`FAILED`**: Ingestion or upload error encountered; unpublished.
+- **`QUARANTINED`**: Ambiguous, conflicting, or unknown tier classification; unpublished and forbidden from frontend access.
 
----
+## 2. Invalidation Rules & Non-Inference Policy
 
-## 2. Canonical S3 Key & Directory Architecture
+1. **Hierarchy Only**: Access tier (`FREE` vs `PAID`) **MUST** be derived strictly from explicit folder hierarchy names.
+2. **Strict Non-Inference**: Access tier MUST NEVER be inferred from:
+   - Filename or file extension.
+   - Price alone.
+   - Resource title or display name.
+   - State or district name.
+   - Words such as "Sample", "Notes", "MCQ", "Guide".
+   - File size or MIME type.
 
-### A. Canonical Key Format
+## 3. S3 Namespace Contract
 
-Educational PDF documents in the S3 bucket (`bodhganga-pdf-storage-prod`) MUST follow the canonical key path format:
+### Educational Resources
 
-```text
-<state-slug>/<district-slug>/<district-slug>/<tier-slug>/<filename>
-```
+- **Paid Tier**: `<state-slug>/<district-slug>/paid/<filename>`
+- **Free Tier**: `<state-slug>/<district-slug>/free/<filename>`
+- **Category Fallback**: `<state-slug>/<navbar-slug>/<filename>`
 
-**Examples:**
+### State Header Images
 
-- **Free Resource:** `maharashtra/akola/akola/free/Akola_General_Notes.pdf`
-- **Paid Resource:** `manipur/chandel/chandel/paid/Chandel_Infographic_Hindi.png`
+- `states/<state-slug>/<filename>`
 
-### B. Forbidden & Malformed Key Formats
+### Quarantined / Ambiguous Objects
 
-The system MUST NOT allow or persist keys with malformed structures such as:
+- `quarantined/<filename>`
 
-- `paid-resources/free/file.pdf`
-- `free/paid/file.pdf`
-- `maharashtra/akola/file.pdf` (Missing explicit tier folder)
-- `ambiguous/file.pdf`
+**Rule**: An `UNKNOWN` or `CONFLICT` resource must NEVER be stored under `/free/` or `/paid/`.
 
----
+## 4. Fundamental Data Invariants
 
-## 3. Non-Resource & State Image Ingestion Rules
-
-### A. State Header Images
-
-- **`itemType`**: `STATE_IMAGE`.
-- Files inside `"State images"` folders (e.g. `Haryana-image.png`, `Maharashtra-image.png`) are treated exclusively as state branding headers.
-- **Database Action:** NO Product document is created in MongoDB.
-- **Storage Action:** NO upload to the educational PDF S3 namespace occurs.
-- **Pipeline Logging:** Emits `[PIPELINE][STATE_IMAGE][SKIPPED]` and increments `filesSkipped` metric.
-
-### B. Non-Resource Files
-
-- **`itemType`**: `NON_RESOURCE`.
-- System files (`.DS_Store`, `desktop.ini`, `.txt` logs, admin notes) are filtered out.
-- **Pipeline Logging:** Emits `[PIPELINE][NON_RESOURCE][SKIPPED]` and increments `filesSkipped` metric.
+1. **Invariant 1**: No `UNKNOWN` or `CONFLICT` resource may have `published = true` or `isFree = true`.
+2. **Invariant 2**: No `PAID` resource may have `isFree = true` or `price = 0.0`.
+3. **Invariant 3**: No `FREE` resource may have `isFree = false` or `price > 0.0`.
+4. **Invariant 4**: No quarantined resource may be accessible via public or pre-signed PDF endpoints (`PdfController`).
+5. **Invariant 5**: Relocation of S3 objects MUST verify destination object existence prior to deleting source objects.
+6. **Invariant 6**: MongoDB records MUST NOT point to an S3 key until the object existence at that key has been verified.
+7. **Invariant 7**: Identical `googleDriveFileId`, `checksum`, and `metadata` operations MUST be strictly idempotent.

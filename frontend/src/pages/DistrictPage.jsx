@@ -3,6 +3,20 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import toast from "react-hot-toast";
 
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    if (window.Razorpay) {
+      resolve(true);
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
+
 export default function DistrictPage() {
   const { stateSlug } = useParams();
   const navigate = useNavigate();
@@ -10,12 +24,23 @@ export default function DistrictPage() {
   const [purchasedSlugs, setPurchasedSlugs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [stateName, setStateName] = useState("");
+  const [unlockingSlug, setUnlockingSlug] = useState(null);
+
+  const fetchPurchasedDistricts = async () => {
+    try {
+      const pRes = await api.get("/payment/district/purchased");
+      const list = Array.isArray(pRes) ? pRes : (pRes?.data || []);
+      setPurchasedSlugs(list);
+    } catch {
+      // Guest user or network error
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const res = await api.get(`/products/state/${stateSlug}`);
-        const products = res?.data || [];
+        const products = Array.isArray(res) ? res : (res?.data || []);
 
         const map = {};
         products.forEach(p => {
@@ -36,12 +61,7 @@ export default function DistrictPage() {
         setDistricts(grouped);
         if (grouped.length > 0) setStateName(grouped[0].stateName);
 
-        try {
-          const pRes = await api.get("/payment/district/purchased");
-          setPurchasedSlugs(pRes?.data || []);
-        } catch {
-          // not logged in, ignore
-        }
+        await fetchPurchasedDistricts();
       } catch (e) {
         console.error(e);
       } finally {
@@ -52,26 +72,43 @@ export default function DistrictPage() {
   }, [stateSlug]);
 
   const handleUnlock = async (district) => {
-    const token = localStorage.getItem("authToken") || localStorage.getItem("token");
+    const token = localStorage.getItem("authToken") || localStorage.getItem("token") || sessionStorage.getItem("admin_jwt");
     if (!token) {
       toast.error("Please log in to unlock this district");
       navigate("/login");
       return;
     }
 
+    if (unlockingSlug) return;
+    setUnlockingSlug(district.districtSlug);
+
     try {
+      const sdkLoaded = await loadRazorpayScript();
+      if (!sdkLoaded) {
+        toast.error("Payment SDK failed to load. Please check your internet connection.");
+        setUnlockingSlug(null);
+        return;
+      }
+
       const orderRes = await api.post("/payment/create-order", {
         amountPaise: 100,
         districtSlug: district.districtSlug,
         stateSlug
       });
 
-      const { orderId, amount, currency, keyId } = orderRes.data.data;
+      const orderData = orderRes?.data?.data || orderRes?.data || orderRes;
+      const { orderId, amount, currency, keyId } = orderData || {};
+
+      if (!orderId || !keyId) {
+        toast.error("Could not create payment order. Please try again.");
+        setUnlockingSlug(null);
+        return;
+      }
 
       const options = {
         key: keyId,
         amount,
-        currency,
+        currency: currency || "INR",
         name: "Bodhganga",
         description: `Unlock ${district.districtName} – ${stateName}`,
         order_id: orderId,
@@ -85,26 +122,40 @@ export default function DistrictPage() {
               stateSlug
             });
             toast.success("District unlocked! Enjoy your resources 🎉");
-            setPurchasedSlugs(prev => [...prev, district.districtSlug]);
-          } catch {
-            toast.error("Payment verification failed. Contact support.");
+            await fetchPurchasedDistricts();
+          } catch (verifyErr) {
+            console.error(verifyErr);
+            toast.error(verifyErr?.message || "Payment verification failed. Contact support.");
+          } finally {
+            setUnlockingSlug(null);
           }
         },
         theme: { color: "#f59e0b" },
-        modal: { ondismiss: () => toast("Payment cancelled") }
+        modal: {
+          ondismiss: () => {
+            toast("Payment cancelled");
+            setUnlockingSlug(null);
+          }
+        }
       };
 
       const rzp = new window.Razorpay(options);
-      rzp.on("payment.failed", () => toast.error("Payment failed. Please try again."));
+      rzp.on("payment.failed", (resp) => {
+        console.error("Payment failed:", resp);
+        toast.error("Payment failed. Please try again.");
+        setUnlockingSlug(null);
+      });
       rzp.open();
     } catch (e) {
       console.error(e);
-      toast.error("Could not initiate payment. Try again.");
+      toast.error(e?.message || "Could not initiate payment. Try again.");
+      setUnlockingSlug(null);
     }
   };
 
   const isUnlocked = (district) => {
-    const allFree = district.resources.every(r => r.isFree === true);
+    const hasResources = district.resources && district.resources.length > 0;
+    const allFree = hasResources && district.resources.every(r => r.isFree === true || r.free === true || r.price === 0);
     return allFree || purchasedSlugs.includes(district.districtSlug);
   };
 
@@ -129,7 +180,8 @@ export default function DistrictPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {districts.map(district => {
               const unlocked = isUnlocked(district);
-              const allFree = district.resources.every(r => r.isFree === true);
+              const hasResources = district.resources && district.resources.length > 0;
+              const allFree = hasResources && district.resources.every(r => r.isFree === true || r.free === true || r.price === 0);
               return (
                 <div key={district.districtSlug}
                   className="bg-gray-900 border border-gray-800 rounded-xl p-6">
@@ -154,8 +206,16 @@ export default function DistrictPage() {
                   ) : (
                     <button
                       onClick={() => handleUnlock(district)}
-                      className="w-full bg-gray-800 hover:bg-gray-700 border border-amber-500 text-amber-400 font-semibold py-2 px-4 rounded-lg transition-colors text-sm">
-                      Unlock District – ₹1
+                      disabled={unlockingSlug === district.districtSlug}
+                      className="w-full bg-gray-800 hover:bg-gray-700 disabled:opacity-50 border border-amber-500 text-amber-400 font-semibold py-2 px-4 rounded-lg transition-colors text-sm flex items-center justify-center gap-2">
+                      {unlockingSlug === district.districtSlug ? (
+                        <>
+                          <span className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></span>
+                          Processing...
+                        </>
+                      ) : (
+                        "Unlock District – ₹1"
+                      )}
                     </button>
                   )}
                 </div>

@@ -8,6 +8,7 @@
     "dev": "npm --prefix frontend run dev"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1119.0",
     "mongodb": "^7.2.0",
     "playwright": "^1.60.0"
   }

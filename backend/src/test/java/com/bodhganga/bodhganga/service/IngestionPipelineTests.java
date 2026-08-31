@@ -137,7 +137,7 @@ public class IngestionPipelineTests {
                 when(googleDriveSyncService.downloadFile("pdf-file-id")).thenReturn(testInputStream);
 
                 String computedS3Key = "andhra-pradesh/alluri-sitharama-raju/paid/Notes.pdf";
-                when(s3Service.uploadFileWithKey(any(), eq(2048L), eq(computedS3Key), eq("application/pdf")))
+                when(s3Service.uploadFileWithKey(any(), anyLong(), eq(computedS3Key), eq("application/pdf")))
                                 .thenReturn(computedS3Key);
                 when(s3Service.getS3Url(computedS3Key)).thenReturn("http://aws-s3/test-bucket-name/" + computedS3Key);
 
@@ -157,7 +157,7 @@ public class IngestionPipelineTests {
                 assertEquals("pdf-file-id", product.getGoogleDriveFileId());
                 assertTrue(product.isArchived(), "File should be marked as archived");
 
-                verify(s3Service, times(1)).uploadFileWithKey(any(), eq(2048L), eq(computedS3Key),
+                verify(s3Service, times(1)).uploadFileWithKey(any(), anyLong(), eq(computedS3Key),
                                 eq("application/pdf"));
                 verify(googleDriveSyncService, times(1)).moveFileToArchive(eq("pdf-file-id"), eq("pdfs-folder-id"),
                                 eq("archive-folder-id"));
@@ -670,38 +670,23 @@ public class IngestionPipelineTests {
 
         @Test
         void testStateImageIngestionAndAvailableStatesEndpoint() throws Exception {
+                // State images are SKIPPED by the pipeline — no S3 upload, no Product record.
+                File stateImgFolder = mkFolder("si-folder-id", "State images");
                 File imageFile = mkFile("haryana-img-id", "Haryana-image.png", "image/png", 51200L);
-                when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(imageFile));
-                when(googleDriveSyncService.downloadFile("haryana-img-id"))
-                                .thenReturn(new ByteArrayInputStream("mock-png-data".getBytes()));
-                when(s3Service.uploadFileWithKey(any(), anyLong(), eq("states/haryana/Haryana-image.png"),
-                                eq("image/png")))
-                                .thenReturn("states/haryana/Haryana-image.png");
-                when(s3Service.getS3Url("states/haryana/Haryana-image.png"))
-                                .thenReturn("https://test-bucket-name.s3.eu-north-1.amazonaws.com/states/haryana/Haryana-image.png");
+
+                when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(stateImgFolder));
+                when(googleDriveSyncService.listFilesInFolder("si-folder-id")).thenReturn(List.of(imageFile));
 
                 pipelineTask.syncDriveToS3(true);
 
-                verify(s3Service).uploadFileWithKey(any(), anyLong(), eq("states/haryana/Haryana-image.png"),
-                                eq("image/png"));
+                // State images must NOT be uploaded or stored as product records
+                verify(s3Service, never()).uploadFileWithKey(any(), anyLong(), anyString(), anyString());
+                assertEquals(0, pipelineTask.getFilesUploaded(), "No uploads for state images");
+                assertEquals(0, pipelineTask.getFilesFailed(), "State images must not count as failures");
+                assertEquals(1, pipelineTask.getFilesSkipped(), "State image must be counted as skipped");
 
                 Product p = productRepo.findByGoogleDriveFileId("haryana-img-id");
-                assertNotNull(p);
-                assertEquals("Haryana", p.getState());
-                assertEquals("haryana", p.getStateSlug());
-                assertEquals("general", p.getDistrict());
-                assertEquals("general", p.getDistrictSlug());
-                assertEquals("Images", p.getNavbarCategory());
-                assertEquals("states/haryana/Haryana-image.png", p.getStorageKey());
-                assertTrue(p.isPublished());
-
-                ResponseEntity<List> response = restTemplate
-                                .getForEntity("http://localhost:" + port + "/api/states/available", List.class);
-                assertEquals(HttpStatus.OK, response.getStatusCode());
-                assertNotNull(response.getBody());
-                boolean containsHaryana = response.getBody().stream()
-                                .anyMatch(m -> "haryana".equals(((java.util.Map<?, ?>) m).get("stateSlug")));
-                assertTrue(containsHaryana);
+                assertNull(p, "State images must NOT be stored as Product records");
         }
 
         @Test

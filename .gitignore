@@ -4,8 +4,11 @@
 .env.local
 .env.production
 .env*.local
+.env*.prod
+.env.vercel.prod
 backend/.env
 frontend/.env
+frontend/.env.vercel.prod
 
 # Google Service Account credentials (ALL variants — never commit private keys)
 **/google-credentials.json
@@ -50,3 +53,10 @@ Thumbs.db
 # ── Logs ─────────────────────────────────────────────────────────────────────
 *.log
 logs/
+
+# ── Local Backup Dumps & Audit Artifacts ─────────────────────────────────────
+backup_products_*.json
+audit_production_products_*.json
+*.bak
+*.backup
+*.before-*
