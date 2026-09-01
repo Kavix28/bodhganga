@@ -23,7 +23,8 @@ public class DownloadController {
     private final ProductRepo productRepo;
     private final UserRepo userRepo;
 
-    public DownloadController(S3Service s3Service, PurchaseRepo purchaseRepo, ProductRepo productRepo, UserRepo userRepo) {
+    public DownloadController(S3Service s3Service, PurchaseRepo purchaseRepo, ProductRepo productRepo,
+            UserRepo userRepo) {
         this.s3Service = s3Service;
         this.purchaseRepo = purchaseRepo;
         this.productRepo = productRepo;
@@ -47,7 +48,7 @@ public class DownloadController {
         }
 
         String userEmail = authentication.getName();
-        Optional<User> userOpt = userRepo.findByEmail(userEmail);
+        Optional<User> userOpt = userRepo.findByIdentifier(userEmail);
         if (userOpt.isEmpty()) {
             return ResponseEntity.status(404).body(ApiResponseDTO.builder()
                     .success(false)

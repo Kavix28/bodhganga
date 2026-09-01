@@ -82,11 +82,14 @@ const Login = () => {
 
     const validatePasswordForm = () => {
         const e = {};
-        const cleaned = form.emailOrPhone.trim().replace(/\D/g, '');
-        if (!cleaned) {
-            e.emailOrPhone = 'Mobile number is required';
-        } else if (cleaned.length < 10) {
-            e.emailOrPhone = 'Mobile number must be 10 digits';
+        const val = form.emailOrPhone.trim();
+        if (!val) {
+            e.emailOrPhone = 'Mobile number or email is required';
+        } else if (!val.includes('@')) {
+            const cleaned = val.replace(/\D/g, '');
+            if (cleaned.length < 10) {
+                e.emailOrPhone = 'Mobile number must be 10 digits';
+            }
         }
         if (!form.password) e.password = 'Password is required';
         setErrors(e);
@@ -278,21 +281,20 @@ const Login = () => {
                         <form onSubmit={handleSubmit} className="space-y-6">
                             {/* Mobile Number */}
                             <div className="space-y-1.5">
-                                <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Mobile Number</label>
+                                <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Mobile Number or Email</label>
                                 <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-emerald/60">+91</span>
-                                    <input 
-                                        name="emailOrPhone" 
-                                        type="tel" 
-                                        value={form.emailOrPhone} 
+                                    <input
+                                        name="emailOrPhone"
+                                        type="text"
+                                        value={form.emailOrPhone}
                                         onChange={e => {
-                                            const val = e.target.value.replace(/\D/g, '').substring(0, 10);
+                                            const val = e.target.value;
                                             setForm(p => ({ ...p, emailOrPhone: val }));
                                             if (errors.emailOrPhone) setErrors(p => ({ ...p, emailOrPhone: '' }));
                                         }}
-                                        placeholder="9876543210"
+                                        placeholder="9876543210 or scholar@domain.com"
                                         disabled={loading}
-                                        className={`w-full py-3 pl-14 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
+                                        className={`w-full py-3 pl-4 pr-10 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
                                             errors.emailOrPhone ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
                                         }`} 
                                     />

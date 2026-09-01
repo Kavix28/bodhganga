@@ -454,8 +454,7 @@ public class PaymentController {
             return Optional.empty();
         }
         String identifier = authentication.getName().trim();
-        return userRepo.findByEmailIgnoreCase(identifier)
-                .or(() -> userRepo.findByPhoneNo(identifier));
+        return userRepo.findByIdentifier(identifier);
     }
 
     /**

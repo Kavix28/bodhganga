@@ -22,8 +22,8 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/dashboard")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000",
-        "https://bodhganga.in", "https://www.bodhganga.in"})
+@CrossOrigin(origins = { "http://localhost:5173", "http://localhost:3000",
+        "https://bodhganga.in", "https://www.bodhganga.in" })
 public class DashboardController {
 
     private static final Logger log = LoggerFactory.getLogger(DashboardController.class);
@@ -44,11 +44,11 @@ public class DashboardController {
     private String s3BucketName;
 
     public DashboardController(EnrollmentRepo enrollmentRepo, UserRepo userRepo,
-                               CourseRepo courseRepo, BlogPostRepo blogPostRepo,
-                               ProductRepo productRepo, PurchaseRepo purchaseRepo,
-                               StateRepo stateRepo, ContentRepo contentRepo,
-                               PaymentRepo paymentRepo, QuizAttemptRepo quizAttemptRepo,
-                               S3Client s3Client) {
+            CourseRepo courseRepo, BlogPostRepo blogPostRepo,
+            ProductRepo productRepo, PurchaseRepo purchaseRepo,
+            StateRepo stateRepo, ContentRepo contentRepo,
+            PaymentRepo paymentRepo, QuizAttemptRepo quizAttemptRepo,
+            S3Client s3Client) {
         this.enrollmentRepo = enrollmentRepo;
         this.userRepo = userRepo;
         this.courseRepo = courseRepo;
@@ -69,8 +69,8 @@ public class DashboardController {
     @GetMapping
     public ResponseEntity<ApiResponseDTO> getDashboard(Authentication authentication) {
         String userEmail = authentication.getName();
-        Optional<User> userOpt = userRepo.findByEmail(userEmail);
-        
+        Optional<User> userOpt = userRepo.findByIdentifier(userEmail);
+
         Map<String, Object> dashboardData = new HashMap<>();
         dashboardData.put("welcomeMessage", "Welcome to BodhGanga Dashboard!");
         dashboardData.put("userEmail", userEmail);
@@ -79,18 +79,18 @@ public class DashboardController {
         dashboardData.put("totalStates", 29);
         dashboardData.put("totalUTs", 8);
         dashboardData.put("totalDistricts", 786);
-        
+
         return ResponseEntity.ok(ApiResponseDTO.builder()
                 .success(true).message("Dashboard loaded successfully").data(dashboardData).build());
     }
 
     // ──────────────────────────────────────────────────────────────────────────
-    // GET /api/dashboard/stats  — User-specific stats
+    // GET /api/dashboard/stats — User-specific stats
     // ──────────────────────────────────────────────────────────────────────────
     @GetMapping("/stats")
     public ResponseEntity<ApiResponseDTO> getStats(Authentication authentication) {
         String userEmail = authentication.getName();
-        Optional<User> userOpt = userRepo.findByEmail(userEmail);
+        Optional<User> userOpt = userRepo.findByIdentifier(userEmail);
         String userId = userOpt.map(User::getId).orElse(null);
 
         Map<String, Object> stats = new HashMap<>();
@@ -98,12 +98,20 @@ public class DashboardController {
             List<Enrollment> enrollments = enrollmentRepo.findByUserId(userId);
             long completed = enrollments.stream().filter(e -> "COMPLETED".equalsIgnoreCase(e.getStatus())).count();
             long inProgress = enrollments.stream()
-                    .filter(e -> "ENROLLED".equalsIgnoreCase(e.getStatus()) && e.getProgress() != null && e.getProgress() > 0).count();
+                    .filter(e -> "ENROLLED".equalsIgnoreCase(e.getStatus()) && e.getProgress() != null
+                            && e.getProgress() > 0)
+                    .count();
 
             List<QuizAttempt> attempts = quizAttemptRepo.findByUserIdOrderByAttemptedAtDesc(userId);
             int quizCount = attempts.size();
-            double avgScore = quizCount > 0 ? Math.round(attempts.stream().mapToDouble(QuizAttempt::getScore).average().orElse(0.0) * 100.0) / 100.0 : 0.0;
-            double avgAccuracy = quizCount > 0 ? Math.round(attempts.stream().mapToDouble(QuizAttempt::getAccuracy).average().orElse(0.0) * 100.0) / 100.0 : 0.0;
+            double avgScore = quizCount > 0
+                    ? Math.round(attempts.stream().mapToDouble(QuizAttempt::getScore).average().orElse(0.0) * 100.0)
+                            / 100.0
+                    : 0.0;
+            double avgAccuracy = quizCount > 0
+                    ? Math.round(attempts.stream().mapToDouble(QuizAttempt::getAccuracy).average().orElse(0.0) * 100.0)
+                            / 100.0
+                    : 0.0;
 
             List<Purchase> purchases = purchaseRepo.findByUserId(userId);
 
@@ -136,7 +144,7 @@ public class DashboardController {
     @GetMapping("/user-overview")
     public ResponseEntity<ApiResponseDTO> getUserOverview(Authentication authentication) {
         String userEmail = authentication.getName();
-        Optional<User> userOpt = userRepo.findByEmail(userEmail);
+        Optional<User> userOpt = userRepo.findByIdentifier(userEmail);
         if (userOpt.isEmpty()) {
             return ResponseEntity.ok(ApiResponseDTO.builder().success(false).message("User not found").build());
         }
@@ -154,13 +162,14 @@ public class DashboardController {
         profile.put("role", user.getRole());
         profile.put("state", user.getState() != null ? user.getState() : "India");
         profile.put("createdAt", user.getCreatedAt());
-        
+
         String name = user.getName() != null ? user.getName() : "Scholar";
         String initials = Arrays.stream(name.split(" "))
                 .filter(s -> !s.isBlank())
                 .map(s -> s.substring(0, 1).toUpperCase())
                 .collect(Collectors.joining(""));
-        if (initials.length() > 2) initials = initials.substring(0, 2);
+        if (initials.length() > 2)
+            initials = initials.substring(0, 2);
         profile.put("initials", initials.isEmpty() ? "S" : initials);
 
         overview.put("profile", profile);
@@ -168,7 +177,9 @@ public class DashboardController {
         // 2. Enrollments & Courses
         List<Enrollment> enrollments = enrollmentRepo.findByUserId(userId);
         long completed = enrollments.stream().filter(e -> "COMPLETED".equalsIgnoreCase(e.getStatus())).count();
-        long inProgress = enrollments.stream().filter(e -> "ENROLLED".equalsIgnoreCase(e.getStatus()) && e.getProgress() != null && e.getProgress() > 0).count();
+        long inProgress = enrollments.stream().filter(
+                e -> "ENROLLED".equalsIgnoreCase(e.getStatus()) && e.getProgress() != null && e.getProgress() > 0)
+                .count();
 
         overview.put("enrolledCoursesCount", enrollments.size());
         overview.put("completedCoursesCount", completed);
@@ -177,9 +188,15 @@ public class DashboardController {
         // 3. Quiz Attempts & Streak
         List<QuizAttempt> attempts = quizAttemptRepo.findByUserIdOrderByAttemptedAtDesc(userId);
         int totalAttempts = attempts.size();
-        double avgScore = totalAttempts > 0 ? Math.round(attempts.stream().mapToDouble(QuizAttempt::getScore).average().orElse(0.0) * 100.0) / 100.0 : 0.0;
-        double avgAccuracy = totalAttempts > 0 ? Math.round(attempts.stream().mapToDouble(QuizAttempt::getAccuracy).average().orElse(0.0) * 100.0) / 100.0 : 0.0;
-        double bestScore = totalAttempts > 0 ? attempts.stream().mapToDouble(QuizAttempt::getScore).max().orElse(0.0) : 0.0;
+        double avgScore = totalAttempts > 0
+                ? Math.round(attempts.stream().mapToDouble(QuizAttempt::getScore).average().orElse(0.0) * 100.0) / 100.0
+                : 0.0;
+        double avgAccuracy = totalAttempts > 0
+                ? Math.round(attempts.stream().mapToDouble(QuizAttempt::getAccuracy).average().orElse(0.0) * 100.0)
+                        / 100.0
+                : 0.0;
+        double bestScore = totalAttempts > 0 ? attempts.stream().mapToDouble(QuizAttempt::getScore).max().orElse(0.0)
+                : 0.0;
 
         Set<LocalDate> testDates = new HashSet<>();
         ZoneId zone = ZoneId.systemDefault();
@@ -203,7 +220,8 @@ public class DashboardController {
 
         // 4. Preparation Completeness Score
         int completeness = Math.min(100, (int) (enrollments.size() * 15 + completed * 20 + totalAttempts * 5));
-        if (completeness == 0) completeness = 25; // Base starting metric
+        if (completeness == 0)
+            completeness = 25; // Base starting metric
         overview.put("preparationCompleteness", completeness);
 
         // 5. 7-Day Matrix Activity
@@ -226,7 +244,7 @@ public class DashboardController {
     }
 
     // ──────────────────────────────────────────────────────────────────────────
-    // GET /api/dashboard/admin-stats  — Live production metrics (no fallbacks)
+    // GET /api/dashboard/admin-stats — Live production metrics (no fallbacks)
     // ──────────────────────────────────────────────────────────────────────────
     @GetMapping("/admin-stats")
     public ResponseEntity<ApiResponseDTO> getAdminStats() {
@@ -309,8 +327,8 @@ public class DashboardController {
         stats.put("pendingPayments", pendingPayments.size());
 
         long totalTransactions = successPayments.size() + failedPayments.size() + pendingPayments.size();
-        double conversionRate = totalTransactions > 0 
-                ? Math.round((double) successPayments.size() / totalTransactions * 100.0 * 10.0) / 10.0 
+        double conversionRate = totalTransactions > 0
+                ? Math.round((double) successPayments.size() / totalTransactions * 100.0 * 10.0) / 10.0
                 : 100.0;
         stats.put("conversionRate", conversionRate);
 
@@ -333,7 +351,7 @@ public class DashboardController {
     }
 
     // ──────────────────────────────────────────────────────────────────────────
-    // GET /api/dashboard/live-activity  — Real-time Platform Stream (DB backed)
+    // GET /api/dashboard/live-activity — Real-time Platform Stream (DB backed)
     // ──────────────────────────────────────────────────────────────────────────
     @GetMapping("/live-activity")
     public ResponseEntity<ApiResponseDTO> getLiveActivity() {
@@ -343,7 +361,8 @@ public class DashboardController {
         try {
             List<User> recentUsers = userRepo.findTop20ByOrderByCreatedAtDesc();
             for (User u : recentUsers) {
-                if (u.getCreatedAt() == null) continue;
+                if (u.getCreatedAt() == null)
+                    continue;
                 Map<String, Object> ev = new HashMap<>();
                 ev.put("id", "usr_" + u.getId());
                 ev.put("type", "USER_REGISTER");
@@ -363,13 +382,15 @@ public class DashboardController {
         try {
             List<Payment> recentPayments = paymentRepo.findTop20ByOrderByCreatedAtDesc();
             for (Payment p : recentPayments) {
-                if (p.getCreatedAt() == null) continue;
+                if (p.getCreatedAt() == null)
+                    continue;
                 Map<String, Object> ev = new HashMap<>();
                 ev.put("id", "pay_" + p.getId());
                 ev.put("type", "PURCHASE");
                 ev.put("user", resolveUserName(p.getUserId()));
                 ev.put("userEmail", p.getUserId());
-                ev.put("action", "Purchased Material (₹" + (p.getAmount() != null ? Math.round(p.getAmount()) : 0) + ")");
+                ev.put("action",
+                        "Purchased Material (₹" + (p.getAmount() != null ? Math.round(p.getAmount()) : 0) + ")");
                 ev.put("region", "Digital Store");
                 ev.put("timestamp", p.getCreatedAt().getTime());
                 ev.put("timeAgo", formatTimeAgo(p.getCreatedAt()));
@@ -383,7 +404,8 @@ public class DashboardController {
         try {
             List<QuizAttempt> recentQuizzes = quizAttemptRepo.findTop20ByOrderByAttemptedAtDesc();
             for (QuizAttempt q : recentQuizzes) {
-                if (q.getAttemptedAt() == null) continue;
+                if (q.getAttemptedAt() == null)
+                    continue;
                 Map<String, Object> ev = new HashMap<>();
                 ev.put("id", "quiz_" + q.getId());
                 ev.put("type", "QUIZ_ATTEMPT");
@@ -425,11 +447,26 @@ public class DashboardController {
         Date now = new Date();
 
         switch (period) {
-            case "today"    -> { fromDate = startOfToday(); bucketDays = 0; }
-            case "7d"       -> { fromDate = dateMinusDays(now, 7);  bucketDays = 1; }
-            case "90d"      -> { fromDate = dateMinusDays(now, 90); bucketDays = 7; }
-            case "lifetime" -> { fromDate = new Date(0); bucketDays = 30; }
-            default         -> { fromDate = dateMinusDays(now, 30); bucketDays = 1; } // 30d
+            case "today" -> {
+                fromDate = startOfToday();
+                bucketDays = 0;
+            }
+            case "7d" -> {
+                fromDate = dateMinusDays(now, 7);
+                bucketDays = 1;
+            }
+            case "90d" -> {
+                fromDate = dateMinusDays(now, 90);
+                bucketDays = 7;
+            }
+            case "lifetime" -> {
+                fromDate = new Date(0);
+                bucketDays = 30;
+            }
+            default -> {
+                fromDate = dateMinusDays(now, 30);
+                bucketDays = 1;
+            } // 30d
         }
 
         List<Payment> payments = fromDate.getTime() == 0
@@ -441,7 +478,8 @@ public class DashboardController {
                 .mapToDouble(p -> p.getAmount() != null ? p.getAmount() : 0.0).sum();
         summary.put("totalRevenue", totalRevenue);
         summary.put("totalOrders", payments.size());
-        summary.put("avgOrderValue", payments.isEmpty() ? 0 : Math.round(totalRevenue / payments.size() * 100.0) / 100.0);
+        summary.put("avgOrderValue",
+                payments.isEmpty() ? 0 : Math.round(totalRevenue / payments.size() * 100.0) / 100.0);
 
         long newUsers = fromDate.getTime() == 0
                 ? userRepo.count()
@@ -496,7 +534,7 @@ public class DashboardController {
     }
 
     // ──────────────────────────────────────────────────────────────────────────
-    // GET /api/dashboard/content  — Content breakdown for diagnostics panel
+    // GET /api/dashboard/content — Content breakdown for diagnostics panel
     // ──────────────────────────────────────────────────────────────────────────
     @GetMapping("/content")
     public ResponseEntity<ApiResponseDTO> getContentStats() {
@@ -512,7 +550,7 @@ public class DashboardController {
     }
 
     // ──────────────────────────────────────────────────────────────────────────
-    // GET /api/dashboard/storage  — S3 storage analytics (graceful fallback)
+    // GET /api/dashboard/storage — S3 storage analytics (graceful fallback)
     // ──────────────────────────────────────────────────────────────────────────
     @GetMapping("/storage")
     public ResponseEntity<ApiResponseDTO> getStorageStats() {
@@ -533,7 +571,8 @@ public class DashboardController {
                 ListObjectsV2Request.Builder reqBuilder = ListObjectsV2Request.builder()
                         .bucket(s3BucketName)
                         .maxKeys(1000);
-                if (continuationToken != null) reqBuilder.continuationToken(continuationToken);
+                if (continuationToken != null)
+                    reqBuilder.continuationToken(continuationToken);
                 listResp = s3Client.listObjectsV2(reqBuilder.build());
 
                 for (S3Object obj : listResp.contents()) {
@@ -542,13 +581,18 @@ public class DashboardController {
                     totalSizeBytes += size;
                     String key = obj.key().toLowerCase();
                     if (key.startsWith("pdfs/") || key.endsWith(".pdf")) {
-                        pdfCount++; pdfSize += size;
+                        pdfCount++;
+                        pdfSize += size;
                     } else if (key.startsWith("videos/") || key.endsWith(".mp4") || key.endsWith(".mov")) {
-                        videoCount++; videoSize += size;
-                    } else if (key.endsWith(".jpg") || key.endsWith(".jpeg") || key.endsWith(".png") || key.endsWith(".webp")) {
-                        imageCount++; imageSize += size;
+                        videoCount++;
+                        videoSize += size;
+                    } else if (key.endsWith(".jpg") || key.endsWith(".jpeg") || key.endsWith(".png")
+                            || key.endsWith(".webp")) {
+                        imageCount++;
+                        imageSize += size;
                     } else {
-                        otherCount++; otherSize += size;
+                        otherCount++;
+                        otherSize += size;
                     }
                 }
                 continuationToken = listResp.nextContinuationToken();
@@ -582,12 +626,9 @@ public class DashboardController {
     // ── Private Helpers ────────────────────────────────────────────────────────
 
     private String resolveUserName(String userIdOrEmail) {
-        if (userIdOrEmail == null) return "Scholar";
-        Optional<User> uOpt = userRepo.findById(userIdOrEmail);
-        if (uOpt.isPresent() && uOpt.get().getName() != null) {
-            return uOpt.get().getName();
-        }
-        uOpt = userRepo.findByEmail(userIdOrEmail);
+        if (userIdOrEmail == null)
+            return "Scholar";
+        Optional<User> uOpt = userRepo.findByIdentifier(userIdOrEmail);
         if (uOpt.isPresent() && uOpt.get().getName() != null) {
             return uOpt.get().getName();
         }
@@ -595,13 +636,17 @@ public class DashboardController {
     }
 
     private String formatTimeAgo(Date date) {
-        if (date == null) return "Recently";
+        if (date == null)
+            return "Recently";
         long seconds = (System.currentTimeMillis() - date.getTime()) / 1000;
-        if (seconds < 60) return "Just now";
+        if (seconds < 60)
+            return "Just now";
         long minutes = seconds / 60;
-        if (minutes < 60) return minutes + " mins ago";
+        if (minutes < 60)
+            return minutes + " mins ago";
         long hours = minutes / 60;
-        if (hours < 24) return hours + " hrs ago";
+        if (hours < 24)
+            return hours + " hrs ago";
         long days = hours / 24;
         return days + " days ago";
     }
@@ -623,7 +668,8 @@ public class DashboardController {
     }
 
     private int calculateCurrentStreak(Set<LocalDate> dates) {
-        if (dates.isEmpty()) return 0;
+        if (dates.isEmpty())
+            return 0;
         LocalDate today = LocalDate.now();
         LocalDate yesterday = today.minusDays(1);
 
@@ -641,7 +687,8 @@ public class DashboardController {
     }
 
     private int calculateLongestStreak(Set<LocalDate> dates) {
-        if (dates.isEmpty()) return 0;
+        if (dates.isEmpty())
+            return 0;
         List<LocalDate> sortedDates = new ArrayList<>(dates);
         Collections.sort(sortedDates);
 
@@ -669,7 +716,8 @@ public class DashboardController {
         for (int i = 6; i >= 0; i--) {
             LocalDate day = today.minusDays(i);
             long count = attempts.stream().filter(qa -> {
-                if (qa.getAttemptedAt() == null) return false;
+                if (qa.getAttemptedAt() == null)
+                    return false;
                 LocalDate attemptDate = LocalDate.ofInstant(qa.getAttemptedAt(), zone);
                 return attemptDate.equals(day);
             }).count();
@@ -727,12 +775,10 @@ public class DashboardController {
             Date ds = dayStart.getTime();
             Date de = dayEnd.getTime();
 
-            double rev = payments.stream().filter(p ->
-                    p.getCreatedAt() != null &&
+            double rev = payments.stream().filter(p -> p.getCreatedAt() != null &&
                     !p.getCreatedAt().before(ds) && p.getCreatedAt().before(de))
                     .mapToDouble(p -> p.getAmount() != null ? p.getAmount() : 0.0).sum();
-            long orders = payments.stream().filter(p ->
-                    p.getCreatedAt() != null &&
+            long orders = payments.stream().filter(p -> p.getCreatedAt() != null &&
                     !p.getCreatedAt().before(ds) && p.getCreatedAt().before(de)).count();
 
             Map<String, Object> bucket = new HashMap<>();
@@ -767,12 +813,10 @@ public class DashboardController {
             Date bs = bucketStart.getTime();
             Date be = bucketEnd.getTime();
 
-            double rev = payments.stream().filter(p ->
-                    p.getCreatedAt() != null &&
+            double rev = payments.stream().filter(p -> p.getCreatedAt() != null &&
                     !p.getCreatedAt().before(bs) && p.getCreatedAt().before(be))
                     .mapToDouble(p -> p.getAmount() != null ? p.getAmount() : 0.0).sum();
-            long orders = payments.stream().filter(p ->
-                    p.getCreatedAt() != null &&
+            long orders = payments.stream().filter(p -> p.getCreatedAt() != null &&
                     !p.getCreatedAt().before(bs) && p.getCreatedAt().before(be)).count();
 
             Map<String, Object> bucket = new HashMap<>();

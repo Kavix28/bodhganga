@@ -23,13 +23,14 @@ public class UserServices {
     }
 
     public User findByEmail(String email) {
-        return userRepo.findByEmail(email).orElse(null);
+        return userRepo.findByIdentifier(email).orElse(null);
+    }
+
+    public User findByIdentifier(String identifier) {
+        return userRepo.findByIdentifier(identifier).orElse(null);
     }
 
     public List<User> getCourses() {
         return userRepo.findAll();
     }
 }
-
-
-

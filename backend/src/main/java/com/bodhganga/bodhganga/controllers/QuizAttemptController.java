@@ -17,8 +17,8 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/quiz")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000",
-        "https://bodhganga.in", "https://www.bodhganga.in"})
+@CrossOrigin(origins = { "http://localhost:5173", "http://localhost:3000",
+        "https://bodhganga.in", "https://www.bodhganga.in" })
 public class QuizAttemptController {
 
     private final QuizAttemptRepo quizAttemptRepo;
@@ -30,12 +30,12 @@ public class QuizAttemptController {
     }
 
     private String getUserId(String email) {
-        return userRepo.findByEmail(email).map(com.bodhganga.bodhganga.entity.User::getId).orElse(null);
+        return userRepo.findByIdentifier(email).map(com.bodhganga.bodhganga.entity.User::getId).orElse(null);
     }
 
     @PostMapping("/attempt")
     public ResponseEntity<ApiResponseDTO> saveAttempt(@RequestBody QuizAttemptRequestDTO requestDTO,
-                                                      Authentication authentication) {
+            Authentication authentication) {
         String userEmail = authentication.getName();
         String userId = getUserId(userEmail);
 
@@ -90,7 +90,8 @@ public class QuizAttemptController {
 
         List<QuizAttempt> attempts;
         if (stateSlug != null && districtSlug != null) {
-            attempts = quizAttemptRepo.findByUserIdAndStateSlugAndDistrictSlugOrderByAttemptedAtDesc(userId, stateSlug, districtSlug);
+            attempts = quizAttemptRepo.findByUserIdAndStateSlugAndDistrictSlugOrderByAttemptedAtDesc(userId, stateSlug,
+                    districtSlug);
         } else if (stateSlug != null) {
             attempts = quizAttemptRepo.findByUserIdAndStateSlugOrderByAttemptedAtDesc(userId, stateSlug);
         } else if (districtSlug != null) {
@@ -251,7 +252,8 @@ public class QuizAttemptController {
     }
 
     private int calculateCurrentStreak(Set<LocalDate> dates) {
-        if (dates.isEmpty()) return 0;
+        if (dates.isEmpty())
+            return 0;
         LocalDate today = LocalDate.now();
         LocalDate yesterday = today.minusDays(1);
 
@@ -269,7 +271,8 @@ public class QuizAttemptController {
     }
 
     private int calculateLongestStreak(Set<LocalDate> dates) {
-        if (dates.isEmpty()) return 0;
+        if (dates.isEmpty())
+            return 0;
         List<LocalDate> sortedDates = new ArrayList<>(dates);
         Collections.sort(sortedDates);
 

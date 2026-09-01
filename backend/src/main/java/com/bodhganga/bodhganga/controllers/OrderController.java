@@ -40,8 +40,8 @@ public class OrderController {
     private final ProductRepo productRepo;
 
     public OrderController(PurchaseRepo purchaseRepo, PaymentRepo paymentRepo,
-                           UserRepo userRepo, CourseRepo courseRepo,
-                           ProductRepo productRepo) {
+            UserRepo userRepo, CourseRepo courseRepo,
+            ProductRepo productRepo) {
         this.purchaseRepo = purchaseRepo;
         this.paymentRepo = paymentRepo;
         this.userRepo = userRepo;
@@ -50,7 +50,7 @@ public class OrderController {
     }
 
     // ──────────────────────────────────────────────────────────────────────────
-    // GET /api/orders  — User's own purchase history
+    // GET /api/orders — User's own purchase history
     // ──────────────────────────────────────────────────────────────────────────
     @GetMapping("/api/orders")
     public ResponseEntity<ApiResponseDTO> getMyOrders(Authentication authentication) {
@@ -61,7 +61,7 @@ public class OrderController {
                         .success(false).message("Authentication required").build());
             }
 
-            User user = userRepo.findByEmail(authentication.getName())
+            User user = userRepo.findByIdentifier(authentication.getName())
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             List<Purchase> purchases = purchaseRepo.findByUserId(user.getId());
@@ -76,7 +76,8 @@ public class OrderController {
             orders.sort((a, b) -> {
                 Date da = (Date) a.get("purchaseDate");
                 Date db = (Date) b.get("purchaseDate");
-                if (da == null || db == null) return 0;
+                if (da == null || db == null)
+                    return 0;
                 return db.compareTo(da);
             });
 
@@ -93,7 +94,7 @@ public class OrderController {
     }
 
     // ──────────────────────────────────────────────────────────────────────────
-    // GET /api/admin/orders  — All orders (admin only)
+    // GET /api/admin/orders — All orders (admin only)
     // Query params: page, size, status, search
     // ──────────────────────────────────────────────────────────────────────────
     @GetMapping("/api/admin/orders")
@@ -113,16 +114,17 @@ public class OrderController {
             // Apply search filter (by userId or orderId or paymentId)
             if (search != null && !search.isBlank()) {
                 String q = search.toLowerCase();
-                payments = payments.stream().filter(p ->
-                        (p.getOrderId() != null && p.getOrderId().toLowerCase().contains(q)) ||
-                        (p.getPaymentId() != null && p.getPaymentId().toLowerCase().contains(q)) ||
-                        (p.getUserId() != null && p.getUserId().toLowerCase().contains(q))
-                ).collect(Collectors.toList());
+                payments = payments.stream()
+                        .filter(p -> (p.getOrderId() != null && p.getOrderId().toLowerCase().contains(q)) ||
+                                (p.getPaymentId() != null && p.getPaymentId().toLowerCase().contains(q)) ||
+                                (p.getUserId() != null && p.getUserId().toLowerCase().contains(q)))
+                        .collect(Collectors.toList());
             }
 
             // Sort by createdAt desc
             payments.sort((a, b) -> {
-                if (a.getCreatedAt() == null || b.getCreatedAt() == null) return 0;
+                if (a.getCreatedAt() == null || b.getCreatedAt() == null)
+                    return 0;
                 return b.getCreatedAt().compareTo(a.getCreatedAt());
             });
 
@@ -154,7 +156,7 @@ public class OrderController {
     }
 
     // ──────────────────────────────────────────────────────────────────────────
-    // POST /api/admin/orders/{orderId}/refund  — Initiate Razorpay refund
+    // POST /api/admin/orders/{orderId}/refund — Initiate Razorpay refund
     // ──────────────────────────────────────────────────────────────────────────
     @PostMapping("/api/admin/orders/{orderId}/refund")
     public ResponseEntity<ApiResponseDTO> refundOrder(@PathVariable String orderId) {

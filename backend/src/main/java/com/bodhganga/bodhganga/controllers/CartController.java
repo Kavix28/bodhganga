@@ -15,7 +15,8 @@ import java.util.*;
 /**
  * Cart API — all endpoints require authentication.
  * Cart is stored per-user in the cart_items MongoDB collection.
- * Guest carts are handled client-side (localStorage); merged on login via POST /api/cart/merge.
+ * Guest carts are handled client-side (localStorage); merged on login via POST
+ * /api/cart/merge.
  */
 @RestController
 @RequestMapping("/api/cart")
@@ -31,8 +32,8 @@ public class CartController {
     private final EnrollmentRepo enrollmentRepo;
 
     public CartController(CartItemRepo cartItemRepo, UserRepo userRepo,
-                          CourseRepo courseRepo, ProductRepo productRepo,
-                          PurchaseRepo purchaseRepo, EnrollmentRepo enrollmentRepo) {
+            CourseRepo courseRepo, ProductRepo productRepo,
+            PurchaseRepo purchaseRepo, EnrollmentRepo enrollmentRepo) {
         this.cartItemRepo = cartItemRepo;
         this.userRepo = userRepo;
         this.courseRepo = courseRepo;
@@ -100,7 +101,8 @@ public class CartController {
             Authentication authentication) {
         try {
             User user = resolveUser(authentication);
-            if (user == null) return unauthorized();
+            if (user == null)
+                return unauthorized();
 
             // Already in cart?
             if (cartItemRepo.findByUserIdAndProductId(user.getId(), req.productId()).isPresent()) {
@@ -155,7 +157,8 @@ public class CartController {
             Authentication authentication) {
         try {
             User user = resolveUser(authentication);
-            if (user == null) return unauthorized();
+            if (user == null)
+                return unauthorized();
             cartItemRepo.deleteByUserIdAndProductId(user.getId(), productId);
             long newCount = cartItemRepo.countByUserId(user.getId());
             return ResponseEntity.ok(ApiResponseDTO.builder()
@@ -176,7 +179,8 @@ public class CartController {
     public ResponseEntity<ApiResponseDTO> clearCart(Authentication authentication) {
         try {
             User user = resolveUser(authentication);
-            if (user == null) return unauthorized();
+            if (user == null)
+                return unauthorized();
             cartItemRepo.deleteByUserId(user.getId());
             return ResponseEntity.ok(ApiResponseDTO.builder()
                     .success(true).message("Cart cleared").build());
@@ -198,14 +202,17 @@ public class CartController {
             Authentication authentication) {
         try {
             User user = resolveUser(authentication);
-            if (user == null) return unauthorized();
+            if (user == null)
+                return unauthorized();
             if (req.items() == null || req.items().isEmpty()) {
                 return ResponseEntity.ok(ApiResponseDTO.builder().success(true).message("Nothing to merge").build());
             }
             int merged = 0;
             for (AddToCartRequest item : req.items()) {
-                if (cartItemRepo.findByUserIdAndProductId(user.getId(), item.productId()).isPresent()) continue;
-                if (purchaseRepo.findByUserIdAndProductId(user.getId(), item.productId()).isPresent()) continue;
+                if (cartItemRepo.findByUserIdAndProductId(user.getId(), item.productId()).isPresent())
+                    continue;
+                if (purchaseRepo.findByUserIdAndProductId(user.getId(), item.productId()).isPresent())
+                    continue;
                 cartItemRepo.save(new CartItem(user.getId(), item.productId(),
                         item.productType() != null ? item.productType().toUpperCase() : "COURSE"));
                 merged++;
@@ -226,8 +233,9 @@ public class CartController {
     // ── Private helpers ────────────────────────────────────────────────────────
 
     private User resolveUser(Authentication auth) {
-        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getName())) return null;
-        return userRepo.findByEmail(auth.getName()).orElse(null);
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getName()))
+            return null;
+        return userRepo.findByIdentifier(auth.getName()).orElse(null);
     }
 
     private ResponseEntity<ApiResponseDTO> unauthorized() {
@@ -268,13 +276,17 @@ public class CartController {
     private double computeSubtotal(List<Map<String, Object>> items) {
         return items.stream().mapToDouble(item -> {
             Object price = item.get("price");
-            if (price instanceof Number) return ((Number) price).doubleValue();
+            if (price instanceof Number)
+                return ((Number) price).doubleValue();
             return 0.0;
         }).sum();
     }
 
     // ── Request Records ────────────────────────────────────────────────────────
 
-    public record AddToCartRequest(String productId, String productType) {}
-    public record MergeCartRequest(List<AddToCartRequest> items) {}
+    public record AddToCartRequest(String productId, String productType) {
+    }
+
+    public record MergeCartRequest(List<AddToCartRequest> items) {
+    }
 }

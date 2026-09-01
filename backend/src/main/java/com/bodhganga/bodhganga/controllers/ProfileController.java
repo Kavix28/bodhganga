@@ -29,7 +29,7 @@ public class ProfileController {
     @GetMapping
     public ResponseEntity<ApiResponseDTO> getProfile(Authentication authentication) {
         String userEmail = authentication.getName();
-        User user = userRepo.findByEmail(userEmail)
+        User user = userRepo.findByIdentifier(userEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         UserResponseDTO userResponse = mapToUserResponse(user);
@@ -51,7 +51,7 @@ public class ProfileController {
             Authentication authentication) {
 
         String userEmail = authentication.getName();
-        User user = userRepo.findByEmail(userEmail)
+        User user = userRepo.findByIdentifier(userEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         // Update allowed fields

@@ -12,8 +12,8 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/test-analytics")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000",
-        "https://bodhganga.in", "https://www.bodhganga.in"})
+@CrossOrigin(origins = { "http://localhost:5173", "http://localhost:3000",
+        "https://bodhganga.in", "https://www.bodhganga.in" })
 public class TestAnalyticsController {
 
     private final TestAnalyticsService testAnalyticsService;
@@ -27,7 +27,7 @@ public class TestAnalyticsController {
     @GetMapping("/user-summary")
     public ResponseEntity<ApiResponseDTO> getUserAnalytics(Authentication authentication) {
         String email = authentication.getName();
-        User user = userRepo.findByEmail(email)
+        User user = userRepo.findByIdentifier(email)
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
 
         Map<String, Object> analytics = testAnalyticsService.getUserAnalytics(user.getId());

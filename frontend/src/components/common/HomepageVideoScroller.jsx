@@ -40,7 +40,7 @@ const HomepageVideoScroller = () => {
 
       const latestVideos = Array.isArray(response)
         ? response
-        : [];
+        : (Array.isArray(response?.data) ? response.data : []);
 
       setVideos(latestVideos);
     } catch (err) {

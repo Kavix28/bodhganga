@@ -160,7 +160,8 @@ const Landing = () => {
                 setDbStates(statesRes?.data || statesRes || []);
 
                 const videosRes = await api.get('/videos/latest');
-                setLatestVideos(videosRes?.data || videosRes || []);
+                const videoList = Array.isArray(videosRes) ? videosRes : (Array.isArray(videosRes?.data) ? videosRes.data : []);
+                setLatestVideos(videoList);
 
                 const productsRes = await api.get('/products');
                 const allProducts = productsRes.data || productsRes || [];

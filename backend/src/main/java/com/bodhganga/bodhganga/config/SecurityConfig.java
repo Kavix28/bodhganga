@@ -49,8 +49,8 @@ public class SecurityConfig {
                                 "/api/admin/system/**",
                                 "/api/admin/recovery/**",
                                 "/error",
-                                "/actuator/health"
-                        ).permitAll()
+                                "/actuator/health")
+                        .permitAll()
                         // Public course reads
                         .requestMatchers("/api/courses/list", "/api/courses/category/**").permitAll()
                         // Public blog reads
@@ -59,8 +59,9 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/states/**").permitAll()
                         // Public content reads
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/content/**").permitAll()
-                        // Public video reads
+                        // Public video reads and manual sync trigger
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/videos/**").permitAll()
+                        .requestMatchers("/api/videos/sync").permitAll()
                         // Public products (Digital Marketplace)
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/products/**").permitAll()
                         // Public PDF reads (resource-level authorization enforced in PdfController)
@@ -68,12 +69,18 @@ public class SecurityConfig {
                         // Public Test Series catalog reads
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/test-series/**").permitAll()
 
-                        // Question Bank — catalog and search are public; test execution and dashboard require auth
-                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/question-bank/tests").permitAll()
-                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/question-bank/tests/**").permitAll()
-                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/question-bank/search").permitAll()
-                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/question-bank/tests/*/submit").authenticated()
-                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/question-bank/dashboard").authenticated()
+                        // Question Bank — catalog and search are public; test execution and dashboard
+                        // require auth
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/question-bank/tests")
+                        .permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/question-bank/tests/**")
+                        .permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/question-bank/search")
+                        .permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/question-bank/tests/*/submit")
+                        .authenticated()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/question-bank/dashboard")
+                        .authenticated()
 
                         // Test Execution, Evaluation & Analytics — require authentication
                         .requestMatchers("/api/test-execution/**").authenticated()
@@ -96,7 +103,8 @@ public class SecurityConfig {
                         // Admin orders — require ADMIN role
                         .requestMatchers("/api/admin/orders/**").hasAuthority("ROLE_ADMIN")
 
-                        // Dashboard admin-stats is called with admin token; revenue/content/storage same
+                        // Dashboard admin-stats is called with admin token; revenue/content/storage
+                        // same
                         .requestMatchers("/api/dashboard/admin-stats").authenticated()
                         .requestMatchers("/api/dashboard/revenue").authenticated()
                         .requestMatchers("/api/dashboard/content").authenticated()
@@ -111,15 +119,24 @@ public class SecurityConfig {
                         .requestMatchers("/api/courses/**").authenticated()
 
                         // Admin write endpoints — MUST have ADMIN role
-                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/states/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/states/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/states/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/blog/posts/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/blog/posts/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/blog/posts/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/content/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/content/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/content/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/states/**")
+                        .hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/states/**")
+                        .hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/states/**")
+                        .hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/blog/posts/**")
+                        .hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/blog/posts/**")
+                        .hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/blog/posts/**")
+                        .hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/content/**")
+                        .hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/content/**")
+                        .hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/content/**")
+                        .hasAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
 
                         // Disallow everything else
@@ -135,13 +152,13 @@ public class SecurityConfig {
 
         // Known production origins — always allowed
         java.util.List<String> origins = new java.util.ArrayList<>(java.util.List.of(
-            "http://localhost:5173",
-            "http://localhost:3000",
-            "https://bodhganga.in",
-            "https://www.bodhganga.in"
-        ));
+                "http://localhost:5173",
+                "http://localhost:3000",
+                "https://bodhganga.in",
+                "https://www.bodhganga.in"));
 
-        // Additional origins injected at runtime (e.g., staging, specific Vercel deployment URL)
+        // Additional origins injected at runtime (e.g., staging, specific Vercel
+        // deployment URL)
         String envOrigins = System.getenv("ALLOWED_ORIGINS");
         if (envOrigins != null && !envOrigins.isBlank()) {
             for (String origin : envOrigins.split(",")) {
@@ -156,12 +173,11 @@ public class SecurityConfig {
         configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         // Explicit header allowlist — no wildcard
         configuration.setAllowedHeaders(java.util.List.of(
-            "Authorization",
-            "Content-Type",
-            "X-Requested-With",
-            "Accept",
-            "Origin"
-        ));
+                "Authorization",
+                "Content-Type",
+                "X-Requested-With",
+                "Accept",
+                "Origin"));
         configuration.setExposedHeaders(java.util.List.of("Authorization"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
@@ -171,5 +187,3 @@ public class SecurityConfig {
         return source;
     }
 }
-
-
