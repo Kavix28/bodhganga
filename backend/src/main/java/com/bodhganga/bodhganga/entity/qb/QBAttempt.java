@@ -36,55 +36,164 @@ public class QBAttempt {
     private String status = "SUBMITTED"; // "IN_PROGRESS", "SUBMITTED"
 
     private Date startedAt = new Date();
+    private Date expiresAt;
     private Date submittedAt = new Date();
 
-    public QBAttempt() {}
+    private List<String> questionIds;
+    private Boolean isPracticeMode = false;
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    public QBAttempt() {
+    }
 
-    public String getUserId() { return userId; }
-    public void setUserId(String userId) { this.userId = userId; }
+    public String getId() {
+        return id;
+    }
 
-    public String getTestId() { return testId; }
-    public void setTestId(String testId) { this.testId = testId; }
+    public void setId(String id) {
+        this.id = id;
+    }
 
-    public String getTestTitle() { return testTitle; }
-    public void setTestTitle(String testTitle) { this.testTitle = testTitle; }
+    public String getUserId() {
+        return userId;
+    }
 
-    public Double getScore() { return score; }
-    public void setScore(Double score) { this.score = score; }
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
 
-    public Double getTotalMarks() { return totalMarks; }
-    public void setTotalMarks(Double totalMarks) { this.totalMarks = totalMarks; }
+    public String getTestId() {
+        return testId;
+    }
 
-    public Double getAccuracy() { return accuracy; }
-    public void setAccuracy(Double accuracy) { this.accuracy = accuracy; }
+    public void setTestId(String testId) {
+        this.testId = testId;
+    }
 
-    public Integer getTimeSpentSeconds() { return timeSpentSeconds; }
-    public void setTimeSpentSeconds(Integer timeSpentSeconds) { this.timeSpentSeconds = timeSpentSeconds; }
+    public String getTestTitle() {
+        return testTitle;
+    }
 
-    public Map<String, String> getUserAnswers() { return userAnswers; }
-    public void setUserAnswers(Map<String, String> userAnswers) { this.userAnswers = userAnswers; }
+    public void setTestTitle(String testTitle) {
+        this.testTitle = testTitle;
+    }
 
-    public List<String> getBookmarkedQuestionIds() { return bookmarkedQuestionIds; }
-    public void setBookmarkedQuestionIds(List<String> bookmarkedQuestionIds) { this.bookmarkedQuestionIds = bookmarkedQuestionIds; }
+    public Double getScore() {
+        return score;
+    }
 
-    public Map<String, Double> getTopicPerformance() { return topicPerformance; }
-    public void setTopicPerformance(Map<String, Double> topicPerformance) { this.topicPerformance = topicPerformance; }
+    public void setScore(Double score) {
+        this.score = score;
+    }
 
-    public Integer getRank() { return rank; }
-    public void setRank(Integer rank) { this.rank = rank; }
+    public Double getTotalMarks() {
+        return totalMarks;
+    }
 
-    public Double getPercentile() { return percentile; }
-    public void setPercentile(Double percentile) { this.percentile = percentile; }
+    public void setTotalMarks(Double totalMarks) {
+        this.totalMarks = totalMarks;
+    }
 
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public Double getAccuracy() {
+        return accuracy;
+    }
 
-    public Date getStartedAt() { return startedAt; }
-    public void setStartedAt(Date startedAt) { this.startedAt = startedAt; }
+    public void setAccuracy(Double accuracy) {
+        this.accuracy = accuracy;
+    }
 
-    public Date getSubmittedAt() { return submittedAt; }
-    public void setSubmittedAt(Date submittedAt) { this.submittedAt = submittedAt; }
+    public Integer getTimeSpentSeconds() {
+        return timeSpentSeconds;
+    }
+
+    public void setTimeSpentSeconds(Integer timeSpentSeconds) {
+        this.timeSpentSeconds = timeSpentSeconds;
+    }
+
+    public Map<String, String> getUserAnswers() {
+        return userAnswers;
+    }
+
+    public void setUserAnswers(Map<String, String> userAnswers) {
+        this.userAnswers = userAnswers;
+    }
+
+    public List<String> getBookmarkedQuestionIds() {
+        return bookmarkedQuestionIds;
+    }
+
+    public void setBookmarkedQuestionIds(List<String> bookmarkedQuestionIds) {
+        this.bookmarkedQuestionIds = bookmarkedQuestionIds;
+    }
+
+    public Map<String, Double> getTopicPerformance() {
+        return topicPerformance;
+    }
+
+    public void setTopicPerformance(Map<String, Double> topicPerformance) {
+        this.topicPerformance = topicPerformance;
+    }
+
+    public Integer getRank() {
+        return rank;
+    }
+
+    public void setRank(Integer rank) {
+        this.rank = rank;
+    }
+
+    public Double getPercentile() {
+        return percentile;
+    }
+
+    public void setPercentile(Double percentile) {
+        this.percentile = percentile;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public Date getStartedAt() {
+        return startedAt;
+    }
+
+    public void setStartedAt(Date startedAt) {
+        this.startedAt = startedAt;
+    }
+
+    public Date getExpiresAt() {
+        return expiresAt;
+    }
+
+    public void setExpiresAt(Date expiresAt) {
+        this.expiresAt = expiresAt;
+    }
+
+    public Date getSubmittedAt() {
+        return submittedAt;
+    }
+
+    public void setSubmittedAt(Date submittedAt) {
+        this.submittedAt = submittedAt;
+    }
+
+    public List<String> getQuestionIds() {
+        return questionIds;
+    }
+
+    public void setQuestionIds(List<String> questionIds) {
+        this.questionIds = questionIds;
+    }
+
+    public Boolean getIsPracticeMode() {
+        return isPracticeMode;
+    }
+
+    public void setIsPracticeMode(Boolean isPracticeMode) {
+        this.isPracticeMode = isPracticeMode;
+    }
 }

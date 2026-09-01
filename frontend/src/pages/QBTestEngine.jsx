@@ -30,7 +30,8 @@ const formatTime = (seconds) => {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 const QuizEngine = () => {
-    const { testId } = useParams();          // Route: /question-bank/tests/:testId
+    const { testId, stateSlug, difficulty } = useParams(); // Route: /question-bank/tests/:testId or /question-bank/practice/:stateSlug/:difficulty
+    const isPracticeMode = Boolean(stateSlug && difficulty);
     const navigate   = useNavigate();
     const { user, isAuthenticated } = useContext(AuthContext);
 
@@ -39,6 +40,7 @@ const QuizEngine = () => {
     const [errorMessage, setErrorMessage] = useState('');
     const [test,         setTest]         = useState(null);
     const [questions,    setQuestions]    = useState([]);
+    const [attemptId,    setAttemptId]    = useState(null);
 
     // ── Exam state ────────────────────────────────────────────────────────────
     const [currentIndex,     setCurrentIndex]     = useState(0);
@@ -54,23 +56,27 @@ const QuizEngine = () => {
 
     // ── Load test on mount ────────────────────────────────────────────────────
     useEffect(() => {
-        if (!testId) {
-            setErrorMessage('No test ID provided.');
+        if (!testId && !isPracticeMode) {
+            setErrorMessage('No test ID or practice parameters provided.');
             setPhase(PHASE.ERROR);
             return;
         }
         loadTest();
-    }, [testId]);
+    }, [testId, stateSlug, difficulty]);
 
     const loadTest = async () => {
         setPhase(PHASE.LOADING);
         setErrorMessage('');
         try {
-            const response = await api.get(`/api/question-bank/tests/${testId}`);
+            const endpoint = isPracticeMode
+                ? `/api/question-bank/practice-more/${stateSlug}/${difficulty}`
+                : `/api/question-bank/tests/${testId}`;
+            const response = await api.get(endpoint);
             const dataObj = response.data ?? response;
             const loadedTest = dataObj.test || dataObj;
             const loadedQuestions = dataObj.questions || loadedTest.questions;
             const remainingSecs = dataObj.remainingTimeSeconds || (loadedTest.durationMinutes ? loadedTest.durationMinutes * 60 : 1800);
+            const loadedAttemptId = dataObj.attemptId;
 
             if (!loadedTest || !loadedQuestions || loadedQuestions.length === 0) {
                 setPhase(PHASE.EMPTY);
@@ -79,6 +85,7 @@ const QuizEngine = () => {
 
             setTest(loadedTest);
             setQuestions(loadedQuestions);
+            setAttemptId(loadedAttemptId || null);
             setTimeLeft(remainingSecs);
             setSelectedAnswers({});
             setBookmarked({});
@@ -154,7 +161,9 @@ const QuizEngine = () => {
         const timeSpentSeconds = Math.round((Date.now() - startTime) / 1000);
 
         try {
-            const response = await api.post(`/api/question-bank/tests/${testId}/submit`, {
+            const targetTestId = test?.id || testId;
+            const response = await api.post(`/api/question-bank/tests/${targetTestId}/submit`, {
+                attemptId,
                 userAnswers:       buildUserAnswers(),
                 bookmarks:         bookmarkedIds,
                 timeSpentSeconds,

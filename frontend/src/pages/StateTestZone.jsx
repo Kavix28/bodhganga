@@ -287,15 +287,22 @@ const StateTestZone = () => {
                                                 }`}>
                                                     {test.difficulty || 'EASY'} LEVEL
                                                 </span>
-                                                {test.isFree ? (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-gold/20 text-gold border border-gold/40">
-                                                        <Sparkles className="w-3 h-3" /> Free Test
-                                                    </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40">
-                                                        <ShieldCheck className="w-3 h-3" /> ₹{test.price} Bundle
-                                                    </span>
-                                                )}
+                                                <div className="flex items-center gap-1.5">
+                                                    {test.completedByUser && (
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                                                            <CheckCircle className="w-3 h-3" /> Attempted
+                                                        </span>
+                                                    )}
+                                                    {test.isFree ? (
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-gold/20 text-gold border border-gold/40">
+                                                            <Sparkles className="w-3 h-3" /> Free Test
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                                                            <ShieldCheck className="w-3 h-3" /> ₹{test.price} Bundle
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
 
                                             <h3 className="text-lg font-serif font-bold text-white leading-snug">{test.title}</h3>
@@ -310,6 +317,14 @@ const StateTestZone = () => {
                                                     <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Time Limit</span>
                                                     <span className="font-bold text-gold">{test.durationMinutes || 30} Mins</span>
                                                 </div>
+                                                {test.attemptedCount !== undefined && (
+                                                    <div className="col-span-2 pt-2 border-t border-white/10 flex items-center justify-between text-[11px]">
+                                                        <span className="text-slate-400">Pool Progress:</span>
+                                                        <span className="font-semibold text-emerald-400">
+                                                            {test.attemptedCount} attempted • {test.remainingCount ?? 0} remaining
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 
@@ -322,13 +337,34 @@ const StateTestZone = () => {
                                                 <span>Question Bank Ingestion ({test.availableQuestions || 0}/15 Qs)</span>
                                             </button>
                                         ) : test.isUnlocked ? (
-                                            <Link
-                                                to={`/question-bank/tests/${test.id}`}
-                                                className="w-full inline-flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest hover:opacity-95 transition-all shadow-md"
-                                            >
-                                                <PlayCircle className="w-4 h-4" />
-                                                <span>Attempt Test Now</span>
-                                            </Link>
+                                            <div className="space-y-2">
+                                                <Link
+                                                    to={`/question-bank/tests/${test.id}`}
+                                                    className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest hover:opacity-95 transition-all shadow-md"
+                                                >
+                                                    <PlayCircle className="w-4 h-4" />
+                                                    <span>{test.completedByUser ? 'Retake Standard Test' : 'Attempt Test Now'}</span>
+                                                </Link>
+                                                {test.completedByUser && (
+                                                    test.remainingCount > 0 ? (
+                                                        <Link
+                                                            to={`/question-bank/practice/${test.stateSlug || stateId || 'chhattisgarh'}/${test.difficulty}`}
+                                                            className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs uppercase tracking-widest transition-all shadow-md"
+                                                        >
+                                                            <Sparkles className="w-4 h-4" />
+                                                            <span>Practice More ({test.remainingCount} Left)</span>
+                                                        </Link>
+                                                    ) : (
+                                                        <button
+                                                            disabled
+                                                            className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-slate-800/80 text-slate-400 font-bold text-xs uppercase tracking-widest border border-white/5 cursor-not-allowed"
+                                                        >
+                                                            <CheckCircle className="w-4 h-4 text-emerald-400" />
+                                                            <span>All Pool Questions Completed</span>
+                                                        </button>
+                                                    )
+                                                )}
+                                            </div>
                                         ) : (
                                             <button
                                                 onClick={() => handleUnlockTest(test)}

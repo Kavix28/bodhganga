@@ -145,6 +145,49 @@ public class QuestionBankController {
     }
 
     /**
+     * GET /api/question-bank/practice-more/{stateSlug}/{difficulty}
+     * Returns unattempted practice questions for a specific state and difficulty.
+     * Enforces backend entitlement: EASY is free, MEDIUM and HARD require state
+     * entitlement.
+     */
+    @GetMapping("/practice-more/{stateSlug}/{difficulty}")
+    public ResponseEntity<ApiResponseDTO> getPracticeMore(
+            @PathVariable String stateSlug,
+            @PathVariable String difficulty) {
+        String userId = getAuthenticatedUserId();
+        if (userId == null) {
+            return ResponseEntity.status(401).body(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("Authentication required for Practice More.")
+                    .build());
+        }
+
+        try {
+            Map<String, Object> responseData = stateTestService.loadPracticeMoreSession(stateSlug, difficulty, userId);
+            return ResponseEntity.ok(ApiResponseDTO.builder()
+                    .success(true)
+                    .message("Practice questions loaded successfully")
+                    .data(responseData)
+                    .build());
+        } catch (org.springframework.security.access.AccessDeniedException ade) {
+            return ResponseEntity.status(403).body(ApiResponseDTO.builder()
+                    .success(false)
+                    .message(ade.getMessage())
+                    .build());
+        } catch (IllegalArgumentException iae) {
+            return ResponseEntity.status(400).body(ApiResponseDTO.builder()
+                    .success(false)
+                    .message(iae.getMessage())
+                    .build());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("Failed to load practice test: " + e.getMessage())
+                    .build());
+        }
+    }
+
+    /**
      * POST /api/question-bank/tests/{id}/submit
      * Evaluates exam attempt, calculates score, accuracy, and weak/strong topics.
      * Requires authentication — userId is extracted from the JWT principal, never
@@ -155,8 +198,6 @@ public class QuestionBankController {
             @PathVariable String id,
             @RequestBody Map<String, Object> payload) {
 
-        // Always derive userId from the authenticated principal — never trust the
-        // payload
         String userId = getAuthenticatedUserId();
         if (userId == null) {
             return ResponseEntity.status(401).body(ApiResponseDTO.builder()
@@ -165,30 +206,79 @@ public class QuestionBankController {
                     .build());
         }
 
-        QBTest test = mongoTemplate.findById(id, QBTest.class);
-        if (test == null) {
-            return ResponseEntity.status(404).body(ApiResponseDTO.builder()
+        String attemptId = payload.get("attemptId") instanceof String s ? s : null;
+        QBAttempt attempt = null;
+
+        if (attemptId != null && !attemptId.isBlank()) {
+            attempt = mongoTemplate.findById(attemptId, QBAttempt.class);
+        }
+        if (attempt == null) {
+            Query q = new Query(Criteria.where("userId").is(userId)
+                    .and("testId").is(id)
+                    .and("status").is("IN_PROGRESS"));
+            attempt = mongoTemplate.findOne(q, QBAttempt.class);
+        }
+
+        if (attempt == null) {
+            return ResponseEntity.status(400).body(ApiResponseDTO.builder()
                     .success(false)
-                    .message("Test not found")
+                    .message("No active test attempt found or attempt has already been submitted.")
                     .build());
         }
 
+        if (!userId.equals(attempt.getUserId())) {
+            return ResponseEntity.status(403).body(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("Access denied: Attempt does not belong to current user.")
+                    .build());
+        }
+
+        if (!"IN_PROGRESS".equals(attempt.getStatus())) {
+            return ResponseEntity.status(400).body(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("This attempt has already been submitted or finalized.")
+                    .build());
+        }
+
+        boolean isExpired = attempt.getExpiresAt() != null && new Date().after(attempt.getExpiresAt());
+
         @SuppressWarnings("unchecked")
-        Map<String, String> userAnswers = (Map<String, String>) payload.getOrDefault("userAnswers",
+        Map<String, String> rawAnswers = (Map<String, String>) payload.getOrDefault("userAnswers",
                 Collections.emptyMap());
         @SuppressWarnings("unchecked")
         List<String> bookmarks = (List<String>) payload.getOrDefault("bookmarks", Collections.emptyList());
         Integer timeSpentSeconds = payload.get("timeSpentSeconds") instanceof Integer t ? t : 0;
 
-        List<QBQuestion> questions = (List<QBQuestion>) questionRepo.findAllById(
-                test.getQuestionIds() != null ? test.getQuestionIds() : Collections.emptyList());
+        // PART A & G: AUTHORITATIVE QUESTION SET RESOLUTION
+        // Never use userAnswers.keySet() directly for database lookup.
+        List<String> authQIds = attempt.getQuestionIds();
+        if (authQIds == null || authQIds.isEmpty()) {
+            QBTest test = mongoTemplate.findById(id, QBTest.class);
+            if (test != null && test.getQuestionIds() != null) {
+                authQIds = test.getQuestionIds();
+            } else {
+                authQIds = Collections.emptyList();
+            }
+        }
+
+        // Restrict userAnswers strictly to the authoritative set
+        Map<String, String> sanitizedUserAnswers = new HashMap<>();
+        if (rawAnswers != null) {
+            for (Map.Entry<String, String> entry : rawAnswers.entrySet()) {
+                if (authQIds.contains(entry.getKey())) {
+                    sanitizedUserAnswers.put(entry.getKey(), entry.getValue());
+                }
+            }
+        }
+
+        List<QBQuestion> questions = (List<QBQuestion>) questionRepo.findAllById(authQIds);
 
         double score = 0.0;
         double totalPossibleMarks = 0.0;
         int correctCount = 0;
-        int attemptedCount = userAnswers.size();
+        int attemptedCount = sanitizedUserAnswers.size();
 
-        Map<String, int[]> topicStats = new HashMap<>(); // topic → [correctCount, totalCount]
+        Map<String, int[]> topicStats = new HashMap<>();
 
         for (QBQuestion q : questions) {
             double marks = q.getMarks() != null ? q.getMarks() : 1.0;
@@ -199,7 +289,7 @@ public class QuestionBankController {
             topicStats.putIfAbsent(topic, new int[] { 0, 0 });
             topicStats.get(topic)[1]++;
 
-            String selectedAnswer = userAnswers.get(q.getId());
+            String selectedAnswer = sanitizedUserAnswers.get(q.getId());
             if (selectedAnswer != null) {
                 if (selectedAnswer.equalsIgnoreCase(q.getCorrectAnswer())) {
                     score += marks;
@@ -220,18 +310,14 @@ public class QuestionBankController {
             topicPerformance.put(entry.getKey(), Math.round(topicAcc * 10.0) / 10.0);
         }
 
-        QBAttempt attempt = new QBAttempt();
-        attempt.setUserId(userId);
-        attempt.setTestId(id);
-        attempt.setTestTitle(test.getTitle());
+        attempt.setUserAnswers(sanitizedUserAnswers);
+        attempt.setBookmarkedQuestionIds(bookmarks);
+        attempt.setTimeSpentSeconds(timeSpentSeconds);
         attempt.setScore(Math.max(0.0, Math.round(score * 100.0) / 100.0));
         attempt.setTotalMarks(totalPossibleMarks);
         attempt.setAccuracy(Math.round(accuracy * 100.0) / 100.0);
-        attempt.setTimeSpentSeconds(timeSpentSeconds);
-        attempt.setUserAnswers(userAnswers);
-        attempt.setBookmarkedQuestionIds(bookmarks);
         attempt.setTopicPerformance(topicPerformance);
-        attempt.setStatus("SUBMITTED");
+        attempt.setStatus(isExpired ? "EXPIRED" : "SUBMITTED");
         attempt.setSubmittedAt(new Date());
 
         attemptRepo.save(attempt);
@@ -242,7 +328,8 @@ public class QuestionBankController {
 
         return ResponseEntity.ok(ApiResponseDTO.builder()
                 .success(true)
-                .message("Test submitted and evaluated successfully")
+                .message(isExpired ? "Test attempt expired. Submitted answers auto-graded."
+                        : "Test submitted and evaluated successfully")
                 .data(responseData)
                 .build());
     }

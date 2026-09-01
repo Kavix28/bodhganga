@@ -177,6 +177,7 @@ function App() {
 
                                             {/* ── Question Bank Test Engine ───────────────────── */}
                                             <Route path="/question-bank/tests/:testId" element={<QBTestEngine />} />
+                                            <Route path="/question-bank/practice/:stateSlug/:difficulty" element={<QBTestEngine />} />
 
                                             <Route path="/states/:stateSlug/history" element={<StateSectionPage />} />
                                             <Route path="/states/:stateSlug/heritage-monuments" element={<StateSectionPage />} />

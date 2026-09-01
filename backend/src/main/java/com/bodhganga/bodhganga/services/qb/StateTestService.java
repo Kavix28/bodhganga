@@ -2,6 +2,7 @@ package com.bodhganga.bodhganga.services.qb;
 
 import com.bodhganga.bodhganga.entity.Purchase;
 import com.bodhganga.bodhganga.entity.User;
+import com.bodhganga.bodhganga.entity.qb.QBAttempt;
 import com.bodhganga.bodhganga.entity.qb.QBQuestion;
 import com.bodhganga.bodhganga.entity.qb.QBQuestion.QBOption;
 import com.bodhganga.bodhganga.entity.qb.QBTest;
@@ -104,7 +105,7 @@ public class StateTestService {
          */
         /**
          * Retrieves 3 level tests (Easy, Medium, Hard) for a state, checking real
-         * question availability.
+         * question availability and user completion progress.
          */
         public List<Map<String, Object>> getOrGenerateStateTests(String stateSlug, String userIdentifier) {
                 String cleanSlug = (stateSlug != null) ? stateSlug.trim().toLowerCase() : "chhattisgarh";
@@ -117,6 +118,14 @@ public class StateTestService {
                         if (userOpt.isPresent()) {
                                 resolvedUserId = userOpt.get().getId();
                         }
+                }
+
+                // Query user's submitted attempts once if authenticated
+                List<QBAttempt> submittedAttempts = Collections.emptyList();
+                if (resolvedUserId != null) {
+                        Query attemptQ = new Query(
+                                        Criteria.where("userId").is(resolvedUserId).and("status").is("SUBMITTED"));
+                        submittedAttempts = mongoTemplate.find(attemptQ, QBAttempt.class);
                 }
 
                 // Query existing tests from Mongo
@@ -136,13 +145,35 @@ public class StateTestService {
                                                 : test.getId().endsWith("medium") ? "MEDIUM" : "EASY";
                         }
 
-                        // Count REAL questions strictly by stateSlug + published + difficulty.
-                        // No fallback to general state count — an insufficient MEDIUM stays
-                        // insufficient.
+                        // Query all published questions strictly by stateSlug + published + difficulty
                         Query qCount = new Query(Criteria.where("stateSlug").is(cleanSlug)
                                         .and("published").is(true)
                                         .and("difficulty").is(difficulty));
-                        long realQuestionCount = mongoTemplate.count(qCount, QBQuestion.class);
+                        List<QBQuestion> poolQuestions = mongoTemplate.find(qCount, QBQuestion.class);
+                        long realQuestionCount = poolQuestions.size();
+                        Set<String> poolQuestionIds = poolQuestions.stream().map(QBQuestion::getId)
+                                        .collect(Collectors.toSet());
+
+                        // Calculate user's unique attempted questions & completion status for this
+                        // level
+                        Set<String> userAttemptedQIdsForLevel = new HashSet<>();
+                        boolean completedByUser = false;
+
+                        for (QBAttempt a : submittedAttempts) {
+                                if (test.getId().equalsIgnoreCase(a.getTestId())) {
+                                        completedByUser = true;
+                                }
+                                if (a.getUserAnswers() != null) {
+                                        for (String qId : a.getUserAnswers().keySet()) {
+                                                if (poolQuestionIds.contains(qId)) {
+                                                        userAttemptedQIdsForLevel.add(qId);
+                                                }
+                                        }
+                                }
+                        }
+
+                        int attemptedCount = userAttemptedQIdsForLevel.size();
+                        int remainingCount = Math.max(0, (int) realQuestionCount - attemptedCount);
 
                         boolean isAvailable = realQuestionCount >= 15;
                         boolean isFree = test.getPrice() == null || test.getPrice() <= 0.0
@@ -169,10 +200,187 @@ public class StateTestService {
                         map.put("availableQuestions", realQuestionCount);
                         map.put("requiredQuestions", 15);
                         map.put("isUnlocked", isUnlocked);
+                        map.put("completedByUser", completedByUser);
+                        map.put("attemptedCount", attemptedCount);
+                        map.put("remainingCount", remainingCount);
                         resultList.add(map);
                 }
 
                 return resultList;
+        }
+
+        /**
+         * Calculates and returns unattempted published questions for a user for a given
+         * state & difficulty.
+         */
+        public List<QBQuestion> getPracticeMoreQuestions(String stateSlug, String difficulty, String userId) {
+                String cleanSlug = (stateSlug != null) ? stateSlug.trim().toLowerCase() : "chhattisgarh";
+                String upperDiff = (difficulty != null) ? difficulty.trim().toUpperCase() : "EASY";
+
+                if (!List.of("EASY", "MEDIUM", "HARD").contains(upperDiff)) {
+                        throw new IllegalArgumentException("Invalid difficulty level: " + difficulty);
+                }
+
+                // 1. Query all published questions matching stateSlug + published + difficulty
+                Query qPool = new Query(Criteria.where("stateSlug").is(cleanSlug)
+                                .and("published").is(true)
+                                .and("difficulty").is(upperDiff));
+                List<QBQuestion> poolQuestions = mongoTemplate.find(qPool, QBQuestion.class);
+
+                if (poolQuestions.isEmpty()) {
+                        return Collections.emptyList();
+                }
+
+                // 2. Fetch user's submitted attempts
+                Set<String> attemptedQIds = new HashSet<>();
+                if (userId != null && !userId.isBlank() && !"anonymousUser".equals(userId)) {
+                        Query attemptQ = new Query(Criteria.where("userId").is(userId).and("status").is("SUBMITTED"));
+                        List<QBAttempt> userAttempts = mongoTemplate.find(attemptQ, QBAttempt.class);
+                        for (QBAttempt a : userAttempts) {
+                                if (a.getUserAnswers() != null) {
+                                        attemptedQIds.addAll(a.getUserAnswers().keySet());
+                                }
+                        }
+                }
+
+                // 3. Calculate set difference: Pool Questions MINUS Attempted Question IDs
+                List<QBQuestion> remainingQuestions = poolQuestions.stream()
+                                .filter(q -> !attemptedQIds.contains(q.getId()))
+                                .collect(Collectors.toList());
+
+                if (remainingQuestions.isEmpty()) {
+                        return Collections.emptyList();
+                }
+
+                // 4. Shuffle remaining questions and return at most 15
+                Collections.shuffle(remainingQuestions);
+                return remainingQuestions.subList(0, Math.min(15, remainingQuestions.size()));
+        }
+
+        /**
+         * Loads practice session formatted for live attempt with entitlement
+         * enforcement and server-authoritative IN_PROGRESS attempt creation.
+         */
+        public Map<String, Object> loadPracticeMoreSession(String stateSlug, String difficulty, String userIdentifier) {
+                String cleanSlug = (stateSlug != null) ? stateSlug.trim().toLowerCase() : "chhattisgarh";
+                String upperDiff = (difficulty != null) ? difficulty.trim().toUpperCase() : "EASY";
+
+                if (!List.of("EASY", "MEDIUM", "HARD").contains(upperDiff)) {
+                        throw new IllegalArgumentException("Invalid difficulty level: " + difficulty);
+                }
+
+                // Resolve user ID
+                String resolvedUserId = null;
+                if (userIdentifier != null && !userIdentifier.isBlank() && !"anonymousUser".equals(userIdentifier)) {
+                        Optional<User> userOpt = userRepo.findByIdentifier(userIdentifier);
+                        if (userOpt.isPresent()) {
+                                resolvedUserId = userOpt.get().getId();
+                        }
+                }
+
+                // Entitlement check: MEDIUM and HARD require state bundle entitlement
+                if (!"EASY".equalsIgnoreCase(upperDiff)) {
+                        if (resolvedUserId == null || !isUserEntitledForState(resolvedUserId, cleanSlug, null)) {
+                                throw new AccessDeniedException("Access denied: You must unlock the "
+                                                + formatStateName(cleanSlug) + " bundle to attempt " + upperDiff
+                                                + " level practice tests.");
+                        }
+                }
+
+                String testId = "st-" + cleanSlug + "-" + upperDiff.toLowerCase();
+                QBTest test = mongoTemplate.findById(testId, QBTest.class);
+                if (test == null) {
+                        getOrGenerateStateTests(cleanSlug, userIdentifier);
+                        test = mongoTemplate.findById(testId, QBTest.class);
+                }
+
+                // Check for an existing active IN_PROGRESS practice attempt for refresh /
+                // reconnect
+                QBAttempt activeAttempt = null;
+                if (resolvedUserId != null) {
+                        Query qActive = new Query(Criteria.where("userId").is(resolvedUserId)
+                                        .and("testId").is(testId)
+                                        .and("status").is("IN_PROGRESS")
+                                        .and("isPracticeMode").is(true));
+                        activeAttempt = mongoTemplate.findOne(qActive, QBAttempt.class);
+
+                        // If expired, finalize it and force creation of a new attempt
+                        if (activeAttempt != null && activeAttempt.getExpiresAt() != null
+                                        && new Date().after(activeAttempt.getExpiresAt())) {
+                                activeAttempt.setStatus("EXPIRED");
+                                mongoTemplate.save(activeAttempt);
+                                activeAttempt = null;
+                        }
+                }
+
+                List<QBQuestion> rawQuestions = new ArrayList<>();
+                long remainingTimeSeconds = 1800;
+                String attemptId = null;
+
+                if (activeAttempt != null) {
+                        // Restoring active session
+                        attemptId = activeAttempt.getId();
+                        long remaining = (activeAttempt.getExpiresAt().getTime() - System.currentTimeMillis()) / 1000;
+                        remainingTimeSeconds = Math.max(0, remaining);
+                        if (activeAttempt.getQuestionIds() != null && !activeAttempt.getQuestionIds().isEmpty()) {
+                                Iterable<QBQuestion> qIt = questionRepo.findAllById(activeAttempt.getQuestionIds());
+                                qIt.forEach(rawQuestions::add);
+                        }
+                } else {
+                        // Creating new practice attempt
+                        rawQuestions = getPracticeMoreQuestions(cleanSlug, upperDiff, resolvedUserId);
+                        if (rawQuestions.isEmpty()) {
+                                Map<String, Object> emptyResp = new LinkedHashMap<>();
+                                emptyResp.put("test", test);
+                                emptyResp.put("questions", Collections.emptyList());
+                                emptyResp.put("durationMinutes", 30);
+                                emptyResp.put("remainingTimeSeconds", 0);
+                                emptyResp.put("totalQuestions", 0);
+                                emptyResp.put("isUnlocked", true);
+                                emptyResp.put("isPracticeMode", true);
+                                return emptyResp;
+                        }
+
+                        List<String> questionIds = rawQuestions.stream().map(QBQuestion::getId)
+                                        .collect(Collectors.toList());
+                        Date startedAt = new Date();
+                        Date expiresAt = new Date(startedAt.getTime() + 30 * 60 * 1000); // 30 minutes
+                                                                                         // server-authoritative timer
+
+                        QBAttempt attempt = new QBAttempt();
+                        attempt.setUserId(resolvedUserId);
+                        attempt.setTestId(testId);
+                        attempt.setTestTitle(
+                                        (test != null ? test.getTitle() : formatStateName(cleanSlug)) + " — Practice");
+                        attempt.setStatus("IN_PROGRESS");
+                        attempt.setStartedAt(startedAt);
+                        attempt.setExpiresAt(expiresAt);
+                        attempt.setQuestionIds(questionIds);
+                        attempt.setIsPracticeMode(true);
+                        attempt.setUserAnswers(new HashMap<>());
+
+                        if (resolvedUserId != null) {
+                                attempt = mongoTemplate.save(attempt);
+                                attemptId = attempt.getId();
+                        }
+                }
+
+                // Sanitize options & strip answer keys
+                List<Map<String, Object>> sanitizedQuestions = sanitizeQuestionsForClient(rawQuestions);
+
+                Map<String, Object> response = new LinkedHashMap<>();
+                response.put("test", test);
+                response.put("questions", sanitizedQuestions);
+                response.put("durationMinutes", 30);
+                response.put("remainingTimeSeconds", remainingTimeSeconds);
+                response.put("totalQuestions", sanitizedQuestions.size());
+                response.put("isUnlocked", true);
+                response.put("isPracticeMode", true);
+                if (attemptId != null) {
+                        response.put("attemptId", attemptId);
+                }
+
+                return response;
         }
 
         private List<QBTest> createStandardStateTests(String stateSlug, String stateName) {
@@ -248,46 +456,130 @@ public class StateTestService {
                 // 1. Backend Entitlement Check
                 boolean isFree = test.getPrice() == null || test.getPrice() <= 0.0
                                 || "FREE_POOL".equalsIgnoreCase(test.getTestType());
+                String resolvedUserId = null;
+                if (userIdentifier != null && !userIdentifier.isBlank()
+                                && !"anonymousUser".equals(userIdentifier)) {
+                        Optional<User> userOpt = userRepo.findByIdentifier(userIdentifier);
+                        if (userOpt.isPresent()) {
+                                resolvedUserId = userOpt.get().getId();
+                        }
+                }
+
                 if (!isFree) {
-                        if (userIdentifier == null || userIdentifier.isBlank()
-                                        || "anonymousUser".equals(userIdentifier)) {
+                        if (resolvedUserId == null) {
                                 throw new AccessDeniedException("Authentication required to take this premium test.");
                         }
-                        User user = userRepo.findByIdentifier(userIdentifier)
-                                        .orElseThrow(() -> new AccessDeniedException("User not found"));
-
-                        boolean entitled = isUserEntitledForState(user.getId(), test.getStateSlug(), null);
+                        boolean entitled = isUserEntitledForState(resolvedUserId, test.getStateSlug(), null);
                         if (!entitled) {
-                                log.warn("Access denied for user {} to paid test {}", user.getId(), testId);
+                                log.warn("Access denied for user {} to paid test {}", resolvedUserId, testId);
                                 throw new AccessDeniedException(
                                                 "Access restricted. Please unlock this State/District test bundle to take this exam.");
                         }
                 }
 
-                // 2. Load exactly 15 questions from real pool. Never seeds or fabricates.
-                List<QBQuestion> questions = loadRealQuestionsForTest(test);
+                // Check for existing active IN_PROGRESS attempt for refresh / reconnect
+                QBAttempt activeAttempt = null;
+                if (resolvedUserId != null) {
+                        Query qActive = new Query(Criteria.where("userId").is(resolvedUserId)
+                                        .and("testId").is(testId)
+                                        .and("status").is("IN_PROGRESS")
+                                        .and("isPracticeMode").is(false));
+                        activeAttempt = mongoTemplate.findOne(qActive, QBAttempt.class);
 
-                // 3. Randomize question order and options
-                List<QBQuestion> randomized = new ArrayList<>(questions);
-                Collections.shuffle(randomized);
-
-                for (QBQuestion q : randomized) {
-                        if (q.getOptions() != null) {
-                                List<QBOption> shuffled = new ArrayList<>(q.getOptions());
-                                Collections.shuffle(shuffled);
-                                q.setOptions(shuffled);
+                        if (activeAttempt != null && activeAttempt.getExpiresAt() != null
+                                        && new Date().after(activeAttempt.getExpiresAt())) {
+                                activeAttempt.setStatus("EXPIRED");
+                                mongoTemplate.save(activeAttempt);
+                                activeAttempt = null;
                         }
                 }
 
+                List<QBQuestion> questions = new ArrayList<>();
+                long remainingTimeSeconds = 1800;
+                String attemptId = null;
+
+                if (activeAttempt != null) {
+                        // Restoring active session
+                        attemptId = activeAttempt.getId();
+                        long remaining = (activeAttempt.getExpiresAt().getTime() - System.currentTimeMillis()) / 1000;
+                        remainingTimeSeconds = Math.max(0, remaining);
+                        if (activeAttempt.getQuestionIds() != null && !activeAttempt.getQuestionIds().isEmpty()) {
+                                Iterable<QBQuestion> qIt = questionRepo.findAllById(activeAttempt.getQuestionIds());
+                                qIt.forEach(questions::add);
+                        }
+                } else {
+                        // Creating new standard test attempt
+                        questions = loadRealQuestionsForTest(test);
+                        List<String> questionIds = questions.stream().map(QBQuestion::getId)
+                                        .collect(Collectors.toList());
+
+                        Date startedAt = new Date();
+                        Date expiresAt = new Date(startedAt.getTime() + 30 * 60 * 1000); // 30 minutes
+
+                        QBAttempt attempt = new QBAttempt();
+                        attempt.setUserId(resolvedUserId);
+                        attempt.setTestId(testId);
+                        attempt.setTestTitle(test.getTitle());
+                        attempt.setStatus("IN_PROGRESS");
+                        attempt.setStartedAt(startedAt);
+                        attempt.setExpiresAt(expiresAt);
+                        attempt.setQuestionIds(questionIds);
+                        attempt.setIsPracticeMode(false);
+                        attempt.setUserAnswers(new HashMap<>());
+
+                        if (resolvedUserId != null) {
+                                attempt = mongoTemplate.save(attempt);
+                                attemptId = attempt.getId();
+                        }
+                }
+
+                // Sanitize options & strip answer keys
+                List<Map<String, Object>> sanitizedQuestions = sanitizeQuestionsForClient(questions);
+
                 Map<String, Object> response = new LinkedHashMap<>();
                 response.put("test", test);
-                response.put("questions", randomized);
+                response.put("questions", sanitizedQuestions);
                 response.put("durationMinutes", 30);
-                response.put("remainingTimeSeconds", 1800); // 30 minutes server-authoritative timer
-                response.put("totalQuestions", 15);
+                response.put("remainingTimeSeconds", remainingTimeSeconds);
+                response.put("totalQuestions", sanitizedQuestions.size());
                 response.put("isUnlocked", true);
+                if (attemptId != null) {
+                        response.put("attemptId", attemptId);
+                }
 
                 return response;
+        }
+
+        /**
+         * Helper method to sanitize options and strip correct answers before
+         * submission.
+         */
+        private List<Map<String, Object>> sanitizeQuestionsForClient(List<QBQuestion> rawQuestions) {
+                List<Map<String, Object>> sanitized = new ArrayList<>();
+                for (QBQuestion q : rawQuestions) {
+                        Map<String, Object> qMap = new LinkedHashMap<>();
+                        qMap.put("id", q.getId());
+                        qMap.put("questionText", q.getQuestionText());
+                        qMap.put("topic", q.getTopic());
+                        qMap.put("difficulty", q.getDifficulty());
+                        qMap.put("marks", q.getMarks() != null ? q.getMarks() : 1.0);
+                        qMap.put("negativeMarks", q.getNegativeMarks() != null ? q.getNegativeMarks() : 0.25);
+
+                        List<QBOption> options = new ArrayList<>();
+                        if (q.getOptions() != null) {
+                                for (QBOption opt : q.getOptions()) {
+                                        QBOption cleanOpt = new QBOption();
+                                        cleanOpt.setId(opt.getId());
+                                        cleanOpt.setText(opt.getText());
+                                        cleanOpt.setIsCorrect(null);
+                                        options.add(cleanOpt);
+                                }
+                        }
+                        Collections.shuffle(options);
+                        qMap.put("options", options);
+                        sanitized.add(qMap);
+                }
+                return sanitized;
         }
 
         /**
