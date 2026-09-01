@@ -20,6 +20,8 @@ const ICON_MAP = {
   'art-and-culture': Music,
 };
 
+const EXCLUDED_SLUGS = ['free-resources', 'paid-resources', 'free', 'paid'];
+
 export default function StateSectionTabs({ stateSlug, activeSection }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -35,15 +37,17 @@ export default function StateSectionTabs({ stateSlug, activeSection }) {
         const res = await api.get(`/states/${stateSlug}/categories`);
         const cats = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
         if (isMounted && cats.length > 0) {
-          const parsed = cats.map(c => {
-            const slug = c.navbarSlug || c.navbarCategory?.toLowerCase().replace(/\s+/g, '-') || 'general';
-            return {
-              id: slug,
-              label: c.navbarCategory || slug,
-              icon: ICON_MAP[slug] || BookOpen,
-              path: `/state/${stateSlug}/${slug}`
-            };
-          });
+          const parsed = cats
+            .map(c => {
+              const slug = c.navbarSlug || c.navbarCategory?.toLowerCase().replace(/\s+/g, '-') || 'general';
+              return {
+                id: slug,
+                label: c.navbarCategory || slug,
+                icon: ICON_MAP[slug] || BookOpen,
+                path: `/state/${stateSlug}/${slug}`
+              };
+            })
+            .filter(tab => !EXCLUDED_SLUGS.includes(tab.id));
           setDynamicTabs(parsed);
         }
       } catch (e) {
