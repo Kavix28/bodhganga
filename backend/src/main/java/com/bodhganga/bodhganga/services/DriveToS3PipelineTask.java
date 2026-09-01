@@ -288,9 +288,10 @@ public class DriveToS3PipelineTask {
             return;
         }
 
-        if (metadata.itemType == ProductMetadataUtil.ItemType.NON_RESOURCE) {
+        if (metadata.itemType == ProductMetadataUtil.ItemType.NON_RESOURCE
+                || metadata.itemType == ProductMetadataUtil.ItemType.QUESTION_BANK) {
             log.info(
-                    "[PIPELINE][NON_RESOURCE][SKIPPED] File '{}' (Drive ID: {}) in path {} is not an educational resource. Skipping.",
+                    "[PIPELINE][QUESTION_BANK/NON_RESOURCE][SKIPPED] File '{}' (Drive ID: {}) in path {} is a Question Bank file or non-resource. Skipping.",
                     fileName, file.getId(), folderPath);
             filesSkipped.incrementAndGet();
             return;

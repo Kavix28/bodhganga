@@ -7,9 +7,20 @@ import java.util.Optional;
 
 public interface QBQuestionRepo extends MongoRepository<QBQuestion, String> {
     Optional<QBQuestion> findByGoogleDriveFileIdAndQuestionHash(String googleDriveFileId, String questionHash);
-    List<QBQuestion> findByStateSlugAndExamSlugAndSubjectSlugAndPublishedTrue(String stateSlug, String examSlug, String subjectSlug);
+
+    Optional<QBQuestion> findByQuestionHash(String questionHash);
+
+    List<QBQuestion> findByStateSlugAndExamSlugAndSubjectSlugAndPublishedTrue(String stateSlug, String examSlug,
+            String subjectSlug);
+
+    List<QBQuestion> findByStateSlugAndDistrictSlugAndDifficultyAndPublishedTrue(String stateSlug, String districtSlug,
+            String difficulty);
+
     List<QBQuestion> findByGoogleDriveFileId(String googleDriveFileId);
+
     List<QBQuestion> findByNeedsReviewTrue();
+
     long countByPublishedTrue();
+
     long countByNeedsReviewTrue();
 }

@@ -19,7 +19,8 @@ public class ProductMetadataUtil {
     public enum ItemType {
         RESOURCE,
         STATE_IMAGE,
-        NON_RESOURCE
+        NON_RESOURCE,
+        QUESTION_BANK
     }
 
     private static final Set<String> TYPE_FOLDER_SLUGS = Set.of(
@@ -57,6 +58,15 @@ public class ProductMetadataUtil {
         String canonical = normalizeFolderName(folderName);
         return canonical.equals("state images") || canonical.equals("state-images")
                 || canonical.equals("state_images") || canonical.equals("state image");
+    }
+
+    public static boolean isQuestionBankFolder(String folderName) {
+        if (folderName == null)
+            return false;
+        String canonical = normalizeFolderName(folderName);
+        return canonical.equals("question bank") || canonical.equals("question-bank")
+                || canonical.equals("question_bank") || canonical.equals("answer key")
+                || canonical.equals("answer-key") || canonical.equals("answer_key");
     }
 
     public static String normalizeName(String name) {
@@ -148,6 +158,15 @@ public class ProductMetadataUtil {
                             "General", "general",
                             "Images", "images",
                             "state-image", "state-image", null,
+                            "general", "general",
+                            AccessType.UNKNOWN, false, false);
+                }
+                if (isQuestionBankFolder(folder)) {
+                    return new HierarchicalMetadata(
+                            ItemType.QUESTION_BANK,
+                            "General", "general",
+                            "Question Bank", "question-bank",
+                            null, null, null,
                             "general", "general",
                             AccessType.UNKNOWN, false, false);
                 }
