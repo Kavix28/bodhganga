@@ -16,7 +16,8 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/question-bank")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000", "https://bodhganga.in", "https://www.bodhganga.in"})
+@CrossOrigin(origins = { "http://localhost:5173", "http://localhost:3000", "https://bodhganga.in",
+        "https://www.bodhganga.in" })
 public class QuestionBankController {
 
     private final QBTestRepo testRepo;
@@ -24,23 +25,27 @@ public class QuestionBankController {
     private final QBAttemptRepo attemptRepo;
     private final QBBundleRepo bundleRepo;
     private final MongoTemplate mongoTemplate;
+    private final com.bodhganga.bodhganga.services.qb.StateTestService stateTestService;
 
     public QuestionBankController(QBTestRepo testRepo,
-                                  QBQuestionRepo questionRepo,
-                                  QBAttemptRepo attemptRepo,
-                                  QBBundleRepo bundleRepo,
-                                  MongoTemplate mongoTemplate) {
+            QBQuestionRepo questionRepo,
+            QBAttemptRepo attemptRepo,
+            QBBundleRepo bundleRepo,
+            MongoTemplate mongoTemplate,
+            com.bodhganga.bodhganga.services.qb.StateTestService stateTestService) {
         this.testRepo = testRepo;
         this.questionRepo = questionRepo;
         this.attemptRepo = attemptRepo;
         this.bundleRepo = bundleRepo;
         this.mongoTemplate = mongoTemplate;
+        this.stateTestService = stateTestService;
     }
 
     // ── Helper: get authenticated user id from JWT principal ──────────────────
 
     /**
-     * Extracts the authenticated user's identifier from the Spring Security context.
+     * Extracts the authenticated user's identifier from the Spring Security
+     * context.
      * The JWT filter sets the principal as the user's email (String).
      * Returns null if no authenticated principal is present (anonymous).
      */
@@ -57,8 +62,25 @@ public class QuestionBankController {
     // ── Public endpoints ──────────────────────────────────────────────────────
 
     /**
+     * GET /api/question-bank/state-tests/{stateSlug}
+     * Returns 3-tier difficulty state tests (Easy, Medium, Hard) for a state, with
+     * user unlock status.
+     */
+    @GetMapping("/state-tests/{stateSlug}")
+    public ResponseEntity<ApiResponseDTO> getStateTests(@PathVariable String stateSlug) {
+        String userId = getAuthenticatedUserId();
+        List<Map<String, Object>> tests = stateTestService.getOrGenerateStateTests(stateSlug, userId);
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+                .success(true)
+                .message("State tests retrieved successfully")
+                .data(tests)
+                .build());
+    }
+
+    /**
      * GET /api/question-bank/tests
-     * Returns published tests filtered by state, exam, or subject. Public — no auth required.
+     * Returns published tests filtered by state, exam, or subject. Public — no auth
+     * required.
      */
     @GetMapping("/tests")
     public ResponseEntity<ApiResponseDTO> getTests(
@@ -89,57 +111,52 @@ public class QuestionBankController {
 
     /**
      * GET /api/question-bank/tests/{id}
-     * Returns test with randomized question order & option positions for live exam session.
-     * No Gemini calls — purely MongoDB reads.
+     * Returns test with randomized question order & option positions for live exam
+     * session.
+     * Validates access control & enforces server-authoritative timer.
      */
     @GetMapping("/tests/{id}")
     public ResponseEntity<ApiResponseDTO> getTestById(@PathVariable String id) {
-        QBTest test = mongoTemplate.findById(id, QBTest.class);
-        if (test == null || !Boolean.TRUE.equals(test.getPublished())) {
+        try {
+            String userId = getAuthenticatedUserId();
+            Map<String, Object> responseData = stateTestService.loadTestForLiveAttempt(id, userId);
+
+            return ResponseEntity.ok(ApiResponseDTO.builder()
+                    .success(true)
+                    .message("Test loaded for live attempt")
+                    .data(responseData)
+                    .build());
+        } catch (org.springframework.security.access.AccessDeniedException ade) {
+            return ResponseEntity.status(403).body(ApiResponseDTO.builder()
+                    .success(false)
+                    .message(ade.getMessage())
+                    .build());
+        } catch (NoSuchElementException nse) {
             return ResponseEntity.status(404).body(ApiResponseDTO.builder()
                     .success(false)
-                    .message("Test not found")
+                    .message(nse.getMessage())
+                    .build());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("Failed to load test: " + e.getMessage())
                     .build());
         }
-
-        List<QBQuestion> rawQuestions = (List<QBQuestion>) questionRepo.findAllById(
-                test.getQuestionIds() != null ? test.getQuestionIds() : Collections.emptyList()
-        );
-
-        // Randomize question order and shuffle options for each question
-        List<QBQuestion> randomizedQuestions = new ArrayList<>(rawQuestions);
-        Collections.shuffle(randomizedQuestions);
-
-        for (QBQuestion q : randomizedQuestions) {
-            if (q.getOptions() != null) {
-                List<QBQuestion.QBOption> shuffledOpts = new ArrayList<>(q.getOptions());
-                Collections.shuffle(shuffledOpts);
-                q.setOptions(shuffledOpts);
-            }
-        }
-
-        Map<String, Object> responseData = new HashMap<>();
-        responseData.put("test", test);
-        responseData.put("questions", randomizedQuestions);
-
-        return ResponseEntity.ok(ApiResponseDTO.builder()
-                .success(true)
-                .message("Test loaded for live attempt")
-                .data(responseData)
-                .build());
     }
 
     /**
      * POST /api/question-bank/tests/{id}/submit
      * Evaluates exam attempt, calculates score, accuracy, and weak/strong topics.
-     * Requires authentication — userId is extracted from the JWT principal, never from the request body.
+     * Requires authentication — userId is extracted from the JWT principal, never
+     * from the request body.
      */
     @PostMapping("/tests/{id}/submit")
     public ResponseEntity<ApiResponseDTO> submitTest(
             @PathVariable String id,
             @RequestBody Map<String, Object> payload) {
 
-        // Always derive userId from the authenticated principal — never trust the payload
+        // Always derive userId from the authenticated principal — never trust the
+        // payload
         String userId = getAuthenticatedUserId();
         if (userId == null) {
             return ResponseEntity.status(401).body(ApiResponseDTO.builder()
@@ -157,14 +174,14 @@ public class QuestionBankController {
         }
 
         @SuppressWarnings("unchecked")
-        Map<String, String> userAnswers = (Map<String, String>) payload.getOrDefault("userAnswers", Collections.emptyMap());
+        Map<String, String> userAnswers = (Map<String, String>) payload.getOrDefault("userAnswers",
+                Collections.emptyMap());
         @SuppressWarnings("unchecked")
         List<String> bookmarks = (List<String>) payload.getOrDefault("bookmarks", Collections.emptyList());
         Integer timeSpentSeconds = payload.get("timeSpentSeconds") instanceof Integer t ? t : 0;
 
         List<QBQuestion> questions = (List<QBQuestion>) questionRepo.findAllById(
-                test.getQuestionIds() != null ? test.getQuestionIds() : Collections.emptyList()
-        );
+                test.getQuestionIds() != null ? test.getQuestionIds() : Collections.emptyList());
 
         double score = 0.0;
         double totalPossibleMarks = 0.0;
@@ -174,12 +191,12 @@ public class QuestionBankController {
         Map<String, int[]> topicStats = new HashMap<>(); // topic → [correctCount, totalCount]
 
         for (QBQuestion q : questions) {
-            double marks    = q.getMarks() != null ? q.getMarks() : 1.0;
+            double marks = q.getMarks() != null ? q.getMarks() : 1.0;
             double negMarks = q.getNegativeMarks() != null ? q.getNegativeMarks() : 0.25;
             totalPossibleMarks += marks;
 
             String topic = q.getTopic() != null ? q.getTopic() : "General";
-            topicStats.putIfAbsent(topic, new int[]{0, 0});
+            topicStats.putIfAbsent(topic, new int[] { 0, 0 });
             topicStats.get(topic)[1]++;
 
             String selectedAnswer = userAnswers.get(q.getId());
@@ -232,7 +249,8 @@ public class QuestionBankController {
 
     /**
      * GET /api/question-bank/search
-     * Full-text search across question text, topic, chapter, keywords, and OCR content.
+     * Full-text search across question text, topic, chapter, keywords, and OCR
+     * content.
      * Public — no auth required.
      */
     @GetMapping("/search")
@@ -266,8 +284,7 @@ public class QuestionBankController {
                     Criteria.where("topic").regex(regex),
                     Criteria.where("chapter").regex(regex),
                     Criteria.where("keywords").regex(regex),
-                    Criteria.where("ocrText").regex(regex)
-            ));
+                    Criteria.where("ocrText").regex(regex)));
         }
 
         List<QBQuestion> questions = mongoTemplate.find(query, QBQuestion.class);
@@ -296,23 +313,23 @@ public class QuestionBankController {
         List<QBAttempt> attempts = attemptRepo.findByUserId(userId);
         long availableTests = testRepo.count();
 
-        long attemptedCount  = attempts.size();
-        long completedCount  = attempts.stream().filter(a -> "SUBMITTED".equalsIgnoreCase(a.getStatus())).count();
+        long attemptedCount = attempts.size();
+        long completedCount = attempts.stream().filter(a -> "SUBMITTED".equalsIgnoreCase(a.getStatus())).count();
 
-        double bestScore  = attempts.stream().mapToDouble(QBAttempt::getScore).max().orElse(0.0);
-        double avgScore   = attempts.stream().mapToDouble(QBAttempt::getScore).average().orElse(0.0);
+        double bestScore = attempts.stream().mapToDouble(QBAttempt::getScore).max().orElse(0.0);
+        double avgScore = attempts.stream().mapToDouble(QBAttempt::getScore).average().orElse(0.0);
         double avgAccuracy = attempts.stream().mapToDouble(QBAttempt::getAccuracy).average().orElse(0.0);
         int totalTimeSpent = attempts.stream().mapToInt(QBAttempt::getTimeSpentSeconds).sum();
 
         Map<String, Object> dashboard = new HashMap<>();
-        dashboard.put("availableTests",       availableTests);
-        dashboard.put("attemptedCount",       attemptedCount);
-        dashboard.put("completedCount",       completedCount);
-        dashboard.put("bestScore",            Math.round(bestScore   * 100.0) / 100.0);
-        dashboard.put("avgScore",             Math.round(avgScore    * 100.0) / 100.0);
-        dashboard.put("avgAccuracy",          Math.round(avgAccuracy * 100.0) / 100.0);
+        dashboard.put("availableTests", availableTests);
+        dashboard.put("attemptedCount", attemptedCount);
+        dashboard.put("completedCount", completedCount);
+        dashboard.put("bestScore", Math.round(bestScore * 100.0) / 100.0);
+        dashboard.put("avgScore", Math.round(avgScore * 100.0) / 100.0);
+        dashboard.put("avgAccuracy", Math.round(avgAccuracy * 100.0) / 100.0);
         dashboard.put("totalTimeSpentSeconds", totalTimeSpent);
-        dashboard.put("recentAttempts",       attempts);
+        dashboard.put("recentAttempts", attempts);
 
         return ResponseEntity.ok(ApiResponseDTO.builder()
                 .success(true)

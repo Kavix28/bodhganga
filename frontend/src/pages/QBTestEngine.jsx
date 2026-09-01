@@ -67,7 +67,10 @@ const QuizEngine = () => {
         setErrorMessage('');
         try {
             const response = await api.get(`/api/question-bank/tests/${testId}`);
-            const { test: loadedTest, questions: loadedQuestions } = response.data ?? response;
+            const dataObj = response.data ?? response;
+            const loadedTest = dataObj.test || dataObj;
+            const loadedQuestions = dataObj.questions || loadedTest.questions;
+            const remainingSecs = dataObj.remainingTimeSeconds || (loadedTest.durationMinutes ? loadedTest.durationMinutes * 60 : 1800);
 
             if (!loadedTest || !loadedQuestions || loadedQuestions.length === 0) {
                 setPhase(PHASE.EMPTY);
@@ -76,7 +79,7 @@ const QuizEngine = () => {
 
             setTest(loadedTest);
             setQuestions(loadedQuestions);
-            setTimeLeft((loadedTest.durationMinutes ?? loadedQuestions.length) * 60);
+            setTimeLeft(remainingSecs);
             setSelectedAnswers({});
             setBookmarked({});
             setCurrentIndex(0);
@@ -87,6 +90,18 @@ const QuizEngine = () => {
             setPhase(PHASE.ERROR);
         }
     };
+
+    // ── Anti-cheating window focus/blur listener ──────────────────────────────
+    useEffect(() => {
+        if (phase !== PHASE.EXAM) return;
+
+        const handleBlur = () => {
+            toast?.error ? toast.error('Warning: Tab switch detected. Please stay on the examination window.') : console.warn('Tab switch detected.');
+        };
+
+        window.addEventListener('blur', handleBlur);
+        return () => window.removeEventListener('blur', handleBlur);
+    }, [phase]);
 
     // ── Timer — starts when exam begins, cleared on submit/unmount ────────────
     useEffect(() => {
@@ -107,8 +122,8 @@ const QuizEngine = () => {
     }, [phase]);
 
     // ── Answer selection ──────────────────────────────────────────────────────
-    const handleOptionSelect = (questionId, optionText) => {
-        setSelectedAnswers(prev => ({ ...prev, [questionId]: optionText }));
+    const handleOptionSelect = (questionId, optionVal) => {
+        setSelectedAnswers(prev => ({ ...prev, [questionId]: optionVal }));
     };
 
     // ── Bookmark toggle ───────────────────────────────────────────────────────
@@ -442,12 +457,13 @@ const QuizEngine = () => {
                         {/* Options */}
                         <div className="space-y-3">
                             {(q.options ?? []).map((opt, idx) => {
+                                const optId      = (typeof opt === 'object' && opt?.id) ? opt.id : String.fromCharCode(65 + idx);
                                 const optText    = typeof opt === 'string' ? opt : (opt?.text ?? opt?.value ?? String(opt));
-                                const isSelected = selectedForQ === optText;
+                                const isSelected = selectedForQ === optId || selectedForQ === optText;
                                 return (
                                     <button
                                         key={idx}
-                                        onClick={() => !isReviewLock && handleOptionSelect(q.id, optText)}
+                                        onClick={() => !isReviewLock && handleOptionSelect(q.id, optId)}
                                         disabled={isReviewLock}
                                         className={`w-full text-left p-4 rounded-2xl border transition-all flex items-center justify-between text-xs sm:text-sm font-medium ${
                                             isSelected
@@ -459,7 +475,7 @@ const QuizEngine = () => {
                                             <span className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0 ${
                                                 isSelected ? 'bg-gold text-emerald-950' : 'bg-slate-800 text-slate-400'
                                             }`}>
-                                                {String.fromCharCode(65 + idx)}
+                                                {optId}
                                             </span>
                                             <span>{optText}</span>
                                         </div>
