@@ -18,53 +18,54 @@ export default function StateDistrictsPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        // Fetch all published drive products for this state
-        const res = await api.get(`/products/state/${stateSlug}`);
-        const products = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : res?.data?.data || res?.data?.content || [];
+        // Fetch canonical districts from backend
+        const distRes = await api.get(`/states/${stateSlug}/districts`);
+        const distList = Array.isArray(distRes) ? distRes : (distRes?.data || []);
+
+        // Also fetch published products to enrich district counts
+        const prodRes = await api.get(`/products/state/${stateSlug}`);
+        const products = Array.isArray(prodRes) ? prodRes : (prodRes?.data || []);
 
         if (products.length > 0) {
           setStateName(products[0].state || products[0].stateName || stateSlug);
+        } else {
+          // Capitalize slug if stateName not found in products
+          const formatted = stateSlug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+          setStateName(formatted);
         }
 
-        // Group by districtSlug → count free and paid per district
-        const districtMap = {};
-        const NON_DISTRICT_KEYS = ["general", "state-images", "stateimages", "images", "state images"];
+        const countMap = {};
         products.forEach((p) => {
           const dSlug = p.districtSlug;
-          const dName = p.district || p.districtName || dSlug;
           if (!dSlug) return;
-          const normSlug = String(dSlug).toLowerCase().trim();
-          const normName = String(dName).toLowerCase().trim();
-          if (NON_DISTRICT_KEYS.includes(normSlug) || NON_DISTRICT_KEYS.includes(normName)) return;
-
-          if (!districtMap[dSlug]) {
-            districtMap[dSlug] = { districtSlug: dSlug, districtName: dName, free: 0, paid: 0, total: 0 };
+          if (!countMap[dSlug]) {
+            countMap[dSlug] = { free: 0, paid: 0, total: 0 };
           }
-          districtMap[dSlug].total++;
-          if (p.free || p.isFree || p.price === 0) districtMap[dSlug].free++;
-          else districtMap[dSlug].paid++;
+          countMap[dSlug].total++;
+          if (p.free || p.isFree || p.price === 0) countMap[dSlug].free++;
+          else countMap[dSlug].paid++;
         });
 
-        setDistricts(Object.values(districtMap).sort((a, b) => a.districtName.localeCompare(b.districtName)));
-        setIsActiveState(products.length > 0 || ['haryana', 'himachal-pradesh', 'jharkhand'].includes(stateSlug));
+        const NON_DISTRICT_KEYS = ["general", "state-images", "stateimages", "images", "state images"];
+        const merged = distList
+          .filter((d) => {
+            const normSlug = String(d.districtSlug || "").toLowerCase().trim();
+            const normName = String(d.district || "").toLowerCase().trim();
+            return !NON_DISTRICT_KEYS.includes(normSlug) && !NON_DISTRICT_KEYS.includes(normName);
+          })
+          .map((d) => ({
+            districtSlug: d.districtSlug,
+            districtName: d.district,
+            free: countMap[d.districtSlug]?.free ?? 0,
+            paid: countMap[d.districtSlug]?.paid ?? 0,
+            total: d.count ?? (countMap[d.districtSlug]?.total ?? 0),
+          }));
+
+        setDistricts(merged.sort((a, b) => a.districtName.localeCompare(b.districtName)));
+        setIsActiveState(true);
       } catch (err) {
         console.error("Failed to load districts:", err);
-        if (import.meta.env.DEV) {
-          setIsActiveState(['haryana', 'himachal-pradesh', 'jharkhand'].includes(stateSlug));
-          if (stateSlug === 'haryana') {
-            setDistricts([
-              { districtSlug: 'kurukshetra', districtName: 'Kurukshetra', free: 3, paid: 5, total: 8 },
-              { districtSlug: 'panchkula', districtName: 'Panchkula', free: 2, paid: 4, total: 6 },
-              { districtSlug: 'ambala', districtName: 'Ambala', free: 1, paid: 3, total: 4 }
-            ]);
-          } else {
-            setDistricts([
-              { districtSlug: 'mock-district', districtName: 'Mock District', free: 1, paid: 2, total: 3 }
-            ]);
-          }
-        } else {
-          setError("Could not load district data. Please try again.");
-        }
+        setError("Could not load district data. Please try again.");
       } finally {
         setLoading(false);
       }

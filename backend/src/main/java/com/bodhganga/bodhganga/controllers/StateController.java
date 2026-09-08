@@ -13,10 +13,11 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/states")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000"})
+@CrossOrigin(origins = { "http://localhost:5173", "http://localhost:3000" })
 public class StateController {
 
     private final StateRepo stateRepo;
@@ -27,69 +28,161 @@ public class StateController {
         this.mongoTemplate = mongoTemplate;
     }
 
-    public record DistrictInfo(String district, String districtSlug, long count) {}
+    public record DistrictInfo(String district, String districtSlug, long count) {
+    }
 
     /**
      * GET /api/states/available
      * Returns all states that have at least one published product.
      *
-     * CRITICAL FIX: No longer requires a State document to exist in the states collection.
-     * Derived directly from the products aggregation so any ingested state always appears.
+     * CRITICAL FIX: No longer requires a State document to exist in the states
+     * collection.
+     * Derived directly from the products aggregation so any ingested state always
+     * appears.
+     */
+    /**
+     * GET /api/states/available
+     * Returns all canonical states from the states collection, enriched with
+     * product resource counts.
+     * Guarantees that states exist independently of product counts and never vanish
+     * if products are 0.
      */
     @GetMapping("/available")
     public ResponseEntity<List<java.util.Map<String, Object>>> getAvailableStates() {
+        // 1. Get published, non-archived product counts per state slug
         Aggregation agg = Aggregation.newAggregation(
-            Aggregation.match(
-                Criteria.where("isPublished").is(true)
-                    .and("stateSlug").exists(true).ne(null).ne("").ne("general")
-            ),
-            Aggregation.group("stateSlug")
-                .first("state").as("name")
-                .count().as("notesCount"),
-            Aggregation.project("name", "notesCount")
-                .and("_id").as("id")
-                .andExclude("_id"),
-            Aggregation.sort(org.springframework.data.domain.Sort.Direction.ASC, "name")
-        );
+                Aggregation.match(
+                        Criteria.where("isPublished").is(true)
+                                .and("archived").ne(true)
+                                .and("stateSlug").exists(true).ne(null).ne("").ne("general")),
+                Aggregation.group("stateSlug")
+                        .first("state").as("name")
+                        .count().as("notesCount"),
+                Aggregation.project("name", "notesCount")
+                        .and("_id").as("id")
+                        .andExclude("_id"));
 
-        AggregationResults<org.bson.Document> results =
-            mongoTemplate.aggregate(agg, "products", org.bson.Document.class);
+        AggregationResults<org.bson.Document> results = mongoTemplate.aggregate(agg, "products",
+                org.bson.Document.class);
 
-        List<java.util.Map<String, Object>> states = results.getMappedResults().stream()
-            .map(doc -> {
+        java.util.Map<String, Long> productCountsBySlug = new java.util.HashMap<>();
+        java.util.Map<String, String> stateNamesBySlug = new java.util.HashMap<>();
+
+        for (org.bson.Document doc : results.getMappedResults()) {
+            String slug = doc.getString("id");
+            String name = doc.getString("name");
+            Number countNum = (Number) doc.get("notesCount");
+            long count = countNum != null ? countNum.longValue() : 0L;
+            if (slug != null && !slug.isBlank()) {
+                productCountsBySlug.put(slug, count);
+                if (name != null && !name.isBlank()) {
+                    stateNamesBySlug.put(slug, name);
+                }
+            }
+        }
+
+        // 2. Fetch canonical states master data
+        List<State> canonicalStates = stateRepo.findAll();
+        java.util.Map<String, java.util.Map<String, Object>> resultMap = new java.util.LinkedHashMap<>();
+
+        // Populate canonical states first
+        for (State s : canonicalStates) {
+            String slug = Product.generateSlug(s.getName());
+            if (s.getId() != null && !s.getId().isBlank()) {
+                slug = Product.generateSlug(s.getId());
+            }
+            long count = productCountsBySlug.getOrDefault(slug, 0L);
+
+            java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
+            m.put("id", slug);
+            m.put("stateSlug", slug);
+            m.put("name", s.getName());
+            m.put("notesCount", count);
+            resultMap.put(slug, m);
+        }
+
+        // Add any remaining product-derived states not covered in canonical states
+        for (java.util.Map.Entry<String, Long> entry : productCountsBySlug.entrySet()) {
+            String slug = entry.getKey();
+            if (!resultMap.containsKey(slug)) {
+                String displayName = stateNamesBySlug.getOrDefault(slug, slug);
                 java.util.Map<String, Object> m = new java.util.LinkedHashMap<>();
-                m.put("id", doc.getString("id"));
-                m.put("stateSlug", doc.getString("id"));
-                m.put("name", doc.getString("name"));
-                m.put("notesCount", doc.get("notesCount"));
-                return m;
-            })
-            .collect(java.util.stream.Collectors.toList());
+                m.put("id", slug);
+                m.put("stateSlug", slug);
+                m.put("name", displayName);
+                m.put("notesCount", entry.getValue());
+                resultMap.put(slug, m);
+            }
+        }
 
-        return ResponseEntity.ok(states);
+        List<java.util.Map<String, Object>> finalStates = new java.util.ArrayList<>(resultMap.values());
+        return ResponseEntity.ok(finalStates);
     }
 
     /**
      * GET /api/states/{stateSlug}/districts
-     * Get only districts of a state that actually contain published products
+     * Get districts of a state from canonical master data, enriched with published
+     * product counts.
      */
     @GetMapping("/{stateSlug}/districts")
     public ResponseEntity<List<DistrictInfo>> getAvailableDistricts(@PathVariable String stateSlug) {
+        String cleanStateSlug = Product.generateSlug(stateSlug);
+
+        // Aggregate published product counts per district
         Aggregation agg = Aggregation.newAggregation(
-            Aggregation.match(Criteria.where("isPublished").is(true)
-                .and("stateSlug").is(stateSlug)
-                .and("district").exists(true).ne(null).ne("").nin("general", "State images", "state images", "images")
-                .and("districtSlug").nin("general", "state-images", "images", "stateimages")),
-            Aggregation.group("district", "districtSlug").count().as("count"),
-            Aggregation.project("count")
-                .and("_id.district").as("district")
-                .and("_id.districtSlug").as("districtSlug")
-                .andExclude("_id")
-        );
+                Aggregation.match(Criteria.where("isPublished").is(true)
+                        .and("archived").ne(true)
+                        .and("stateSlug").is(cleanStateSlug)
+                        .and("district").exists(true).ne(null).ne("")
+                        .nin("general", "State images", "state images", "images")
+                        .and("districtSlug").nin("general", "state-images", "images", "stateimages")),
+                Aggregation.group("district", "districtSlug").count().as("count"),
+                Aggregation.project("count")
+                        .and("_id.district").as("district")
+                        .and("_id.districtSlug").as("districtSlug")
+                        .andExclude("_id"));
 
         AggregationResults<DistrictInfo> results = mongoTemplate.aggregate(agg, "products", DistrictInfo.class);
-        List<DistrictInfo> list = results.getMappedResults();
-        return ResponseEntity.ok(list);
+        java.util.Map<String, DistrictInfo> productDistrictsMap = new java.util.LinkedHashMap<>();
+
+        for (DistrictInfo info : results.getMappedResults()) {
+            if (info.districtSlug() != null && !info.districtSlug().isBlank()) {
+                productDistrictsMap.put(info.districtSlug(), info);
+            }
+        }
+
+        // Check canonical state in stateRepo
+        State canonicalState = null;
+        Optional<State> byId = stateRepo.findById(cleanStateSlug);
+        if (byId.isPresent()) {
+            canonicalState = byId.get();
+        } else {
+            for (State s : stateRepo.findAll()) {
+                if (Product.generateSlug(s.getName()).equals(cleanStateSlug)) {
+                    canonicalState = s;
+                    break;
+                }
+            }
+        }
+
+        java.util.Map<String, DistrictInfo> resultMap = new java.util.LinkedHashMap<>();
+
+        if (canonicalState != null && canonicalState.getDistricts() != null) {
+            for (String dName : canonicalState.getDistricts()) {
+                String dSlug = Product.generateSlug(dName);
+                long count = productDistrictsMap.containsKey(dSlug) ? productDistrictsMap.get(dSlug).count() : 0L;
+                resultMap.put(dSlug, new DistrictInfo(dName, dSlug, count));
+            }
+        }
+
+        // Add any additional product-derived districts
+        for (java.util.Map.Entry<String, DistrictInfo> entry : productDistrictsMap.entrySet()) {
+            if (!resultMap.containsKey(entry.getKey())) {
+                resultMap.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        return ResponseEntity.ok(new java.util.ArrayList<>(resultMap.values()));
     }
 
     /**

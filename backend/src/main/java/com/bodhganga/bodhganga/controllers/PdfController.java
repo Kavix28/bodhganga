@@ -31,9 +31,9 @@ public class PdfController {
     // 20MB limit
     private static final long MAX_FILE_SIZE = 20 * 1024 * 1024;
 
-    public PdfController(S3Service s3Service, ProductRepo productRepo, 
-                         com.bodhganga.bodhganga.repo.PurchaseRepo purchaseRepo, 
-                         com.bodhganga.bodhganga.repo.UserRepo userRepo) {
+    public PdfController(S3Service s3Service, ProductRepo productRepo,
+            com.bodhganga.bodhganga.repo.PurchaseRepo purchaseRepo,
+            com.bodhganga.bodhganga.repo.UserRepo userRepo) {
         this.s3Service = s3Service;
         this.productRepo = productRepo;
         this.purchaseRepo = purchaseRepo;
@@ -101,8 +101,8 @@ public class PdfController {
             @PathVariable String key,
             @RequestParam(value = "redirect", defaultValue = "false") boolean redirect,
             org.springframework.security.core.Authentication authentication) {
-        
-        if (authentication == null || !authentication.isAuthenticated() 
+
+        if (authentication == null || !authentication.isAuthenticated()
                 || "anonymousUser".equals(authentication.getName())) {
             return ResponseEntity.status(401).body(ApiResponseDTO.builder()
                     .success(false).message("Authentication required.").build());
@@ -123,7 +123,8 @@ public class PdfController {
                     new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN"));
 
             if (!isAdmin) {
-                com.bodhganga.bodhganga.entity.User user = userRepo.findByEmailIgnoreCase(authentication.getName().trim())
+                com.bodhganga.bodhganga.entity.User user = userRepo
+                        .findByEmailIgnoreCase(authentication.getName().trim())
                         .or(() -> userRepo.findByPhoneNo(authentication.getName().trim()))
                         .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -135,21 +136,23 @@ public class PdfController {
 
                 if (prodOpt.isPresent()) {
                     Product product = prodOpt.get();
-                    boolean isAccessible = product.isFree() || (product.getPrice() != null && product.getPrice() == 0.0);
-                    
+                    boolean isAccessible = product.isFree()
+                            || (product.getPrice() != null && product.getPrice() == 0.0);
+
                     if (!isAccessible) {
                         // Check if user purchased the specific product/course
-                        Optional<Purchase> purchaseOpt = purchaseRepo.findByUserIdAndProductId(user.getId(), product.getId());
+                        Optional<Purchase> purchaseOpt = purchaseRepo.findByUserIdAndProductId(user.getId(),
+                                product.getId());
                         if (purchaseOpt.isPresent()) {
                             isAccessible = true;
                         }
                     }
-                    
+
                     if (!isAccessible && product.getDistrictSlug() != null && !product.getDistrictSlug().isBlank()) {
-                        // Check if user purchased the district
+                        // Check if user purchased the district in the matching state
                         List<Purchase> userPurchases = purchaseRepo.findByUserId(user.getId());
                         boolean districtPurchased = userPurchases.stream()
-                                .anyMatch(p -> product.getDistrictSlug().equals(p.getDistrictSlug()));
+                                .anyMatch(p -> isDistrictPurchasedForProduct(product, p));
                         if (districtPurchased) {
                             isAccessible = true;
                         }
@@ -157,30 +160,34 @@ public class PdfController {
 
                     if (!isAccessible) {
                         return ResponseEntity.status(403).body(ApiResponseDTO.builder()
-                                .success(false).message("You do not own this document. Please claim or purchase it.").build());
+                                .success(false).message("You do not own this document. Please claim or purchase it.")
+                                .build());
                     }
                 } else {
                     // Search dynamically matching suffix/substring
                     final String finalKey = key;
                     List<Product> matches = productRepo.findAll().stream()
-                            .filter(p -> (p.getS3Key() != null && p.getS3Key().contains(finalKey)) || 
-                                         (p.getStorageKey() != null && p.getStorageKey().contains(finalKey)))
+                            .filter(p -> (p.getS3Key() != null && p.getS3Key().contains(finalKey)) ||
+                                    (p.getStorageKey() != null && p.getStorageKey().contains(finalKey)))
                             .collect(java.util.stream.Collectors.toList());
                     if (!matches.isEmpty()) {
                         Product product = matches.get(0);
-                        boolean isAccessible = product.isFree() || (product.getPrice() != null && product.getPrice() == 0.0);
-                        
+                        boolean isAccessible = product.isFree()
+                                || (product.getPrice() != null && product.getPrice() == 0.0);
+
                         if (!isAccessible) {
-                            Optional<Purchase> purchaseOpt = purchaseRepo.findByUserIdAndProductId(user.getId(), product.getId());
+                            Optional<Purchase> purchaseOpt = purchaseRepo.findByUserIdAndProductId(user.getId(),
+                                    product.getId());
                             if (purchaseOpt.isPresent()) {
                                 isAccessible = true;
                             }
                         }
-                        
-                        if (!isAccessible && product.getDistrictSlug() != null && !product.getDistrictSlug().isBlank()) {
+
+                        if (!isAccessible && product.getDistrictSlug() != null
+                                && !product.getDistrictSlug().isBlank()) {
                             List<Purchase> userPurchases = purchaseRepo.findByUserId(user.getId());
                             boolean districtPurchased = userPurchases.stream()
-                                    .anyMatch(p -> product.getDistrictSlug().equals(p.getDistrictSlug()));
+                                    .anyMatch(p -> isDistrictPurchasedForProduct(product, p));
                             if (districtPurchased) {
                                 isAccessible = true;
                             }
@@ -188,7 +195,8 @@ public class PdfController {
 
                         if (!isAccessible) {
                             return ResponseEntity.status(403).body(ApiResponseDTO.builder()
-                                    .success(false).message("You do not own this document. Please claim or purchase it.").build());
+                                    .success(false)
+                                    .message("You do not own this document. Please claim or purchase it.").build());
                         }
                     } else {
                         return ResponseEntity.status(403).body(ApiResponseDTO.builder()
@@ -240,24 +248,29 @@ public class PdfController {
         String fileId = extractFileId(driveUrl);
         if (fileId == null) {
             return ResponseEntity.badRequest().body(ApiResponseDTO.builder()
-                    .success(false).message("Invalid Google Drive URL. Supported format: https://drive.google.com/file/d/{id}/view").build());
+                    .success(false)
+                    .message("Invalid Google Drive URL. Supported format: https://drive.google.com/file/d/{id}/view")
+                    .build());
         }
 
         String downloadUrl = "https://drive.google.com/uc?export=download&id=" + fileId;
 
         try {
             org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
-            
+
             // Set User-Agent to mimic browser download
             org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
             headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
             org.springframework.http.HttpEntity<Void> entity = new org.springframework.http.HttpEntity<>(headers);
 
-            ResponseEntity<byte[]> response = restTemplate.exchange(downloadUrl, org.springframework.http.HttpMethod.GET, entity, byte[].class);
+            ResponseEntity<byte[]> response = restTemplate.exchange(downloadUrl,
+                    org.springframework.http.HttpMethod.GET, entity, byte[].class);
 
             if (response.getStatusCode().value() != 200 || response.getBody() == null) {
                 return ResponseEntity.status(400).body(ApiResponseDTO.builder()
-                        .success(false).message("Failed to download file from Google Drive. Verify file sharing permissions.").build());
+                        .success(false)
+                        .message("Failed to download file from Google Drive. Verify file sharing permissions.")
+                        .build());
             }
 
             // Validate content type
@@ -265,7 +278,8 @@ public class PdfController {
             if (contentType == null || !contentType.equalsIgnoreCase("application/pdf")) {
                 log.warn("Invalid file type from Drive download: {}", contentType);
                 return ResponseEntity.badRequest().body(ApiResponseDTO.builder()
-                        .success(false).message("Downloaded file is not a valid PDF. Content-Type: " + contentType).build());
+                        .success(false).message("Downloaded file is not a valid PDF. Content-Type: " + contentType)
+                        .build());
             }
 
             byte[] pdfBytes = response.getBody();
@@ -302,11 +316,11 @@ public class PdfController {
             product.setTitle(req.title().trim());
             product.setDescription(req.description() != null ? req.description().trim() : "");
             product.setType("PDF");
-            
+
             boolean isFree = (req.isPaid() == null || !req.isPaid());
             product.setFree(isFree);
             product.setPrice(isFree ? 0.0 : 99.0);
-            
+
             product.setPreviewUrl(url); // Store preview URL or signed URL
             product.setStorageKey(key); // Store S3 Object Key
             product.setPublished(true);
@@ -329,7 +343,8 @@ public class PdfController {
             product.setDistrictSlug("general");
 
             Product savedProduct = productRepo.save(product);
-            log.info("Successfully imported PDF from Google Drive and saved Product: key={}, id={}", key, savedProduct.getId());
+            log.info("Successfully imported PDF from Google Drive and saved Product: key={}, id={}", key,
+                    savedProduct.getId());
 
             Map<String, Object> responseData = new HashMap<>();
             responseData.put("success", true);
@@ -350,7 +365,8 @@ public class PdfController {
     private String extractFileId(String url) {
         try {
             int dIndex = url.indexOf("/d/");
-            if (dIndex == -1) return null;
+            if (dIndex == -1)
+                return null;
             String remaining = url.substring(dIndex + 3);
             int slashIndex = remaining.indexOf("/");
             if (slashIndex == -1) {
@@ -363,13 +379,41 @@ public class PdfController {
         }
     }
 
+    /**
+     * Verifies that user's purchase matches BOTH districtSlug and stateSlug of
+     * product.
+     * Fails closed if product has stateSlug but purchase lacks stateSlug or
+     * stateSlug differs.
+     */
+    private boolean isDistrictPurchasedForProduct(Product product, Purchase purchase) {
+        if (product == null || purchase == null)
+            return false;
+        String pDist = product.getDistrictSlug();
+        String purDist = purchase.getDistrictSlug();
+        if (pDist == null || pDist.isBlank() || purDist == null || purDist.isBlank())
+            return false;
+        if (!pDist.equals(purDist))
+            return false;
+
+        String pState = product.getStateSlug();
+        String purState = purchase.getStateSlug();
+
+        // If product is associated with a state, purchase MUST match that state.
+        if (pState != null && !pState.isBlank()) {
+            if (purState == null || purState.isBlank())
+                return false; // Fail closed if purchase state is missing
+            return pState.equals(purState);
+        }
+        return true;
+    }
+
     public record ImportDriveRequest(
-        String title,
-        String description,
-        String googleDriveUrl,
-        String courseId,
-        String category,
-        Boolean isPaid,
-        Double price
-    ) {}
+            String title,
+            String description,
+            String googleDriveUrl,
+            String courseId,
+            String category,
+            Boolean isPaid,
+            Double price) {
+    }
 }

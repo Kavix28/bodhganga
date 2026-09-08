@@ -205,20 +205,7 @@ function StateCard({ region, isActive, productCount, onClick }) {
 
 export default function AllStatesPage() {
   const navigate = useNavigate();
-  const [activeSlugSet, setActiveSlugSet] = useState(new Set());
-
-  //change
-//   const [activeSlugSet, setActiveSlugSet] = useState(
-//   new Set([
-//     "haryana",
-//     "himachal-pradesh",
-//     "jharkhand",
-//     "karnataka",
-//   ])
-// );
   const [productCounts, setProductCounts] = useState({});
-
-  //change
   const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState("");
@@ -228,25 +215,19 @@ export default function AllStatesPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await api.get("/products", {
-          params: { importedFromDrive: true, published: true, size: 1000 },
-        });
-        const products = Array.isArray(res) ? res : (res?.data?.content || res?.data || []);
-        const slugSet = new Set();
+        const res = await api.get("/states/available");
+        const stateList = Array.isArray(res) ? res : (res?.data || []);
         const counts = {};
-        products.forEach((p) => {
-          const slug = p.stateSlug || p.state?.toLowerCase().replace(/\s+/g, "-");
-          if (!slug) return;
-          slugSet.add(slug);
-          counts[slug] = (counts[slug] || 0) + 1;
+        stateList.forEach((s) => {
+          const slug = s.stateSlug || s.id || (s.name ? s.name.toLowerCase().replace(/\s+/g, "-") : "");
+          if (slug) {
+            counts[slug] = s.notesCount || 0;
+          }
         });
-        setActiveSlugSet(slugSet);
         setProductCounts(counts);
       } catch (err) {
-        console.error("Failed to load active states:", err);
-      }
-      
-      finally {
+        console.error("Failed to load canonical states:", err);
+      } finally {
         setLoading(false);
       }
     };
@@ -261,8 +242,6 @@ export default function AllStatesPage() {
       return true;
     });
   }, [search, typeFilter, regionFilter]);
-
-  const activeCount = filtered.filter((r) => activeSlugSet.has(r.slug)).length;
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -280,9 +259,7 @@ export default function AllStatesPage() {
           </p>
           {!loading && (
             <div className="flex gap-6 mt-5 text-xs font-bold uppercase tracking-wider text-gray-500">
-              <span><span className="text-amber-400 text-base font-extrabold">{activeSlugSet.size}</span> Active States</span>
-              <span><span className="text-gray-400 text-base font-extrabold">{ALL_REGIONS.length - activeSlugSet.size}</span> Coming Soon</span>
-              <span><span className="text-white text-base font-extrabold">{ALL_REGIONS.length}</span> Total</span>
+              <span><span className="text-amber-400 text-base font-extrabold">{ALL_REGIONS.length}</span> States & UTs Available</span>
             </div>
           )}
         </div>
@@ -314,7 +291,7 @@ export default function AllStatesPage() {
           </div>
         </div>
         <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600">
-          Showing {filtered.length} regions · {activeCount} active
+          Showing {filtered.length} regions
         </p>
       </div>
 
@@ -338,36 +315,13 @@ export default function AllStatesPage() {
               className="mt-4 text-amber-400 text-sm underline">Clear filters</button>
           </div>
         ) : (
-          <>
-            {filtered.some((r) => activeSlugSet.has(r.slug)) && (
-              <div className="mb-10">
-                <h2 className="text-[10px] font-black uppercase tracking-widest text-amber-400 mb-4 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-amber-400 inline-block animate-pulse" />
-                  Active - Content Available
-                </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {filtered.filter((r) => activeSlugSet.has(r.slug)).map((r) => (
-                    <StateCard key={r.slug} region={r} isActive={true}
-                      productCount={productCounts[r.slug] || 0}
-                      onClick={() => navigate(`/state/${r.slug}/districts`)} />
-                  ))}
-                </div>
-              </div>
-            )}
-            {filtered.some((r) => !activeSlugSet.has(r.slug)) && (
-              <div>
-                <h2 className="text-[10px] font-black uppercase tracking-widest text-gray-600 mb-4 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-gray-700 inline-block" />
-                  Coming Soon - Being Prepared
-                </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {filtered.filter((r) => !activeSlugSet.has(r.slug)).map((r) => (
-                    <StateCard key={r.slug} region={r} isActive={false} productCount={0} onClick={null} />
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {filtered.map((r) => (
+              <StateCard key={r.slug} region={r} isActive={true}
+                productCount={productCounts[r.slug] || 0}
+                onClick={() => navigate(`/state/${r.slug}/districts`)} />
+            ))}
+          </div>
         )}
       </div>
     </div>

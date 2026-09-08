@@ -125,15 +125,18 @@ export default function StateDistrictProductsPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        // Use the existing district-level endpoint
         const res = await api.get(`/products/state/${stateSlug}/district/${districtSlug}`);
         const products = Array.isArray(res) ? res : (res?.data || []);
         setAllResources(products);
         if (products.length > 0) {
           setDistrictName(products[0].district || products[0].districtName || districtSlug);
           setStateName(products[0].state   || products[0].stateName   || stateSlug);
+        } else {
+          const dFormatted = districtSlug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+          const sFormatted = stateSlug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+          setDistrictName(dFormatted);
+          setStateName(sFormatted);
         }
-        // Check purchase status (silently fail when not logged in)
         try {
           const pRes = await api.get("/payment/district/purchased");
           const list = Array.isArray(pRes) ? pRes : (pRes?.data || []);
@@ -147,6 +150,32 @@ export default function StateDistrictProductsPage() {
     };
     load();
   }, [stateSlug, districtSlug]);
+
+  const handleOpenResource = async (resource) => {
+    const key = resource.s3Key || resource.storageKey;
+    if (!key) {
+      toast.error("Resource storage key is missing.");
+      return;
+    }
+    try {
+      const res = await api.get(`/pdf/${key}`);
+      const signedUrl = res.url || res.data?.url || (typeof res.data === 'string' ? res.data : null);
+      if (signedUrl) {
+        setSelected({ ...resource, s3Url: signedUrl });
+      } else {
+        toast.error("Failed to obtain secure viewing link.");
+      }
+    } catch (err) {
+      if (err.response?.status === 401) {
+        toast.error("Please login to access this resource.");
+        if (openAuthModal) openAuthModal('welcome');
+      } else if (err.response?.status === 403) {
+        toast.error("District unlock required to access this paid resource.");
+      } else {
+        toast.error("Could not open resource.");
+      }
+    }
+  };
 
   const freeRes = allResources.filter((r) => r.free || r.isFree || r.price === 0);
   const paidRes = allResources.filter((r) => !r.free && !r.isFree && r.price > 0);
@@ -234,8 +263,9 @@ export default function StateDistrictProductsPage() {
         {/* Resources grid */}
         {(activeTab === "free" || purchased) && (
           shown.length === 0 ? (
-            <div className="text-gray-600 text-center py-20">
-              No resources in this section yet.
+            <div className="text-gray-500 text-center py-20 bg-gray-900/40 rounded-xl border border-gray-800">
+              <p className="text-base font-semibold text-gray-400">No resources published for this section yet.</p>
+              <p className="text-xs text-gray-600 mt-1">Check back soon for newly published study material.</p>
             </div>
           ) : (
             mcqFlowState ? (
@@ -250,8 +280,8 @@ export default function StateDistrictProductsPage() {
                   const title = r.displayTitle || r.title || r.fileName;
                   const titleNorm = (r.title || r.displayTitle || r.fileName || "").toLowerCase();
                   const isChambaMCQ = (stateSlug === 'himachal-pradesh' && districtSlug.includes('chamba')) &&
-                                      (titleNorm.includes("sample mcqs question bank chamba district") ||
-                                       titleNorm.includes("chamba district practice mcq"));
+                                       (titleNorm.includes("sample mcqs question bank chamba district") ||
+                                        titleNorm.includes("chamba district practice mcq"));
                   return (
                     <div
                       key={r.id}
@@ -277,7 +307,7 @@ export default function StateDistrictProductsPage() {
                       {isChambaMCQ ? (
                         <div className="flex gap-2 mt-2 w-full">
                           <button
-                            onClick={() => setSelected(r)}
+                            onClick={() => handleOpenResource(r)}
                             className="flex-1 text-center bg-amber-500 hover:bg-amber-400 text-black font-semibold py-2 px-2.5 rounded-lg transition-colors text-xs md:text-sm">
                             View PDF
                           </button>
@@ -295,7 +325,7 @@ export default function StateDistrictProductsPage() {
                         </div>
                       ) : (
                         <button
-                          onClick={() => setSelected(r)}
+                          onClick={() => handleOpenResource(r)}
                           className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold py-2 px-4 rounded-lg text-sm transition-colors mt-2"
                         >
                           View Resource

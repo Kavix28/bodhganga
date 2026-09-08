@@ -26,6 +26,12 @@ const AdminSidebar = () => {
             description: 'Overview & Analytics'
         },
         {
+            path: '/admin/state-resources',
+            icon: Map,
+            label: 'State Resources',
+            description: 'State & District PDFs'
+        },
+        {
             path: '/admin/states',
             icon: Map,
             label: 'States & UTs',

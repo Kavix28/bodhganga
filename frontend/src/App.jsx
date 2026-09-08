@@ -79,6 +79,7 @@ const TestResult         = lazy(() => import('./pages/TestResult'));
 const AdminLogin          = lazy(() => import('./pages/admin/AdminLogin'));
 const AdminLayout         = lazy(() => import('./layouts/AdminLayout'));
 const AdminDashboardPage  = lazy(() => import('./pages/admin/Dashboard'));
+const AdminStateResources = lazy(() => import('./pages/admin/AdminStateResources'));
 const AdminStates         = lazy(() => import('./pages/admin/AdminStates'));
 const AdminMarketplace    = lazy(() => import('./pages/admin/AdminMarketplace'));
 const AdminPDFManager     = lazy(() => import('./pages/admin/AdminPDFManager'));
@@ -202,6 +203,7 @@ function App() {
                                             <Route path="/admin" element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}>
                                                 <Route index            element={<Navigate to="/admin/dashboard" replace />} />
                                                 <Route path="dashboard" element={<AdminDashboardPage />} />
+                                                <Route path="state-resources" element={<AdminStateResources />} />
                                                 <Route path="states"    element={<AdminStates />} />
                                                 <Route path="content"   element={<AdminPDFManager />} />
                                                 <Route path="content-marketplace" element={<AdminMarketplace />} />

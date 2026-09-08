@@ -50,3 +50,47 @@ export const getAdminOrders = (page = 0, size = 25, status = 'ALL', search = '')
  */
 export const refundOrder = (orderId) =>
     api.post(`/admin/orders/${orderId}/refund`).then(r => r?.data || {});
+
+/**
+ * ── ADMIN STATE RESOURCES API METHODS ──────────────────────────────────────
+ */
+
+/**
+ * Get all available states from canonical master data enriched with product counts.
+ */
+export const getAvailableStates = () =>
+    api.get('/states/available');
+
+/**
+ * Get canonical districts for a given state enriched with product counts.
+ */
+export const getDistricts = (stateSlug) =>
+    api.get(`/states/${stateSlug}/districts`);
+
+/**
+ * Get all active (non-archived) products for a state & district for admin management.
+ */
+export const getDistrictResources = (stateSlug, districtSlug) =>
+    api.get(`/admin/resources/state/${stateSlug}/district/${districtSlug}`);
+
+/**
+ * Upload a state resource PDF (admin multipart upload).
+ */
+export const uploadAdminResource = (formData) =>
+    api.post('/admin/resources/upload', formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+    });
+
+/**
+ * Update publication status of a resource (publish = true / false).
+ */
+export const updateAdminResourceStatus = (id, publish) =>
+    api.patch(`/admin/resources/${id}/status`, { publish });
+
+/**
+ * Soft-delete / archive a resource.
+ */
+export const archiveAdminResource = (id) =>
+    api.delete(`/admin/resources/${id}`);

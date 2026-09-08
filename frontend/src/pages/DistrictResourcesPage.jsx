@@ -161,6 +161,11 @@ export default function DistrictResourcesPage() {
         if (products.length > 0) {
           setDistrictName(products[0].district || products[0].districtName || districtSlug);
           setStateName(products[0].state || products[0].stateName || stateSlug);
+        } else {
+          const dFormatted = districtSlug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+          const sFormatted = stateSlug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+          setDistrictName(dFormatted);
+          setStateName(sFormatted);
         }
         try {
           const pRes = await api.get("/payment/district/purchased");
@@ -175,6 +180,32 @@ export default function DistrictResourcesPage() {
     };
     fetchData();
   }, [stateSlug, districtSlug]);
+
+  const handleOpenResource = async (resource) => {
+    const key = resource.s3Key || resource.storageKey;
+    if (!key) {
+      toast.error("Resource storage key is missing.");
+      return;
+    }
+    try {
+      const res = await api.get(`/pdf/${key}`);
+      const signedUrl = res.url || res.data?.url || (typeof res.data === 'string' ? res.data : null);
+      if (signedUrl) {
+        setSelectedResource({ ...resource, s3Url: signedUrl });
+      } else {
+        toast.error("Failed to obtain secure viewing link.");
+      }
+    } catch (err) {
+      if (err.response?.status === 401) {
+        toast.error("Please login to access this resource.");
+        if (openAuthModal) openAuthModal('welcome');
+      } else if (err.response?.status === 403) {
+        toast.error("District unlock required to access this paid resource.");
+      } else {
+        toast.error("Could not open resource.");
+      }
+    }
+  };
 
   // Close modal on Escape key
   useEffect(() => {
@@ -232,11 +263,11 @@ export default function DistrictResourcesPage() {
           <div className="text-center py-16 border border-gray-800 rounded-xl bg-gray-900">
             <div className="text-5xl mb-4">🔒</div>
             <h3 className="text-xl font-bold text-white mb-2">Unlock {districtName}</h3>
-            <p className="text-gray-400 mb-6">Get access to all {paidResources.length} paid resources for just ₹1</p>
+            <p className="text-gray-400 mb-6">Get access to all {paidResources.length} paid resources for this district</p>
             <button
               onClick={() => navigate(`/states-browse/${stateSlug}`)}
               className="bg-amber-500 hover:bg-amber-400 text-black font-bold py-3 px-8 rounded-lg transition-colors">
-              Unlock for ₹1
+              Unlock District
             </button>
           </div>
         )}
@@ -244,7 +275,10 @@ export default function DistrictResourcesPage() {
         {/* Resources grid */}
         {(activeTab === "free" || purchased) && (
           displayed.length === 0 ? (
-            <div className="text-gray-500 text-center py-20">No resources in this section.</div>
+            <div className="text-gray-500 text-center py-20 bg-gray-900/40 rounded-xl border border-gray-800">
+              <p className="text-base font-semibold text-gray-400">No resources published for this section yet.</p>
+              <p className="text-xs text-gray-600 mt-1">Check back soon for newly published study material.</p>
+            </div>
           ) : (
             mcqFlowState ? (
               <ChambaMCQFeature
@@ -257,8 +291,8 @@ export default function DistrictResourcesPage() {
                   const meta = FILE_ICONS[ext] || { icon: "📎", color: "text-gray-400", label: ext.toUpperCase() || "FILE" };
                   const titleNorm = (r.title || r.displayTitle || r.fileName || "").toLowerCase();
                   const isChambaMCQ = (stateSlug === 'himachal-pradesh' && districtSlug.includes('chamba')) &&
-                                      (titleNorm.includes("sample mcqs question bank chamba district") ||
-                                       titleNorm.includes("chamba district practice mcq"));
+                                       (titleNorm.includes("sample mcqs question bank chamba district") ||
+                                        titleNorm.includes("chamba district practice mcq"));
                   return (
                     <div key={r.id}
                       className="bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-amber-500 transition-all duration-200">
@@ -275,7 +309,7 @@ export default function DistrictResourcesPage() {
                       {isChambaMCQ ? (
                         <div className="flex gap-2 mt-3 w-full">
                           <button
-                            onClick={() => setSelectedResource(r)}
+                            onClick={() => handleOpenResource(r)}
                             className="flex-1 text-center bg-amber-500 hover:bg-amber-400 text-black font-semibold py-2 px-2.5 rounded-lg transition-colors text-xs md:text-sm">
                             View PDF
                           </button>
@@ -293,7 +327,7 @@ export default function DistrictResourcesPage() {
                         </div>
                       ) : (
                         <button
-                          onClick={() => setSelectedResource(r)}
+                          onClick={() => handleOpenResource(r)}
                           className="block w-full text-center bg-amber-500 hover:bg-amber-400 text-black font-semibold py-2 px-4 rounded-lg transition-colors text-sm mt-3">
                           View
                         </button>

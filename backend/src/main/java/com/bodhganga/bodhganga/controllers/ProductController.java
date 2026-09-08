@@ -36,7 +36,13 @@ public class ProductController {
      */
     @GetMapping("/state/{slug}")
     public ResponseEntity<ApiResponseDTO> getProductsByState(@PathVariable String slug) {
-        List<Product> products = productRepo.findByStateSlugAndIsPublishedTrue(slug);
+        String cleanSlug = Product.generateSlug(slug);
+        List<Product> products = productRepo.findByStateSlugAndDistrictSlugAndArchivedFalse(cleanSlug, "general");
+        if (products.isEmpty()) {
+            products = productRepo.findByStateSlug(cleanSlug).stream()
+                    .filter(p -> Boolean.TRUE.equals(p.isPublished()) && !Boolean.TRUE.equals(p.isArchived()))
+                    .collect(java.util.stream.Collectors.toList());
+        }
         return ResponseEntity.ok(ApiResponseDTO.builder()
                 .success(true)
                 .data(products)
@@ -47,8 +53,13 @@ public class ProductController {
      * Public API to get products by state slug and category
      */
     @GetMapping("/state/{stateSlug}/category/{category}")
-    public ResponseEntity<ApiResponseDTO> getProductsByStateAndCategory(@PathVariable String stateSlug, @PathVariable String category) {
-        List<Product> products = productRepo.findByStateSlugAndCategoryAndIsPublishedTrue(stateSlug, category);
+    public ResponseEntity<ApiResponseDTO> getProductsByStateAndCategory(@PathVariable String stateSlug,
+            @PathVariable String category) {
+        String cleanStateSlug = Product.generateSlug(stateSlug);
+        List<Product> products = productRepo.findByStateSlugAndCategoryAndIsPublishedTrue(cleanStateSlug, category)
+                .stream()
+                .filter(p -> !Boolean.TRUE.equals(p.isArchived()))
+                .collect(java.util.stream.Collectors.toList());
         return ResponseEntity.ok(ApiResponseDTO.builder()
                 .success(true)
                 .data(products)
@@ -59,8 +70,12 @@ public class ProductController {
      * Public API to get products by state slug and district slug
      */
     @GetMapping("/state/{stateSlug}/district/{districtSlug}")
-    public ResponseEntity<ApiResponseDTO> getProductsByStateAndDistrict(@PathVariable String stateSlug, @PathVariable String districtSlug) {
-        List<Product> products = productRepo.findByStateSlugAndDistrictSlugAndIsPublishedTrue(stateSlug, districtSlug);
+    public ResponseEntity<ApiResponseDTO> getProductsByStateAndDistrict(@PathVariable String stateSlug,
+            @PathVariable String districtSlug) {
+        String cleanStateSlug = Product.generateSlug(stateSlug);
+        String cleanDistrictSlug = Product.generateSlug(districtSlug);
+        List<Product> products = productRepo
+                .findByStateSlugAndDistrictSlugAndIsPublishedTrueAndArchivedFalse(cleanStateSlug, cleanDistrictSlug);
         return ResponseEntity.ok(ApiResponseDTO.builder()
                 .success(true)
                 .data(products)
@@ -72,13 +87,15 @@ public class ProductController {
      */
     @GetMapping("/district/{districtSlug}")
     public ResponseEntity<ApiResponseDTO> getProductsByDistrict(@PathVariable String districtSlug) {
-        List<Product> products = productRepo.findByDistrictSlugAndIsPublishedTrue(districtSlug);
+        String cleanDistrictSlug = Product.generateSlug(districtSlug);
+        List<Product> products = productRepo.findByDistrictSlugAndIsPublishedTrue(cleanDistrictSlug).stream()
+                .filter(p -> !Boolean.TRUE.equals(p.isArchived()))
+                .collect(java.util.stream.Collectors.toList());
         return ResponseEntity.ok(ApiResponseDTO.builder()
                 .success(true)
                 .data(products)
                 .build());
     }
-
 
     /**
      * Get single product by id
@@ -87,7 +104,8 @@ public class ProductController {
     public ResponseEntity<ApiResponseDTO> getProductById(@PathVariable String id) {
         return productRepo.findById(id)
                 .map(p -> ResponseEntity.ok(ApiResponseDTO.builder().success(true).data(p).build()))
-                .orElse(ResponseEntity.status(404).body(ApiResponseDTO.builder().success(false).message("Not Found").build()));
+                .orElse(ResponseEntity.status(404)
+                        .body(ApiResponseDTO.builder().success(false).message("Not Found").build()));
     }
 
     /**
@@ -115,7 +133,8 @@ public class ProductController {
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponseDTO> updateProduct(@PathVariable String id, @RequestBody Product product) {
         if (!productRepo.existsById(id)) {
-            return ResponseEntity.status(404).body(ApiResponseDTO.builder().success(false).message("Not Found").build());
+            return ResponseEntity.status(404)
+                    .body(ApiResponseDTO.builder().success(false).message("Not Found").build());
         }
         product.setPrice(product.isFree() ? 0.0 : 99.0);
         product.setId(id);
@@ -130,7 +149,7 @@ public class ProductController {
         Product saved = productRepo.save(product);
         return ResponseEntity.ok(ApiResponseDTO.builder().success(true).data(saved).build());
     }
-    
+
     /**
      * Admin API to delete product
      */
