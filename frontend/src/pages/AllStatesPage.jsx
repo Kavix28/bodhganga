@@ -153,15 +153,15 @@ function StateCard({ region, isActive, productCount, onClick }) {
     <div
       onClick={isActive ? onClick : undefined}
       className={[
-        "relative rounded-2xl border overflow-hidden transition-all duration-200",
+        "relative rounded-2xl border overflow-hidden transition-all duration-200 flex flex-col justify-between",
         isActive
           ? "border-amber-500/30 cursor-pointer hover:border-amber-400/60 hover:shadow-lg hover:shadow-amber-900/20 hover:-translate-y-0.5"
-          : "border-gray-800 opacity-50 cursor-not-allowed",
+          : "border-gray-800/80 opacity-60 cursor-not-allowed bg-gray-900/40",
       ].join(" ")}
     >
       <div className="w-full relative">
         {img ? (
-          <img src={img} alt={region.name} className="w-full h-auto block" />
+          <img src={img} alt={region.name} className={`w-full h-auto block ${!isActive ? "filter grayscale brightness-75" : ""}`} />
         ) : (
           <div className="w-full" style={{aspectRatio:"16/9", background:`linear-gradient(135deg, ${g1}, ${g2})`}} />
         )}
@@ -169,23 +169,23 @@ function StateCard({ region, isActive, productCount, onClick }) {
         
         <div className="absolute top-2 right-2">
           {isActive ? (
-            <span className="text-[9px] font-black uppercase tracking-widest bg-amber-500 text-black px-1.5 py-0.5 rounded-md">
+            <span className="text-[9px] font-black uppercase tracking-widest bg-amber-500 text-black px-1.5 py-0.5 rounded-md shadow">
               ACTIVE
             </span>
           ) : (
-            <span className="text-[9px] font-black uppercase tracking-widest bg-gray-800/80 text-gray-400 px-1.5 py-0.5 rounded-md">
+            <span className="text-[9px] font-black uppercase tracking-widest bg-gray-800/90 text-gray-400 border border-gray-700/60 px-1.5 py-0.5 rounded-md shadow">
               COMING SOON
             </span>
           )}
         </div>
       </div>
       <div
-        className="px-3 py-3 flex items-center justify-between gap-2"
+        className="px-3.5 py-3 flex items-center justify-between gap-2"
         style={{ background: `linear-gradient(135deg, ${g1}cc, ${g2}cc)` }}
       >
         <div>
           <h2 className="text-sm font-bold text-white leading-tight">{region.name}</h2>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <p className="text-xs text-gray-300/90 mt-0.5">
             {isActive
               ? productCount > 0
                 ? `${productCount} resource${productCount !== 1 ? "s" : ""}`
@@ -194,9 +194,9 @@ function StateCard({ region, isActive, productCount, onClick }) {
           </p>
         </div>
         {isActive ? (
-          <span className="text-amber-400 text-lg flex-shrink-0">→</span>
+          <span className="text-amber-400 text-lg flex-shrink-0 font-bold">→</span>
         ) : (
-          <span className="text-gray-600 text-xs flex-shrink-0">Soon</span>
+          <span className="text-gray-500 text-xs flex-shrink-0 font-medium">Soon</span>
         )}
       </div>
     </div>
@@ -247,6 +247,21 @@ export default function AllStatesPage() {
     });
   }, [search, typeFilter, regionFilter]);
 
+  const { availableStates, comingSoonStates } = useMemo(() => {
+    const available = [];
+    const comingSoon = [];
+    filtered.forEach((r) => {
+      const count = productCounts[r.slug] || 0;
+      const isAvail = availability[r.slug] ?? (count > 0);
+      if (isAvail) {
+        available.push(r);
+      } else {
+        comingSoon.push(r);
+      }
+    });
+    return { availableStates: available, comingSoonStates: comingSoon };
+  }, [filtered, availability, productCounts]);
+
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       <div className="border-b border-gray-800 bg-gray-900/60 backdrop-blur-sm">
@@ -263,7 +278,9 @@ export default function AllStatesPage() {
           </p>
           {!loading && (
             <div className="flex gap-6 mt-5 text-xs font-bold uppercase tracking-wider text-gray-500">
-              <span><span className="text-amber-400 text-base font-extrabold">{ALL_REGIONS.length}</span> States & UTs Available</span>
+              <span><span className="text-amber-400 text-base font-extrabold">{availableStates.length}</span> Available Now</span>
+              <span>·</span>
+              <span><span className="text-gray-400 text-base font-extrabold">{comingSoonStates.length}</span> Coming Soon</span>
             </div>
           )}
         </div>
@@ -295,11 +312,11 @@ export default function AllStatesPage() {
           </div>
         </div>
         <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600">
-          Showing {filtered.length} regions
+          Showing {filtered.length} regions ({availableStates.length} available, {comingSoonStates.length} coming soon)
         </p>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 pb-20">
+      <div className="max-w-6xl mx-auto px-4 pb-20 space-y-12">
         {loading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
             {Array.from({ length: 12 }).map((_, i) => (
@@ -319,21 +336,75 @@ export default function AllStatesPage() {
               className="mt-4 text-amber-400 text-sm underline">Clear filters</button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filtered.map((r) => {
-              const count = productCounts[r.slug] || 0;
-              const isActive = availability[r.slug] ?? (count > 0);
-              return (
-                <StateCard
-                  key={r.slug}
-                  region={r}
-                  isActive={isActive}
-                  productCount={count}
-                  onClick={() => navigate(`/state/${r.slug}/districts`)}
-                />
-              );
-            })}
-          </div>
+          <>
+            {/* AVAILABLE NOW SECTION */}
+            {availableStates.length > 0 && (
+              <section className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-amber-500/20">
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-extrabold text-amber-400 flex items-center gap-2 tracking-tight">
+                      <span>👑</span> Available Now
+                    </h2>
+                    <p className="text-xs sm:text-sm text-gray-400 mt-1">
+                      Study materials are currently available for these states. Start exploring now!
+                    </p>
+                  </div>
+                  <span className="text-xs font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full self-start sm:self-center">
+                    Showing {availableStates.length} state{availableStates.length !== 1 ? 's' : ''} with available resources
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {availableStates.map((r) => {
+                    const count = productCounts[r.slug] || 0;
+                    return (
+                      <StateCard
+                        key={r.slug}
+                        region={r}
+                        isActive={true}
+                        productCount={count}
+                        onClick={() => navigate(`/state/${r.slug}/districts`)}
+                      />
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            {/* COMING SOON SECTION */}
+            {comingSoonStates.length > 0 && (
+              <section className="space-y-4 pt-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-gray-800">
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-extrabold text-gray-300 flex items-center gap-2 tracking-tight">
+                      <span>⌛</span> Coming Soon
+                    </h2>
+                    <p className="text-xs sm:text-sm text-gray-400 mt-1">
+                      Study materials for these states are under preparation. We'll notify you once they're available!
+                    </p>
+                  </div>
+                  <span className="text-xs font-semibold text-gray-400 bg-gray-800/80 border border-gray-700 px-3 py-1 rounded-full self-start sm:self-center">
+                    Showing {comingSoonStates.length} state{comingSoonStates.length !== 1 ? 's' : ''}/UTs coming soon
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {comingSoonStates.map((r) => {
+                    const count = productCounts[r.slug] || 0;
+                    return (
+                      <StateCard
+                        key={r.slug}
+                        region={r}
+                        isActive={false}
+                        productCount={count}
+                        onClick={() => {}}
+                      />
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+          </>
         )}
       </div>
     </div>
