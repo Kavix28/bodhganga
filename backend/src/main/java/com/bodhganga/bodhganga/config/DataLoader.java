@@ -20,6 +20,7 @@ import org.springframework.stereotype.Component;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -64,12 +65,8 @@ public class DataLoader implements CommandLineRunner {
                 deletedCount2);
 
         // Seed states
-        if (stateRepo.count() == 0) {
-            log.info("Loading sample states and UTs data...");
-            seedStates();
-        } else {
-            log.info("States already exist in database. Skipping state seed.");
-        }
+        log.info("Synchronizing canonical states and UTs master data...");
+        seedStates();
 
         // Seed courses
         if (courseRepo.count() == 0) {
@@ -424,8 +421,51 @@ public class DataLoader implements CommandLineRunner {
         return p;
     }
 
-    private void seedStates() {
-        List<State> states = Arrays.asList(
+    public void seedStates() {
+        List<State> canonicalStates = buildCanonicalMasterStates();
+        int createdCount = 0;
+        int updatedCount = 0;
+
+        for (State masterState : canonicalStates) {
+            Optional<State> existingOpt = stateRepo.findById(masterState.getId());
+            if (existingOpt.isEmpty()) {
+                stateRepo.save(masterState);
+                createdCount++;
+            } else {
+                State existingState = existingOpt.get();
+                List<String> currentDistricts = existingState.getDistricts();
+                if (currentDistricts == null) {
+                    currentDistricts = new java.util.ArrayList<>();
+                } else {
+                    currentDistricts = new java.util.ArrayList<>(currentDistricts);
+                }
+
+                boolean modified = false;
+                if (masterState.getDistricts() != null) {
+                    for (String canonicalDistrict : masterState.getDistricts()) {
+                        String canonicalSlug = Product.generateSlug(canonicalDistrict);
+                        boolean exists = currentDistricts.stream()
+                                .anyMatch(d -> Product.generateSlug(d).equalsIgnoreCase(canonicalSlug));
+                        if (!exists) {
+                            currentDistricts.add(canonicalDistrict);
+                            modified = true;
+                        }
+                    }
+                }
+
+                if (modified) {
+                    existingState.setDistricts(currentDistricts);
+                    existingState.setUpdatedAt(new Date());
+                    stateRepo.save(existingState);
+                    updatedCount++;
+                }
+            }
+        }
+        log.info("Canonical state synchronization complete. Created: {}, Updated: {}", createdCount, updatedCount);
+    }
+
+    private List<State> buildCanonicalMasterStates() {
+        return Arrays.asList(
                 createState("andhra-pradesh", "AP", "Andhra Pradesh", "Amaravati",
                         "Comprehensive preparation material for Andhra Pradesh State Government Exams including APPSC, Police, Forest, and Revenue services.",
                         "STATE",
@@ -521,7 +561,8 @@ public class DataLoader implements CommandLineRunner {
                 createState("maharashtra", "MH", "Maharashtra", "Mumbai",
                         "Study notes and booster sets for MPSC Prelims & Mains curriculum.", "STATE",
                         Arrays.asList("Ahmednagar", "Akola", "Amravati", "Beed", "Bhandara", "Buldhana", "Chandrapur",
-                                "Dhule", "Gadchiroli", "Gondia", "Hingoli", "Jalgaon", "Jalna", "Kolhapur", "Latur",
+                                "Chhatrapati Sambhajinagar", "Dhule", "Gadchiroli", "Gondia", "Hingoli", "Jalgaon",
+                                "Jalna", "Kolhapur", "Latur",
                                 "Mumbai City", "Mumbai Suburban", "Nagpur", "Nanded", "Nandurbar", "Nashik",
                                 "Osmanabad", "Palghar", "Parbhani", "Pune", "Raigad", "Ratnagiri", "Sangli", "Satara",
                                 "Sindhudurg", "Solapur", "Thane", "Wardha", "Washim", "Yavatmal")),
@@ -648,8 +689,6 @@ public class DataLoader implements CommandLineRunner {
                 createState("puducherry", "PY", "Puducherry", "Puducherry",
                         "Comprehensive resource for Puducherry Public Service Commission and state-level exams.", "UT",
                         Arrays.asList("Karaikal", "Mahe", "Puducherry", "Yanam")));
-        stateRepo.saveAll(states);
-        log.info("Successfully seeded {} State/UT records into database", states.size());
     }
 
     private State createState(String id, String code, String name, String capital, String desc, String type,
