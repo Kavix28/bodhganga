@@ -6,6 +6,7 @@ import com.bodhganga.bodhganga.repo.UserRepo;
 import com.bodhganga.bodhganga.util.JwtUtil;
 import com.bodhganga.bodhganga.services.EmailService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -25,7 +26,14 @@ public class AuthService {
         private final JwtUtil jwtUtil;
         private final EmailService emailService;
 
-        public AuthService(UserRepo userRepo, PasswordEncoder passwordEncoder, JwtUtil jwtUtil, EmailService emailService) {
+        /**
+         * Admin mobile — injected from ADMIN_PHONE env var via application.properties.
+         */
+        @Value("${admin.phone:}")
+        private String configuredAdminPhone;
+
+        public AuthService(UserRepo userRepo, PasswordEncoder passwordEncoder, JwtUtil jwtUtil,
+                        EmailService emailService) {
                 this.userRepo = userRepo;
                 this.passwordEncoder = passwordEncoder;
                 this.jwtUtil = jwtUtil;
@@ -36,7 +44,8 @@ public class AuthService {
          * Register user directly (without OTP verification, e.g. /api/auth/register)
          */
         public ApiResponseDTO registerDirect(RegisterRequestDTO dto) {
-                // Normalize phone number (remove non-digits, remove leading 91 if it's 12 digits total)
+                // Normalize phone number (remove non-digits, remove leading 91 if it's 12
+                // digits total)
                 String phoneNo = dto.getPhoneNo();
                 String normalizedPhone = phoneNo != null ? phoneNo.replaceAll("[^0-9]", "") : "";
                 if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
@@ -120,7 +129,8 @@ public class AuthService {
         }
 
         /**
-         * Complete Signup - saves user to DB and generates session (only called after OTP success)
+         * Complete Signup - saves user to DB and generates session (only called after
+         * OTP success)
          */
         public ApiResponseDTO completeSignup(SignupRequestDTO dto, boolean emailVerified, boolean phoneVerified) {
                 String normalizedPhone = dto.getPhoneNo() != null ? dto.getPhoneNo().replaceAll("[^0-9]", "") : "";
@@ -221,9 +231,9 @@ public class AuthService {
                                         .build();
                 }
                 return ApiResponseDTO.builder()
-                                        .success(true)
-                                        .message("Phone number is available")
-                                        .build();
+                                .success(true)
+                                .message("Phone number is available")
+                                .build();
         }
 
         /**
@@ -241,7 +251,7 @@ public class AuthService {
 
                         // Override phone number with verified phone
                         dto.setPhoneNo(normalizedPhone);
-                        
+
                         // If email is empty, generate default one
                         if (dto.getEmail() == null || dto.getEmail().isBlank()) {
                                 dto.setEmail(normalizedPhone + "@bodhganga.in");
@@ -325,35 +335,172 @@ public class AuthService {
         }
 
         /**
-         * Admin Login - Authenticate and validate ADMIN role
+         * Admin Login - Authenticate and validate ADMIN role via password (DISABLED:
+         * Admin uses OTP login)
          */
         public ApiResponseDTO adminLogin(LoginRequestDTO dto) {
-                // First perform standard login
-                ApiResponseDTO loginResult = login(dto);
+                return ApiResponseDTO.builder()
+                                .success(false)
+                                .message("Password authentication is disabled for administrators. Please use OTP login.")
+                                .build();
+        }
 
-                // If login failed, return error as-is
-                if (!loginResult.isSuccess()) {
-                        return loginResult;
+        /**
+         * Admin OTP Request - Validates admin phone and active status before OTP
+         * dispatch
+         */
+        public ApiResponseDTO adminOtpRequest(String phoneNo) {
+                if (phoneNo == null || phoneNo.isBlank()) {
+                        return ApiResponseDTO.builder()
+                                        .success(false)
+                                        .message("Invalid or unauthorized mobile number")
+                                        .build();
                 }
 
-                String emailOrPhone = dto.getEmailOrPhone();
-                String normalizedPhone = emailOrPhone.replaceAll("[^0-9]", "");
+                String normalizedPhone = phoneNo.replaceAll("[^0-9]", "");
                 if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
                         normalizedPhone = normalizedPhone.substring(2);
                 }
 
-                User user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);
-
-                // Validate ADMIN role
-                if (user == null || !"ADMIN".equals(user.getRole())) {
+                String normalizedAdminPhone = configuredAdminPhone != null
+                                ? configuredAdminPhone.replaceAll("[^0-9]", "")
+                                : "";
+                if (normalizedAdminPhone.startsWith("91") && normalizedAdminPhone.length() == 12) {
+                        normalizedAdminPhone = normalizedAdminPhone.substring(2);
+                }
+                if (normalizedAdminPhone.isBlank()) {
+                        log.warn("Admin OTP request rejected: ADMIN_PHONE is not configured");
                         return ApiResponseDTO.builder()
                                         .success(false)
-                                        .message("ACCESS_DENIED")
+                                        .message("Invalid or unauthorized mobile number")
                                         .build();
                 }
 
-                // Admin role confirmed — return the full login result
-                return loginResult;
+                if (!normalizedPhone.equals(normalizedAdminPhone)) {
+                        log.warn("Admin OTP request rejected: phone {} does not match configured admin phone",
+                                        normalizedPhone);
+                        return ApiResponseDTO.builder()
+                                        .success(false)
+                                        .message("Invalid or unauthorized mobile number")
+                                        .build();
+                }
+
+                User user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);
+                if (user == null || !"ADMIN".equals(user.getRole()) || !Boolean.TRUE.equals(user.isActive())
+                                || !user.isVerified()) {
+                        log.warn("Admin OTP request rejected: user account null, not ADMIN, inactive, or unverified");
+                        return ApiResponseDTO.builder()
+                                        .success(false)
+                                        .message("Invalid or unauthorized mobile number")
+                                        .build();
+                }
+
+                log.info("Admin OTP request authorized for phone {}", normalizedPhone);
+                return ApiResponseDTO.builder()
+                                .success(true)
+                                .message("Admin mobile verified. Proceed with OTP verification.")
+                                .build();
+        }
+
+        /**
+         * Admin OTP Verification - Verifies MSG91 token, checks ADMIN role & active
+         * status, issues JWT
+         */
+        public ApiResponseDTO adminOtpVerify(String phoneNo, String accessToken) {
+                if (phoneNo == null || phoneNo.isBlank() || accessToken == null || accessToken.isBlank()) {
+                        return ApiResponseDTO.builder()
+                                        .success(false)
+                                        .message("Phone number and OTP access token are required")
+                                        .build();
+                }
+
+                String normalizedPhone = phoneNo.replaceAll("[^0-9]", "");
+                if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
+                        normalizedPhone = normalizedPhone.substring(2);
+                }
+
+                String normalizedAdminPhone = configuredAdminPhone != null
+                                ? configuredAdminPhone.replaceAll("[^0-9]", "")
+                                : "";
+                if (normalizedAdminPhone.startsWith("91") && normalizedAdminPhone.length() == 12) {
+                        normalizedAdminPhone = normalizedAdminPhone.substring(2);
+                }
+                if (normalizedAdminPhone.isBlank()) {
+                        log.warn("Admin OTP verification rejected: ADMIN_PHONE is not configured");
+                        return ApiResponseDTO.builder()
+                                        .success(false)
+                                        .message("Invalid or unauthorized mobile number")
+                                        .build();
+                }
+
+                if (!normalizedPhone.equals(normalizedAdminPhone)) {
+                        log.warn("Admin OTP verification rejected: phone {} does not match configured admin phone",
+                                        normalizedPhone);
+                        return ApiResponseDTO.builder()
+                                        .success(false)
+                                        .message("Access denied: Invalid admin phone number")
+                                        .build();
+                }
+
+                try {
+                        String verifiedPhone = getMobileFromMsg91(accessToken);
+                        if (verifiedPhone == null || verifiedPhone.isBlank()) {
+                                log.warn("Admin OTP verification rejected: MSG91 token verification returned null");
+                                return ApiResponseDTO.builder()
+                                                .success(false)
+                                                .message("MSG91 token verification failed")
+                                                .build();
+                        }
+
+                        String normalizedVerifiedPhone = verifiedPhone.replaceAll("[^0-9]", "");
+                        if (normalizedVerifiedPhone.startsWith("91") && normalizedVerifiedPhone.length() == 12) {
+                                normalizedVerifiedPhone = normalizedVerifiedPhone.substring(2);
+                        }
+
+                        if (!normalizedPhone.equals(normalizedVerifiedPhone)) {
+                                log.warn("Admin OTP verification rejected: MSG91 verified phone does not match requested phone");
+                                return ApiResponseDTO.builder()
+                                                .success(false)
+                                                .message("Verified phone number does not match requested admin phone")
+                                                .build();
+                        }
+                } catch (Exception e) {
+                        log.error("Error during MSG91 token verification in adminOtpVerify: {}", e.getMessage());
+                        return ApiResponseDTO.builder()
+                                        .success(false)
+                                        .message("MSG91 verification failed: " + e.getMessage())
+                                        .build();
+                }
+
+                User user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);
+                if (user == null || !"ADMIN".equals(user.getRole()) || !Boolean.TRUE.equals(user.isActive())
+                                || !user.isVerified()) {
+                        log.warn("Admin OTP verification rejected: user not found, not ADMIN, inactive, or unverified");
+                        return ApiResponseDTO.builder()
+                                        .success(false)
+                                        .message("Access denied: Admin user inactive, unverified, or invalid role")
+                                        .build();
+                }
+
+                user.setLastLogin(new Date());
+                userRepo.save(user);
+
+                String jwtSubject = user.getEmail() != null ? user.getEmail() : user.getPhoneNo();
+                String token = jwtUtil.generateToken(jwtSubject, user.getId(), user.getRole());
+
+                UserResponseDTO userResponse = mapToUserResponse(user);
+
+                Map<String, Object> responseData = new HashMap<>();
+                responseData.put("token", token);
+                responseData.put("user", userResponse);
+
+                log.info("Admin OTP verification successful for admin user: {}", user.getEmail());
+
+                return ApiResponseDTO.builder()
+                                .success(true)
+                                .message("Admin authentication successful")
+                                .data(responseData)
+                                .build();
         }
 
         String getMobileFromMsg91(String accessToken) throws Exception {
@@ -363,23 +510,25 @@ public class AuthService {
                 }
 
                 String url = "https://control.msg91.com/api/v5/widget/verifyAccessToken";
-                
+
                 org.json.JSONObject payload = new org.json.JSONObject();
                 payload.put("authkey", authKey);
                 payload.put("access-token", accessToken);
 
                 java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
                 java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
-                                 .uri(java.net.URI.create(url))
-                                 .header("Content-Type", "application/json")
-                                 .header("authkey", authKey)
-                                 .POST(java.net.http.HttpRequest.BodyPublishers.ofString(payload.toString()))
-                                 .build();
+                                .uri(java.net.URI.create(url))
+                                .header("Content-Type", "application/json")
+                                .header("authkey", authKey)
+                                .POST(java.net.http.HttpRequest.BodyPublishers.ofString(payload.toString()))
+                                .build();
 
-                java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
-                
+                java.net.http.HttpResponse<String> response = client.send(request,
+                                java.net.http.HttpResponse.BodyHandlers.ofString());
+
                 if (response.statusCode() != 200) {
-                        log.error("MSG91 Token Verification failed. Status: {}, Body: {}", response.statusCode(), response.body());
+                        log.error("MSG91 Token Verification failed. Status: {}, Body: {}", response.statusCode(),
+                                        response.body());
                         return null;
                 }
 
@@ -399,7 +548,8 @@ public class AuthService {
                         return null;
                 }
 
-                // Normalize phone (remove non-digits, remove leading 91 if it's 12 digits total)
+                // Normalize phone (remove non-digits, remove leading 91 if it's 12 digits
+                // total)
                 String normalizedPhone = mobile.replaceAll("[^0-9]", "");
                 if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
                         normalizedPhone = normalizedPhone.substring(2);
@@ -408,14 +558,16 @@ public class AuthService {
         }
 
         /**
-         * Verify MSG91 Access Token and log in / register user (backward compatible overload)
+         * Verify MSG91 Access Token and log in / register user (backward compatible
+         * overload)
          */
         public ApiResponseDTO verifyMsg91Token(String accessToken) {
                 return verifyMsg91Token(accessToken, null, null);
         }
 
         /**
-         * Verify MSG91 Access Token and log in / register user with optional phoneNumber and signupData
+         * Verify MSG91 Access Token and log in / register user with optional
+         * phoneNumber and signupData
          */
         public ApiResponseDTO verifyMsg91Token(String accessToken, String phoneNumber, SignupRequestDTO signupData) {
                 try {
@@ -450,7 +602,7 @@ public class AuthService {
                                                 .success(false)
                                                 .message("Verified phone number does not match the registration phone number")
                                                 .build();
-                        } 
+                        }
 
                         // Check if it's signup flow or login flow
                         if (signupData != null) {
@@ -459,7 +611,7 @@ public class AuthService {
                                 if (signupData.getEmail() == null || signupData.getEmail().isBlank()) {
                                         signupData.setEmail(normalizedPhone + "@bodhganga.in");
                                 }
-                                 return completeSignup(signupData, true, true);
+                                return completeSignup(signupData, true, true);
                         } else {
                                 // Mobile Login Flow
                                 User user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);
@@ -468,10 +620,12 @@ public class AuthService {
                                 if (user == null) {
                                         isNewUser = true;
                                         user = User.builder()
-                                                        .name("Scholar_" + normalizedPhone.substring(Math.max(0, normalizedPhone.length() - 4)))
+                                                        .name("Scholar_" + normalizedPhone.substring(
+                                                                        Math.max(0, normalizedPhone.length() - 4)))
                                                         .email(normalizedPhone + "@bodhganga.in")
                                                         .phoneNo(normalizedPhone)
-                                                        .hashedPassword(passwordEncoder.encode(java.util.UUID.randomUUID().toString()))
+                                                        .hashedPassword(passwordEncoder
+                                                                        .encode(java.util.UUID.randomUUID().toString()))
                                                         .role("USER")
                                                         .isVerified(true)
                                                         .emailVerified(true)
@@ -479,7 +633,7 @@ public class AuthService {
                                                         .isActive(true)
                                                         .createdAt(new Date())
                                                         .build();
-                                        
+
                                         log.info("Creating new user via MSG91 OTP: {}", user.getPhoneNo());
                                         user = userRepo.save(user);
 
@@ -487,7 +641,8 @@ public class AuthService {
                                                 try {
                                                         emailService.sendWelcomeEmail(user.getEmail(), user.getName());
                                                 } catch (Exception e) {
-                                                        log.error("Failed to trigger welcome email: {}", e.getMessage());
+                                                        log.error("Failed to trigger welcome email: {}",
+                                                                        e.getMessage());
                                                 }
                                         }
                                 } else {
@@ -506,7 +661,8 @@ public class AuthService {
 
                                 return ApiResponseDTO.builder()
                                                 .success(true)
-                                                .message(isNewUser ? "User registered and logged in successfully" : "Login successful")
+                                                .message(isNewUser ? "User registered and logged in successfully"
+                                                                : "Login successful")
                                                 .data(responseData)
                                                 .build();
                         }

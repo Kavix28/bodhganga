@@ -33,8 +33,8 @@ public class AuthController {
     private final PurchaseRepo purchaseRepo;
 
     public AuthController(AuthService authService, UserRepo userRepo, CourseRepo courseRepo,
-                          EnrollmentRepo enrollmentRepo, BlogPostRepo blogPostRepo, StateRepo stateRepo,
-                          ContentRepo contentRepo, ProductRepo productRepo, PurchaseRepo purchaseRepo) {
+            EnrollmentRepo enrollmentRepo, BlogPostRepo blogPostRepo, StateRepo stateRepo,
+            ContentRepo contentRepo, ProductRepo productRepo, PurchaseRepo purchaseRepo) {
         this.authService = authService;
         this.userRepo = userRepo;
         this.courseRepo = courseRepo;
@@ -46,7 +46,6 @@ public class AuthController {
         this.purchaseRepo = purchaseRepo;
     }
 
-
     @PostMapping("/login")
     public ResponseEntity<ApiResponseDTO> login(@Valid @RequestBody LoginRequestDTO dto) {
         ApiResponseDTO response = authService.login(dto);
@@ -56,7 +55,8 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponseDTO> register(@Valid @RequestBody RegisterRequestDTO dto) {
-        // Normalize phone number to check if it already exists before doing everything else
+        // Normalize phone number to check if it already exists before doing everything
+        // else
         String normalizedPhone = dto.getPhoneNo() != null ? dto.getPhoneNo().replaceAll("[^0-9]", "") : "";
         if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
             normalizedPhone = normalizedPhone.substring(2);
@@ -89,14 +89,14 @@ public class AuthController {
         try {
             String accessToken = (String) body.get("accessToken");
             String phoneNumber = (String) body.get("phoneNumber");
-            
+
             if (accessToken == null || accessToken.isBlank()) {
                 return new ResponseEntity<>(ApiResponseDTO.builder()
                         .success(false)
                         .message("accessToken is required")
                         .build(), HttpStatus.BAD_REQUEST);
             }
-            
+
             // Extract optional signupData if present
             SignupRequestDTO signupData = null;
             if (body.containsKey("signupData") && body.get("signupData") != null) {
@@ -104,9 +104,11 @@ public class AuthController {
                 if (rawSignupData instanceof Map) {
                     Map<String, Object> signupMap = (Map<String, Object>) rawSignupData;
                     signupData = new SignupRequestDTO();
-                    signupData.setName(signupMap.containsKey("fullName") ? (String) signupMap.get("fullName") : (String) signupMap.get("name"));
+                    signupData.setName(signupMap.containsKey("fullName") ? (String) signupMap.get("fullName")
+                            : (String) signupMap.get("name"));
                     signupData.setEmail((String) signupMap.get("email"));
-                    signupData.setPhoneNo(signupMap.containsKey("phoneNumber") ? (String) signupMap.get("phoneNumber") : (String) signupMap.get("phoneNo"));
+                    signupData.setPhoneNo(signupMap.containsKey("phoneNumber") ? (String) signupMap.get("phoneNumber")
+                            : (String) signupMap.get("phoneNo"));
                     signupData.setPassword((String) signupMap.get("password"));
                     signupData.setCity((String) signupMap.get("city"));
                     signupData.setState((String) signupMap.get("state"));
@@ -114,15 +116,17 @@ public class AuthController {
                 }
             } else if (body.containsKey("name") || body.containsKey("fullName")) {
                 signupData = new SignupRequestDTO();
-                signupData.setName(body.containsKey("fullName") ? (String) body.get("fullName") : (String) body.get("name"));
+                signupData.setName(
+                        body.containsKey("fullName") ? (String) body.get("fullName") : (String) body.get("name"));
                 signupData.setEmail((String) body.get("email"));
-                signupData.setPhoneNo(body.containsKey("phoneNumber") ? (String) body.get("phoneNumber") : (String) body.get("phoneNo"));
+                signupData.setPhoneNo(body.containsKey("phoneNumber") ? (String) body.get("phoneNumber")
+                        : (String) body.get("phoneNo"));
                 signupData.setPassword((String) body.get("password"));
                 signupData.setCity((String) body.get("city"));
                 signupData.setState((String) body.get("state"));
                 signupData.setCountry((String) body.get("country"));
             }
-            
+
             ApiResponseDTO response = authService.verifyMsg91Token(accessToken, phoneNumber, signupData);
             HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.UNAUTHORIZED;
             return new ResponseEntity<>(response, status);
@@ -144,13 +148,14 @@ public class AuthController {
                     .message("Mobile number is required")
                     .build(), HttpStatus.BAD_REQUEST);
         }
-        
-        // Normalize phone number (remove non-digits, remove leading 91 if it's 12 digits total)
+
+        // Normalize phone number (remove non-digits, remove leading 91 if it's 12
+        // digits total)
         String normalizedPhone = phoneNo.replaceAll("[^0-9]", "");
         if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
             normalizedPhone = normalizedPhone.substring(2);
         }
-        
+
         boolean exists = userRepo.existsByPhoneNo(normalizedPhone);
         if (!exists) {
             return new ResponseEntity<>(ApiResponseDTO.builder()
@@ -158,7 +163,7 @@ public class AuthController {
                     .message("No account found with this mobile number")
                     .build(), HttpStatus.NOT_FOUND);
         }
-        
+
         return ResponseEntity.ok(ApiResponseDTO.builder()
                 .success(true)
                 .message("Mobile number verified, proceed to send OTP")
@@ -174,7 +179,7 @@ public class AuthController {
                     .message("accessToken is required")
                     .build(), HttpStatus.BAD_REQUEST);
         }
-        
+
         ApiResponseDTO response = authService.verifyMsg91TokenOnly(accessToken);
         HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.UNAUTHORIZED;
         return new ResponseEntity<>(response, status);
@@ -184,7 +189,7 @@ public class AuthController {
     public ResponseEntity<ApiResponseDTO> resetPasswordMobile(@RequestBody Map<String, String> body) {
         String accessToken = body.get("accessToken");
         String password = body.get("password");
-        
+
         if (accessToken == null || accessToken.isBlank()) {
             return new ResponseEntity<>(ApiResponseDTO.builder()
                     .success(false)
@@ -197,7 +202,7 @@ public class AuthController {
                     .message("password is required")
                     .build(), HttpStatus.BAD_REQUEST);
         }
-        
+
         ApiResponseDTO response = authService.resetPasswordWithMsg91(accessToken, password);
         HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.UNAUTHORIZED;
         return new ResponseEntity<>(response, status);
@@ -206,14 +211,27 @@ public class AuthController {
     @PostMapping("/admin/login")
     public ResponseEntity<ApiResponseDTO> adminLogin(@Valid @RequestBody LoginRequestDTO dto) {
         ApiResponseDTO response = authService.adminLogin(dto);
-        HttpStatus status;
-        if (response.isSuccess()) {
-            status = HttpStatus.OK;
-        } else if ("ACCESS_DENIED".equals(response.getMessage())) {
-            status = HttpStatus.FORBIDDEN;
-        } else {
-            status = HttpStatus.UNAUTHORIZED;
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.UNAUTHORIZED;
+        return new ResponseEntity<>(response, status);
+    }
+
+    @PostMapping({ "/admin/otp/request", "/admin/auth/otp/request" })
+    public ResponseEntity<ApiResponseDTO> adminOtpRequest(@RequestBody Map<String, String> body) {
+        String phoneNo = body != null ? body.get("phoneNo") : null;
+        ApiResponseDTO response = authService.adminOtpRequest(phoneNo);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return new ResponseEntity<>(response, status);
+    }
+
+    @PostMapping({ "/admin/otp/verify", "/admin/auth/otp/verify" })
+    public ResponseEntity<ApiResponseDTO> adminOtpVerify(@RequestBody Map<String, String> body) {
+        String phoneNo = body != null ? body.get("phoneNo") : null;
+        String accessToken = body != null ? body.get("accessToken") : null;
+        if (accessToken == null && body != null) {
+            accessToken = body.get("otp");
         }
+        ApiResponseDTO response = authService.adminOtpVerify(phoneNo, accessToken);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.UNAUTHORIZED;
         return new ResponseEntity<>(response, status);
     }
 
@@ -222,11 +240,10 @@ public class AuthController {
         return ResponseEntity.ok("Auth service is running");
     }
 
-
-
     /**
      * GET /api/auth/public-stats
-     * Unauthenticated public API to feed landing page dynamically with actual database metrics.
+     * Unauthenticated public API to feed landing page dynamically with actual
+     * database metrics.
      */
     @GetMapping("/public-stats")
     public ResponseEntity<ApiResponseDTO> getPublicStats() {
@@ -241,7 +258,8 @@ public class AuthController {
         long dbProducts = productRepo.count();
         long dbPurchases = purchaseRepo.count();
 
-        // High-end fallback logic to maintain stunning premium defaults if DB is completely fresh
+        // High-end fallback logic to maintain stunning premium defaults if DB is
+        // completely fresh
         long totalUsers = dbUsers > 0 ? dbUsers : 1248;
         long totalCourses = dbCourses > 0 ? dbCourses : 10;
         long totalEnrollments = dbEnrollments > 0 ? dbEnrollments : 4380;

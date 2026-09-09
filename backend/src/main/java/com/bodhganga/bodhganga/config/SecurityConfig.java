@@ -45,10 +45,12 @@ public class SecurityConfig {
                                 "/api/auth/register",
                                 "/api/auth/health",
                                 "/api/auth/admin/login",
+                                "/api/auth/admin/otp/**",
+                                "/api/admin/auth/otp/**",
                                 "/api/auth/**",
                                 "/error",
-                                "/actuator/**"
-                        ).permitAll()
+                                "/actuator/**")
+                        .permitAll()
                         // Public course reads
                         .requestMatchers("/api/courses/list", "/api/courses/category/**").permitAll()
                         // Public blog reads
@@ -82,7 +84,8 @@ public class SecurityConfig {
                         // Admin orders — require ADMIN role
                         .requestMatchers("/api/admin/orders/**").hasAuthority("ROLE_ADMIN")
 
-                        // Dashboard admin-stats is called with admin token; revenue/content/storage same
+                        // Dashboard admin-stats is called with admin token; revenue/content/storage
+                        // same
                         .requestMatchers("/api/dashboard/admin-stats").authenticated()
                         .requestMatchers("/api/dashboard/revenue").authenticated()
                         .requestMatchers("/api/dashboard/content").authenticated()
@@ -97,15 +100,24 @@ public class SecurityConfig {
                         .requestMatchers("/api/courses/**").authenticated()
 
                         // Admin write endpoints — MUST have ADMIN role
-                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/states/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/states/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/states/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/blog/posts/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/blog/posts/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/blog/posts/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/content/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/content/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/content/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/states/**")
+                        .hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/states/**")
+                        .hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/states/**")
+                        .hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/blog/posts/**")
+                        .hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/blog/posts/**")
+                        .hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/blog/posts/**")
+                        .hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/content/**")
+                        .hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/content/**")
+                        .hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/content/**")
+                        .hasAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
 
                         // Disallow everything else
@@ -118,16 +130,15 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        
+
         java.util.List<String> origins = new java.util.ArrayList<>(java.util.List.of(
-            "http://localhost:5173",
-            "http://localhost:3000",
-            "http://127.0.0.1:*",
-            "https://bodhganga.in",
-            "https://www.bodhganga.in",
-            "https://*.vercel.app"
-        ));
-        
+                "http://localhost:5173",
+                "http://localhost:3000",
+                "http://127.0.0.1:*",
+                "https://bodhganga.in",
+                "https://www.bodhganga.in",
+                "https://*.vercel.app"));
+
         String envOrigins = System.getenv("ALLOWED_ORIGINS");
         if (envOrigins != null && !envOrigins.isBlank()) {
             for (String origin : envOrigins.split(",")) {
@@ -137,7 +148,7 @@ public class SecurityConfig {
                 }
             }
         }
-        
+
         configuration.setAllowedOriginPatterns(origins);
         configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(java.util.List.of("*")); // Allow all headers to prevent preflight 403s
@@ -149,5 +160,3 @@ public class SecurityConfig {
         return source;
     }
 }
-
-
