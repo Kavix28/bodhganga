@@ -32,6 +32,9 @@ public class AuthService {
         @Value("${admin.phone:}")
         private String configuredAdminPhone;
 
+        @Value("${msg91.auth.key:${MSG91_AUTH_KEY:}}")
+        private String msg91AuthKey;
+
         public AuthService(UserRepo userRepo, PasswordEncoder passwordEncoder, JwtUtil jwtUtil,
                         EmailService emailService) {
                 this.userRepo = userRepo;
@@ -504,12 +507,15 @@ public class AuthService {
         }
 
         String getMobileFromMsg91(String accessToken) throws Exception {
-                String authKey = System.getenv("MSG91_AUTH_KEY");
+                String authKey = msg91AuthKey;
+                if (authKey == null || authKey.isBlank()) {
+                        authKey = System.getenv("MSG91_AUTH_KEY");
+                }
                 if (authKey == null || authKey.isBlank()) {
                         throw new IllegalStateException("MSG91_AUTH_KEY environment variable is not configured.");
                 }
 
-                String url = "https://control.msg91.com/api/v5/widget/verifyAccessToken";
+                String url = "https://api.msg91.com/api/v5/widget/verifyAccessToken";
 
                 org.json.JSONObject payload = new org.json.JSONObject();
                 payload.put("authkey", authKey);
@@ -527,34 +533,76 @@ public class AuthService {
                                 java.net.http.HttpResponse.BodyHandlers.ofString());
 
                 if (response.statusCode() != 200) {
-                        log.error("MSG91 Token Verification failed. Status: {}, Body: {}", response.statusCode(),
-                                        response.body());
+                        log.error("MSG91 Token Verification failed. Status: {}", response.statusCode());
                         return null;
                 }
 
                 org.json.JSONObject jsonResponse = new org.json.JSONObject(response.body());
+                return extractMobileFromJson(jsonResponse);
+        }
+
+        String extractMobileFromJson(org.json.JSONObject jsonResponse) {
+                if (jsonResponse == null) {
+                        return null;
+                }
+
+                if (jsonResponse.has("type") && "error".equalsIgnoreCase(jsonResponse.optString("type"))) {
+                        return null;
+                }
+                if (jsonResponse.has("status")
+                                && ("error".equalsIgnoreCase(jsonResponse.optString("status"))
+                                                || "failed".equalsIgnoreCase(jsonResponse.optString("status")))) {
+                        return null;
+                }
+
                 String mobile = null;
                 if (jsonResponse.has("data")) {
-                        org.json.JSONObject dataObj = jsonResponse.optJSONObject("data");
-                        if (dataObj != null) {
-                                mobile = dataObj.optString("mobile");
+                        Object dataObj = jsonResponse.get("data");
+                        if (dataObj instanceof org.json.JSONObject) {
+                                org.json.JSONObject dataJson = (org.json.JSONObject) dataObj;
+                                mobile = firstNonBlank(
+                                                dataJson.optString("mobile", null),
+                                                dataJson.optString("phone", null),
+                                                dataJson.optString("mobile_no", null),
+                                                dataJson.optString("number", null));
+                        } else if (dataObj instanceof String) {
+                                mobile = (String) dataObj;
                         }
                 }
+
                 if (mobile == null || mobile.isBlank()) {
-                        mobile = jsonResponse.optString("mobile");
+                        mobile = firstNonBlank(
+                                        jsonResponse.optString("mobile", null),
+                                        jsonResponse.optString("phone", null),
+                                        jsonResponse.optString("mobile_no", null),
+                                        jsonResponse.optString("number", null));
+                }
+
+                if (mobile == null || mobile.isBlank()) {
+                        String msg = jsonResponse.optString("message", null);
+                        if (msg != null && msg.replaceAll("[^0-9]", "").length() >= 10) {
+                                mobile = msg;
+                        }
                 }
 
                 if (mobile == null || mobile.isBlank()) {
                         return null;
                 }
 
-                // Normalize phone (remove non-digits, remove leading 91 if it's 12 digits
-                // total)
                 String normalizedPhone = mobile.replaceAll("[^0-9]", "");
                 if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
                         normalizedPhone = normalizedPhone.substring(2);
                 }
                 return normalizedPhone;
+        }
+
+        private String firstNonBlank(String... candidates) {
+                for (String c : candidates) {
+                        if (c != null && !c.isBlank()) {
+                                return c;
+                        }
+                }
+                return null;
         }
 
         /**

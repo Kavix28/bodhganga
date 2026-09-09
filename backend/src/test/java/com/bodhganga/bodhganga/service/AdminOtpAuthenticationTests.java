@@ -264,4 +264,28 @@ public class AdminOtpAuthenticationTests {
                 .content(verifyBody))
                 .andExpect(status().isOk());
     }
+
+    // 16. Unit test MSG91 response JSON parsing logic for extractMobileFromJson
+    @Test
+    void test16_ExtractMobileFromJson_Handling() throws Exception {
+        // Standard MSG91 response format with data object
+        org.json.JSONObject standardRes = new org.json.JSONObject(
+                "{\"type\":\"success\",\"data\":{\"mobile\":\"919999999999\"}}");
+        assertEquals(ADMIN_PHONE, authService.extractMobileFromJson(standardRes));
+
+        // Flat field format
+        org.json.JSONObject flatRes = new org.json.JSONObject("{\"mobile\":\"9999999999\"}");
+        assertEquals(ADMIN_PHONE, authService.extractMobileFromJson(flatRes));
+
+        // Error response
+        org.json.JSONObject errorRes = new org.json.JSONObject("{\"type\":\"error\",\"message\":\"Invalid token\"}");
+        assertNull(authService.extractMobileFromJson(errorRes));
+
+        // Malformed / Empty response
+        org.json.JSONObject emptyRes = new org.json.JSONObject("{}");
+        assertNull(authService.extractMobileFromJson(emptyRes));
+
+        // Null response
+        assertNull(authService.extractMobileFromJson(null));
+    }
 }
