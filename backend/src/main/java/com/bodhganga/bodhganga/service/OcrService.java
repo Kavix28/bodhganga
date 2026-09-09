@@ -28,8 +28,23 @@ public class OcrService {
 
     private static final Logger log = LoggerFactory.getLogger(OcrService.class);
 
-    @Value("${bodhganga.ocr.endpoint:http://localhost:8000/ocr}")
+    @Value("${bodhganga.ocr.endpoint:${OCR_SERVICE_URL:http://localhost:8000}/ocr}")
     private String ocrEndpoint;
+
+    public String getEffectiveEndpoint() {
+        if (ocrEndpoint == null || ocrEndpoint.isBlank()) {
+            return "http://localhost:8000/ocr";
+        }
+        String endpoint = ocrEndpoint.trim();
+        if (!endpoint.endsWith("/ocr")) {
+            if (endpoint.endsWith("/")) {
+                endpoint = endpoint + "ocr";
+            } else {
+                endpoint = endpoint + "/ocr";
+            }
+        }
+        return endpoint;
+    }
 
     private final RestTemplate restTemplate = new RestTemplate();
 
@@ -128,7 +143,8 @@ public class OcrService {
             HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
             @SuppressWarnings("unchecked")
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                    ocrEndpoint, HttpMethod.POST, requestEntity, (Class<Map<String, Object>>) (Class<?>) Map.class);
+                    getEffectiveEndpoint(), HttpMethod.POST, requestEntity,
+                    (Class<Map<String, Object>>) (Class<?>) Map.class);
 
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Map<String, Object> responseBody = response.getBody();

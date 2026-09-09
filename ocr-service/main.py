@@ -26,7 +26,7 @@ app.add_middleware(
 def health():
     return {
         "status": "ok",
-        "engine": "PaddleOCR/Tesseract",
+        "engine": "Tesseract OCR 5.x",
         "service": "BodhGanga OCR Service"
     }
 
