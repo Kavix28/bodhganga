@@ -2,7 +2,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { logoutAdmin, getAdminSession } from '../utils/adminAuth';
 import {
     LayoutDashboard, MapPin, FileText, Package,
-    ShoppingBag, LogOut, Menu, X, BookOpen, Receipt
+    ShoppingBag, LogOut, Menu, X, BookOpen, Receipt, FolderOpen
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -10,6 +10,7 @@ import Logo from '../components/common/Logo';
 
 const navItems = [
     { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/admin/state-resources', icon: FolderOpen, label: 'State Resources' },
     { to: '/admin/states', icon: MapPin, label: 'States & Content' },
     { to: '/admin/blogs', icon: FileText, label: 'Blog Posts' },
     { to: '/admin/content', icon: BookOpen, label: 'Content Manager' },

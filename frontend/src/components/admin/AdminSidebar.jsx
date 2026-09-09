@@ -8,7 +8,8 @@ import {
     Upload,
     Users,
     Settings,
-    BarChart3
+    BarChart3,
+    FolderOpen
 } from 'lucide-react';
 
 /**
@@ -27,7 +28,7 @@ const AdminSidebar = () => {
         },
         {
             path: '/admin/state-resources',
-            icon: Map,
+            icon: FolderOpen,
             label: 'State Resources',
             description: 'State & District PDFs'
         },
