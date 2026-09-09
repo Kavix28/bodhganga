@@ -84,6 +84,7 @@ const AdminStates         = lazy(() => import('./pages/admin/AdminStates'));
 const AdminMarketplace    = lazy(() => import('./pages/admin/AdminMarketplace'));
 const AdminPDFManager     = lazy(() => import('./pages/admin/AdminPDFManager'));
 const AdminOrders         = lazy(() => import('./pages/admin/AdminOrders'));
+const AdminQuestionBankManager = lazy(() => import('./pages/admin/AdminQuestionBankManager'));
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -208,6 +209,7 @@ function App() {
                                                 <Route path="content"   element={<AdminPDFManager />} />
                                                 <Route path="content-marketplace" element={<AdminMarketplace />} />
                                                 <Route path="pdf-manager" element={<AdminPDFManager />} />
+                                                <Route path="question-bank" element={<AdminQuestionBankManager />} />
                                                 <Route path="orders"    element={<AdminOrders />} />
                                             </Route>
 

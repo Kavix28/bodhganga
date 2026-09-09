@@ -1,38 +1,59 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { sampleQuestionsData } from '../data/testSeriesData';
-import { bengaluruQuestions } from '../data/bengaluruQuestions';
-import { ernakulamQuestions } from '../data/ernakulamQuestions';
-import { kargilQuestions } from '../data/kargilQuestions';
-import { anantnagQuestions } from '../data/anantnagQuestions';
-import { chatraQuestions } from '../data/chatraQuestions';
-import { Clock, CheckCircle, AlertCircle, ArrowLeft, ArrowRight, Bookmark, ShieldCheck, Zap } from 'lucide-react';
+import { Clock, CheckCircle, AlertCircle, ArrowLeft, ArrowRight, Bookmark, ShieldCheck, Zap, Loader2, RefreshCw } from 'lucide-react';
 
 import api from '../services/api';
-
-// District-specific question banks — add new imports and entries here as more districts get questions
-const districtQuestionBanks = {
-    'bengaluru': bengaluruQuestions,
-    'ernakulam': ernakulamQuestions,
-    'kargil': kargilQuestions,
-    'anantnag': anantnagQuestions,
-    'chatra': chatraQuestions,
-};
 
 const QuizEngine = () => {
     const { stateId, districtId, testType } = useParams(); // 'easy', 'advanced', 'master'
     const navigate = useNavigate();
 
-    // Use district-specific questions if available, otherwise fall back to sample data
-    const questionBank = districtQuestionBanks[districtId] || sampleQuestionsData;
-    const questions = questionBank[testType] || questionBank.easy || sampleQuestionsData.easy;
+    const [questions, setQuestions] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState(null);
+    const [submitting, setSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState(null);
 
     const [currentIndex, setCurrentIndex] = useState(0);
     const [selectedAnswers, setSelectedAnswers] = useState({});
     const [bookmarks, setBookmarks] = useState({});
-    const [timeLeft, setTimeLeft] = useState(questions.length * 60); // 1 min per question
+    const [timeLeft, setTimeLeft] = useState(1200); // 20 mins default
+
+    const fetchQuestions = async () => {
+        setLoading(true);
+        setFetchError(null);
+        try {
+            const response = await api.get('/quiz/questions', {
+                params: {
+                    stateSlug: stateId,
+                    districtSlug: districtId,
+                    testType: testType
+                }
+            });
+
+            if (response.data && response.data.success && Array.isArray(response.data.data) && response.data.data.length > 0) {
+                const fetchedQs = response.data.data;
+                setQuestions(fetchedQs);
+                setTimeLeft(fetchedQs.length * 60);
+            } else {
+                setFetchError('No published questions available for this district test yet.');
+                setQuestions([]);
+            }
+        } catch (err) {
+            console.error('Backend questions fetch error:', err);
+            setFetchError('Backend connection required to take this quiz. Please try again.');
+            setQuestions([]);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
+        fetchQuestions();
+    }, [stateId, districtId, testType]);
+
+    useEffect(() => {
+        if (loading || questions.length === 0 || fetchError) return;
         const timer = setInterval(() => {
             setTimeLeft(prev => {
                 if (prev <= 1) {
@@ -44,7 +65,7 @@ const QuizEngine = () => {
             });
         }, 1000);
         return () => clearInterval(timer);
-    }, []);
+    }, [loading, questions, fetchError]);
 
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
@@ -67,82 +88,117 @@ const QuizEngine = () => {
     };
 
     const handleSubmitQuiz = async () => {
-        let correctCount = 0;
-        let incorrectCount = 0;
-        let unattemptedCount = 0;
-        const topicAnalysis = {};
+        if (submitting) return;
+        setSubmitting(true);
+        setSubmitError(null);
 
+        const questionIds = questions.map(q => q.id);
+        const answersMap = {};
         questions.forEach((q, idx) => {
-            const userAns = selectedAnswers[idx];
-            const topic = q.topic || 'General';
-            if (!topicAnalysis[topic]) {
-                topicAnalysis[topic] = { total: 0, correct: 0, incorrect: 0 };
-            }
-            topicAnalysis[topic].total += 1;
-
-            if (userAns === undefined) {
-                unattemptedCount += 1;
-            } else if (userAns === q.correctAnswer) {
-                correctCount += 1;
-                topicAnalysis[topic].correct += 1;
-            } else {
-                incorrectCount += 1;
-                topicAnalysis[topic].incorrect += 1;
+            if (selectedAnswers[idx] !== undefined) {
+                answersMap[q.id] = selectedAnswers[idx];
             }
         });
-
-        const scoreData = {
-            stateId,
-            districtId,
-            testType,
-            totalQuestions: questions.length,
-            correctCount,
-            incorrectCount,
-            unattemptedCount,
-            score: correctCount * 2 - incorrectCount * 0.5,
-            percentage: Math.round((correctCount / questions.length) * 100),
-            accuracy: Math.round((correctCount / (correctCount + incorrectCount || 1)) * 100),
-            timeTaken: questions.length * 60 - timeLeft,
-            topicAnalysis,
-            questions,
-            selectedAnswers,
-            bookmarks
-        };
 
         const bookmarkedQuestionIds = Object.keys(bookmarks)
             .filter(idxKey => bookmarks[idxKey])
             .map(idxKey => questions[parseInt(idxKey)]?.id || String(idxKey));
 
-        const attemptData = {
+        const submissionData = {
             stateSlug: stateId,
             districtSlug: districtId,
             testType,
-            totalQuestions: questions.length,
-            correctCount,
-            incorrectCount,
-            unattemptedCount,
-            score: scoreData.score,
-            percentage: scoreData.percentage,
-            accuracy: scoreData.accuracy,
-            timeTaken: scoreData.timeTaken,
-            topicAnalysis,
+            timeTaken: (questions.length * 60) - timeLeft,
+            questionIds,
+            answers: answersMap,
             bookmarkedQuestionIds
         };
 
         try {
-            await api.post('/quiz/attempt', attemptData);
+            const response = await api.post('/quiz/submit', submissionData);
+            if (response.data && response.data.success) {
+                const serverResult = response.data.data;
+                navigate(`/test-series/${stateId}/${districtId}/result`, {
+                    state: {
+                        result: {
+                            ...serverResult,
+                            questions,
+                            selectedAnswers
+                        }
+                    }
+                });
+                return;
+            } else {
+                setSubmitError(response.data?.message || 'Failed to grade quiz submission on server.');
+            }
         } catch (error) {
-            console.error('Failed to save quiz attempt:', error);
+            console.error('Server-side grading submission error:', error);
+            setSubmitError('Backend connection required to submit this quiz. Please try again.');
+        } finally {
+            setSubmitting(false);
         }
-
-        navigate(`/test-series/${stateId}/${districtId}/result`, { state: { result: scoreData } });
     };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center pt-24">
+                <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="w-8 h-8 text-gold animate-spin" />
+                    <span className="text-sm font-bold text-slate-300">Loading Question Bank...</span>
+                </div>
+            </div>
+        );
+    }
+
+    if (fetchError || questions.length === 0) {
+        return (
+            <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center pt-24 px-4">
+                <div className="bg-slate-900 border border-amber-500/30 p-8 rounded-3xl text-center space-y-4 max-w-md shadow-2xl">
+                    <AlertCircle className="w-12 h-12 text-amber-400 mx-auto" />
+                    <h2 className="text-xl font-bold text-white">Question Bank Unavailable</h2>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                        {fetchError || 'Backend connection required to take this quiz. Please try again.'}
+                    </p>
+                    <div className="flex gap-3 justify-center pt-2">
+                        <button
+                            onClick={fetchQuestions}
+                            className="px-5 py-2.5 rounded-xl bg-gold text-slate-950 font-bold text-xs uppercase flex items-center gap-2"
+                        >
+                            <RefreshCw className="w-4 h-4" /> Retry Connection
+                        </button>
+                        <button
+                            onClick={() => navigate(`/test-series/${stateId}/${districtId}`)}
+                            className="px-5 py-2.5 rounded-xl bg-white/10 text-white font-bold text-xs uppercase"
+                        >
+                            Back to District
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     const q = questions[currentIndex];
 
     return (
         <div className="min-h-screen bg-slate-950 text-white pt-24 pb-20 px-4 sm:px-6 lg:px-8">
             <div className="max-w-4xl mx-auto space-y-6">
+                {/* Submit Error Banner */}
+                {submitError && (
+                    <div className="bg-red-950/80 border border-red-500/50 p-4 rounded-2xl flex items-center justify-between text-red-200 text-xs font-bold">
+                        <div className="flex items-center gap-2">
+                            <AlertCircle className="w-5 h-5 text-red-400" />
+                            <span>{submitError}</span>
+                        </div>
+                        <button
+                            onClick={handleSubmitQuiz}
+                            className="px-4 py-1.5 rounded-xl bg-red-500 text-white text-[10px] font-black uppercase tracking-wider"
+                        >
+                            Retry Submission
+                        </button>
+                    </div>
+                )}
+
                 {/* Header Bar */}
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-900 border border-white/10 p-4 sm:px-6 rounded-2xl">
                     <div className="flex items-center gap-3">
@@ -164,9 +220,10 @@ const QuizEngine = () => {
                         </div>
                         <button
                             onClick={handleSubmitQuiz}
-                            className="px-5 py-2 rounded-xl bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-black text-xs uppercase tracking-widest hover:shadow-lg transition-all"
+                            disabled={submitting}
+                            className="px-5 py-2 rounded-xl bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-black text-xs uppercase tracking-widest hover:shadow-lg transition-all disabled:opacity-50 flex items-center gap-2"
                         >
-                            Submit Test
+                            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Submit Test'}
                         </button>
                     </div>
                 </div>
@@ -178,7 +235,7 @@ const QuizEngine = () => {
                         <div className="flex items-center gap-3">
                             <span className="text-xs font-bold text-gold">Question {currentIndex + 1} of {questions.length}</span>
                             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/5 text-slate-300 border border-white/10 uppercase">
-                                {q.topic}
+                                {q.topic || 'General'}
                             </span>
                         </div>
                         <button
@@ -201,7 +258,7 @@ const QuizEngine = () => {
 
                     {/* Options list */}
                     <div className="space-y-3">
-                        {q.options.map((opt, idx) => {
+                        {q.options && q.options.map((opt, idx) => {
                             const isSelected = selectedAnswers[currentIndex] === idx;
                             return (
                                 <button

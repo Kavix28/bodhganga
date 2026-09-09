@@ -1,9 +1,13 @@
 package com.bodhganga.bodhganga.controllers;
 
 import com.bodhganga.bodhganga.dto.ApiResponseDTO;
+import com.bodhganga.bodhganga.dto.PublicQuestionDTO;
 import com.bodhganga.bodhganga.dto.QuizAttemptRequestDTO;
+import com.bodhganga.bodhganga.dto.QuizSubmissionDTO;
+import com.bodhganga.bodhganga.entity.Question;
 import com.bodhganga.bodhganga.entity.QuizAttempt;
 import com.bodhganga.bodhganga.entity.QuizAttempt.TopicStats;
+import com.bodhganga.bodhganga.repo.QuestionRepo;
 import com.bodhganga.bodhganga.repo.QuizAttemptRepo;
 import com.bodhganga.bodhganga.repo.UserRepo;
 import org.springframework.http.ResponseEntity;
@@ -14,28 +18,205 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/quiz")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000",
-        "https://bodhganga.in", "https://www.bodhganga.in"})
+@CrossOrigin(origins = { "http://localhost:5173", "http://localhost:3000",
+        "https://bodhganga.in", "https://www.bodhganga.in" })
 public class QuizAttemptController {
 
     private final QuizAttemptRepo quizAttemptRepo;
     private final UserRepo userRepo;
+    private final QuestionRepo questionRepo;
 
-    public QuizAttemptController(QuizAttemptRepo quizAttemptRepo, UserRepo userRepo) {
+    public QuizAttemptController(QuizAttemptRepo quizAttemptRepo, UserRepo userRepo, QuestionRepo questionRepo) {
         this.quizAttemptRepo = quizAttemptRepo;
         this.userRepo = userRepo;
+        this.questionRepo = questionRepo;
     }
 
     private String getUserId(String email) {
         return userRepo.findByEmail(email).map(com.bodhganga.bodhganga.entity.User::getId).orElse(null);
     }
 
+    @GetMapping("/questions")
+    public ResponseEntity<ApiResponseDTO> getQuestions(
+            @RequestParam(required = false) String stateSlug,
+            @RequestParam(required = false) String districtSlug,
+            @RequestParam(required = false) String testType,
+            @RequestParam(required = false) String topic,
+            @RequestParam(required = false, defaultValue = "100") int limit) {
+
+        List<Question> questions;
+        if (stateSlug != null && districtSlug != null && testType != null) {
+            questions = questionRepo.findByStateSlugAndDistrictSlugAndTestTypeAndIsActiveTrueOrderByQuestionNumberAsc(
+                    stateSlug, districtSlug, testType);
+        } else if (districtSlug != null && testType != null) {
+            questions = questionRepo.findByDistrictSlugAndTestTypeAndIsActiveTrueOrderByQuestionNumberAsc(districtSlug,
+                    testType);
+        } else if (stateSlug != null && testType != null) {
+            questions = questionRepo.findByStateSlugAndTestTypeAndIsActiveTrueOrderByQuestionNumberAsc(stateSlug,
+                    testType);
+        } else {
+            questions = questionRepo.findByIsActiveTrue();
+        }
+
+        if (topic != null && !topic.isBlank()) {
+            questions = questions.stream()
+                    .filter(q -> topic.equalsIgnoreCase(q.getTopic()))
+                    .collect(Collectors.toList());
+        }
+
+        // Only return published questions publicly
+        questions = questions.stream()
+                .filter(q -> q.getStatus() == null || "PUBLISHED".equalsIgnoreCase(q.getStatus()))
+                .collect(Collectors.toList());
+
+        if (limit > 0 && questions.size() > limit) {
+            questions = questions.subList(0, limit);
+        }
+
+        List<PublicQuestionDTO> publicQuestions = questions.stream()
+                .map(q -> PublicQuestionDTO.builder()
+                        .id(q.getId())
+                        .stateSlug(q.getStateSlug())
+                        .districtSlug(q.getDistrictSlug())
+                        .topic(q.getTopic())
+                        .testType(q.getTestType())
+                        .question(q.getQuestion())
+                        .options(q.getOptions())
+                        .difficulty(q.getDifficulty())
+                        .questionNumber(q.getQuestionNumber() != null ? q.getQuestionNumber() : 0)
+                        .build())
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+                .success(true)
+                .message("Questions retrieved successfully")
+                .data(publicQuestions)
+                .build());
+    }
+
+    @PostMapping("/submit")
+    public ResponseEntity<ApiResponseDTO> submitQuiz(@RequestBody QuizSubmissionDTO submissionDTO,
+            Authentication authentication) {
+        String userEmail = authentication != null ? authentication.getName() : null;
+        String userId = userEmail != null ? getUserId(userEmail) : "anonymous";
+
+        List<String> questionIds = submissionDTO.getQuestionIds();
+        if (questionIds == null || questionIds.isEmpty()) {
+            return ResponseEntity.ok(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("No question IDs provided")
+                    .build());
+        }
+
+        List<Question> questions = questionRepo.findByIdInAndIsActiveTrue(questionIds);
+        Map<String, Question> questionMap = questions.stream()
+                .collect(Collectors.toMap(Question::getId, q -> q, (q1, q2) -> q1));
+
+        int correctCount = 0;
+        int incorrectCount = 0;
+        int unattemptedCount = 0;
+
+        Map<String, TopicStats> topicAnalysis = new HashMap<>();
+        Map<String, Integer> answers = submissionDTO.getAnswers() != null ? submissionDTO.getAnswers()
+                : Collections.emptyMap();
+        List<Map<String, Object>> gradedQuestions = new ArrayList<>();
+
+        for (String qId : questionIds) {
+            Question q = questionMap.get(qId);
+            if (q == null)
+                continue;
+
+            String topic = q.getTopic() != null ? q.getTopic() : "General";
+            TopicStats stats = topicAnalysis.computeIfAbsent(topic, k -> new TopicStats(0, 0, 0));
+            stats.setTotal(stats.getTotal() + 1);
+
+            Integer selectedAns = answers.get(qId);
+            boolean isCorrect = false;
+            boolean isUnattempted = (selectedAns == null || selectedAns < 0);
+
+            if (isUnattempted) {
+                unattemptedCount++;
+            } else if (selectedAns == q.getCorrectAnswer()) {
+                correctCount++;
+                stats.setCorrect(stats.getCorrect() + 1);
+                isCorrect = true;
+            } else {
+                incorrectCount++;
+                stats.setIncorrect(stats.getIncorrect() + 1);
+            }
+
+            Map<String, Object> gradedQ = new HashMap<>();
+            gradedQ.put("id", q.getId());
+            gradedQ.put("question", q.getQuestion());
+            gradedQ.put("options", q.getOptions());
+            gradedQ.put("topic", q.getTopic());
+            gradedQ.put("difficulty", q.getDifficulty());
+            gradedQ.put("selectedAnswer", selectedAns);
+            gradedQ.put("correctAnswer", q.getCorrectAnswer());
+            gradedQ.put("explanation", q.getExplanation());
+            gradedQ.put("isCorrect", isCorrect);
+            gradedQ.put("isUnattempted", isUnattempted);
+            gradedQuestions.add(gradedQ);
+        }
+
+        int totalQuestions = questionIds.size();
+        double score = Math.round(((correctCount * 2.0) - (incorrectCount * 0.5)) * 100.0) / 100.0;
+        int percentage = totalQuestions > 0 ? (int) Math.round(((double) correctCount / totalQuestions) * 100.0) : 0;
+        int attempted = correctCount + incorrectCount;
+        int accuracy = attempted > 0 ? (int) Math.round(((double) correctCount / attempted) * 100.0) : 0;
+
+        QuizAttempt attempt = QuizAttempt.builder()
+                .userId(userId)
+                .stateSlug(submissionDTO.getStateSlug())
+                .districtSlug(submissionDTO.getDistrictSlug())
+                .testType(submissionDTO.getTestType())
+                .totalQuestions(totalQuestions)
+                .correctCount(correctCount)
+                .incorrectCount(incorrectCount)
+                .unattemptedCount(unattemptedCount)
+                .score(score)
+                .percentage(percentage)
+                .accuracy(accuracy)
+                .timeTaken(submissionDTO.getTimeTaken())
+                .topicAnalysis(topicAnalysis)
+                .bookmarkedQuestionIds(submissionDTO.getBookmarkedQuestionIds())
+                .attemptedAt(Instant.now())
+                .build();
+
+        QuizAttempt savedAttempt = userId != null && !userId.equals("anonymous") ? quizAttemptRepo.save(attempt)
+                : attempt;
+
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("id", savedAttempt.getId());
+        responseData.put("stateId", submissionDTO.getStateSlug());
+        responseData.put("districtId", submissionDTO.getDistrictSlug());
+        responseData.put("testType", submissionDTO.getTestType());
+        responseData.put("totalQuestions", totalQuestions);
+        responseData.put("correctCount", correctCount);
+        responseData.put("incorrectCount", incorrectCount);
+        responseData.put("unattemptedCount", unattemptedCount);
+        responseData.put("score", score);
+        responseData.put("percentage", percentage);
+        responseData.put("accuracy", accuracy);
+        responseData.put("timeTaken", submissionDTO.getTimeTaken());
+        responseData.put("topicAnalysis", topicAnalysis);
+        responseData.put("bookmarkedQuestionIds", submissionDTO.getBookmarkedQuestionIds());
+        responseData.put("gradedQuestions", gradedQuestions);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+                .success(true)
+                .message("Quiz submitted and graded successfully")
+                .data(responseData)
+                .build());
+    }
+
     @PostMapping("/attempt")
     public ResponseEntity<ApiResponseDTO> saveAttempt(@RequestBody QuizAttemptRequestDTO requestDTO,
-                                                      Authentication authentication) {
+            Authentication authentication) {
         String userEmail = authentication.getName();
         String userId = getUserId(userEmail);
 
@@ -90,7 +271,8 @@ public class QuizAttemptController {
 
         List<QuizAttempt> attempts;
         if (stateSlug != null && districtSlug != null) {
-            attempts = quizAttemptRepo.findByUserIdAndStateSlugAndDistrictSlugOrderByAttemptedAtDesc(userId, stateSlug, districtSlug);
+            attempts = quizAttemptRepo.findByUserIdAndStateSlugAndDistrictSlugOrderByAttemptedAtDesc(userId, stateSlug,
+                    districtSlug);
         } else if (stateSlug != null) {
             attempts = quizAttemptRepo.findByUserIdAndStateSlugOrderByAttemptedAtDesc(userId, stateSlug);
         } else if (districtSlug != null) {
@@ -251,7 +433,8 @@ public class QuizAttemptController {
     }
 
     private int calculateCurrentStreak(Set<LocalDate> dates) {
-        if (dates.isEmpty()) return 0;
+        if (dates.isEmpty())
+            return 0;
         LocalDate today = LocalDate.now();
         LocalDate yesterday = today.minusDays(1);
 
@@ -269,7 +452,8 @@ public class QuizAttemptController {
     }
 
     private int calculateLongestStreak(Set<LocalDate> dates) {
-        if (dates.isEmpty()) return 0;
+        if (dates.isEmpty())
+            return 0;
         List<LocalDate> sortedDates = new ArrayList<>(dates);
         Collections.sort(sortedDates);
 
