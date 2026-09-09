@@ -4,5 +4,6 @@ public enum IngestionStatus {
     PENDING,
     PROCESSING,
     COMPLETED,
-    FAILED
+    FAILED,
+    DELETED
 }
