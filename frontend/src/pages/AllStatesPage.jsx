@@ -206,6 +206,7 @@ function StateCard({ region, isActive, productCount, onClick }) {
 export default function AllStatesPage() {
   const navigate = useNavigate();
   const [productCounts, setProductCounts] = useState({});
+  const [availability, setAvailability] = useState({});
   const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState("");
@@ -218,13 +219,16 @@ export default function AllStatesPage() {
         const res = await api.get("/states/available");
         const stateList = Array.isArray(res) ? res : (res?.data || []);
         const counts = {};
+        const avail = {};
         stateList.forEach((s) => {
           const slug = s.stateSlug || s.id || (s.name ? s.name.toLowerCase().replace(/\s+/g, "-") : "");
           if (slug) {
             counts[slug] = s.notesCount || 0;
+            avail[slug] = s.isAvailable ?? ((s.notesCount || 0) > 0);
           }
         });
         setProductCounts(counts);
+        setAvailability(avail);
       } catch (err) {
         console.error("Failed to load canonical states:", err);
       } finally {
@@ -316,11 +320,19 @@ export default function AllStatesPage() {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filtered.map((r) => (
-              <StateCard key={r.slug} region={r} isActive={true}
-                productCount={productCounts[r.slug] || 0}
-                onClick={() => navigate(`/state/${r.slug}/districts`)} />
-            ))}
+            {filtered.map((r) => {
+              const count = productCounts[r.slug] || 0;
+              const isActive = availability[r.slug] ?? (count > 0);
+              return (
+                <StateCard
+                  key={r.slug}
+                  region={r}
+                  isActive={isActive}
+                  productCount={count}
+                  onClick={() => navigate(`/state/${r.slug}/districts`)}
+                />
+              );
+            })}
           </div>
         )}
       </div>

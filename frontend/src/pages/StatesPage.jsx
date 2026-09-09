@@ -89,13 +89,20 @@ const GRADS = [
 function StateCard({ state, onClick }) {
   const name = state.name || state.stateName || state.id || "";
   const slug = state.id || state.stateSlug || "";
+  const count = state.notesCount || 0;
+  const isAvailable = state.isAvailable ?? (count > 0);
   const [imgErr, setImgErr] = useState(false);
   const grad = GRADS[name.charCodeAt(0) % GRADS.length];
 
   return (
     <div
-      onClick={onClick}
-      className="rounded-xl overflow-hidden border border-gray-700 hover:border-amber-500 cursor-pointer hover:shadow-lg hover:shadow-amber-500/10 transition-all duration-200 group relative h-full flex flex-col"
+      onClick={isAvailable ? onClick : undefined}
+      className={[
+        "rounded-xl overflow-hidden border transition-all duration-200 group relative h-full flex flex-col",
+        isAvailable
+          ? "border-gray-700 hover:border-amber-500 cursor-pointer hover:shadow-lg hover:shadow-amber-500/10"
+          : "border-gray-800 opacity-50 cursor-not-allowed",
+      ].join(" ")}
     >
       {!imgErr ? (
         <img
@@ -112,19 +119,29 @@ function StateCard({ state, onClick }) {
         </div>
       )}
       <div className="absolute top-2 right-2">
-        <span className="text-xs bg-amber-500 text-black px-2 py-0.5 rounded-full font-bold shadow">
-          Available
-        </span>
+        {isAvailable ? (
+          <span className="text-xs bg-amber-500 text-black px-2 py-0.5 rounded-full font-bold shadow">
+            Available
+          </span>
+        ) : (
+          <span className="text-xs bg-gray-800/90 text-gray-400 border border-gray-700 px-2 py-0.5 rounded-full font-bold shadow">
+            Coming Soon
+          </span>
+        )}
       </div>
       <div className="px-4 py-3 bg-gray-900">
         <div className="flex justify-between items-center">
           <h2 className="text-sm font-bold text-white">{name}</h2>
-          <span className="text-amber-400 text-xs group-hover:translate-x-0.5 transition-transform">
-            &rarr;
-          </span>
+          {isAvailable ? (
+            <span className="text-amber-400 text-xs group-hover:translate-x-0.5 transition-transform">
+              &rarr;
+            </span>
+          ) : (
+            <span className="text-gray-600 text-xs">Soon</span>
+          )}
         </div>
         <p className="text-white/60 text-xs mt-0.5">
-          {state.notesCount != null ? `${state.notesCount} resources` : ""}
+          {isAvailable ? `${count} resource${count !== 1 ? "s" : ""}` : "Content being prepared"}
         </p>
       </div>
     </div>

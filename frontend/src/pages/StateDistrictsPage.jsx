@@ -127,14 +127,28 @@ export default function StateDistrictsPage() {
               Try again
             </button>
           </div>
+        ) : !isActiveState ? (
+          <div className="max-w-md mx-auto my-12 bg-gray-900 border border-gray-800 rounded-2xl p-8 text-center space-y-4">
+            <span className="text-xs font-black uppercase tracking-widest bg-amber-500/20 text-amber-400 border border-amber-500/30 px-3 py-1 rounded-full inline-block">
+              Coming Soon
+            </span>
+            <h2 className="text-2xl font-bold text-white">{stateName || stateSlug}</h2>
+            <p className="text-gray-400 text-sm leading-relaxed">
+              Study resources for this state are currently being prepared by our editorial team and will be available soon.
+            </p>
+            <button
+              onClick={() => navigate("/state")}
+              className="mt-4 px-6 py-2.5 bg-amber-500 text-black font-bold text-xs uppercase tracking-wider rounded-xl hover:bg-amber-400 transition-colors"
+            >
+              ← Back to All States
+            </button>
+          </div>
         ) : (
           <>
             {/* Tabs Bar */}
-            {isActiveState && (
-              <div className="mb-8">
-                <StateSectionTabs stateSlug={stateSlug} activeSection="" />
-              </div>
-            )}
+            <div className="mb-8">
+              <StateSectionTabs stateSlug={stateSlug} activeSection="" />
+            </div>
 
             {/* Search */}
             <input

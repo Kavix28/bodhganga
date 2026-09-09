@@ -98,6 +98,7 @@ public class StateController {
             m.put("stateSlug", slug);
             m.put("name", s.getName());
             m.put("notesCount", count);
+            m.put("isAvailable", count > 0);
             resultMap.put(slug, m);
         }
 
@@ -111,6 +112,7 @@ public class StateController {
                 m.put("stateSlug", slug);
                 m.put("name", displayName);
                 m.put("notesCount", entry.getValue());
+                m.put("isAvailable", entry.getValue() > 0);
                 resultMap.put(slug, m);
             }
         }
