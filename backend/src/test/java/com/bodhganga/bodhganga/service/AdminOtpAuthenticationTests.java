@@ -30,9 +30,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 public class AdminOtpAuthenticationTests {
 
-    @MockBean
-    private com.bodhganga.bodhganga.services.GoogleDriveSyncService googleDriveSyncService;
-
     @SpyBean
     private AuthService authService;
 

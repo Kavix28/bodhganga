@@ -1,12 +1,8 @@
 package com.bodhganga.bodhganga.controllers;
 
-import com.bodhganga.bodhganga.dto.ApiResponseDTO;
 import com.bodhganga.bodhganga.entity.IngestionStatus;
 import com.bodhganga.bodhganga.repo.ProductRepo;
-import com.bodhganga.bodhganga.services.DriveToS3PipelineTask;
 import com.bodhganga.bodhganga.services.ProductionVerificationService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,56 +18,25 @@ import java.util.Map;
 @RequestMapping("/api/admin/pipeline")
 public class PipelineController {
 
-    private static final Logger log = LoggerFactory.getLogger(PipelineController.class);
-
-    private final DriveToS3PipelineTask driveToS3PipelineTask;
     private final ProductRepo productRepo;
     private final ProductionVerificationService productionVerificationService;
 
-    public PipelineController(DriveToS3PipelineTask driveToS3PipelineTask,
-                               ProductRepo productRepo,
-                               ProductionVerificationService productionVerificationService) {
-        this.driveToS3PipelineTask = driveToS3PipelineTask;
+    public PipelineController(ProductRepo productRepo,
+            ProductionVerificationService productionVerificationService) {
         this.productRepo = productRepo;
         this.productionVerificationService = productionVerificationService;
     }
 
     // =========================================================================
-    // POST /api/admin/pipeline/run
-    // Manually triggers the ingestion pipeline (bypasses pipelineEnabled flag).
-    // =========================================================================
-    @PostMapping("/run")
-    public ResponseEntity<ApiResponseDTO> runPipeline() {
-        log.info("[PIPELINE] Manual run triggered via admin API.");
-        try {
-            driveToS3PipelineTask.syncDriveToS3(true);
-            return ResponseEntity.ok(ApiResponseDTO.builder()
-                    .success(true)
-                    .message("Ingestion pipeline executed successfully")
-                    .build());
-        } catch (Exception e) {
-            log.error("[PIPELINE] Manual run failed", e);
-            return ResponseEntity.internalServerError().body(ApiResponseDTO.builder()
-                    .success(false)
-                    .message("Pipeline failed: " + e.getMessage())
-                    .build());
-        }
-    }
-
-    // =========================================================================
-    // GET /api/admin/pipeline/status — current run state
+    // GET /api/admin/pipeline/status — current pipeline retirement status
     // =========================================================================
     @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> getPipelineStatus() {
         Map<String, Object> response = new HashMap<>();
-        response.put("activePipeline", "DriveToS3PipelineTask");
-        response.put("legacyPipelineDisabled", true);
-        response.put("running", driveToS3PipelineTask.isRunning());
-        response.put("lastRun", driveToS3PipelineTask.getLastRun());
-        response.put("filesProcessed", driveToS3PipelineTask.getFilesProcessed());
-        response.put("filesUploaded", driveToS3PipelineTask.getFilesUploaded());
-        response.put("filesFailed", driveToS3PipelineTask.getFilesFailed());
-        response.put("filesSkipped", driveToS3PipelineTask.getFilesSkipped());
+        response.put("activePipeline", "NONE");
+        response.put("drivePipelineRetired", true);
+        response.put("message",
+                "Google Drive ingestion pipeline has been permanently retired. Use Admin State Resources for resource publishing.");
         return ResponseEntity.ok(response);
     }
 
@@ -91,7 +56,8 @@ public class PipelineController {
     }
 
     // =========================================================================
-    // GET /api/admin/pipeline/audit (mapped to summary to fit old frontend if needed)
+    // GET /api/admin/pipeline/audit (mapped to summary to fit old frontend if
+    // needed)
     // =========================================================================
     @GetMapping("/audit")
     public ResponseEntity<Map<String, Object>> getPipelineAudit() {
@@ -147,10 +113,12 @@ public class PipelineController {
     }
 
     // =========================================================================
-    // POST /api/admin/pipeline/reconcile/{stateSlug}/{districtSlug} — district reconciliation
+    // POST /api/admin/pipeline/reconcile/{stateSlug}/{districtSlug} — district
+    // reconciliation
     // =========================================================================
     @PostMapping("/reconcile/{stateSlug}/{districtSlug}")
-    public ResponseEntity<Map<String, Object>> reconcileDistrict(@PathVariable String stateSlug, @PathVariable String districtSlug) {
+    public ResponseEntity<Map<String, Object>> reconcileDistrict(@PathVariable String stateSlug,
+            @PathVariable String districtSlug) {
         return ResponseEntity.ok(productionVerificationService.reconcileDistrict(stateSlug, districtSlug));
     }
 }
