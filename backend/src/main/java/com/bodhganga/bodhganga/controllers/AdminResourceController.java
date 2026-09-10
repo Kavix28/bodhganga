@@ -88,6 +88,10 @@ public class AdminResourceController {
             data.put("archived", p.isArchived());
             data.put("contentHash", p.getContentHash());
             data.put("fileSize", p.getFileSize());
+            data.put("type", p.getType());
+            data.put("contentType", p.getContentType());
+            data.put("mimeType", p.getMimeType());
+            data.put("fileExtension", p.getFileExtension());
 
             response.put("success", true);
             response.put("isDuplicate", result.isDuplicate());

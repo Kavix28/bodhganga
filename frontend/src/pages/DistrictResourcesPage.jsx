@@ -19,6 +19,9 @@ const FILE_ICONS = {
   m4a:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
   mp3:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
   wav:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
+  aac:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
+  ogg:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
+  mp4:  { icon: "🎬", color: "text-cyan-400",   label: "Video" },
 };
 
 function formatSize(bytes) {
@@ -35,7 +38,8 @@ function ResourceModal({ resource, onClose }) {
 
   const officeExts = ["docx", "doc", "xlsx", "xls", "pptx", "ppt"];
   const imageExts = ["png", "jpg", "jpeg", "webp"];
-  const audioExts = ["mp3", "m4a", "wav"];
+  const audioExts = ["mp3", "m4a", "wav", "aac", "ogg"];
+  const videoExts = ["mp4"];
 
   const renderContent = () => {
     if (ext === "pdf") {
@@ -72,6 +76,15 @@ function ResourceModal({ resource, onClose }) {
           <audio controls className="w-full max-w-md" src={url}>
             Your browser does not support audio playback.
           </audio>
+        </div>
+      );
+    }
+    if (videoExts.includes(ext)) {
+      return (
+        <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-black rounded-lg p-4">
+          <video controls className="max-w-full max-h-full rounded-lg shadow-lg" src={url}>
+            Your browser does not support video playback.
+          </video>
         </div>
       );
     }

@@ -17,6 +17,9 @@ const FILE_ICONS = {
   mp3:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
   m4a:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
   wav:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
+  aac:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
+  ogg:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
+  mp4:  { icon: "🎬", color: "text-cyan-400",   label: "Video" },
 };
 
 function formatSize(bytes) {

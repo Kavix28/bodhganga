@@ -74,13 +74,16 @@ export const getDistrictResources = (stateSlug, districtSlug) =>
     api.get(`/admin/resources/state/${stateSlug}/district/${districtSlug}`);
 
 /**
- * Upload a state resource PDF (admin multipart upload).
+ * Upload a state resource (admin multipart upload supporting PDF, Image, Audio, Video).
  */
-export const uploadAdminResource = (formData) =>
+export const uploadAdminResource = (formData, options = {}) =>
     api.post('/admin/resources/upload', formData, {
         headers: {
             'Content-Type': 'multipart/form-data',
         },
+        timeout: 600000, // 10 minutes for file upload requests
+        signal: options.signal,
+        onUploadProgress: options.onUploadProgress,
     });
 
 /**

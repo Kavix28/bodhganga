@@ -18,6 +18,10 @@ const FILE_ICONS = {
   webp: { icon: "🖼️", color: "text-purple-400", label: "Image" },
   mp3:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
   m4a:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
+  wav:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
+  aac:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
+  ogg:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
+  mp4:  { icon: "🎬", color: "text-cyan-400",   label: "Video" },
 };
 
 function formatSize(bytes) {
@@ -32,7 +36,8 @@ function ResourceModal({ resource, onClose }) {
   const title = resource.displayTitle || resource.title || resource.fileName;
   const officeExts = ["docx", "doc", "xlsx", "xls", "pptx", "ppt"];
   const imageExts  = ["png", "jpg", "jpeg", "webp"];
-  const audioExts  = ["mp3", "m4a", "wav"];
+  const audioExts  = ["mp3", "m4a", "wav", "aac", "ogg"];
+  const videoExts  = ["mp4"];
 
   useEffect(() => {
     const h = (e) => { if (e.key === "Escape") onClose(); };
@@ -86,6 +91,12 @@ function ResourceModal({ resource, onClose }) {
               <audio controls className="w-full max-w-md" src={url}>
                 Your browser does not support audio.
               </audio>
+            </div>
+          ) : videoExts.includes(ext) ? (
+            <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-black rounded-lg p-4">
+              <video controls className="max-w-full max-h-full rounded-lg shadow-lg" src={url}>
+                Your browser does not support video playback.
+              </video>
             </div>
           ) : officeExts.includes(ext) ? (
             <iframe

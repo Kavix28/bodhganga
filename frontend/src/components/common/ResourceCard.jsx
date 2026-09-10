@@ -7,6 +7,7 @@ import {
   Presentation,
   File,
   ExternalLink,
+  Video,
 } from 'lucide-react';
 
 /**
@@ -41,6 +42,13 @@ const ResourceCard = ({ title, fileName, fileType, mimeType, s3Url, districtName
           bgColor: 'bg-violet-50 border-violet-100',
           badgeText: 'Audio File',
           badgeColor: 'bg-violet-100 text-violet-800',
+        };
+      if (mime.startsWith('video/'))
+        return {
+          icon: <Video className="w-8 h-8 text-cyan-600" />,
+          bgColor: 'bg-cyan-50 border-cyan-100',
+          badgeText: 'Video File',
+          badgeColor: 'bg-cyan-100 text-cyan-800',
         };
       if (mime === 'application/pdf')
         return {
@@ -129,11 +137,20 @@ const ResourceCard = ({ title, fileName, fileType, mimeType, s3Url, districtName
       case 'mp3':
       case 'm4a':
       case 'wav':
+      case 'aac':
+      case 'ogg':
         return {
           icon: <Music className="w-8 h-8 text-violet-600" />,
           bgColor: 'bg-violet-50 border-violet-100',
           badgeText: 'Audio File',
           badgeColor: 'bg-violet-100 text-violet-800',
+        };
+      case 'mp4':
+        return {
+          icon: <Video className="w-8 h-8 text-cyan-600" />,
+          bgColor: 'bg-cyan-50 border-cyan-100',
+          badgeText: 'Video File',
+          badgeColor: 'bg-cyan-100 text-cyan-800',
         };
       default:
         return {
