@@ -61,6 +61,10 @@ public class Product {
     // Binary content hash for SHA-256 duplicate detection and idempotency
     private String contentHash;
 
+    // District Section Context Fields
+    private String sectionSlug;
+    private String contentArea;
+
     public Product() {
         this.createdAt = new Date();
         this.updatedAt = new Date();
@@ -538,5 +542,21 @@ public class Product {
             }
         }
         return "application/octet-stream";
+    }
+
+    public String getSectionSlug() {
+        return sectionSlug;
+    }
+
+    public void setSectionSlug(String sectionSlug) {
+        this.sectionSlug = sectionSlug;
+    }
+
+    public String getContentArea() {
+        return contentArea;
+    }
+
+    public void setContentArea(String contentArea) {
+        this.contentArea = contentArea;
     }
 }

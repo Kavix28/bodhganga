@@ -135,7 +135,22 @@ public class AdminResourceService {
         product.setDistrictSlug(cleanDistrictSlug);
         product.setFree(isFree);
         product.setPrice(price);
-        product.setCategory(categoryInput != null && !categoryInput.isBlank() ? categoryInput.trim() : "Notes");
+        String categoryName = categoryInput != null && !categoryInput.isBlank() ? categoryInput.trim() : "Notes";
+        product.setCategory(categoryName);
+
+        product.setContentArea(isFree ? "FREE_DISTRICT_CONTENT" : "PAID_DISTRICT_RESOURCES");
+        String catLower = categoryName.toLowerCase();
+        if (catLower.contains("heritage") || catLower.contains("monument")) {
+            product.setSectionSlug("heritage-monuments");
+        } else if (catLower.contains("geography") || catLower.contains("map")) {
+            product.setSectionSlug("geography");
+        } else if (catLower.contains("art") || catLower.contains("culture")) {
+            product.setSectionSlug("art-culture");
+        } else if (catLower.contains("history")) {
+            product.setSectionSlug("history");
+        } else {
+            product.setSectionSlug("history");
+        }
         product.setS3Key(s3Key);
         product.setStorageKey(s3Key);
         product.setS3Url(s3Url);

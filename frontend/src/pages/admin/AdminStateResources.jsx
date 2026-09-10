@@ -856,7 +856,11 @@ const AdminResourceUploadModal = ({ state, district, onClose, onSuccess }) => {
                                 onChange={(e) => setCategory(e.target.value)}
                                 className="w-full bg-gray-900/80 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
                             >
-                                <option value="Notes">Notes</option>
+                                <option value="History">History</option>
+                                <option value="Heritage Sites & Monuments">Heritage Sites & Monuments</option>
+                                <option value="Geography">Geography</option>
+                                <option value="Art & Culture">Art & Culture</option>
+                                <option value="Notes">Notes (History)</option>
                                 <option value="Question Bank">Question Bank</option>
                                 <option value="Syllabus">Syllabus</option>
                                 <option value="Official Gazette">Official Gazette</option>

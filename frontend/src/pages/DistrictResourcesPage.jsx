@@ -139,18 +139,19 @@ export default function DistrictResourcesPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [allResources, setAllResources] = useState([]);
+  const [sectionAvailability, setSectionAvailability] = useState(null);
   const [loading, setLoading] = useState(true);
   const [districtName, setDistrictName] = useState("");
   const [stateName, setStateName] = useState("");
   const [purchased, setPurchased] = useState(false);
   const [selectedResource, setSelectedResource] = useState(null);
-  const activeTab = searchParams.get("tab") || "free";
+  const activeSection = searchParams.get("section") || searchParams.get("tab") || "history";
   const { isAuthenticated, openAuthModal } = useAuth();
   const [mcqFlowState, setMcqFlowState] = useState(null);
 
   useEffect(() => {
     setMcqFlowState(null);
-  }, [activeTab]);
+  }, [activeSection]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -167,6 +168,17 @@ export default function DistrictResourcesPage() {
           setDistrictName(dFormatted);
           setStateName(sFormatted);
         }
+
+        try {
+          const secRes = await api.get(`/products/state/${stateSlug}/district/${districtSlug}/sections`);
+          const secData = secRes?.data?.sections || secRes?.sections || null;
+          if (secData) {
+            setSectionAvailability(secData);
+          }
+        } catch (err) {
+          console.error("Failed to load section availability:", err);
+        }
+
         try {
           const pRes = await api.get("/payment/district/purchased");
           const list = Array.isArray(pRes) ? pRes : (pRes?.data || []);
@@ -216,7 +228,43 @@ export default function DistrictResourcesPage() {
 
   const freeResources = allResources.filter(r => r.free || r.isFree || r.price === 0);
   const paidResources = allResources.filter(r => !r.free && !r.isFree && r.price > 0);
-  const displayed = activeTab === "free" ? freeResources : paidResources;
+
+  const getFilteredSectionResources = (sectionId) => {
+    if (sectionId === "paid") return paidResources;
+    return freeResources.filter((p) => {
+      const cat = String(p.category || "").toLowerCase();
+      const title = String(p.title || p.displayTitle || "").toLowerCase();
+      const desc = String(p.description || "").toLowerCase();
+      const combined = `${cat} ${title} ${desc}`;
+
+      if (sectionId === "heritage-monuments") {
+        return combined.includes("heritage") || combined.includes("monument") || combined.includes("landmark");
+      }
+      if (sectionId === "geography") {
+        return combined.includes("geography") || combined.includes("geographic") || combined.includes("demography") || combined.includes("map");
+      }
+      if (sectionId === "art-culture") {
+        return combined.includes("art") || combined.includes("culture") || combined.includes("tradition") || combined.includes("festival");
+      }
+      if (sectionId === "history") {
+        const isOther = (combined.includes("heritage") || combined.includes("monument") || combined.includes("landmark")) ||
+                        (combined.includes("geography") || combined.includes("geographic") || combined.includes("demography") || combined.includes("map")) ||
+                        (combined.includes("art") || combined.includes("culture") || combined.includes("tradition") || combined.includes("festival"));
+        return !isOther || combined.includes("history") || combined.includes("historical") || combined.includes("notes");
+      }
+      return true;
+    });
+  };
+
+  const displayed = getFilteredSectionResources(activeSection);
+  const isPaidTab = activeSection === "paid";
+  const sectionLabels = {
+    history: "History",
+    "heritage-monuments": "Heritage Sites & Monuments",
+    geography: "Geography",
+    "art-culture": "Art & Culture",
+    paid: "Paid District Package (₹99)"
+  };
 
   if (loading) return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center">
@@ -225,41 +273,54 @@ export default function DistrictResourcesPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white px-4 py-10">
+    <div className="min-h-screen bg-gray-950 text-white p-6">
       {selectedResource && (
         <ResourceModal resource={selectedResource} onClose={() => setSelectedResource(null)} />
       )}
 
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto space-y-6">
         <button onClick={() => navigate(`/states-browse/${stateSlug}`)}
-          className="text-gray-400 hover:text-amber-400 mb-6 flex items-center gap-1 text-sm">
+          className="text-gray-400 hover:text-amber-400 flex items-center gap-1 text-sm">
           ← Back to Districts
         </button>
-        <h1 className="text-3xl font-bold text-amber-400 mb-1">{districtName}</h1>
-        <p className="text-gray-400 mb-6">{stateName}</p>
+        <div>
+          <h1 className="text-3xl font-bold text-amber-400 mb-1">{districtName}</h1>
+          <p className="text-gray-400">{stateName}</p>
+        </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-8 border-b border-gray-800">
+        {/* Section Tabs */}
+        <StateSectionTabs
+          stateSlug={stateSlug}
+          districtSlug={districtSlug}
+          activeSection={activeSection}
+          sectionAvailability={sectionAvailability}
+          onSectionChange={(secId) => setSearchParams({ section: secId })}
+        />
+
+        {/* Section View Control */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-800 pb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Active Section:</span>
+            <span className="text-sm font-bold text-amber-400">
+              {sectionLabels[activeSection] || activeSection}
+            </span>
+          </div>
+
           <button
-            onClick={() => setSearchParams({ tab: "free" })}
-            className={`px-5 py-2 text-sm font-semibold rounded-t-lg transition-colors
-              ${activeTab === "free"
-                ? "bg-green-900 text-green-300 border-b-2 border-green-400"
-                : "text-gray-500 hover:text-white"}`}>
-            Free ({freeResources.length})
-          </button>
-          <button
-            onClick={() => setSearchParams({ tab: "paid" })}
-            className={`px-5 py-2 text-sm font-semibold rounded-t-lg transition-colors
-              ${activeTab === "paid"
-                ? "bg-amber-900 text-amber-300 border-b-2 border-amber-400"
-                : "text-gray-500 hover:text-white"}`}>
-            Paid ({paidResources.length})
+            onClick={() => setSearchParams({ section: activeSection === "paid" ? "history" : "paid" })}
+            className={`px-4 py-2 text-xs font-bold rounded-xl transition-all border flex items-center gap-2 ${
+              activeSection === "paid"
+                ? "bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-md"
+                : "bg-gray-900/80 text-gray-400 border-gray-700 hover:text-amber-400 hover:border-gray-600"
+            }`}
+          >
+            <span>🔒 Paid District Package ({paidResources.length})</span>
+            {purchased && <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded">Unlocked</span>}
           </button>
         </div>
 
         {/* Paid tab locked state */}
-        {activeTab === "paid" && !purchased && paidResources.length > 0 && (
+        {isPaidTab && !purchased && paidResources.length > 0 && (
           <div className="text-center py-16 border border-gray-800 rounded-xl bg-gray-900">
             <div className="text-5xl mb-4">🔒</div>
             <h3 className="text-xl font-bold text-white mb-2">Unlock {districtName}</h3>
@@ -273,11 +334,21 @@ export default function DistrictResourcesPage() {
         )}
 
         {/* Resources grid */}
-        {(activeTab === "free" || purchased) && (
+        {(!isPaidTab || purchased) && (
           displayed.length === 0 ? (
-            <div className="text-gray-500 text-center py-20 bg-gray-900/40 rounded-xl border border-gray-800">
-              <p className="text-base font-semibold text-gray-400">No resources published for this section yet.</p>
-              <p className="text-xs text-gray-600 mt-1">Check back soon for newly published study material.</p>
+            <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-12 text-center space-y-4 max-w-xl mx-auto shadow-xl my-6 animate-fadeIn">
+              <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto text-2xl">
+                ⏳
+              </div>
+              <span className="px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold uppercase tracking-widest rounded-full inline-block">
+                Coming Soon
+              </span>
+              <h3 className="text-xl font-bold text-white font-serif">
+                {sectionLabels[activeSection] || activeSection} — {districtName}
+              </h3>
+              <p className="text-sm text-gray-400 leading-relaxed max-w-md mx-auto">
+                Study resources for <strong className="text-amber-400 font-semibold">{sectionLabels[activeSection] || activeSection}</strong> in <strong className="text-white font-semibold">{districtName}</strong> are currently being prepared by our editorial team and will be available soon.
+              </p>
             </div>
           ) : (
             mcqFlowState ? (

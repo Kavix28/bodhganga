@@ -1,42 +1,22 @@
-import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Lock, History, Award, Landmark, Map, Music, ChevronRight } from 'lucide-react';
-import { useAuth } from '../../hooks/useAuth';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { History, Landmark, Map, Music } from 'lucide-react';
 
-export default function StateSectionTabs({ stateSlug, activeSection }) {
+export default function StateSectionTabs({ stateSlug, districtSlug, activeSection, sectionAvailability, onSectionChange }) {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { isAuthenticated } = useAuth();
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [pendingTab, setPendingTab] = useState(null);
 
   const TABS = [
-    { id: 'history', label: 'History', icon: History, path: `/state/${stateSlug}/history` },
-    { id: 'heritage-monuments', label: 'Heritage Sites & Monuments', icon: Landmark, path: `/state/${stateSlug}/heritage-monuments` },
-    { id: 'geography', label: 'Geography', icon: Map, path: `/state/${stateSlug}/geography` },
-    { id: 'art-culture', label: 'Art & Culture', icon: Music, path: `/state/${stateSlug}/art-culture` },
+    { id: 'history', label: 'History', icon: History, path: districtSlug ? `/state/${stateSlug}/district/${districtSlug}/products?section=history` : `/state/${stateSlug}/history` },
+    { id: 'heritage-monuments', label: 'Heritage Sites & Monuments', icon: Landmark, path: districtSlug ? `/state/${stateSlug}/district/${districtSlug}/products?section=heritage-monuments` : `/state/${stateSlug}/heritage-monuments` },
+    { id: 'geography', label: 'Geography', icon: Map, path: districtSlug ? `/state/${stateSlug}/district/${districtSlug}/products?section=geography` : `/state/${stateSlug}/geography` },
+    { id: 'art-culture', label: 'Art & Culture', icon: Music, path: districtSlug ? `/state/${stateSlug}/district/${districtSlug}/products?section=art-culture` : `/state/${stateSlug}/art-culture` },
   ];
 
   const handleTabClick = (tab) => {
-    if (isAuthenticated) {
+    if (onSectionChange) {
+      onSectionChange(tab.id);
+    } else {
       navigate(tab.path);
-    } else {
-      setPendingTab(tab);
-      setShowLoginModal(true);
-    }
-  };
-
-  const handleLoginRedirect = () => {
-    setShowLoginModal(false);
-    if (pendingTab) {
-      // Pass the destination path to the login page so it redirects back after login
-      navigate('/login', { 
-        state: { 
-          from: { pathname: pendingTab.path } 
-        } 
-      });
-    } else {
-      navigate('/login');
     }
   };
 
@@ -48,80 +28,50 @@ export default function StateSectionTabs({ stateSlug, activeSection }) {
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeSection === tab.id;
+            const availInfo = sectionAvailability ? sectionAvailability[tab.id] : null;
+            const isAvailable = availInfo ? (availInfo.isAvailable || availInfo.count > 0) : null;
             
             return (
               <button
                 key={tab.id}
                 onClick={() => handleTabClick(tab)}
-                className={`relative flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl text-[11px] md:text-xs font-bold uppercase tracking-widest transition-all duration-300 ${
+                className={`relative flex flex-col md:flex-row items-center justify-center gap-1.5 md:gap-2.5 px-3 md:px-4 py-3 rounded-xl text-[11px] md:text-xs font-bold uppercase tracking-wider transition-all duration-300 ${
                   isActive
                     ? 'bg-gold text-emerald-dark shadow-md font-extrabold'
                     : 'text-white/70 hover:text-white hover:bg-white/5'
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-dark' : 'text-gold'}`} />
-                <span>{tab.label}</span>
+                <div className="flex items-center gap-2">
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-emerald-dark' : 'text-gold'}`} />
+                  <span>{tab.label}</span>
+                </div>
                 
-                {/* Lock indicator for logged-out state */}
-                {!isAuthenticated && (
-                  <Lock className={`w-3.5 h-3.5 absolute top-1 right-1.5 ${isActive ? 'text-emerald-dark/50' : 'text-white/30'}`} />
+                {/* Dynamic Status Badge */}
+                {availInfo !== null && availInfo !== undefined && (
+                  <span className={`text-[9px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 transition-all ${
+                    isAvailable
+                      ? isActive
+                        ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-800'
+                        : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                      : isActive
+                        ? 'bg-amber-950/80 text-amber-300 border border-amber-800'
+                        : 'bg-amber-500/15 text-amber-300/80 border border-amber-500/20'
+                  }`}>
+                    {isAvailable ? (
+                      <>
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        Available
+                      </>
+                    ) : (
+                      'Coming Soon'
+                    )}
+                  </span>
                 )}
               </button>
             );
           })}
         </div>
       </div>
-
-      {/* Auth Gating Modal */}
-      {showLoginModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fade-in">
-          <div className="bg-emerald-950 border border-gold/30 rounded-3xl w-full max-w-md shadow-2xl p-8 relative overflow-hidden select-none">
-            {/* Background design elements */}
-            <div className="absolute -top-24 -left-24 w-48 h-48 bg-gold/5 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
-
-            {/* Lock Header */}
-            <div className="flex flex-col items-center text-center space-y-4 mb-6">
-              <div className="w-16 h-16 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center text-gold animate-pulse">
-                <Lock className="w-8 h-8" />
-              </div>
-              <h3 className="text-xl font-bold text-white font-serif tracking-tight">Premium Content Access</h3>
-              <p className="text-xs text-white/60 leading-relaxed max-w-xs">
-                To view <strong className="text-gold font-bold">History, Geography, Heritage, or Art & Culture</strong> modules, you need to log in with a verified student account.
-              </p>
-            </div>
-
-            {/* Info Box */}
-            <div className="bg-emerald-900/40 border border-gold/10 p-4 rounded-2xl mb-6 text-left space-y-2.5">
-              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gold">
-                <span>📚 What's Included:</span>
-              </div>
-              <ul className="text-[11px] text-white/70 space-y-1.5 list-disc list-inside">
-                <li>Bilingual notes and curriculum-mapped timelines</li>
-                <li>Geographical blueprints & historical analysis</li>
-                <li>Heritage landmark notes & practice materials</li>
-              </ul>
-            </div>
-
-            {/* Actions */}
-            <div className="flex flex-col gap-2.5">
-              <button
-                onClick={handleLoginRedirect}
-                className="w-full py-3.5 bg-gradient-to-r from-gold to-gold-dark hover:from-gold-dark hover:to-gold text-emerald-dark font-extrabold text-xs uppercase tracking-widest rounded-xl transition-all duration-300 shadow-lg shadow-gold/5 flex items-center justify-center gap-2"
-              >
-                <span>Login to continue</span>
-                <ChevronRight className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setShowLoginModal(false)}
-                className="w-full py-3 border border-white/10 text-white/50 hover:text-white hover:bg-white/5 font-bold text-xs uppercase tracking-widest rounded-xl transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

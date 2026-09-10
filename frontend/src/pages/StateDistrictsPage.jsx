@@ -208,9 +208,9 @@ function DistrictCard({ district, onClick }) {
             {district.paid} Paid
           </span>
         )}
-        {district.total === 0 && (
-          <span className="text-[10px] font-bold uppercase tracking-wider bg-gray-800 text-gray-500 px-2 py-0.5 rounded-full">
-            No resources
+        {district.free === 0 && (
+          <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-300/80 border border-amber-500/20 px-2 py-0.5 rounded-full">
+            Coming Soon
           </span>
         )}
       </div>
