@@ -802,7 +802,7 @@ const AdminResourceUploadModal = ({ state, district, onClose, onSuccess }) => {
         for (const item of filesToStart) {
             uploadFileItem(item);
         }
-    }, [onSuccess, titlePrefix, category, description, isFree, publish, state.stateSlug, district.districtSlug]);
+    }, [onSuccess, category, description, isFree, publish, state.stateSlug, district.districtSlug]);
 
     useEffect(() => {
         if (isUploading) {
