@@ -772,6 +772,7 @@ const AdminResourceUploadModal = ({ state, district, onClose, onSuccess }) => {
                 setQueue(prev => prev.map(f => f.id === item.id ? { ...f, status: 'cancelled', progress: 0, errorMessage: 'Upload cancelled by user' } : f));
             } else {
                 const msg = err.error || err.message || 'Upload failed';
+                console.error(`[AdminResourceUpload] Upload failed for ${item.name}:`, err);
                 setQueue(prev => prev.map(f => f.id === item.id ? { ...f, status: 'failed', progress: 0, errorMessage: msg } : f));
             }
         }
@@ -791,6 +792,9 @@ const AdminResourceUploadModal = ({ state, district, onClose, onSuccess }) => {
                 setUploadSummary({ successCount, failedCount });
                 toast.success(`${successCount} resource file(s) processed successfully!`);
                 onSuccess();
+            } else if (failedCount > 0) {
+                setUploadSummary({ successCount, failedCount });
+                toast.error(`Failed to upload ${failedCount} file(s). See error details below.`);
             }
             return;
         }
