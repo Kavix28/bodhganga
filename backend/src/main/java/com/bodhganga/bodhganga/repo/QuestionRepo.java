@@ -37,6 +37,14 @@ public interface QuestionRepo extends MongoRepository<Question, String> {
 
         List<Question> findByStateSlugAndDistrictSlugAndStatus(String stateSlug, String districtSlug, String status);
 
+        List<Question> findByStateSlugAndDistrictSlugAndStatusAndIsActiveTrueOrderByQuestionNumberAsc(
+                        String stateSlug, String districtSlug, String status);
+
+        long countByStateSlugAndDistrictSlugAndStatusAndIsActiveTrue(String stateSlug, String districtSlug,
+                        String status);
+
+        long countByStatusAndIsActiveTrue(String status);
+
         List<Question> findByStateSlugAndDistrictSlug(String stateSlug, String districtSlug);
 
         List<Question> findByStatus(String status);

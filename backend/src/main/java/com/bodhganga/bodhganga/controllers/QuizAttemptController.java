@@ -46,15 +46,33 @@ public class QuizAttemptController {
             @RequestParam(required = false) String districtSlug,
             @RequestParam(required = false) String testType,
             @RequestParam(required = false) String topic,
-            @RequestParam(required = false, defaultValue = "100") int limit) {
+            @RequestParam(required = false, defaultValue = "0") int limit) {
 
         List<Question> questions;
-        if (stateSlug != null && districtSlug != null && testType != null) {
-            questions = questionRepo.findByStateSlugAndDistrictSlugAndTestTypeAndIsActiveTrueOrderByQuestionNumberAsc(
-                    stateSlug, districtSlug, testType);
+        if (stateSlug != null && districtSlug != null) {
+            if ("master".equalsIgnoreCase(testType)) {
+                // Master test aggregates all published questions across test types for this
+                // district
+                questions = questionRepo.findByStateSlugAndDistrictSlugAndStatusAndIsActiveTrueOrderByQuestionNumberAsc(
+                        stateSlug, districtSlug, "PUBLISHED");
+            } else if (testType != null && !testType.isBlank()) {
+                questions = questionRepo
+                        .findByStateSlugAndDistrictSlugAndTestTypeAndIsActiveTrueOrderByQuestionNumberAsc(
+                                stateSlug, districtSlug, testType);
+            } else {
+                questions = questionRepo.findByStateSlugAndDistrictSlugAndStatusAndIsActiveTrueOrderByQuestionNumberAsc(
+                        stateSlug, districtSlug, "PUBLISHED");
+            }
         } else if (districtSlug != null && testType != null) {
-            questions = questionRepo.findByDistrictSlugAndTestTypeAndIsActiveTrueOrderByQuestionNumberAsc(districtSlug,
-                    testType);
+            if ("master".equalsIgnoreCase(testType)) {
+                questions = questionRepo.findByIsActiveTrue().stream()
+                        .filter(q -> districtSlug.equalsIgnoreCase(q.getDistrictSlug()))
+                        .collect(Collectors.toList());
+            } else {
+                questions = questionRepo.findByDistrictSlugAndTestTypeAndIsActiveTrueOrderByQuestionNumberAsc(
+                        districtSlug,
+                        testType);
+            }
         } else if (stateSlug != null && testType != null) {
             questions = questionRepo.findByStateSlugAndTestTypeAndIsActiveTrueOrderByQuestionNumberAsc(stateSlug,
                     testType);
@@ -73,8 +91,18 @@ public class QuizAttemptController {
                 .filter(q -> q.getStatus() == null || "PUBLISHED".equalsIgnoreCase(q.getStatus()))
                 .collect(Collectors.toList());
 
-        if (limit > 0 && questions.size() > limit) {
-            questions = questions.subList(0, limit);
+        // Determine effective question limit based on challenge type
+        int targetLimit = limit;
+        if (targetLimit <= 0) {
+            if ("easy".equalsIgnoreCase(testType) || "advanced".equalsIgnoreCase(testType)) {
+                targetLimit = 20; // Fixed 20-question limit for Quick and Advanced challenges
+            } else {
+                targetLimit = 100; // Master test cap
+            }
+        }
+
+        if (targetLimit > 0 && questions.size() > targetLimit) {
+            questions = questions.subList(0, targetLimit);
         }
 
         List<PublicQuestionDTO> publicQuestions = questions.stream()
@@ -95,6 +123,27 @@ public class QuizAttemptController {
                 .success(true)
                 .message("Questions retrieved successfully")
                 .data(publicQuestions)
+                .build());
+    }
+
+    @GetMapping("/published-count")
+    public ResponseEntity<ApiResponseDTO> getPublishedCount(
+            @RequestParam(required = false) String stateSlug,
+            @RequestParam(required = false) String districtSlug) {
+        long count;
+        if (stateSlug != null && districtSlug != null) {
+            count = questionRepo.countByStateSlugAndDistrictSlugAndStatusAndIsActiveTrue(stateSlug, districtSlug,
+                    "PUBLISHED");
+        } else {
+            count = questionRepo.countByStatusAndIsActiveTrue("PUBLISHED");
+        }
+        Map<String, Object> data = new HashMap<>();
+        data.put("count", count);
+        data.put("available", count > 0);
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+                .success(true)
+                .message("Published question count retrieved")
+                .data(data)
                 .build());
     }
 
