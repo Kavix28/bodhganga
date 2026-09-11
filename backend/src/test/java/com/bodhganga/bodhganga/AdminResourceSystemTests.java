@@ -430,4 +430,201 @@ public class AdminResourceSystemTests {
                                 .andExpect(jsonPath("$.success").value(true))
                                 .andExpect(jsonPath("$.data.title").value("abc.test"));
         }
+
+        @Test
+        @WithMockUser(authorities = "ROLE_ADMIN")
+        void testArchivedFreeReactivation() throws Exception {
+                // 1. First upload a free resource
+                MockMultipartFile file = new MockMultipartFile("file", "U_Kiang_Nangbah.png", "image/png",
+                                new byte[] { (byte) 0x89, 'P', 'N', 'G', 1, 2, 3, 4 });
+
+                mockMvc.perform(multipart("/api/admin/resources/upload")
+                                .file(file)
+                                .param("stateSlug", "maharashtra")
+                                .param("districtSlug", "akola")
+                                .param("isFree", "true")
+                                .param("title", "Initial Title"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.isDuplicate").value(false));
+
+                Product original = productRepo.findAll().get(0);
+                String originalId = original.getId();
+
+                // Archive the product manually
+                original.setArchived(true);
+                original.setPublished(false);
+                productRepo.save(original);
+
+                // 2. Upload same bytes again with isFree=true and publish=true
+                mockMvc.perform(multipart("/api/admin/resources/upload")
+                                .file(file)
+                                .param("stateSlug", "maharashtra")
+                                .param("districtSlug", "akola")
+                                .param("isFree", "true")
+                                .param("title", "Reactivated Title")
+                                .param("publish", "true"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.isDuplicate").value(false))
+                                .andExpect(jsonPath("$.data.id").value(originalId))
+                                .andExpect(jsonPath("$.data.isFree").value(true))
+                                .andExpect(jsonPath("$.data.price").value(0.0))
+                                .andExpect(jsonPath("$.data.published").value(true))
+                                .andExpect(jsonPath("$.data.archived").value(false));
+
+                assertEquals(1, productRepo.count());
+                Product reactivated = productRepo.findById(originalId).orElseThrow();
+                assertFalse(reactivated.isArchived());
+                assertTrue(reactivated.isPublished());
+                assertEquals("Reactivated Title", reactivated.getTitle());
+                assertEquals("FREE_DISTRICT_CONTENT", reactivated.getContentArea());
+                assertEquals(0.0, reactivated.getPrice());
+        }
+
+        @Test
+        @WithMockUser(authorities = "ROLE_ADMIN")
+        void testActiveFreeDuplicatePreserved() throws Exception {
+                MockMultipartFile file = new MockMultipartFile("file", "active_file.pdf", "application/pdf",
+                                VALID_PDF_BYTES);
+
+                mockMvc.perform(multipart("/api/admin/resources/upload")
+                                .file(file)
+                                .param("stateSlug", "maharashtra")
+                                .param("districtSlug", "akola")
+                                .param("isFree", "true"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.isDuplicate").value(false));
+
+                assertEquals(1, productRepo.count());
+
+                // Upload duplicate active file
+                mockMvc.perform(multipart("/api/admin/resources/upload")
+                                .file(file)
+                                .param("stateSlug", "maharashtra")
+                                .param("districtSlug", "akola")
+                                .param("isFree", "true"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.isDuplicate").value(true));
+
+                assertEquals(1, productRepo.count());
+        }
+
+        @Test
+        @WithMockUser(authorities = "ROLE_ADMIN")
+        void testPaidAndFreeTierIsolation() throws Exception {
+                // 1. Create an archived PAID resource
+                MockMultipartFile file = new MockMultipartFile("file", "same_content.pdf", "application/pdf",
+                                VALID_PDF_BYTES);
+
+                mockMvc.perform(multipart("/api/admin/resources/upload")
+                                .file(file)
+                                .param("stateSlug", "maharashtra")
+                                .param("districtSlug", "akola")
+                                .param("isFree", "false"))
+                                .andExpect(status().isOk());
+
+                Product paidProduct = productRepo.findAll().get(0);
+                paidProduct.setArchived(true);
+                paidProduct.setPublished(false);
+                productRepo.save(paidProduct);
+
+                assertEquals(1, productRepo.count());
+
+                // 2. Upload same file bytes as FREE
+                mockMvc.perform(multipart("/api/admin/resources/upload")
+                                .file(file)
+                                .param("stateSlug", "maharashtra")
+                                .param("districtSlug", "akola")
+                                .param("isFree", "true"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.isDuplicate").value(false));
+
+                // 3. Verify a NEW FREE product was created and the PAID product remains
+                // archived & untouched
+                assertEquals(2, productRepo.count());
+
+                Product paidRefreshed = productRepo.findById(paidProduct.getId()).orElseThrow();
+                assertTrue(paidRefreshed.isArchived());
+                assertFalse(paidRefreshed.isFree());
+                assertEquals(99.0, paidRefreshed.getPrice());
+                assertEquals("PAID_DISTRICT_RESOURCES", paidRefreshed.getContentArea());
+
+                Product freeNew = productRepo.findAll().stream()
+                                .filter(p -> !p.getId().equals(paidProduct.getId()))
+                                .findFirst().orElseThrow();
+                assertFalse(freeNew.isArchived());
+                assertTrue(freeNew.isFree());
+                assertEquals(0.0, freeNew.getPrice());
+                assertEquals("FREE_DISTRICT_CONTENT", freeNew.getContentArea());
+        }
+
+        @Test
+        @WithMockUser(authorities = "ROLE_ADMIN")
+        void testArchivedFreeWithPublishFalse() throws Exception {
+                MockMultipartFile file = new MockMultipartFile("file", "draft_res.pdf", "application/pdf",
+                                VALID_PDF_BYTES);
+
+                mockMvc.perform(multipart("/api/admin/resources/upload")
+                                .file(file)
+                                .param("stateSlug", "maharashtra")
+                                .param("districtSlug", "akola")
+                                .param("isFree", "true")
+                                .param("publish", "true"))
+                                .andExpect(status().isOk());
+
+                Product original = productRepo.findAll().get(0);
+                original.setArchived(true);
+                productRepo.save(original);
+
+                // Reactivate with publish=false
+                mockMvc.perform(multipart("/api/admin/resources/upload")
+                                .file(file)
+                                .param("stateSlug", "maharashtra")
+                                .param("districtSlug", "akola")
+                                .param("isFree", "true")
+                                .param("publish", "false"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.isDuplicate").value(false))
+                                .andExpect(jsonPath("$.data.published").value(false))
+                                .andExpect(jsonPath("$.data.archived").value(false));
+
+                Product reactivated = productRepo.findById(original.getId()).orElseThrow();
+                assertFalse(reactivated.isArchived());
+                assertFalse(reactivated.isPublished());
+        }
+
+        @Test
+        @WithMockUser(authorities = "ROLE_ADMIN")
+        void testS3ReuseOnReactivation() throws Exception {
+                MockMultipartFile file = new MockMultipartFile("file", "s3_test.pdf", "application/pdf",
+                                VALID_PDF_BYTES);
+
+                mockMvc.perform(multipart("/api/admin/resources/upload")
+                                .file(file)
+                                .param("stateSlug", "maharashtra")
+                                .param("districtSlug", "akola")
+                                .param("isFree", "true"))
+                                .andExpect(status().isOk());
+
+                Product original = productRepo.findAll().get(0);
+                original.setArchived(true);
+                productRepo.save(original);
+
+                // Mock that S3 object ALREADY exists
+                when(s3Service.objectExists(eq(original.getS3Key()))).thenReturn(true);
+                reset(s3Service);
+                when(s3Service.objectExists(eq(original.getS3Key()))).thenReturn(true);
+
+                // Reactivate
+                mockMvc.perform(multipart("/api/admin/resources/upload")
+                                .file(file)
+                                .param("stateSlug", "maharashtra")
+                                .param("districtSlug", "akola")
+                                .param("isFree", "true"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.isDuplicate").value(false));
+
+                // Verify uploadFileWithKey was NOT called again for existing S3 object
+                verify(s3Service, never()).uploadFileWithKey(any(), anyLong(), eq(original.getS3Key()), anyString());
+        }
 }

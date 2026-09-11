@@ -107,8 +107,40 @@ public class AdminResourceService {
                 cleanStateSlug, cleanDistrictSlug, isFree, contentHash);
         if (existingOpt.isPresent()) {
             Product existing = existingOpt.get();
+            if (existing.isArchived()) {
+                log.info("ADMIN_RESOURCE_REACTIVATE: Reactivating archived {} resource ID={}, state={}, district={}",
+                        isFree ? "FREE" : "PAID", existing.getId(), cleanStateSlug, cleanDistrictSlug);
+                existing.setArchived(false);
+                existing.setPublished(publish);
+                existing.setUpdatedAt(new Date());
+
+                if (effectiveTitle != null && !effectiveTitle.isBlank()) {
+                    existing.setTitle(effectiveTitle);
+                    existing.setDisplayTitle(Product.stripExtension(effectiveTitle));
+                }
+                if (categoryInput != null && !categoryInput.isBlank()) {
+                    existing.setCategory(categoryInput.trim());
+                }
+                if (descriptionInput != null && !descriptionInput.isBlank()) {
+                    existing.setDescription(descriptionInput.trim());
+                }
+
+                String targetS3Key = existing.getS3Key();
+                if (targetS3Key != null && !targetS3Key.isBlank()) {
+                    if (!s3Service.objectExists(targetS3Key)) {
+                        try (InputStream inputStream = new ByteArrayInputStream(fileBytes)) {
+                            s3Service.uploadFileWithKey(inputStream, fileBytes.length, targetS3Key, mimeType);
+                        }
+                    }
+                }
+
+                existing = productRepo.save(existing);
+                return new ResourceUploadResult(existing, false,
+                        "Archived resource reactivated and cataloged successfully.");
+            }
+
             log.info(
-                    "ADMIN_RESOURCE_DUPLICATE: Identical content hash {} already exists for state={}, district={}, isFree={}. Idempotent return ID={}",
+                    "ADMIN_RESOURCE_DUPLICATE: Identical active content hash {} already exists for state={}, district={}, isFree={}. Idempotent return ID={}",
                     contentHash, cleanStateSlug, cleanDistrictSlug, isFree, existing.getId());
             return new ResourceUploadResult(existing, true, "Resource with exact identical content already exists.");
         }
