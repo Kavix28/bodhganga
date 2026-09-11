@@ -77,7 +77,8 @@ const AdminStateResources = () => {
     const fetchStates = async () => {
         setLoadingStates(true);
         try {
-            const data = await getAvailableStates();
+            const rawData = await getAvailableStates();
+            const data = Array.isArray(rawData) ? rawData : [];
             setStates(data);
             if (data.length > 0 && !selectedState) {
                 handleSelectState(data[0]);
@@ -85,6 +86,7 @@ const AdminStateResources = () => {
         } catch (err) {
             console.error('Failed to load states:', err);
             toast.error('Failed to load state catalog');
+            setStates([]);
         } finally {
             setLoadingStates(false);
         }
@@ -97,7 +99,8 @@ const AdminStateResources = () => {
         setLoadingDistricts(true);
 
         try {
-            const districtList = await getDistricts(state.stateSlug);
+            const rawDistricts = await getDistricts(state.stateSlug);
+            const districtList = Array.isArray(rawDistricts) ? rawDistricts : [];
             setDistricts(districtList);
             if (districtList.length > 0) {
                 handleSelectDistrict(state, districtList[0]);
@@ -105,6 +108,7 @@ const AdminStateResources = () => {
         } catch (err) {
             console.error('Failed to load districts:', err);
             toast.error(`Failed to load districts for ${state.name}`);
+            setDistricts([]);
         } finally {
             setLoadingDistricts(false);
         }
@@ -120,11 +124,13 @@ const AdminStateResources = () => {
     const fetchResources = async (stateSlug, districtSlug) => {
         setLoadingResources(true);
         try {
-            const resList = await getDistrictResources(stateSlug, districtSlug);
+            const rawResources = await getDistrictResources(stateSlug, districtSlug);
+            const resList = Array.isArray(rawResources) ? rawResources : [];
             setResources(resList);
         } catch (err) {
             console.error('Failed to load resources:', err);
             toast.error('Failed to load district resources');
+            setResources([]);
         } finally {
             setLoadingResources(false);
         }
@@ -139,7 +145,7 @@ const AdminStateResources = () => {
             await updateAdminResourceStatus(resource.id, targetPublished);
             toast.success(`Resource ${targetPublished ? 'published' : 'unpublished'} successfully.`);
             setResources(prev =>
-                prev.map(r => r.id === resource.id ? { ...r, published: targetPublished, isPublished: targetPublished } : r)
+                (Array.isArray(prev) ? prev : []).map(r => r.id === resource.id ? { ...r, published: targetPublished, isPublished: targetPublished } : r)
             );
         } catch (err) {
             console.error('Failed to update status:', err);
@@ -156,7 +162,7 @@ const AdminStateResources = () => {
         try {
             await archiveAdminResource(id);
             toast.success('Resource archived successfully.');
-            setResources(prev => prev.filter(r => r.id !== id));
+            setResources(prev => (Array.isArray(prev) ? prev : []).filter(r => r.id !== id));
             setArchiveCandidate(null);
         } catch (err) {
             console.error('Failed to archive resource:', err);
@@ -164,18 +170,22 @@ const AdminStateResources = () => {
         }
     };
 
-    const filteredStates = states.filter(s =>
-        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.stateSlug.toLowerCase().includes(searchQuery.toLowerCase())
+    const safeStates = Array.isArray(states) ? states : [];
+    const safeDistricts = Array.isArray(districts) ? districts : [];
+    const safeResources = Array.isArray(resources) ? resources : [];
+
+    const filteredStates = safeStates.filter(s =>
+        (s?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (s?.stateSlug || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const filteredDistricts = districts.filter(d =>
-        d.district.toLowerCase().includes(districtSearch.toLowerCase()) ||
-        d.districtSlug.toLowerCase().includes(districtSearch.toLowerCase())
+    const filteredDistricts = safeDistricts.filter(d =>
+        (d?.district || '').toLowerCase().includes(districtSearch.toLowerCase()) ||
+        (d?.districtSlug || '').toLowerCase().includes(districtSearch.toLowerCase())
     );
 
-    const freeResources = resources.filter(r => r.isFree || r.free || r.price === 0);
-    const paidResources = resources.filter(r => !r.isFree && !r.free && r.price > 0);
+    const freeResources = safeResources.filter(r => r.isFree || r.free || r.price === 0);
+    const paidResources = safeResources.filter(r => !r.isFree && !r.free && r.price > 0);
 
     return (
         <div className="space-y-6 animate-fadeIn">
