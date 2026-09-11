@@ -1,80 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
-import imgAndhraPradesh from '../assets/states/andhra-pradesh-image.png';
-import imgArunachalPradesh from '../assets/states/arunachal-pradesh-image.png';
-import imgAssam from '../assets/states/assam-image.png';
-import imgBihar from '../assets/states/bihar-image.png';
-import imgChhattisgarh from '../assets/states/chhattisgarh-image.png';
-import imgGoa from '../assets/states/goa-image.png';
-import imgGujarat from '../assets/states/gujarat-image.png';
-import imgHaryana from '../assets/states/haryana-image.png';
-import imgHimachalPradesh from '../assets/states/himachal-pradesh-image.png';
-import imgJharkhand from '../assets/states/jharkhand-image.png';
-import imgKarnataka from '../assets/states/karnataka-image.png';
-import imgKerala from '../assets/states/kerala-image.png';
-import imgMadhyaPradesh from '../assets/states/madhya-pradesh-image.png';
-import imgMaharashtra from '../assets/states/maharashtra-image.png';
-import imgManipur from '../assets/states/manipur-image.png';
-import imgMeghalaya from '../assets/states/meghalaya-image.png';
-import imgMizoram from '../assets/states/mizoram-image.png';
-import imgNagaland from '../assets/states/nagaland-image.png';
-import imgOdisha from '../assets/states/odisha-image.png';
-import imgPunjab from '../assets/states/punjab-image.png';
-import imgRajasthan from '../assets/states/rajasthan-image.png';
-import imgSikkim from '../assets/states/sikkim-image.png';
-import imgTamilNadu from '../assets/states/tamil-nadu-image.png';
-import imgTelangana from '../assets/states/telangana-image.png';
-import imgTripura from '../assets/states/tripura-image.png';
-import imgUttarPradesh from '../assets/states/uttar-pradesh-image.png';
-import imgUttarakhand from '../assets/states/uttarakhand-image.png';
-import imgWestBengal from '../assets/states/west-bengal-image.png';
-import imgDelhi from '../assets/states/delhi-image.png';
-import imgJammuKashmir from '../assets/states/jammu-kashmir-image.png';
-import imgLadakh from '../assets/states/ladakh-image.png';
-import imgChandigarh from '../assets/states/chandigarh-image.png';
-import imgPuducherry from '../assets/states/puducherry-image.png';
-import imgLakshadweep from '../assets/states/lakshadweep-image.png';
-import imgAndaman from '../assets/states/andaman-image.png';
-
-const S3 = "https://bodhganga-pdf-storage-prod.s3.eu-north-1.amazonaws.com/state-images";
-const STATE_IMGS = {
-  "andhra-pradesh": imgAndhraPradesh,
-  "arunachal-pradesh": imgArunachalPradesh,
-  "assam": imgAssam,
-  "bihar": imgBihar,
-  "chhattisgarh": imgChhattisgarh,
-  "goa": imgGoa,
-  "gujarat": imgGujarat,
-  "haryana": imgHaryana,
-  "himachal-pradesh": imgHimachalPradesh,
-  "jharkhand": imgJharkhand,
-  "karnataka": imgKarnataka,
-  "kerala": imgKerala,
-  "madhya-pradesh": imgMadhyaPradesh,
-  "maharashtra": imgMaharashtra,
-  "manipur": imgManipur,
-  "meghalaya": imgMeghalaya,
-  "mizoram": imgMizoram,
-  "nagaland": imgNagaland,
-  "odisha": imgOdisha,
-  "punjab": imgPunjab,
-  "rajasthan": imgRajasthan,
-  "sikkim": imgSikkim,
-  "tamil-nadu": imgTamilNadu,
-  "telangana": imgTelangana,
-  "tripura": imgTripura,
-  "uttar-pradesh": imgUttarPradesh,
-  "uttarakhand": imgUttarakhand,
-  "west-bengal": imgWestBengal,
-  "delhi": imgDelhi,
-  "jammu-kashmir": imgJammuKashmir,
-  "ladakh": imgLadakh,
-  "chandigarh": imgChandigarh,
-  "puducherry": imgPuducherry,
-  "lakshadweep": imgLakshadweep,
-  "andaman-nicobar": imgAndaman,
-};
+import { getStateImage } from "../utils/stateImageUtils";
 const GRADS = [
   "from-emerald-900 to-teal-800",
   "from-amber-900 to-orange-800",
@@ -106,7 +33,7 @@ function StateCard({ state, onClick }) {
     >
       {!imgErr ? (
         <img
-          src={STATE_IMGS[slug] || `${S3}/${slug}-image.png`}
+          src={getStateImage(slug) || `${S3}/${slug}-image.png`}
           alt={name}
           onError={() => setImgErr(true)}
           className="w-full h-48 object-cover block"

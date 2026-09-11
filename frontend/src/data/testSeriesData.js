@@ -16,7 +16,9 @@
  * All other states/UTs show "Coming Soon" at the state level.
  */
 
-export const statesAndUtTestData = [
+import { getStateImage } from '../utils/stateImageUtils';
+
+const rawStatesAndUtTestData = [
     // ==================== AVAILABLE STATES ====================
     
     {
@@ -811,6 +813,11 @@ export const statesAndUtTestData = [
         image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=800'
     }
 ];
+
+export const statesAndUtTestData = rawStatesAndUtTestData.map(item => ({
+    ...item,
+    image: getStateImage(item.id) || item.image
+}));
 
 // Sample Question Set Generator for Balod District
 export const sampleQuestionsData = {

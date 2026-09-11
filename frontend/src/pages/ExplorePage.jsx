@@ -3,81 +3,7 @@ import { Map, MapPin, BookOpen, Gift, Gem } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 
-import imgAndhra from "../assets/states/andhra-pradesh-image.png";
-import imgArunachal from "../assets/states/arunachal-pradesh-image.png";
-import imgAssam from "../assets/states/assam-image.png";
-import imgBihar from "../assets/states/bihar-image.png";
-import imgChhattisgarh from "../assets/states/chhattisgarh-image.png";
-import imgGoa from "../assets/states/goa-image.png";
-import imgGujarat from "../assets/states/gujarat-image.png";
-import imgHaryana from "../assets/states/haryana-image.png";
-import imgHimachal from "../assets/states/himachal-pradesh-image.png";
-import imgJharkhand from "../assets/states/jharkhand-image.png";
-import imgKarnataka from "../assets/states/karnataka-image.png";
-import imgKerala from "../assets/states/kerala-image.png";
-import imgMP from "../assets/states/madhya-pradesh-image.png";
-import imgMaharashtra from "../assets/states/maharashtra-image.png";
-import imgManipur from "../assets/states/manipur-image.png";
-import imgMeghalaya from "../assets/states/meghalaya-image.png";
-import imgMizoram from "../assets/states/mizoram-image.png";
-import imgNagaland from "../assets/states/nagaland-image.png";
-import imgOdisha from "../assets/states/odisha-image.png";
-import imgPunjab from "../assets/states/punjab-image.png";
-import imgRajasthan from "../assets/states/rajasthan-image.png";
-import imgSikkim from "../assets/states/sikkim-image.png";
-import imgTamilNadu from "../assets/states/tamil-nadu-image.png";
-import imgTelangana from "../assets/states/telangana-image.png";
-import imgTripura from "../assets/states/tripura-image.png";
-import imgUP from "../assets/states/uttar-pradesh-image.png";
-import imgUttarakhand from "../assets/states/uttarakhand-image.png";
-import imgWestBengal from "../assets/states/west-bengal-image.png";
-import imgAndaman from "../assets/states/andaman-image.png";
-import imgChandigarh from "../assets/states/chandigarh-image.png";
-import imgDelhi from "../assets/states/delhi-image.png";
-import imgDnhDd from "../assets/states/dnh-dd-image.png";
-import imgJK from "../assets/states/jammu-kashmir-image.png";
-import imgLadakh from "../assets/states/ladakh-image.png";
-import imgLakshadweep from "../assets/states/lakshadweep-image.png";
-import imgPuducherry from "../assets/states/puducherry-image.png";
-
-const STATE_IMAGES = {
-  "andhra-pradesh": imgAndhra,
-  "arunachal-pradesh": imgArunachal,
-  "assam": imgAssam,
-  "bihar": imgBihar,
-  "chhattisgarh": imgChhattisgarh,
-  "goa": imgGoa,
-  "gujarat": imgGujarat,
-  "haryana": imgHaryana,
-  "himachal-pradesh": imgHimachal,
-  "jharkhand": imgJharkhand,
-  "karnataka": imgKarnataka,
-  "kerala": imgKerala,
-  "madhya-pradesh": imgMP,
-  "maharashtra": imgMaharashtra,
-  "manipur": imgManipur,
-  "meghalaya": imgMeghalaya,
-  "mizoram": imgMizoram,
-  "nagaland": imgNagaland,
-  "odisha": imgOdisha,
-  "punjab": imgPunjab,
-  "rajasthan": imgRajasthan,
-  "sikkim": imgSikkim,
-  "tamil-nadu": imgTamilNadu,
-  "telangana": imgTelangana,
-  "tripura": imgTripura,
-  "uttar-pradesh": imgUP,
-  "uttarakhand": imgUttarakhand,
-  "west-bengal": imgWestBengal,
-  "andaman-nicobar": imgAndaman,
-  "chandigarh": imgChandigarh,
-  "delhi": imgDelhi,
-  "dnh-dd": imgDnhDd,
-  "jammu-kashmir": imgJK,
-  "ladakh": imgLadakh,
-  "lakshadweep": imgLakshadweep,
-  "puducherry": imgPuducherry,
-};
+import { getStateImage } from "../utils/stateImageUtils";
 
 const ALL_STATES = [
   { name: "Andhra Pradesh", slug: "andhra-pradesh" },
@@ -245,7 +171,7 @@ export default function ExplorePage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-10">
               {activeList.map((s) => {
                 const [g1, g2] = getGradient(s.name);
-                const img = STATE_IMAGES[s.slug];
+                const img = getStateImage(s.slug);
                 return (
                   <div key={s.slug} onClick={() => navigate(`/state/${s.slug}/districts`)}
                     className="relative rounded-2xl border border-amber-500/30 overflow-hidden cursor-pointer hover:border-amber-400/60 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
@@ -270,7 +196,7 @@ export default function ExplorePage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-10">
               {plannedList.map((s) => {
                 const [g1, g2] = getGradient(s.name);
-                const img = STATE_IMAGES[s.slug];
+                const img = getStateImage(s.slug);
                 return (
                   <div key={s.slug} className="relative rounded-2xl border border-gray-800 overflow-hidden opacity-50 cursor-not-allowed">
                     <div className="relative">

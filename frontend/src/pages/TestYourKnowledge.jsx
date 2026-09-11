@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { statesAndUtTestData } from '../data/testSeriesData';
+import { getStateImage } from '../utils/stateImageUtils';
 import { Search, MapPin, CheckCircle, Clock, Sparkles, Filter, Award, ArrowRight } from 'lucide-react';
 
 const TestYourKnowledge = () => {
@@ -85,7 +86,7 @@ const TestYourKnowledge = () => {
                             {/* Card Image Banner */}
                             <div className="relative h-44 w-full overflow-hidden bg-slate-800">
                                 <img
-                                    src={item.image}
+                                    src={getStateImage(item.id) || item.image}
                                     alt={item.name}
                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-80 group-hover:opacity-100"
                                 />
