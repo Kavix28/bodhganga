@@ -31,17 +31,20 @@ const QuizEngine = () => {
                 }
             });
 
-            if (response.data && response.data.success && Array.isArray(response.data.data) && response.data.data.length > 0) {
-                const fetchedQs = response.data.data;
+            if (response && response.success && Array.isArray(response.data) && response.data.length > 0) {
+                const fetchedQs = response.data;
                 setQuestions(fetchedQs);
                 setTimeLeft(fetchedQs.length * 60);
-            } else {
+            } else if (response && response.success && Array.isArray(response.data) && response.data.length === 0) {
                 setFetchError('No published questions available for this district test yet.');
+                setQuestions([]);
+            } else {
+                setFetchError(response?.message || 'Failed to load questions from backend.');
                 setQuestions([]);
             }
         } catch (err) {
             console.error('Backend questions fetch error:', err);
-            setFetchError('Backend connection required to take this quiz. Please try again.');
+            setFetchError(err.message || 'Backend connection required to take this quiz. Please try again.');
             setQuestions([]);
         } finally {
             setLoading(false);
@@ -116,8 +119,8 @@ const QuizEngine = () => {
 
         try {
             const response = await api.post('/quiz/submit', submissionData);
-            if (response.data && response.data.success) {
-                const serverResult = response.data.data;
+            if (response && response.success && response.data) {
+                const serverResult = response.data;
                 navigate(`/test-series/${stateId}/${districtId}/result`, {
                     state: {
                         result: {
@@ -129,11 +132,11 @@ const QuizEngine = () => {
                 });
                 return;
             } else {
-                setSubmitError(response.data?.message || 'Failed to grade quiz submission on server.');
+                setSubmitError(response?.message || 'Failed to grade quiz submission on server.');
             }
         } catch (error) {
             console.error('Server-side grading submission error:', error);
-            setSubmitError('Backend connection required to submit this quiz. Please try again.');
+            setSubmitError(error.message || 'Backend connection required to submit this quiz. Please try again.');
         } finally {
             setSubmitting(false);
         }
