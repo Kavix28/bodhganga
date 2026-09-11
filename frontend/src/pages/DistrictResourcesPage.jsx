@@ -192,11 +192,13 @@ export default function DistrictResourcesPage() {
           console.error("Failed to load section availability:", err);
         }
 
-        try {
-          const pRes = await api.get("/payment/district/purchased");
-          const list = Array.isArray(pRes) ? pRes : (pRes?.data || []);
-          setPurchased(list.includes(districtSlug));
-        } catch { /* not logged in */ }
+        if (isAuthenticated) {
+          try {
+            const pRes = await api.get("/payment/district/purchased");
+            const list = Array.isArray(pRes) ? pRes : (pRes?.data || []);
+            setPurchased(list.includes(districtSlug));
+          } catch { /* ignore error */ }
+        }
       } catch (e) {
         console.error(e);
       } finally {

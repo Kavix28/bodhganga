@@ -66,6 +66,9 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/videos/**").permitAll()
                         // Public products (Digital Marketplace)
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/products/**").permitAll()
+                        // Public PDF presigned link generator (fine-grained FREE vs PAID check in
+                        // controller)
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/pdf/**").permitAll()
 
                         // Payment — webhook and check-purchase are public, order/verify require auth
                         .requestMatchers("/api/ai/general").permitAll()
@@ -74,7 +77,9 @@ public class SecurityConfig {
                         // AI companion - general is public, study requires auth
                         .requestMatchers("/api/ai/general").permitAll()
                         .requestMatchers("/api/ai/study").authenticated()
-                        .requestMatchers("/api/payment/webhook", "/api/payment/check-purchase/**").permitAll()
+                        .requestMatchers("/api/payment/webhook", "/api/payment/check-purchase/**",
+                                "/api/payment/district/purchased")
+                        .permitAll()
                         .requestMatchers("/api/payment/**").authenticated()
 
                         // Cart — count is public (returns 0 for guests), rest requires auth

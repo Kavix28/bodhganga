@@ -102,12 +102,6 @@ public class PdfController {
             @RequestParam(value = "redirect", defaultValue = "false") boolean redirect,
             org.springframework.security.core.Authentication authentication) {
 
-        if (authentication == null || !authentication.isAuthenticated()
-                || "anonymousUser".equals(authentication.getName())) {
-            return ResponseEntity.status(401).body(ApiResponseDTO.builder()
-                    .success(false).message("Authentication required.").build());
-        }
-
         if (key == null || key.isBlank()) {
             return ResponseEntity.badRequest().body(ApiResponseDTO.builder()
                     .success(false).message("Key is required.").build());
@@ -119,51 +113,19 @@ public class PdfController {
         }
 
         try {
-            boolean isAdmin = authentication.getAuthorities().contains(
+            boolean isAuthenticated = authentication != null && authentication.isAuthenticated()
+                    && !"anonymousUser".equals(authentication.getName());
+
+            boolean isAdmin = isAuthenticated && authentication.getAuthorities().contains(
                     new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN"));
 
             if (!isAdmin) {
-                com.bodhganga.bodhganga.entity.User user = userRepo
-                        .findByEmailIgnoreCase(authentication.getName().trim())
-                        .or(() -> userRepo.findByPhoneNo(authentication.getName().trim()))
-                        .orElseThrow(() -> new RuntimeException("User not found"));
-
                 // Try to find the product matching this key in DB
                 Optional<Product> prodOpt = productRepo.findByS3Key(key);
                 if (prodOpt.isEmpty()) {
                     prodOpt = productRepo.findByStorageKey(key);
                 }
-
-                if (prodOpt.isPresent()) {
-                    Product product = prodOpt.get();
-                    boolean isAccessible = product.isFree()
-                            || (product.getPrice() != null && product.getPrice() == 0.0);
-
-                    if (!isAccessible) {
-                        // Check if user purchased the specific product/course
-                        Optional<Purchase> purchaseOpt = purchaseRepo.findByUserIdAndProductId(user.getId(),
-                                product.getId());
-                        if (purchaseOpt.isPresent()) {
-                            isAccessible = true;
-                        }
-                    }
-
-                    if (!isAccessible && product.getDistrictSlug() != null && !product.getDistrictSlug().isBlank()) {
-                        // Check if user purchased the district in the matching state
-                        List<Purchase> userPurchases = purchaseRepo.findByUserId(user.getId());
-                        boolean districtPurchased = userPurchases.stream()
-                                .anyMatch(p -> isDistrictPurchasedForProduct(product, p));
-                        if (districtPurchased) {
-                            isAccessible = true;
-                        }
-                    }
-
-                    if (!isAccessible) {
-                        return ResponseEntity.status(403).body(ApiResponseDTO.builder()
-                                .success(false).message("You do not own this document. Please claim or purchase it.")
-                                .build());
-                    }
-                } else {
+                if (prodOpt.isEmpty()) {
                     // Search dynamically matching suffix/substring
                     final String finalKey = key;
                     List<Product> matches = productRepo.findAll().stream()
@@ -171,20 +133,44 @@ public class PdfController {
                                     (p.getStorageKey() != null && p.getStorageKey().contains(finalKey)))
                             .collect(java.util.stream.Collectors.toList());
                     if (!matches.isEmpty()) {
-                        Product product = matches.get(0);
-                        boolean isAccessible = product.isFree()
-                                || (product.getPrice() != null && product.getPrice() == 0.0);
+                        prodOpt = Optional.of(matches.get(0));
+                    }
+                }
 
-                        if (!isAccessible) {
-                            Optional<Purchase> purchaseOpt = purchaseRepo.findByUserIdAndProductId(user.getId(),
-                                    product.getId());
-                            if (purchaseOpt.isPresent()) {
-                                isAccessible = true;
-                            }
+                if (prodOpt.isPresent()) {
+                    Product product = prodOpt.get();
+                    boolean isFree = product.isFree()
+                            || (product.getPrice() != null && product.getPrice() == 0.0);
+
+                    if (!isFree) {
+                        // PAID resource: MUST require authentication
+                        if (!isAuthenticated) {
+                            return ResponseEntity.status(401).body(ApiResponseDTO.builder()
+                                    .success(false).message("Authentication required.").build());
+                        }
+
+                        com.bodhganga.bodhganga.entity.User user = userRepo
+                                .findByEmailIgnoreCase(authentication.getName().trim())
+                                .or(() -> userRepo.findByPhoneNo(authentication.getName().trim()))
+                                .orElse(null);
+
+                        if (user == null) {
+                            return ResponseEntity.status(401).body(ApiResponseDTO.builder()
+                                    .success(false).message("User not found.").build());
+                        }
+
+                        boolean isAccessible = false;
+
+                        // Check if user purchased the specific product/course
+                        Optional<Purchase> purchaseOpt = purchaseRepo.findByUserIdAndProductId(user.getId(),
+                                product.getId());
+                        if (purchaseOpt.isPresent()) {
+                            isAccessible = true;
                         }
 
                         if (!isAccessible && product.getDistrictSlug() != null
                                 && !product.getDistrictSlug().isBlank()) {
+                            // Check if user purchased the district in the matching state
                             List<Purchase> userPurchases = purchaseRepo.findByUserId(user.getId());
                             boolean districtPurchased = userPurchases.stream()
                                     .anyMatch(p -> isDistrictPurchasedForProduct(product, p));
@@ -196,12 +182,18 @@ public class PdfController {
                         if (!isAccessible) {
                             return ResponseEntity.status(403).body(ApiResponseDTO.builder()
                                     .success(false)
-                                    .message("You do not own this document. Please claim or purchase it.").build());
+                                    .message("You do not own this document. Please claim or purchase it.")
+                                    .build());
                         }
-                    } else {
-                        return ResponseEntity.status(403).body(ApiResponseDTO.builder()
-                                .success(false).message("Document not found in catalog or unauthorized.").build());
                     }
+                } else {
+                    // Document not found in catalog. If unauthenticated, return 401; otherwise 403
+                    if (!isAuthenticated) {
+                        return ResponseEntity.status(401).body(ApiResponseDTO.builder()
+                                .success(false).message("Authentication required.").build());
+                    }
+                    return ResponseEntity.status(403).body(ApiResponseDTO.builder()
+                            .success(false).message("Document not found in catalog or unauthorized.").build());
                 }
             }
 

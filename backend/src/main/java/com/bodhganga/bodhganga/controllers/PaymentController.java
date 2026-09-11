@@ -51,10 +51,10 @@ public class PaymentController {
     private final InvoiceRepo invoiceRepo;
     private final CartItemRepo cartItemRepo;
 
-    public PaymentController(UserRepo userRepo, PurchaseRepo purchaseRepo, ProductRepo productRepo, 
-                             EmailService emailService, PaymentRepo paymentRepo, CourseRepo courseRepo, 
-                             EnrollmentRepo enrollmentRepo, OrderRepo orderRepo, InvoiceRepo invoiceRepo,
-                             CartItemRepo cartItemRepo) {
+    public PaymentController(UserRepo userRepo, PurchaseRepo purchaseRepo, ProductRepo productRepo,
+            EmailService emailService, PaymentRepo paymentRepo, CourseRepo courseRepo,
+            EnrollmentRepo enrollmentRepo, OrderRepo orderRepo, InvoiceRepo invoiceRepo,
+            CartItemRepo cartItemRepo) {
         this.userRepo = userRepo;
         this.purchaseRepo = purchaseRepo;
         this.productRepo = productRepo;
@@ -178,16 +178,17 @@ public class PaymentController {
                 amountPaise = req.amountPaise();
             } else {
                 return ResponseEntity.badRequest().body(ApiResponseDTO.builder()
-                        .success(false).message("Invalid request: courseId, amountPaise, or isCart is required.").build());
+                        .success(false).message("Invalid request: courseId, amountPaise, or isCart is required.")
+                        .build());
             }
 
             RazorpayClient client = new RazorpayClient(razorpayKeyId, razorpayKeySecret);
 
             JSONObject orderRequest = new JSONObject();
-            orderRequest.put("amount", amountPaise);       // amount in paise
+            orderRequest.put("amount", amountPaise); // amount in paise
             orderRequest.put("currency", "INR");
             orderRequest.put("receipt", "rcpt_" + System.currentTimeMillis());
-            
+
             JSONObject notes = new JSONObject();
             if (courseId != null && !courseId.trim().isEmpty()) {
                 notes.put("courseId", courseId);
@@ -207,10 +208,10 @@ public class PaymentController {
                         courseId,
                         orderId,
                         (double) amountPaise / 100.0,
-                        "INR"
-                );
+                        "INR");
                 paymentRepo.save(payment);
-                log.info("Created PENDING Payment record for course: userId={}, courseId={}, orderId={}", user.getId(), courseId, orderId);
+                log.info("Created PENDING Payment record for course: userId={}, courseId={}, orderId={}", user.getId(),
+                        courseId, orderId);
             }
 
             Map<String, Object> data = new HashMap<>();
@@ -246,7 +247,7 @@ public class PaymentController {
 
             if (!expectedSignature.equals(req.razorpaySignature())) {
                 log.warn("Payment signature mismatch for order: {}", req.razorpayOrderId());
-                
+
                 // If it is a course payment, mark the Payment as FAILED
                 Optional<Payment> paymentOpt = paymentRepo.findByOrderId(req.razorpayOrderId());
                 if (paymentOpt.isPresent()) {
@@ -256,7 +257,7 @@ public class PaymentController {
                         paymentRepo.save(p);
                     }
                 }
-                
+
                 return ResponseEntity.badRequest().body(ApiResponseDTO.builder()
                         .success(false).message("Payment verification failed. Invalid signature.").build());
             }
@@ -272,7 +273,7 @@ public class PaymentController {
 
             String resolvedProductName = "Digital Study Notes";
             Double resolvedAmount = null;
-            
+
             // Check if there is a course Payment record for this order
             Optional<Payment> paymentOpt = paymentRepo.findByOrderId(req.razorpayOrderId());
             if (paymentOpt.isPresent()) {
@@ -322,7 +323,7 @@ public class PaymentController {
                         log.error("Error fetching product details from Razorpay: {}", ex.getMessage());
                     }
                 }
-                
+
                 if (productId != null && !productId.isBlank()) {
                     Optional<Product> prodOpt = productRepo.findById(productId);
                     if (prodOpt.isPresent()) {
@@ -333,7 +334,8 @@ public class PaymentController {
                 }
 
                 // Save districtSlug if this is a district unlock payment
-                // This must run OUTSIDE the productId check — district purchases have no productId
+                // This must run OUTSIDE the productId check — district purchases have no
+                // productId
                 String districtSlug = req.districtSlug();
                 String stateSlug = req.stateSlug();
                 if (districtSlug != null && !districtSlug.isBlank()) {
@@ -355,13 +357,15 @@ public class PaymentController {
                         log.info("District already unlocked: userId={}, districtSlug={}", user.getId(), districtSlug);
                     }
                 } else if (productId == null || productId.isBlank()) {
-                    log.warn("Unable to resolve productId or districtSlug for purchase record. OrderId: {}", req.razorpayOrderId());
+                    log.warn("Unable to resolve productId or districtSlug for purchase record. OrderId: {}",
+                            req.razorpayOrderId());
                 }
             }
 
             // Send confirmation email
             try {
-                emailService.sendOrderConfirmation(user.getEmail(), req.razorpayOrderId(), resolvedProductName, resolvedAmount);
+                emailService.sendOrderConfirmation(user.getEmail(), req.razorpayOrderId(), resolvedProductName,
+                        resolvedAmount);
             } catch (Exception ex) {
                 log.error("Failed to send order confirmation email: {}", ex.getMessage());
             }
@@ -389,8 +393,8 @@ public class PaymentController {
     public ResponseEntity<ApiResponseDTO> getPurchasedDistricts(Authentication authentication) {
         try {
             if (authentication == null || "anonymousUser".equals(authentication.getName())) {
-                return ResponseEntity.status(401).body(ApiResponseDTO.builder()
-                        .success(false).message("Authentication required.").build());
+                return ResponseEntity.ok(ApiResponseDTO.builder()
+                        .success(true).data(java.util.Collections.emptyList()).build());
             }
             User user = userRepo.findByEmail(authentication.getName())
                     .orElseThrow(() -> new RuntimeException("User not found"));
@@ -419,7 +423,8 @@ public class PaymentController {
     @GetMapping("/my-purchases")
     public ResponseEntity<ApiResponseDTO> getMyPurchases(Authentication authentication) {
         try {
-            if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getName())) {
+            if (authentication == null || !authentication.isAuthenticated()
+                    || "anonymousUser".equals(authentication.getName())) {
                 return ResponseEntity.status(401).body(ApiResponseDTO.builder()
                         .success(false)
                         .message("Authentication required.")
@@ -443,7 +448,7 @@ public class PaymentController {
                 Optional<Product> prodOpt = productRepo.findById(purchase.getProductId());
                 if (prodOpt.isPresent()) {
                     Product product = prodOpt.get();
-                    
+
                     // Create nested product details object
                     Map<String, Object> productDetails = new HashMap<>();
                     productDetails.put("id", product.getId());
@@ -455,7 +460,7 @@ public class PaymentController {
                     productDetails.put("state", product.getState());
                     productDetails.put("district", product.getDistrict());
                     map.put("product", productDetails);
-                    
+
                     // Flatten fields directly for convenience/backward compatibility
                     map.put("title", product.getTitle());
                     map.put("type", product.getType());
@@ -469,7 +474,7 @@ public class PaymentController {
                     Optional<Courses> courseOpt = courseRepo.findById(purchase.getProductId());
                     if (courseOpt.isPresent()) {
                         Courses course = courseOpt.get();
-                        
+
                         Map<String, Object> productDetails = new HashMap<>();
                         productDetails.put("id", course.getId());
                         productDetails.put("title", course.getCourseTitle());
@@ -478,7 +483,7 @@ public class PaymentController {
                         productDetails.put("storageKey", null);
                         productDetails.put("thumbnail", course.getThumbnailUrl());
                         map.put("product", productDetails);
-                        
+
                         map.put("title", course.getCourseTitle());
                         map.put("type", "COURSE");
                         map.put("price", course.getCoursePrice());
@@ -514,7 +519,8 @@ public class PaymentController {
             @PathVariable String productId,
             Authentication authentication) {
         try {
-            if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getName())) {
+            if (authentication == null || !authentication.isAuthenticated()
+                    || "anonymousUser".equals(authentication.getName())) {
                 return ResponseEntity.ok(ApiResponseDTO.builder().success(true).data(false).build());
             }
             User user = userRepo.findByEmail(authentication.getName()).orElse(null);
@@ -543,7 +549,7 @@ public class PaymentController {
             @PathVariable String productId,
             Authentication authentication) {
         try {
-            if (authentication == null || !authentication.isAuthenticated() 
+            if (authentication == null || !authentication.isAuthenticated()
                     || "anonymousUser".equals(authentication.getName())) {
                 return ResponseEntity.status(401).body(ApiResponseDTO.builder()
                         .success(false).message("Authentication required.").build());
@@ -568,7 +574,8 @@ public class PaymentController {
                         .success(true).message("You already own this resource.").build());
             }
 
-            // 1. Add resource to cart programmatically if it doesn't exist (requirement: "Add resource to cart")
+            // 1. Add resource to cart programmatically if it doesn't exist (requirement:
+            // "Add resource to cart")
             Optional<CartItem> existingCart = cartItemRepo.findByUserIdAndProductId(user.getId(), productId);
             if (existingCart.isEmpty()) {
                 CartItem cartItem = new CartItem(user.getId(), productId, "PRODUCT");
@@ -578,7 +585,7 @@ public class PaymentController {
             // 2. Create order (requirement: "Create order")
             String freeOrderId = "free_ord_" + System.currentTimeMillis();
             String freePaymentId = "free_pay_" + System.currentTimeMillis();
-            
+
             com.bodhganga.bodhganga.entity.Order dbOrder = new com.bodhganga.bodhganga.entity.Order();
             dbOrder.setUserId(user.getId());
             dbOrder.setProductId(productId);
@@ -621,7 +628,8 @@ public class PaymentController {
             payment.setStatus("SUCCESS");
             paymentRepo.save(payment);
 
-            // 6. Clear from user's cart (requirement: "Add resource to user library" - library queries purchases, so we just clear cart)
+            // 6. Clear from user's cart (requirement: "Add resource to user library" -
+            // library queries purchases, so we just clear cart)
             cartItemRepo.deleteByUserIdAndProductId(user.getId(), productId);
 
             // Send confirmation email
@@ -676,7 +684,7 @@ public class PaymentController {
                 String paymentId = payment.getString("id");
                 String orderId = payment.getString("order_id");
                 log.info("Payment captured: paymentId={}, orderId={}", paymentId, orderId);
-                
+
                 // First check if there is a course Payment record for this order
                 Optional<Payment> paymentOpt = paymentRepo.findByOrderId(orderId);
                 if (paymentOpt.isPresent()) {
@@ -703,7 +711,8 @@ public class PaymentController {
                                 userRepo.findById(p.getUserId()).ifPresent(user -> {
                                     String cartTitle = "Cart Purchase (" + cartItems.size() + " items)";
                                     try {
-                                        emailService.sendOrderConfirmation(user.getEmail(), orderId, cartTitle, cartAmount);
+                                        emailService.sendOrderConfirmation(user.getEmail(), orderId, cartTitle,
+                                                cartAmount);
                                     } catch (Exception ex) {
                                         log.error("Failed to send cart order confirmation email: {}", ex.getMessage());
                                     }
@@ -724,9 +733,11 @@ public class PaymentController {
                                         courseTitle = courseOpt.get().getCourseTitle();
                                     }
                                     try {
-                                        emailService.sendOrderConfirmation(user.getEmail(), orderId, courseTitle, courseAmount);
+                                        emailService.sendOrderConfirmation(user.getEmail(), orderId, courseTitle,
+                                                courseAmount);
                                     } catch (Exception ex) {
-                                        log.error("Failed to send course order confirmation email: {}", ex.getMessage());
+                                        log.error("Failed to send course order confirmation email: {}",
+                                                ex.getMessage());
                                     }
                                 });
                             } catch (Exception ex) {
@@ -763,10 +774,11 @@ public class PaymentController {
                                     productAmount = prodOpt.get().getPrice();
                                 }
                                 unlockProduct(user.getId(), finalProdId, finalOrderId);
-                                
+
                                 // Send order confirmation email from webhook
                                 try {
-                                    emailService.sendOrderConfirmation(user.getEmail(), finalOrderId, resolvedProductName, productAmount);
+                                    emailService.sendOrderConfirmation(user.getEmail(), finalOrderId,
+                                            resolvedProductName, productAmount);
                                 } catch (Exception ex) {
                                     log.error("Failed to send webhook order confirmation email: {}", ex.getMessage());
                                 }
@@ -797,19 +809,19 @@ public class PaymentController {
     // ── Request Records ───────────────────────────────────────────
 
     public record CreateOrderRequest(
-        Integer amountPaise,
-        String productId,
-        String courseId,
-        Boolean isCart
-    ) {}
+            Integer amountPaise,
+            String productId,
+            String courseId,
+            Boolean isCart) {
+    }
 
     public record VerifyPaymentRequest(
-        @NotBlank String razorpayOrderId,
-        @NotBlank String razorpayPaymentId,
-        @NotBlank String razorpaySignature,
-        String courseId,
-        String productId,
-        String districtSlug,
-        String stateSlug
-    ) {}
+            @NotBlank String razorpayOrderId,
+            @NotBlank String razorpayPaymentId,
+            @NotBlank String razorpaySignature,
+            String courseId,
+            String productId,
+            String districtSlug,
+            String stateSlug) {
+    }
 }

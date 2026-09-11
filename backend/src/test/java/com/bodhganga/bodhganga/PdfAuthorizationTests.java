@@ -179,4 +179,88 @@ public class PdfAuthorizationTests {
         mockMvc.perform(get("/api/pdf/" + prodB.getS3Key()))
                 .andExpect(status().isForbidden());
     }
+
+    private Product seedFreeProduct(String key, String stateSlug, String districtSlug) {
+        Product p = new Product();
+        p.setId(UUID.randomUUID().toString());
+        p.setTitle("Free Notes " + districtSlug);
+        p.setS3Key(key);
+        p.setStorageKey(key);
+        p.setFree(true);
+        p.setPrice(0.0);
+        p.setPublished(true);
+        p.setArchived(false);
+        p.setStateSlug(stateSlug);
+        p.setDistrictSlug(districtSlug);
+        return productRepo.save(p);
+    }
+
+    @Test
+    void testGuestCanAccessFreeResource() throws Exception {
+        Product freeProd = seedFreeProduct("states/maharashtra/akola/free/history.pdf", "maharashtra", "akola");
+
+        mockMvc.perform(get("/api/pdf/" + freeProd.getS3Key()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.url").exists());
+    }
+
+    @Test
+    @WithMockUser(username = TEST_USER_EMAIL)
+    void testAuthenticatedUserCanAccessFreeResource() throws Exception {
+        Product freeProd = seedFreeProduct("states/maharashtra/akola/free/history.pdf", "maharashtra", "akola");
+
+        mockMvc.perform(get("/api/pdf/" + freeProd.getS3Key()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.url").exists());
+    }
+
+    @Test
+    void testGuestDeniedAccessToPaidResource() throws Exception {
+        Product paidProd = seedPaidProduct("states/maharashtra/akola/paid/guide.pdf", "maharashtra", "akola");
+
+        mockMvc.perform(get("/api/pdf/" + paidProd.getS3Key()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Authentication required."));
+    }
+
+    @Test
+    void testGuestPurchasedDistrictsReturnsEmptyArray() throws Exception {
+        mockMvc.perform(get("/api/payment/district/purchased"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data.length()").value(0));
+    }
+
+    @Test
+    @WithMockUser(username = TEST_USER_EMAIL)
+    void testAuthenticatedPurchasedDistrictsPreservesBehavior() throws Exception {
+        seedPurchase("maharashtra", "akola");
+
+        mockMvc.perform(get("/api/payment/district/purchased"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data[0]").value("akola"));
+    }
+
+    @Test
+    void testGuestDeniedAccessToAdminEndpoints() throws Exception {
+        mockMvc.perform(get("/api/admin/resources/state/maharashtra/district/akola"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = TEST_USER_EMAIL, authorities = "ROLE_USER")
+    void testNormalUserDeniedAccessToAdminEndpoints() throws Exception {
+        mockMvc.perform(get("/api/admin/resources/state/maharashtra/district/akola"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(authorities = "ROLE_ADMIN")
+    void testAdminAllowedAccessToAdminEndpoints() throws Exception {
+        mockMvc.perform(get("/api/admin/resources/state/maharashtra/district/akola"))
+                .andExpect(status().isOk());
+    }
 }
