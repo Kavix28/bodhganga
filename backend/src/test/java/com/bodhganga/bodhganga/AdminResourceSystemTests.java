@@ -399,4 +399,35 @@ public class AdminResourceSystemTests {
                                 .andExpect(jsonPath("$[?(@.stateSlug == 'maharashtra')].notesCount").value(0))
                                 .andExpect(jsonPath("$[?(@.stateSlug == 'madhya-pradesh')].notesCount").value(0));
         }
+
+        @Test
+        @WithMockUser(authorities = "ROLE_ADMIN")
+        void testAutomaticTitleDerivedFromFilenameWhenTitleBlankOrOmitted() throws Exception {
+                byte[] pngBytes = new byte[] { (byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n', 0, 0, 0, 13, 'I',
+                                'H', 'D', 'R' };
+                MockMultipartFile file1 = new MockMultipartFile("file", "Khamb_Swarang_Festival_Hindi.png", "image/png",
+                                pngBytes);
+
+                mockMvc.perform(multipart("/api/admin/resources/upload")
+                                .file(file1)
+                                .param("stateSlug", "maharashtra")
+                                .param("districtSlug", "akola")
+                                .param("isFree", "true"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.title").value("Khamb_Swarang_Festival_Hindi"));
+
+                MockMultipartFile file2 = new MockMultipartFile("file", "abc.test.pdf", "application/pdf",
+                                VALID_PDF_BYTES);
+
+                mockMvc.perform(multipart("/api/admin/resources/upload")
+                                .file(file2)
+                                .param("stateSlug", "maharashtra")
+                                .param("districtSlug", "akola")
+                                .param("isFree", "true")
+                                .param("title", "   "))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.title").value("abc.test"));
+        }
 }

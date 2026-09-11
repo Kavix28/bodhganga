@@ -33,6 +33,11 @@ import {
     archiveAdminResource
 } from '../../services/adminService';
 
+export const deriveResourceTitle = (filename) => {
+    if (!filename || typeof filename !== 'string') return '';
+    return filename.replace(/\.[^/.]+$/, '').trim();
+};
+
 const getResourceTypeMeta = (res) => {
     const type = (res.type || res.contentType || '').toUpperCase();
     const ext = (res.fileExtension || '').toLowerCase();
@@ -634,7 +639,6 @@ const formatBytes = (bytes) => {
 };
 
 const AdminResourceUploadModal = ({ state, district, onClose, onSuccess }) => {
-    const [titlePrefix, setTitlePrefix] = useState('');
     const [category, setCategory] = useState('Notes');
     const [description, setDescription] = useState('');
     const [isFree, setIsFree] = useState(true);
@@ -729,18 +733,8 @@ const AdminResourceUploadModal = ({ state, district, onClose, onSuccess }) => {
 
         setQueue(prev => prev.map(f => f.id === item.id ? { ...f, status: 'uploading', progress: 0, errorMessage: null } : f));
 
-        // Format Title
-        const currentQueue = queueRef.current;
-        const cleanFileName = item.name.replace(/\.[^/.]+$/, '');
-        let fileTitle = titlePrefix.trim();
-
-        if (currentQueue.length === 1 && fileTitle) {
-            // Keep user custom title for single file
-        } else if (fileTitle) {
-            fileTitle = `${fileTitle} - ${cleanFileName}`;
-        } else {
-            fileTitle = cleanFileName;
-        }
+        // Automatic Resource Title derived from filename without final extension
+        const fileTitle = deriveResourceTitle(item.name);
 
         const formData = new FormData();
         formData.append('file', item.file);
@@ -933,18 +927,6 @@ const AdminResourceUploadModal = ({ state, district, onClose, onSuccess }) => {
                             </select>
                         </div>
 
-                        {/* Title Prefix */}
-                        <div>
-                            <label className="block text-xs text-gray-300 font-semibold mb-1">Resource Title Prefix (Optional)</label>
-                            <input
-                                type="text"
-                                placeholder="e.g. Akola Guide 2026 (leave blank for filename)"
-                                value={titlePrefix}
-                                onChange={(e) => setTitlePrefix(e.target.value)}
-                                className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-amber-500"
-                            />
-                        </div>
-
                         {/* Description */}
                         <div>
                             <label className="block text-xs text-gray-300 font-semibold mb-1">Description (Optional)</label>
@@ -1062,8 +1044,9 @@ const AdminResourceUploadModal = ({ state, district, onClose, onSuccess }) => {
                                                         <div className="font-semibold text-white truncate" title={item.name}>
                                                             {item.name}
                                                         </div>
-                                                        <div className="text-[10px] text-gray-400 font-mono">
-                                                            {formatBytes(item.size)} &bull; {item.resourceType}
+                                                        <div className="text-[10px] text-gray-400 font-mono flex items-center gap-1.5 flex-wrap">
+                                                            <span>{formatBytes(item.size)} &bull; {item.resourceType}</span>
+                                                            <span className="text-amber-400 font-sans">&rarr; Title: &ldquo;{deriveResourceTitle(item.name)}&rdquo;</span>
                                                         </div>
                                                     </div>
                                                 </div>

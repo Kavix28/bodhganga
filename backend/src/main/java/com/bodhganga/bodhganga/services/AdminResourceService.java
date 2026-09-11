@@ -49,7 +49,14 @@ public class AdminResourceService {
             boolean publish) throws IOException {
 
         // 1. Validate inputs
-        if (titleInput == null || titleInput.isBlank()) {
+        String effectiveTitle = titleInput != null ? titleInput.trim() : "";
+        if (effectiveTitle.isBlank()) {
+            String orig = file != null ? file.getOriginalFilename() : null;
+            if (orig != null && !orig.isBlank()) {
+                effectiveTitle = Product.stripExtension(orig.trim());
+            }
+        }
+        if (effectiveTitle.isBlank()) {
             throw new IllegalArgumentException("Title is required.");
         }
 
@@ -132,8 +139,8 @@ public class AdminResourceService {
 
         // 10. Create and Save Product Document
         Product product = new Product();
-        product.setTitle(titleInput.trim());
-        product.setDisplayTitle(Product.stripExtension(titleInput.trim()));
+        product.setTitle(effectiveTitle);
+        product.setDisplayTitle(Product.stripExtension(effectiveTitle));
         product.setDescription(descriptionInput != null ? descriptionInput.trim() : "");
         product.setState(canonicalState.getName());
         product.setStateSlug(cleanStateSlug);

@@ -61,7 +61,7 @@ public class AdminResourceController {
             @RequestParam("districtSlug") String districtSlug,
             @RequestParam("isFree") boolean isFree,
             @RequestParam(value = "category", required = false) String category,
-            @RequestParam("title") String title,
+            @RequestParam(value = "title", required = false) String title,
             @RequestParam(value = "description", required = false) String description,
             @RequestParam(value = "publish", defaultValue = "true") boolean publish) {
         Map<String, Object> response = new HashMap<>();
