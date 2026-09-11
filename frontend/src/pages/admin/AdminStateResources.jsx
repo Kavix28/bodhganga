@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'react-hot-toast';
 import {
-    Map,
+    Map as MapIcon,
     Folder,
     FileText,
     Upload,
@@ -193,7 +193,7 @@ const AdminStateResources = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gray-800/60 p-6 rounded-2xl border border-gray-700/80 shadow-lg">
                 <div>
                     <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-400 mb-1">
-                        <Map className="w-4 h-4" />
+                        <MapIcon className="w-4 h-4" />
                         <span>State Resources Management System</span>
                     </div>
                     <h1 className="text-2xl font-bold text-white">Admin Resource Catalog</h1>
@@ -231,7 +231,7 @@ const AdminStateResources = () => {
                 <div className="lg:col-span-3 bg-gray-800/60 rounded-2xl border border-gray-700/80 p-4 space-y-4 shadow-lg">
                     <div className="flex items-center justify-between border-b border-gray-700 pb-3">
                         <div className="flex items-center gap-2 text-white font-bold text-sm">
-                            <Map className="w-4 h-4 text-amber-400" />
+                            <MapIcon className="w-4 h-4 text-amber-400" />
                             <span>1. Select State</span>
                         </div>
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-900 text-amber-400 border border-gray-700">

@@ -2,6 +2,14 @@ import axios from 'axios';
 import { API_BASE_URL, ERROR_MESSAGES, ERROR_CODES } from '../utils/constants';
 import { getAuthToken, clearAuthData } from '../utils/storage';
 
+const getAdminToken = () => {
+    try {
+        return localStorage.getItem('admin_jwt') || sessionStorage.getItem('admin_jwt');
+    } catch {
+        return null;
+    }
+};
+
 const api = axios.create({
     baseURL: API_BASE_URL,
     headers: {
@@ -18,7 +26,16 @@ api.interceptors.request.use(
         if (config.url && config.url.startsWith('/api/') && config.baseURL && config.baseURL.endsWith('/api')) {
             config.url = config.url.substring(4);
         }
-        let token = getAuthToken() || sessionStorage.getItem('admin_jwt');
+
+        const adminToken = getAdminToken();
+        const userToken = getAuthToken();
+
+        const isAdminApiRequest =
+            typeof config.url === 'string' &&
+            config.url.includes('/admin/');
+
+        const token = isAdminApiRequest ? adminToken : userToken;
+
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
