@@ -32,7 +32,11 @@ api.interceptors.request.use(
 
         const isAdminApiRequest =
             typeof config.url === 'string' &&
-            config.url.includes('/admin/');
+            (config.url.includes('/admin/') ||
+             config.url.includes('/dashboard/admin-stats') ||
+             config.url.includes('/dashboard/storage') ||
+             config.url.includes('/dashboard/revenue') ||
+             config.url.includes('/dashboard/content'));
 
         const token = isAdminApiRequest ? adminToken : userToken;
 
