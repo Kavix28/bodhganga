@@ -1,13 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { statesAndUtTestData, sampleBalodNotes } from '../data/testSeriesData';
-import { Award, Zap, ShieldCheck, CheckCircle2, Lock, Unlock, FileText, Download, Play, RotateCcw, ArrowLeft, ChevronRight, Eye } from 'lucide-react';
+import { Award, Zap, ShieldCheck, CheckCircle2, Lock, Unlock, FileText, Download, Play, RotateCcw, ArrowLeft, ChevronRight, Eye, Clock, Loader2 } from 'lucide-react';
+import api from '../services/api';
 
 const DistrictTestPage = () => {
     const { stateId, districtId } = useParams();
     const navigate = useNavigate();
     const [isPurchased, setIsPurchased] = useState(false);
     const [showNotesModal, setShowNotesModal] = useState(false);
+
+    const [availability, setAvailability] = useState({
+        loading: true,
+        available: false,
+        count: 0,
+        error: false
+    });
 
     const stateData = statesAndUtTestData.find(s => s.id === stateId) || statesAndUtTestData[0];
     const districtData = (stateData.districts || []).find(d => d.id === districtId) || {
@@ -16,11 +24,46 @@ const DistrictTestPage = () => {
         price: 199
     };
 
+    useEffect(() => {
+        let isMounted = true;
+        const checkAvailability = async () => {
+            setAvailability({ loading: true, available: false, count: 0, error: false });
+            try {
+                const response = await api.get('/quiz/published-count', {
+                    params: {
+                        stateSlug: stateId,
+                        districtSlug: districtId
+                    }
+                });
+                if (isMounted) {
+                    if (response && response.success && response.data) {
+                        setAvailability({
+                            loading: false,
+                            available: Boolean(response.data.available && response.data.count > 0),
+                            count: response.data.count || 0,
+                            error: false
+                        });
+                    } else {
+                        setAvailability({ loading: false, available: false, count: 0, error: false });
+                    }
+                }
+            } catch (err) {
+                if (isMounted) {
+                    setAvailability({ loading: false, available: false, count: 0, error: true });
+                }
+            }
+        };
+
+        checkAvailability();
+        return () => { isMounted = false; };
+    }, [stateId, districtId]);
+
     const handleUnlockBundle = () => {
-        // Simulating Purchase process for District Master Bundle
         setIsPurchased(true);
         alert(`Success! You have unlocked the ${districtData.name} District Complete Learning Bundle!`);
     };
+
+    const isTestAvailable = availability.available && availability.count > 0;
 
     return (
         <div className="min-h-screen bg-slate-950 text-white pt-24 pb-20 px-4 sm:px-6 lg:px-8">
@@ -42,10 +85,31 @@ const DistrictTestPage = () => {
 
                 {/* Header Banner */}
                 <div className="bg-slate-900/80 border border-gold/30 rounded-3xl p-6 sm:p-10 backdrop-blur-xl space-y-4 shadow-2xl">
-                    <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-950/60 border border-gold/40">
-                        <Award className="w-4 h-4 text-gold" />
-                        <span className="text-xs font-bold text-gradient-gold uppercase tracking-widest">{stateData.name} • NDDE District Portal</span>
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-950/60 border border-gold/40">
+                            <Award className="w-4 h-4 text-gold" />
+                            <span className="text-xs font-bold text-gradient-gold uppercase tracking-widest">{stateData.name} • NDDE District Portal</span>
+                        </div>
+
+                        {/* Availability Status Indicator */}
+                        {availability.loading ? (
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300">
+                                <Loader2 className="w-3.5 h-3.5 animate-spin text-gold" />
+                                <span>Checking Live Quiz Availability...</span>
+                            </div>
+                        ) : isTestAvailable ? (
+                            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-xs font-bold text-emerald-300">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                                <span>{availability.count} Published MCQs Ready</span>
+                            </div>
+                        ) : (
+                            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-xs font-bold text-amber-300">
+                                <Clock className="w-4 h-4 text-amber-400" />
+                                <span>Tests Coming Soon for {districtData.name}</span>
+                            </div>
+                        )}
                     </div>
+
                     <h1 className="text-3xl sm:text-5xl font-serif font-bold text-white tracking-tight">
                         {districtData.name} <span className="text-gradient-gold">District Test Zone</span>
                     </h1>
@@ -79,13 +143,22 @@ const DistrictTestPage = () => {
                             </ul>
                         </div>
 
-                        <button
-                            onClick={() => navigate(`/test-series/${stateId}/${districtId}/quiz/easy`)}
-                            className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-black text-xs uppercase tracking-widest hover:opacity-95 transition-all shadow-lg"
-                        >
-                            <Play className="w-4 h-4 fill-current" />
-                            <span>Attempt Quick Challenge</span>
-                        </button>
+                        {isTestAvailable ? (
+                            <button
+                                onClick={() => navigate(`/test-series/${stateId}/${districtId}/quiz/easy`)}
+                                className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-black text-xs uppercase tracking-widest hover:opacity-95 transition-all shadow-lg"
+                            >
+                                <Play className="w-4 h-4 fill-current" />
+                                <span>Attempt Quick Challenge</span>
+                            </button>
+                        ) : (
+                            <button
+                                disabled
+                                className="w-full py-3.5 px-4 rounded-2xl bg-white/5 text-slate-500 font-bold text-xs uppercase tracking-widest cursor-not-allowed border border-white/5"
+                            >
+                                {availability.loading ? 'Checking Availability...' : 'Content Coming Soon'}
+                            </button>
+                        )}
                     </div>
 
                     {/* OPTION 2: District Advanced Knowledge Challenge — Free */}
@@ -111,13 +184,22 @@ const DistrictTestPage = () => {
                             </ul>
                         </div>
 
-                        <button
-                            onClick={() => navigate(`/test-series/${stateId}/${districtId}/quiz/advanced`)}
-                            className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black text-xs uppercase tracking-widest hover:opacity-95 transition-all shadow-lg"
-                        >
-                            <Play className="w-4 h-4 fill-current" />
-                            <span>Attempt Advanced Challenge</span>
-                        </button>
+                        {isTestAvailable ? (
+                            <button
+                                onClick={() => navigate(`/test-series/${stateId}/${districtId}/quiz/advanced`)}
+                                className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black text-xs uppercase tracking-widest hover:opacity-95 transition-all shadow-lg"
+                            >
+                                <Play className="w-4 h-4 fill-current" />
+                                <span>Attempt Advanced Challenge</span>
+                            </button>
+                        ) : (
+                            <button
+                                disabled
+                                className="w-full py-3.5 px-4 rounded-2xl bg-white/5 text-slate-500 font-bold text-xs uppercase tracking-widest cursor-not-allowed border border-white/5"
+                            >
+                                {availability.loading ? 'Checking Availability...' : 'Content Coming Soon'}
+                            </button>
+                        )}
                     </div>
 
                     {/* OPTION 3: District Complete Learning Bundle — Paid */}
@@ -183,13 +265,22 @@ const DistrictTestPage = () => {
                                 >
                                     <FileText className="w-3.5 h-3.5" /> Read Notes
                                 </button>
-                                <button
-                                    onClick={() => navigate(`/test-series/${stateId}/${districtId}/quiz/master`)}
-                                    className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-black text-xs uppercase tracking-widest hover:shadow-xl transition-all"
-                                >
-                                    <Play className="w-4 h-4 fill-current" />
-                                    <span>Attempt Master Test</span>
-                                </button>
+                                {isTestAvailable ? (
+                                    <button
+                                        onClick={() => navigate(`/test-series/${stateId}/${districtId}/quiz/master`)}
+                                        className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-black text-xs uppercase tracking-widest hover:shadow-xl transition-all"
+                                    >
+                                        <Play className="w-4 h-4 fill-current" />
+                                        <span>Attempt Master Test</span>
+                                    </button>
+                                ) : (
+                                    <button
+                                        disabled
+                                        className="w-full py-3.5 px-4 rounded-2xl bg-white/5 text-slate-500 font-bold text-xs uppercase tracking-widest cursor-not-allowed border border-white/5"
+                                    >
+                                        Master Test Coming Soon
+                                    </button>
+                                )}
                             </div>
                         )}
                     </div>
