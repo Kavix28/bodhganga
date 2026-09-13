@@ -28,20 +28,20 @@ const rawStatesAndUtTestData = [
         code: 'KA',
         capital: 'Bengaluru',
         totalDistricts: 31,
-        coveredDistrictsCount: 1,
-        totalTests: 3,
-        freeTestAvailable: true,
-        isAvailable: true,
+        coveredDistrictsCount: 0,
+        totalTests: 0,
+        freeTestAvailable: false,
+        isAvailable: false,
         image: 'https://images.unsplash.com/photo-1596176530529-78163a4f7af2?auto=format&fit=crop&q=80&w=800',
         districts: [
             {
                 id: 'bengaluru',
                 name: 'Bengaluru',
-                isAvailable: true,
-                easyTestsCount: 1,
-                advancedTestsCount: 1,
-                masterTestsCount: 1,
-                notesAvailable: true,
+                isAvailable: false,
+                easyTestsCount: 0,
+                advancedTestsCount: 0,
+                masterTestsCount: 0,
+                notesAvailable: false,
                 price: 199,
                 description: 'The Silicon Valley of India — explore its rich history, Vidhana Soudha, Cubbon Park, and modern tech heritage.'
             },
@@ -92,20 +92,20 @@ const rawStatesAndUtTestData = [
         code: 'KL',
         capital: 'Thiruvananthapuram',
         totalDistricts: 14,
-        coveredDistrictsCount: 1,
-        totalTests: 3,
-        freeTestAvailable: true,
-        isAvailable: true,
+        coveredDistrictsCount: 0,
+        totalTests: 0,
+        freeTestAvailable: false,
+        isAvailable: false,
         image: 'https://images.unsplash.com/photo-1602216056096-3b40cc0c9944?auto=format&fit=crop&q=80&w=800',
         districts: [
             {
                 id: 'ernakulam',
                 name: 'Ernakulam',
-                isAvailable: true,
-                easyTestsCount: 1,
-                advancedTestsCount: 1,
-                masterTestsCount: 1,
-                notesAvailable: true,
+                isAvailable: false,
+                easyTestsCount: 0,
+                advancedTestsCount: 0,
+                masterTestsCount: 0,
+                notesAvailable: false,
                 price: 199,
                 description: 'The commercial capital of Kerala — home to Kochi, Fort Kochi, backwaters, and spice trade heritage.'
             },
@@ -138,20 +138,20 @@ const rawStatesAndUtTestData = [
         code: 'JK',
         capital: 'Srinagar (Summer), Jammu (Winter)',
         totalDistricts: 20,
-        coveredDistrictsCount: 1,
-        totalTests: 3,
-        freeTestAvailable: true,
-        isAvailable: true,
+        coveredDistrictsCount: 0,
+        totalTests: 0,
+        freeTestAvailable: false,
+        isAvailable: false,
         image: 'https://images.unsplash.com/photo-1597074866923-dc0589150458?auto=format&fit=crop&q=80&w=800',
         districts: [
             {
                 id: 'anantnag',
                 name: 'Anantnag',
-                isAvailable: true,
-                easyTestsCount: 1,
-                advancedTestsCount: 1,
-                masterTestsCount: 1,
-                notesAvailable: true,
+                isAvailable: false,
+                easyTestsCount: 0,
+                advancedTestsCount: 0,
+                masterTestsCount: 0,
+                notesAvailable: false,
                 price: 199,
                 description: 'Known for Martand Sun Temple, Achabal Garden, and the Lidder River — the cultural heartland of South Kashmir.'
             },
@@ -190,22 +190,22 @@ const rawStatesAndUtTestData = [
         code: 'MP',
         capital: 'Bhopal',
         totalDistricts: 55,
-        coveredDistrictsCount: 1,
-        totalTests: 3,
-        freeTestAvailable: true,
-        isAvailable: true,
+        coveredDistrictsCount: 0,
+        totalTests: 0,
+        freeTestAvailable: false,
+        isAvailable: false,
         image: 'https://images.unsplash.com/photo-1599661046289-e31897846e41?auto=format&fit=crop&q=80&w=800',
         districts: [
             {
                 id: 'alirajpur',
                 name: 'Alirajpur',
-                isAvailable: true,
-                easyTestsCount: 1,
-                advancedTestsCount: 1,
-                masterTestsCount: 1,
-                notesAvailable: true,
+                isAvailable: false,
+                easyTestsCount: 0,
+                advancedTestsCount: 0,
+                masterTestsCount: 0,
+                notesAvailable: false,
                 price: 199,
-                description: 'A tribal-majority district known for Bhil culture, Narmada riverbanks, and dense teak forests.'
+                description: 'Known for its tribal heritage, wood craft, and scenic Vindhya-Satpura landscape.'
             },
             { id: 'agar-malwa', name: 'Agar Malwa', isAvailable: false },
             { id: 'anuppur', name: 'Anuppur', isAvailable: false },
@@ -226,7 +226,7 @@ const rawStatesAndUtTestData = [
             { id: 'guna', name: 'Guna', isAvailable: false },
             { id: 'gwalior', name: 'Gwalior', isAvailable: false },
             { id: 'harda', name: 'Harda', isAvailable: false },
-            { id: 'hoshangabad', name: 'Hoshangabad (Narmadapuram)', isAvailable: false },
+            { id: 'narmadapuram', name: 'Narmadapuram (Hoshangabad)', isAvailable: false },
             { id: 'indore', name: 'Indore', isAvailable: false },
             { id: 'jabalpur', name: 'Jabalpur', isAvailable: false },
             { id: 'jhabua', name: 'Jhabua', isAvailable: false },
@@ -346,20 +346,20 @@ const rawStatesAndUtTestData = [
         code: 'JH',
         capital: 'Ranchi',
         totalDistricts: 24,
-        coveredDistrictsCount: 1,
-        totalTests: 3,
-        freeTestAvailable: true,
-        isAvailable: true,
+        coveredDistrictsCount: 0,
+        totalTests: 0,
+        freeTestAvailable: false,
+        isAvailable: false,
         image: 'https://images.unsplash.com/photo-1590050752117-238cb0fb12b1?auto=format&fit=crop&q=80&w=800',
         districts: [
             {
                 id: 'chatra',
                 name: 'Chatra',
-                isAvailable: true,
-                easyTestsCount: 1,
-                advancedTestsCount: 1,
-                masterTestsCount: 1,
-                notesAvailable: true,
+                isAvailable: false,
+                easyTestsCount: 0,
+                advancedTestsCount: 0,
+                masterTestsCount: 0,
+                notesAvailable: false,
                 price: 199,
                 description: 'Known for its dense forests, coal reserves, and the historic Kauleshwari Devi temple atop Kauleshwari Hill.'
             },
@@ -396,7 +396,7 @@ const rawStatesAndUtTestData = [
         ]
     },
 
-    // ==================== AVAILABLE UNION TERRITORIES ====================
+    // ==================== COMING SOON — UNION TERRITORIES ====================
     {
         id: 'ladakh',
         name: 'Ladakh',
@@ -404,20 +404,20 @@ const rawStatesAndUtTestData = [
         code: 'LA',
         capital: 'Leh',
         totalDistricts: 3,
-        coveredDistrictsCount: 1,
-        totalTests: 3,
-        freeTestAvailable: true,
-        isAvailable: true,
+        coveredDistrictsCount: 0,
+        totalTests: 0,
+        freeTestAvailable: false,
+        isAvailable: false,
         image: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&q=80&w=800',
         districts: [
             {
                 id: 'kargil',
                 name: 'Kargil',
-                isAvailable: true,
-                easyTestsCount: 1,
-                advancedTestsCount: 1,
-                masterTestsCount: 1,
-                notesAvailable: true,
+                isAvailable: false,
+                easyTestsCount: 0,
+                advancedTestsCount: 0,
+                masterTestsCount: 0,
+                notesAvailable: false,
                 price: 199,
                 description: 'The gateway to Zanskar — famous for the Kargil War memorial, Suru Valley, and ancient Buddhist monasteries.'
             },
@@ -814,10 +814,29 @@ const rawStatesAndUtTestData = [
     }
 ];
 
-export const statesAndUtTestData = rawStatesAndUtTestData.map(item => ({
-    ...item,
-    image: getStateImage(item.id) || item.image
-}));
+export const isStateQuizAvailable = (item) => {
+    if (!item) return false;
+    const id = typeof item === 'string' ? item : (item.id || item.slug || '');
+    const code = typeof item === 'object' ? (item.code || '') : '';
+    const isMh = id.toLowerCase() === 'maharashtra' || code.toUpperCase() === 'MH';
+    return isMh && (typeof item === 'object' ? Boolean(item.isAvailable !== false) : true);
+};
+
+export const statesAndUtTestData = rawStatesAndUtTestData.map(item => {
+    const isMh = item.id === 'maharashtra' || item.code === 'MH';
+    return {
+        ...item,
+        isAvailable: isMh,
+        totalTests: isMh ? (item.totalTests || 3) : 0,
+        freeTestAvailable: isMh,
+        coveredDistrictsCount: isMh ? (item.coveredDistrictsCount || 1) : 0,
+        districts: (item.districts || []).map(d => ({
+            ...d,
+            isAvailable: isMh && d.id === 'akola'
+        })),
+        image: getStateImage(item.id) || item.image
+    };
+});
 
 // Sample Question Set Generator for Balod District
 export const sampleQuestionsData = {

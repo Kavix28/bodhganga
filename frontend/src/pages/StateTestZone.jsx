@@ -10,12 +10,20 @@ const StateTestZone = () => {
     const [activeTab, setActiveTab] = useState('DISTRICTS'); // 'DISTRICTS' or 'SUBJECTS'
     const [availabilityMap, setAvailabilityMap] = useState({});
 
-    const stateData = statesAndUtTestData.find(s => s.id === stateId) || statesAndUtTestData[0];
+    const normalizedStateId = (stateId || '').toLowerCase();
+    const isMaharashtra = normalizedStateId === 'maharashtra' || normalizedStateId === 'mh';
+    const stateData = statesAndUtTestData.find(s => s.id === normalizedStateId) || {
+        id: stateId,
+        name: stateId ? stateId.charAt(0).toUpperCase() + stateId.slice(1) : 'State',
+        type: 'State',
+        totalDistricts: 0,
+        districts: []
+    };
 
     useEffect(() => {
         let isMounted = true;
         const fetchDistrictAvailability = async () => {
-            if (!stateData || !stateData.districts || stateData.districts.length === 0) return;
+            if (!isMaharashtra || !stateData || !stateData.districts || stateData.districts.length === 0) return;
 
             // Set loading state for all districts of current state
             const initialMap = {};
@@ -63,7 +71,29 @@ const StateTestZone = () => {
 
         fetchDistrictAvailability();
         return () => { isMounted = false; };
-    }, [stateId]);
+    }, [stateId, isMaharashtra]);
+
+    if (!isMaharashtra) {
+        return (
+            <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center pt-24 px-4">
+                <div className="bg-slate-900 border border-amber-500/30 p-8 rounded-3xl text-center space-y-4 max-w-md shadow-2xl">
+                    <Clock className="w-12 h-12 text-amber-400 mx-auto" />
+                    <h2 className="text-xl font-bold text-white">State Test Zone Coming Soon</h2>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                        Test content for {stateData?.name || stateId} is currently under preparation. Only Maharashtra (Akola district) is currently enabled.
+                    </p>
+                    <div className="pt-2">
+                        <Link
+                            to="/test-series"
+                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-gold to-gold-dark text-slate-950 font-bold text-xs uppercase shadow-md"
+                        >
+                            <ArrowLeft className="w-4 h-4" /> Explore Available Tests
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     const filteredDistricts = (stateData.districts || []).filter(d => 
         d.name.toLowerCase().includes(searchDistrict.toLowerCase())
