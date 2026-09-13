@@ -94,10 +94,13 @@ public class QuizAttemptController {
         // Determine effective question limit based on challenge type
         int targetLimit = limit;
         if (targetLimit <= 0) {
-            if ("easy".equalsIgnoreCase(testType) || "advanced".equalsIgnoreCase(testType)) {
-                targetLimit = 20; // Fixed 20-question limit for Quick and Advanced challenges
+            if ("easy".equalsIgnoreCase(testType) || "medium".equalsIgnoreCase(testType)
+                    || "hard".equalsIgnoreCase(testType) || "advanced".equalsIgnoreCase(testType)) {
+                targetLimit = 20; // Fixed 20-question limit for Easy, Medium, Hard timed pools
+            } else if ("extra".equalsIgnoreCase(testType) || "practice".equalsIgnoreCase(testType)) {
+                targetLimit = 200; // Untimed Extra Practice pool
             } else {
-                targetLimit = 100; // Master test cap
+                targetLimit = 200; // Master test cap
             }
         }
 

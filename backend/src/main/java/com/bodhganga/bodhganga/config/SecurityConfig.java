@@ -99,7 +99,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/dashboard/content").authenticated()
                         .requestMatchers("/api/dashboard/storage").authenticated()
 
-                        // Protected user endpoints
+                        // Quiz endpoints - public questions retrieval & grading submission, protected
+                        // management
+                        .requestMatchers("/api/quiz/questions", "/api/quiz/published-count", "/api/quiz/submit")
+                        .permitAll()
                         .requestMatchers("/api/quiz/**").authenticated()
                         .requestMatchers("/api/dashboard/**").authenticated()
                         .requestMatchers("/api/profile/**").authenticated()

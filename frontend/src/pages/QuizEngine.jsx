@@ -34,7 +34,11 @@ const QuizEngine = () => {
             if (response && response.success && Array.isArray(response.data) && response.data.length > 0) {
                 const fetchedQs = response.data;
                 setQuestions(fetchedQs);
-                setTimeLeft(fetchedQs.length * 60);
+                if (testType === 'extra' || testType === 'practice') {
+                    setTimeLeft(0); // Untimed practice
+                } else {
+                    setTimeLeft(1500); // Fixed 25 minutes (1500 seconds)
+                }
             } else if (response && response.success && Array.isArray(response.data) && response.data.length === 0) {
                 setFetchError('No published questions available for this district test yet.');
                 setQuestions([]);
@@ -56,7 +60,7 @@ const QuizEngine = () => {
     }, [stateId, districtId, testType]);
 
     useEffect(() => {
-        if (loading || questions.length === 0 || fetchError) return;
+        if (loading || questions.length === 0 || fetchError || testType === 'extra' || testType === 'practice') return;
         const timer = setInterval(() => {
             setTimeLeft(prev => {
                 if (prev <= 1) {
@@ -68,7 +72,7 @@ const QuizEngine = () => {
             });
         }, 1000);
         return () => clearInterval(timer);
-    }, [loading, questions, fetchError]);
+    }, [loading, questions, fetchError, testType]);
 
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);

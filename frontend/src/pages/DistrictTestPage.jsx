@@ -118,173 +118,145 @@ const DistrictTestPage = () => {
                     </p>
                 </div>
 
-                {/* Three Main District Options */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {/* OPTION 1: District Quick Challenge — Free */}
+                {/* Four Main District Test Options */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {/* OPTION 1: Easy Timed Quiz */}
                     <div className="bg-slate-900/80 border border-emerald-500/30 hover:border-emerald-500 rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-xl relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 px-4 py-1.5 bg-emerald-500/20 text-emerald-300 font-black text-[10px] uppercase tracking-wider rounded-bl-2xl border-l border-b border-emerald-500/30">
-                            FREE TEST 1
+                        <div className="absolute top-0 right-0 px-3 py-1 bg-emerald-500/20 text-emerald-300 font-black text-[10px] uppercase tracking-wider rounded-bl-2xl border-l border-b border-emerald-500/30">
+                            FREE TIMED
                         </div>
-
-                        <div className="space-y-4 pt-2">
-                            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                                <Zap className="w-6 h-6" />
+                        <div className="space-y-3 pt-2">
+                            <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                                <Zap className="w-5 h-5" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-serif font-bold text-white">{districtData.name} Quick Challenge</h3>
-                                <p className="text-xs font-bold text-emerald-400 uppercase tracking-widest mt-1">20 Easy Questions | Free</p>
+                                <h3 className="text-lg font-serif font-bold text-white">Easy Quiz</h3>
+                                <p className="text-[11px] font-bold text-emerald-400 uppercase tracking-widest mt-0.5">20 Questions · 25 Minutes</p>
                             </div>
-                            <ul className="space-y-2 text-xs text-slate-300">
-                                <li className="flex items-center gap-2">✓ Basic district facts</li>
-                                <li className="flex items-center gap-2">✓ Simple MCQs</li>
-                                <li className="flex items-center gap-2">✓ Suitable for beginners</li>
-                                <li className="flex items-center gap-2">✓ Instant score summary</li>
-                                <li className="flex items-center gap-2">✓ Basic answer explanations</li>
+                            <ul className="space-y-1.5 text-xs text-slate-300">
+                                <li className="flex items-center gap-1.5">✓ Fundamental district facts</li>
+                                <li className="flex items-center gap-1.5">✓ 25-minute timer</li>
+                                <li className="flex items-center gap-1.5">✓ Instant answer explanations</li>
                             </ul>
                         </div>
-
                         {isTestAvailable ? (
                             <button
                                 onClick={() => navigate(`/test-series/${stateId}/${districtId}/quiz/easy`)}
-                                className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-black text-xs uppercase tracking-widest hover:opacity-95 transition-all shadow-lg"
+                                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-black text-xs uppercase tracking-widest hover:opacity-95 transition-all shadow-lg"
                             >
                                 <Play className="w-4 h-4 fill-current" />
-                                <span>Attempt Quick Challenge</span>
+                                <span>Start Easy Quiz</span>
                             </button>
                         ) : (
-                            <button
-                                disabled
-                                className="w-full py-3.5 px-4 rounded-2xl bg-white/5 text-slate-500 font-bold text-xs uppercase tracking-widest cursor-not-allowed border border-white/5"
-                            >
-                                {availability.loading ? 'Checking Availability...' : 'Content Coming Soon'}
+                            <button disabled className="w-full py-3 px-4 rounded-2xl bg-white/5 text-slate-500 font-bold text-xs uppercase tracking-widest cursor-not-allowed">
+                                Coming Soon
                             </button>
                         )}
                     </div>
 
-                    {/* OPTION 2: District Advanced Knowledge Challenge — Free */}
-                    <div className="bg-slate-900/80 border border-amber-500/30 hover:border-amber-500 rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-xl relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 px-4 py-1.5 bg-amber-500/20 text-amber-300 font-black text-[10px] uppercase tracking-wider rounded-bl-2xl border-l border-b border-amber-500/30">
-                            FREE TEST 2
+                    {/* OPTION 2: Medium Timed Quiz */}
+                    <div className="bg-slate-900/80 border border-blue-500/30 hover:border-blue-500 rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-xl relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 px-3 py-1 bg-blue-500/20 text-blue-300 font-black text-[10px] uppercase tracking-wider rounded-bl-2xl border-l border-b border-blue-500/30">
+                            FREE TIMED
                         </div>
-
-                        <div className="space-y-4 pt-2">
-                            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
-                                <ShieldCheck className="w-6 h-6" />
+                        <div className="space-y-3 pt-2">
+                            <div className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                                <ShieldCheck className="w-5 h-5" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-serif font-bold text-white">{districtData.name} Knowledge Challenge</h3>
-                                <p className="text-xs font-bold text-amber-400 uppercase tracking-widest mt-1">20 Advanced Questions | Free</p>
+                                <h3 className="text-lg font-serif font-bold text-white">Medium Quiz</h3>
+                                <p className="text-[11px] font-bold text-blue-400 uppercase tracking-widest mt-0.5">20 Questions · 25 Minutes</p>
                             </div>
-                            <ul className="space-y-2 text-xs text-slate-300">
-                                <li className="flex items-center gap-2">✓ Statement-based questions</li>
-                                <li className="flex items-center gap-2">✓ UPSC & CGPSC orientation</li>
-                                <li className="flex items-center gap-2">✓ Chronology & Match-the-following</li>
-                                <li className="flex items-center gap-2">✓ Detailed answer rationales</li>
-                                <li className="flex items-center gap-2">✓ Performance analysis</li>
+                            <ul className="space-y-1.5 text-xs text-slate-300">
+                                <li className="flex items-center gap-1.5">✓ Intermediate concepts</li>
+                                <li className="flex items-center gap-1.5">✓ 25-minute timer</li>
+                                <li className="flex items-center gap-1.5">✓ Full score breakdown</li>
                             </ul>
                         </div>
-
                         {isTestAvailable ? (
                             <button
-                                onClick={() => navigate(`/test-series/${stateId}/${districtId}/quiz/advanced`)}
-                                className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black text-xs uppercase tracking-widest hover:opacity-95 transition-all shadow-lg"
+                                onClick={() => navigate(`/test-series/${stateId}/${districtId}/quiz/medium`)}
+                                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-black text-xs uppercase tracking-widest hover:opacity-95 transition-all shadow-lg"
                             >
                                 <Play className="w-4 h-4 fill-current" />
-                                <span>Attempt Advanced Challenge</span>
+                                <span>Start Medium Quiz</span>
                             </button>
                         ) : (
-                            <button
-                                disabled
-                                className="w-full py-3.5 px-4 rounded-2xl bg-white/5 text-slate-500 font-bold text-xs uppercase tracking-widest cursor-not-allowed border border-white/5"
-                            >
-                                {availability.loading ? 'Checking Availability...' : 'Content Coming Soon'}
+                            <button disabled className="w-full py-3 px-4 rounded-2xl bg-white/5 text-slate-500 font-bold text-xs uppercase tracking-widest cursor-not-allowed">
+                                Coming Soon
                             </button>
                         )}
                     </div>
 
-                    {/* OPTION 3: District Complete Learning Bundle — Paid */}
-                    <div className="bg-slate-900/90 border border-gold/50 hover:border-gold rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-2xl relative overflow-hidden bg-gradient-to-b from-slate-900 via-slate-900 to-emerald-950/40">
-                        <div className="absolute top-0 right-0 px-4 py-1.5 bg-gold/20 text-gold font-black text-[10px] uppercase tracking-wider rounded-bl-2xl border-l border-b border-gold/40">
-                            PREMIUM BUNDLE
+                    {/* OPTION 3: Hard Timed Quiz */}
+                    <div className="bg-slate-900/80 border border-amber-500/30 hover:border-amber-500 rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-xl relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 px-3 py-1 bg-amber-500/20 text-amber-300 font-black text-[10px] uppercase tracking-wider rounded-bl-2xl border-l border-b border-amber-500/30">
+                            ADVANCED TIMED
                         </div>
-
-                        <div className="space-y-4 pt-2">
-                            <div className="w-12 h-12 rounded-2xl bg-gold/10 border border-gold/30 flex items-center justify-center text-gold">
-                                <Award className="w-6 h-6" />
+                        <div className="space-y-3 pt-2">
+                            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                                <Award className="w-5 h-5" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-serif font-bold text-white">{districtData.name} District Complete Bundle</h3>
-                                <p className="text-xs font-bold text-gold uppercase tracking-widest mt-1">Complete Notes + 75-100 Question Master Test</p>
+                                <h3 className="text-lg font-serif font-bold text-white">Hard Quiz</h3>
+                                <p className="text-[11px] font-bold text-amber-400 uppercase tracking-widest mt-0.5">20 Questions · 25 Minutes</p>
                             </div>
-                            <ul className="space-y-2 text-xs text-slate-300">
-                                <li className="flex items-center gap-2">✓ Complete {districtData.name} District Notes</li>
-                                <li className="flex items-center gap-2">✓ Quick revision material</li>
-                                <li className="flex items-center gap-2">✓ Prelims-focused revision points</li>
-                                <li className="flex items-center gap-2">✓ 75–100 Master Test Questions</li>
-                                <li className="flex items-center gap-2">✓ Weak-area identification & reattempts</li>
+                            <ul className="space-y-1.5 text-xs text-slate-300">
+                                <li className="flex items-center gap-1.5">✓ Statement-based MCQs</li>
+                                <li className="flex items-center gap-1.5">✓ 25-minute timer</li>
+                                <li className="flex items-center gap-1.5">✓ In-depth explanations</li>
                             </ul>
                         </div>
-
-                        {/* BUTTONS: Pre-purchase vs Post-purchase */}
-                        {!isPurchased ? (
-                            <div className="space-y-2.5">
-                                <div className="flex items-center justify-between text-xs px-1">
-                                    <span className="text-slate-400 font-medium">One-time Unlock:</span>
-                                    <span className="text-xl font-serif font-bold text-gold">₹{districtData.price || 199}</span>
-                                </div>
-                                <button
-                                    onClick={handleUnlockBundle}
-                                    className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-black text-xs uppercase tracking-widest hover:shadow-gold/20 hover:-translate-y-0.5 transition-all shadow-xl"
-                                >
-                                    <Unlock className="w-4 h-4" />
-                                    <span>Unlock Bundle (₹{districtData.price || 199})</span>
-                                </button>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <button
-                                        onClick={() => setShowNotesModal(true)}
-                                        className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-white/80 text-[11px] font-bold border border-white/10 transition-colors"
-                                    >
-                                        <Eye className="w-3.5 h-3.5 text-gold" /> Preview Notes
-                                    </button>
-                                    <button
-                                        onClick={() => alert(`Details: Complete ${districtData.name} District Notes + Master Test Bundle.`)}
-                                        className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 text-white/80 text-[11px] font-bold border border-white/10 transition-colors"
-                                    >
-                                        <FileText className="w-3.5 h-3.5 text-gold" /> Bundle Details
-                                    </button>
-                                </div>
-                            </div>
+                        {isTestAvailable ? (
+                            <button
+                                onClick={() => navigate(`/test-series/${stateId}/${districtId}/quiz/hard`)}
+                                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black text-xs uppercase tracking-widest hover:opacity-95 transition-all shadow-lg"
+                            >
+                                <Play className="w-4 h-4 fill-current" />
+                                <span>Start Hard Quiz</span>
+                            </button>
                         ) : (
-                            <div className="space-y-2.5 pt-2 border-t border-gold/20">
-                                <span className="inline-block px-3 py-1 bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase rounded-full border border-emerald-500/40">
-                                    ✓ Bundle Unlocked & Ready
-                                </span>
-                                <button
-                                    onClick={() => setShowNotesModal(true)}
-                                    className="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-gold/20 hover:bg-gold/30 text-gold text-xs font-bold border border-gold/40 transition-colors"
-                                >
-                                    <FileText className="w-3.5 h-3.5" /> Read Notes
-                                </button>
-                                {isTestAvailable ? (
-                                    <button
-                                        onClick={() => navigate(`/test-series/${stateId}/${districtId}/quiz/master`)}
-                                        className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-black text-xs uppercase tracking-widest hover:shadow-xl transition-all"
-                                    >
-                                        <Play className="w-4 h-4 fill-current" />
-                                        <span>Attempt Master Test</span>
-                                    </button>
-                                ) : (
-                                    <button
-                                        disabled
-                                        className="w-full py-3.5 px-4 rounded-2xl bg-white/5 text-slate-500 font-bold text-xs uppercase tracking-widest cursor-not-allowed border border-white/5"
-                                    >
-                                        Master Test Coming Soon
-                                    </button>
-                                )}
+                            <button disabled className="w-full py-3 px-4 rounded-2xl bg-white/5 text-slate-500 font-bold text-xs uppercase tracking-widest cursor-not-allowed">
+                                Coming Soon
+                            </button>
+                        )}
+                    </div>
+
+                    {/* OPTION 4: Extra Practice */}
+                    <div className="bg-slate-900/90 border border-gold/50 hover:border-gold rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-2xl relative overflow-hidden bg-gradient-to-b from-slate-900 via-slate-900 to-emerald-950/40">
+                        <div className="absolute top-0 right-0 px-3 py-1 bg-gold/20 text-gold font-black text-[10px] uppercase tracking-wider rounded-bl-2xl border-l border-b border-gold/40">
+                            PRACTICE BANK
+                        </div>
+                        <div className="space-y-3 pt-2">
+                            <div className="w-10 h-10 rounded-2xl bg-gold/10 border border-gold/30 flex items-center justify-center text-gold">
+                                <FileText className="w-5 h-5" />
                             </div>
+                            <div>
+                                <h3 className="text-lg font-serif font-bold text-white">Extra Practice</h3>
+                                <p className="text-[11px] font-bold text-gold uppercase tracking-widest mt-0.5">Remaining Questions · Untimed</p>
+                            </div>
+                            <ul className="space-y-1.5 text-xs text-slate-300">
+                                <li className="flex items-center gap-1.5">✓ Complete question bank</li>
+                                <li className="flex items-center gap-1.5">✓ No timer pressure</li>
+                                <li className="flex items-center gap-1.5">✓ Unlimited revision</li>
+                            </ul>
+                        </div>
+                        {isTestAvailable ? (
+                            <button
+                                onClick={() => navigate(`/test-series/${stateId}/${districtId}/quiz/extra`)}
+                                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-black text-xs uppercase tracking-widest hover:shadow-xl transition-all"
+                            >
+                                <Play className="w-4 h-4 fill-current" />
+                                <span>Start Extra Practice</span>
+                            </button>
+                        ) : (
+                            <button disabled className="w-full py-3 px-4 rounded-2xl bg-white/5 text-slate-500 font-bold text-xs uppercase tracking-widest cursor-not-allowed">
+                                Coming Soon
+                            </button>
                         )}
                     </div>
                 </div>
+
             </div>
 
             {/* Notes Modal Preview */}
