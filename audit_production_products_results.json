@@ -1,0 +1,63 @@
+{
+  "totalAudited": 5,
+  "timestamp": "2026-08-27T16:57:44.702Z",
+  "anomaliesSummary": {
+    "isFreeTrueWithPaidPathCount": 0,
+    "isFreeFalseWithFreePathCount": 0,
+    "priceZeroWithPaidPathCount": 0,
+    "missingIsFreeCount": 0,
+    "missingPriceCount": 0,
+    "missingS3KeyCount": 0,
+    "missingStorageKeyCount": 0,
+    "s3KeyMismatchStorageKeyCount": 0,
+    "duplicateDriveIdsCount": 0,
+    "duplicateChecksumsCount": 0,
+    "duplicateS3KeysCount": 0,
+    "unknownTierPathsCount": 0,
+    "malformedPathsCount": 0,
+    "outsideTierFoldersCount": 5
+  },
+  "anomaliesDetails": {
+    "isFreeTrueWithPaidPath": [],
+    "isFreeFalseWithFreePath": [],
+    "priceZeroWithPaidPath": [],
+    "paidPathWithPriceZero": [],
+    "missingIsFree": [],
+    "missingPrice": [],
+    "missingS3Key": [],
+    "missingStorageKey": [],
+    "s3KeyMismatchStorageKey": [],
+    "duplicateDriveIds": {},
+    "duplicateChecksums": {},
+    "duplicateS3Keys": {},
+    "unknownTierPaths": [],
+    "malformedPaths": [],
+    "outsideTierFolders": [
+      {
+        "id": "5f8e3514-77c3-4f01-8bae-f409c1c2c4d5",
+        "title": "Rajasthan PSC Complete History Notes",
+        "s3Key": "rpsc-history-notes.pdf"
+      },
+      {
+        "id": "874f35d9-97eb-4de3-9ff2-3408a9e258e4",
+        "title": "Bihar Special Geography & Economy Blueprint",
+        "s3Key": "bpsc-geography-economy.pdf"
+      },
+      {
+        "id": "9b96f61a-91e2-4f07-afa2-f3d57537c2eb",
+        "title": "Uttar Pradesh General Knowledge Question Bank",
+        "s3Key": "uppsc-gk-question-bank.pdf"
+      },
+      {
+        "id": "3046745c-fb78-4a75-bb45-7fff148686f1",
+        "title": "Madhya Pradesh Tribe & Culture Companion",
+        "s3Key": "mppsc-tribes-culture.pdf"
+      },
+      {
+        "id": "a34eeb37-69b4-4bd5-ab85-595c655b7649",
+        "title": "Ultimate General Studies Mock Test Series",
+        "s3Key": "gs-mock-test-series.pdf"
+      }
+    ]
+  }
+}

@@ -5,12 +5,13 @@ import { Clock, CheckCircle, AlertCircle, ArrowLeft, ArrowRight, Bookmark, Shiel
 import api from '../services/api';
 
 const QuizEngine = () => {
-    const { stateId, districtId, testType } = useParams(); // 'easy', 'advanced', 'master'
+    const { stateId, districtId, testType } = useParams(); // 'easy', 'medium', 'hard', 'extra', 'master'
     const navigate = useNavigate();
 
     const [questions, setQuestions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [fetchError, setFetchError] = useState(null);
+    const [isComingSoon, setIsComingSoon] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState(null);
 
@@ -22,6 +23,7 @@ const QuizEngine = () => {
     const fetchQuestions = async () => {
         setLoading(true);
         setFetchError(null);
+        setIsComingSoon(false);
         try {
             const response = await api.get('/quiz/questions', {
                 params: {
@@ -48,7 +50,13 @@ const QuizEngine = () => {
             }
         } catch (err) {
             console.error('Backend questions fetch error:', err);
-            setFetchError(err.message || 'Backend connection required to take this quiz. Please try again.');
+            const comingSoonCode = err?.code === 'QUESTION_BANK_COMING_SOON' || err?.data?.code === 'QUESTION_BANK_COMING_SOON' || err?.status === 403;
+            if (comingSoonCode) {
+                setIsComingSoon(true);
+                setFetchError('Tests for this district are coming soon.');
+            } else {
+                setFetchError(err.message || 'Unable to connect to server to load quiz. Please try again.');
+            }
             setQuestions([]);
         } finally {
             setLoading(false);
@@ -140,7 +148,12 @@ const QuizEngine = () => {
             }
         } catch (error) {
             console.error('Server-side grading submission error:', error);
-            setSubmitError(error.message || 'Backend connection required to submit this quiz. Please try again.');
+            const comingSoonCode = error?.code === 'QUESTION_BANK_COMING_SOON' || error?.data?.code === 'QUESTION_BANK_COMING_SOON' || error?.status === 403;
+            if (comingSoonCode) {
+                setSubmitError('Tests for this district are coming soon.');
+            } else {
+                setSubmitError(error.message || 'Backend connection required to submit this quiz. Please try again.');
+            }
         } finally {
             setSubmitting(false);
         }
@@ -162,20 +175,24 @@ const QuizEngine = () => {
             <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center pt-24 px-4">
                 <div className="bg-slate-900 border border-amber-500/30 p-8 rounded-3xl text-center space-y-4 max-w-md shadow-2xl">
                     <AlertCircle className="w-12 h-12 text-amber-400 mx-auto" />
-                    <h2 className="text-xl font-bold text-white">Question Bank Unavailable</h2>
+                    <h2 className="text-xl font-bold text-white">
+                        {isComingSoon ? 'Coming Soon' : 'Question Bank Unavailable'}
+                    </h2>
                     <p className="text-xs text-slate-300 leading-relaxed">
-                        {fetchError || 'Backend connection required to take this quiz. Please try again.'}
+                        {fetchError || 'Tests for this district are coming soon.'}
                     </p>
                     <div className="flex gap-3 justify-center pt-2">
-                        <button
-                            onClick={fetchQuestions}
-                            className="px-5 py-2.5 rounded-xl bg-gold text-slate-950 font-bold text-xs uppercase flex items-center gap-2"
-                        >
-                            <RefreshCw className="w-4 h-4" /> Retry Connection
-                        </button>
+                        {!isComingSoon && (
+                            <button
+                                onClick={fetchQuestions}
+                                className="px-5 py-2.5 rounded-xl bg-gold text-slate-950 font-bold text-xs uppercase flex items-center gap-2"
+                            >
+                                <RefreshCw className="w-4 h-4" /> Retry Connection
+                            </button>
+                        )}
                         <button
                             onClick={() => navigate(`/test-series/${stateId}/${districtId}`)}
-                            className="px-5 py-2.5 rounded-xl bg-white/10 text-white font-bold text-xs uppercase"
+                            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-gold to-gold-dark text-slate-950 font-bold text-xs uppercase shadow-md"
                         >
                             Back to District
                         </button>

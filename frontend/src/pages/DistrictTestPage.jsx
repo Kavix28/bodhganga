@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { statesAndUtTestData, sampleBalodNotes } from '../data/testSeriesData';
-import { Award, Zap, ShieldCheck, CheckCircle2, Lock, Unlock, FileText, Download, Play, RotateCcw, ArrowLeft, ChevronRight, Eye, Clock, Loader2 } from 'lucide-react';
+import { Award, Zap, ShieldCheck, CheckCircle2, Lock, Unlock, FileText, Download, Play, RotateCcw, ArrowLeft, ChevronRight, Eye, Clock, Loader2, AlertCircle } from 'lucide-react';
 import api from '../services/api';
 
 const DistrictTestPage = () => {
@@ -14,7 +14,8 @@ const DistrictTestPage = () => {
         loading: true,
         available: false,
         count: 0,
-        error: false
+        error: false,
+        errorMessage: ''
     });
 
     const stateData = statesAndUtTestData.find(s => s.id === stateId) || statesAndUtTestData[0];
@@ -27,7 +28,7 @@ const DistrictTestPage = () => {
     useEffect(() => {
         let isMounted = true;
         const checkAvailability = async () => {
-            setAvailability({ loading: true, available: false, count: 0, error: false });
+            setAvailability({ loading: true, available: false, count: 0, error: false, errorMessage: '' });
             try {
                 const response = await api.get('/quiz/published-count', {
                     params: {
@@ -41,15 +42,21 @@ const DistrictTestPage = () => {
                             loading: false,
                             available: Boolean(response.data.available && response.data.count > 0),
                             count: response.data.count || 0,
-                            error: false
+                            error: false,
+                            errorMessage: ''
                         });
                     } else {
-                        setAvailability({ loading: false, available: false, count: 0, error: false });
+                        setAvailability({ loading: false, available: false, count: 0, error: false, errorMessage: '' });
                     }
                 }
             } catch (err) {
                 if (isMounted) {
-                    setAvailability({ loading: false, available: false, count: 0, error: true });
+                    const isComingSoon = err?.code === 'QUESTION_BANK_COMING_SOON' || err?.data?.code === 'QUESTION_BANK_COMING_SOON' || err?.status === 403;
+                    if (isComingSoon) {
+                        setAvailability({ loading: false, available: false, count: 0, error: false, errorMessage: '' });
+                    } else {
+                        setAvailability({ loading: false, available: false, count: 0, error: true, errorMessage: 'Unable to check quiz availability. Please try again.' });
+                    }
                 }
             }
         };
@@ -101,6 +108,11 @@ const DistrictTestPage = () => {
                             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-xs font-bold text-emerald-300">
                                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                                 <span>{availability.count} Published MCQs Ready</span>
+                            </div>
+                        ) : availability.error ? (
+                            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-red-500/20 border border-red-500/40 text-xs font-bold text-red-300">
+                                <AlertCircle className="w-4 h-4 text-red-400" />
+                                <span>Unable to check quiz availability. Please try again.</span>
                             </div>
                         ) : (
                             <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-xs font-bold text-amber-300">

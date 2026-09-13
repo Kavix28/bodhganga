@@ -89,8 +89,8 @@ public class OcrService {
                 int pageNumber = i + 1;
                 log.info("Rendering PDF page {}/{} for OCR...", pageNumber, pageCount);
 
-                // Render at 200 DPI for high quality OCR without bloated image size
-                BufferedImage image = renderer.renderImageWithDPI(i, 200);
+                // Render at 300 DPI for high quality OCR text extraction
+                BufferedImage image = renderer.renderImageWithDPI(i, 300);
 
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 ImageIO.write(image, "PNG", baos);
@@ -170,7 +170,8 @@ public class OcrService {
                         winTesseract.getAbsolutePath(),
                         tempImage.getAbsolutePath(),
                         tempOutputBase.getAbsolutePath(),
-                        "-l", "eng");
+                        "-l", "eng",
+                        "--psm", "6");
                 Process process = pb.start();
                 process.waitFor();
 

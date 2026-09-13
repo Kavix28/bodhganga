@@ -42,10 +42,12 @@ public class PdfExtractionService {
         int totalDigitalChars = pagesText.stream().mapToInt(String::length).sum();
         log.info("Extracted digital text character count: {}", totalDigitalChars);
 
-        // If digital text extraction returns fewer than 100 total characters, treat as
-        // scanned PDF requiring OCR
-        if (totalDigitalChars < 100) {
-            log.info("Digital text layer insufficient (<100 chars). Invoking OCR engine pipeline...");
+        // Check if any individual page has insufficient digital text (< 30 chars)
+        boolean hasInsufficientPages = pagesText.stream().anyMatch(t -> t == null || t.trim().length() < 30);
+
+        if (hasInsufficientPages || totalDigitalChars < 100) {
+            log.info(
+                    "Digital text layer insufficient (<100 total chars or blank pages detected). Invoking OCR engine pipeline...");
             OcrService.OcrResult ocrResult = ocrService.extractTextFromScannedPdf(pdfBytes);
             return ocrResult.getPageTexts();
         }

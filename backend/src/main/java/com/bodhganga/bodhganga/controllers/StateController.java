@@ -15,6 +15,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
+import com.bodhganga.bodhganga.service.QuizAvailabilityService;
+
 @RestController
 @RequestMapping("/api/states")
 @CrossOrigin(origins = { "http://localhost:5173", "http://localhost:3000" })
@@ -22,13 +24,19 @@ public class StateController {
 
     private final StateRepo stateRepo;
     private final MongoTemplate mongoTemplate;
+    private final QuizAvailabilityService quizAvailabilityService;
 
-    public StateController(StateRepo stateRepo, MongoTemplate mongoTemplate) {
+    public StateController(StateRepo stateRepo, MongoTemplate mongoTemplate,
+            QuizAvailabilityService quizAvailabilityService) {
         this.stateRepo = stateRepo;
         this.mongoTemplate = mongoTemplate;
+        this.quizAvailabilityService = quizAvailabilityService;
     }
 
-    public record DistrictInfo(String district, String districtSlug, long count) {
+    public record DistrictInfo(String district, String districtSlug, long count, boolean quizAvailable) {
+        public DistrictInfo(String district, String districtSlug, long count) {
+            this(district, districtSlug, count, false);
+        }
     }
 
     /**
@@ -99,6 +107,7 @@ public class StateController {
             m.put("name", s.getName());
             m.put("notesCount", count);
             m.put("isAvailable", count > 0);
+            m.put("quizAvailable", quizAvailabilityService.isStateAvailable(slug));
             resultMap.put(slug, m);
         }
 
@@ -113,6 +122,7 @@ public class StateController {
                 m.put("name", displayName);
                 m.put("notesCount", entry.getValue());
                 m.put("isAvailable", entry.getValue() > 0);
+                m.put("quizAvailable", quizAvailabilityService.isStateAvailable(slug));
                 resultMap.put(slug, m);
             }
         }
@@ -149,7 +159,9 @@ public class StateController {
 
         for (DistrictInfo info : results.getMappedResults()) {
             if (info.districtSlug() != null && !info.districtSlug().isBlank()) {
-                productDistrictsMap.put(info.districtSlug(), info);
+                boolean quizAvail = quizAvailabilityService.isDistrictAvailable(cleanStateSlug, info.districtSlug());
+                productDistrictsMap.put(info.districtSlug(),
+                        new DistrictInfo(info.district(), info.districtSlug(), info.count(), quizAvail));
             }
         }
 
@@ -173,14 +185,17 @@ public class StateController {
             for (String dName : canonicalState.getDistricts()) {
                 String dSlug = Product.generateSlug(dName);
                 long count = productDistrictsMap.containsKey(dSlug) ? productDistrictsMap.get(dSlug).count() : 0L;
-                resultMap.put(dSlug, new DistrictInfo(dName, dSlug, count));
+                boolean quizAvail = quizAvailabilityService.isDistrictAvailable(cleanStateSlug, dSlug);
+                resultMap.put(dSlug, new DistrictInfo(dName, dSlug, count, quizAvail));
             }
         }
 
         // Add any additional product-derived districts
         for (java.util.Map.Entry<String, DistrictInfo> entry : productDistrictsMap.entrySet()) {
             if (!resultMap.containsKey(entry.getKey())) {
-                resultMap.put(entry.getKey(), entry.getValue());
+                boolean quizAvail = quizAvailabilityService.isDistrictAvailable(cleanStateSlug, entry.getKey());
+                resultMap.put(entry.getKey(), new DistrictInfo(entry.getValue().district(),
+                        entry.getValue().districtSlug(), entry.getValue().count(), quizAvail));
             }
         }
 

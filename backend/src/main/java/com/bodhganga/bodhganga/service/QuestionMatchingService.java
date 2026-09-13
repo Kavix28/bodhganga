@@ -66,7 +66,8 @@ public class QuestionMatchingService {
             String status = needsReview ? "REVIEW_REQUIRED" : "DRAFT";
             String qLevel = pq.getLevel() != null ? pq.getLevel()
                     : ("advanced".equalsIgnoreCase(testType) ? "upsc-level" : "foundation");
-            String mappedTestType = "upsc-level".equalsIgnoreCase(qLevel) ? "advanced" : testType;
+            String mappedTestType = "master".equalsIgnoreCase(testType) ? "master"
+                    : ("upsc-level".equalsIgnoreCase(qLevel) ? "advanced" : testType);
 
             String questionId = stateSlug + "-" + districtSlug + "-" + mappedTestType + "-" + qNum + "-"
                     + UUID.randomUUID().toString().substring(0, 8);

@@ -20,6 +20,9 @@ import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.bodhganga.bodhganga.service.QuizAvailabilityService;
+import org.springframework.http.HttpStatus;
+
 @RestController
 @RequestMapping("/api/quiz")
 @CrossOrigin(origins = { "http://localhost:5173", "http://localhost:3000",
@@ -29,11 +32,14 @@ public class QuizAttemptController {
     private final QuizAttemptRepo quizAttemptRepo;
     private final UserRepo userRepo;
     private final QuestionRepo questionRepo;
+    private final QuizAvailabilityService quizAvailabilityService;
 
-    public QuizAttemptController(QuizAttemptRepo quizAttemptRepo, UserRepo userRepo, QuestionRepo questionRepo) {
+    public QuizAttemptController(QuizAttemptRepo quizAttemptRepo, UserRepo userRepo, QuestionRepo questionRepo,
+            QuizAvailabilityService quizAvailabilityService) {
         this.quizAttemptRepo = quizAttemptRepo;
         this.userRepo = userRepo;
         this.questionRepo = questionRepo;
+        this.quizAvailabilityService = quizAvailabilityService;
     }
 
     private String getUserId(String email) {
@@ -47,6 +53,32 @@ public class QuizAttemptController {
             @RequestParam(required = false) String testType,
             @RequestParam(required = false) String topic,
             @RequestParam(required = false, defaultValue = "0") int limit) {
+
+        // Server-side availability policy enforcement
+        if (stateSlug != null && districtSlug != null) {
+            if (!quizAvailabilityService.isDistrictAvailable(stateSlug, districtSlug)) {
+                Map<String, Object> errData = new HashMap<>();
+                errData.put("code", "QUESTION_BANK_COMING_SOON");
+                errData.put("stateSlug", stateSlug);
+                errData.put("districtSlug", districtSlug);
+                errData.put("quizAvailable", false);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponseDTO.builder()
+                        .success(false)
+                        .message("The question bank for this location is coming soon.")
+                        .data(errData)
+                        .build());
+            }
+        } else if (stateSlug != null && !quizAvailabilityService.isStateAvailable(stateSlug)) {
+            Map<String, Object> errData = new HashMap<>();
+            errData.put("code", "QUESTION_BANK_COMING_SOON");
+            errData.put("stateSlug", stateSlug);
+            errData.put("quizAvailable", false);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("The question bank for this location is coming soon.")
+                    .data(errData)
+                    .build());
+        }
 
         List<Question> questions;
         if (stateSlug != null && districtSlug != null) {
@@ -64,15 +96,9 @@ public class QuizAttemptController {
                         stateSlug, districtSlug, "PUBLISHED");
             }
         } else if (districtSlug != null && testType != null) {
-            if ("master".equalsIgnoreCase(testType)) {
-                questions = questionRepo.findByIsActiveTrue().stream()
-                        .filter(q -> districtSlug.equalsIgnoreCase(q.getDistrictSlug()))
-                        .collect(Collectors.toList());
-            } else {
-                questions = questionRepo.findByDistrictSlugAndTestTypeAndIsActiveTrueOrderByQuestionNumberAsc(
-                        districtSlug,
-                        testType);
-            }
+            questions = questionRepo.findByDistrictSlugAndTestTypeAndIsActiveTrueOrderByQuestionNumberAsc(
+                    districtSlug,
+                    testType);
         } else if (stateSlug != null && testType != null) {
             questions = questionRepo.findByStateSlugAndTestTypeAndIsActiveTrueOrderByQuestionNumberAsc(stateSlug,
                     testType);
@@ -133,6 +159,31 @@ public class QuizAttemptController {
     public ResponseEntity<ApiResponseDTO> getPublishedCount(
             @RequestParam(required = false) String stateSlug,
             @RequestParam(required = false) String districtSlug) {
+        if (stateSlug != null && districtSlug != null) {
+            if (!quizAvailabilityService.isDistrictAvailable(stateSlug, districtSlug)) {
+                Map<String, Object> errData = new HashMap<>();
+                errData.put("code", "QUESTION_BANK_COMING_SOON");
+                errData.put("stateSlug", stateSlug);
+                errData.put("districtSlug", districtSlug);
+                errData.put("quizAvailable", false);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponseDTO.builder()
+                        .success(false)
+                        .message("The question bank for this location is coming soon.")
+                        .data(errData)
+                        .build());
+            }
+        } else if (stateSlug != null && !quizAvailabilityService.isStateAvailable(stateSlug)) {
+            Map<String, Object> errData = new HashMap<>();
+            errData.put("code", "QUESTION_BANK_COMING_SOON");
+            errData.put("stateSlug", stateSlug);
+            errData.put("quizAvailable", false);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("The question bank for this location is coming soon.")
+                    .data(errData)
+                    .build());
+        }
+
         long count;
         if (stateSlug != null && districtSlug != null) {
             count = questionRepo.countByStateSlugAndDistrictSlugAndStatusAndIsActiveTrue(stateSlug, districtSlug,
@@ -140,9 +191,11 @@ public class QuizAttemptController {
         } else {
             count = questionRepo.countByStatusAndIsActiveTrue("PUBLISHED");
         }
+
         Map<String, Object> data = new HashMap<>();
         data.put("count", count);
         data.put("available", count > 0);
+        data.put("quizAvailable", true);
         return ResponseEntity.ok(ApiResponseDTO.builder()
                 .success(true)
                 .message("Published question count retrieved")
@@ -153,6 +206,21 @@ public class QuizAttemptController {
     @PostMapping("/submit")
     public ResponseEntity<ApiResponseDTO> submitQuiz(@RequestBody QuizSubmissionDTO submissionDTO,
             Authentication authentication) {
+        // Enforce availability check on submission
+        if (submissionDTO.getStateSlug() != null && submissionDTO.getDistrictSlug() != null) {
+            if (!quizAvailabilityService.isDistrictAvailable(submissionDTO.getStateSlug(),
+                    submissionDTO.getDistrictSlug())) {
+                Map<String, Object> errData = new HashMap<>();
+                errData.put("code", "QUESTION_BANK_COMING_SOON");
+                errData.put("stateSlug", submissionDTO.getStateSlug());
+                errData.put("districtSlug", submissionDTO.getDistrictSlug());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponseDTO.builder()
+                        .success(false)
+                        .message("The question bank for this location is coming soon.")
+                        .data(errData)
+                        .build());
+            }
+        }
         String userEmail = authentication != null ? authentication.getName() : null;
         String userId = userEmail != null ? getUserId(userEmail) : "anonymous";
 

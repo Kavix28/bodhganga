@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { statesAndUtTestData } from '../data/testSeriesData';
-import { Search, MapPin, CheckCircle, Clock, ChevronRight, BookOpen, Sparkles, Layers, ShieldCheck, ArrowLeft, Loader2 } from 'lucide-react';
+import { Search, MapPin, CheckCircle, Clock, ChevronRight, BookOpen, Sparkles, Layers, ShieldCheck, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 import api from '../services/api';
 
 const StateTestZone = () => {
@@ -39,13 +39,19 @@ const StateTestZone = () => {
                             results[dist.id] = {
                                 loading: false,
                                 available: Boolean(response.data.available && response.data.count > 0),
-                                count: response.data.count || 0
+                                count: response.data.count || 0,
+                                error: false
                             };
                         } else {
-                            results[dist.id] = { loading: false, available: false, count: 0 };
+                            results[dist.id] = { loading: false, available: false, count: 0, error: false };
                         }
                     } catch (err) {
-                        results[dist.id] = { loading: false, available: false, count: 0 };
+                        const isComingSoon = err?.code === 'QUESTION_BANK_COMING_SOON' || err?.data?.code === 'QUESTION_BANK_COMING_SOON' || err?.status === 403;
+                        if (isComingSoon) {
+                            results[dist.id] = { loading: false, available: false, count: 0, error: false };
+                        } else {
+                            results[dist.id] = { loading: false, available: false, count: 0, error: true, errorMessage: err.message || 'Error checking availability' };
+                        }
                     }
                 })
             );
@@ -161,8 +167,9 @@ const StateTestZone = () => {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                             {filteredDistricts.map((dist) => {
-                                const distAvail = availabilityMap[dist.id] || { loading: true, available: false, count: 0 };
+                                const distAvail = availabilityMap[dist.id] || { loading: true, available: false, count: 0, error: false };
                                 const isDistAvailable = distAvail.available && distAvail.count > 0;
+                                const isDistError = distAvail.error;
 
                                 return (
                                     <div
@@ -170,6 +177,8 @@ const StateTestZone = () => {
                                         className={`p-5 rounded-2xl border transition-all duration-300 flex flex-col justify-between space-y-4 ${
                                             isDistAvailable
                                                 ? 'bg-slate-900/80 hover:bg-slate-900 border-gold/30 hover:border-gold shadow-md hover:shadow-gold/10 hover:-translate-y-1'
+                                                : isDistError
+                                                ? 'bg-red-950/20 border-red-500/20'
                                                 : 'bg-slate-900/30 border-white/5 opacity-60'
                                         }`}
                                     >
@@ -183,6 +192,10 @@ const StateTestZone = () => {
                                                 ) : isDistAvailable ? (
                                                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                                                         <CheckCircle className="w-3 h-3" /> {distAvail.count} MCQs
+                                                    </span>
+                                                ) : isDistError ? (
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-300 border border-red-500/30">
+                                                        <AlertCircle className="w-3 h-3" /> Check Failed
                                                     </span>
                                                 ) : (
                                                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
@@ -204,6 +217,10 @@ const StateTestZone = () => {
                                                 <span>Open {dist.name} Test Page</span>
                                                 <ChevronRight className="w-4 h-4" />
                                             </Link>
+                                        ) : isDistError ? (
+                                            <button disabled className="w-full py-2.5 px-4 rounded-xl bg-red-950/40 text-red-300 text-xs font-bold uppercase tracking-wider cursor-not-allowed border border-red-500/30">
+                                                Unable to check availability
+                                            </button>
                                         ) : (
                                             <button disabled className="w-full py-2.5 px-4 rounded-xl bg-white/5 text-slate-500 text-xs font-bold uppercase tracking-wider cursor-not-allowed">
                                                 {distAvail.loading ? 'Checking Status...' : 'Coming Soon'}
