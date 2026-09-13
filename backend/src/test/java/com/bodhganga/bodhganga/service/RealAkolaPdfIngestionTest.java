@@ -4,6 +4,7 @@ import com.bodhganga.bodhganga.BodhgangaApplication;
 import com.bodhganga.bodhganga.repo.QuestionRepo;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest(classes = BodhgangaApplication.class)
 @ActiveProfiles("test")
+@Tag("local-ocr")
 public class RealAkolaPdfIngestionTest {
 
     @Autowired

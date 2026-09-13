@@ -137,8 +137,12 @@
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>3.5.3</version>
 				<configuration>
+					<excludedGroups>local-ocr</excludedGroups>
 					<excludes>
-						<exclude>**/OtpBypassSecurityTests.java</exclude>
+						<exclude>**/AdminQuestionIngestionAndOcrTests.java</exclude>
+						<exclude>**/RealAkolaPdfIngestionTest.java</exclude>
+						<exclude>**/AkolaMasterIngestor.java</exclude>
+						<exclude>**/AkolaParserRegressionTest.java</exclude>
 					</excludes>
 				</configuration>
 			</plugin>
@@ -157,5 +161,23 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<profile>
+			<id>local-ocr</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<configuration>
+							<excludedGroups>none</excludedGroups>
+							<excludes combine.self="override"/>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 
 </project>
