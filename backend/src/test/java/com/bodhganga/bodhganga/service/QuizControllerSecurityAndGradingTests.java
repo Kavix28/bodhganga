@@ -29,7 +29,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(classes = BodhgangaApplication.class)
+@SpringBootTest(classes = BodhgangaApplication.class, properties = "bodhganga.demo.akola-json.enabled=true")
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 public class QuizControllerSecurityAndGradingTests {
@@ -52,6 +52,9 @@ public class QuizControllerSecurityAndGradingTests {
         @Autowired
         private QuestionSeedService questionSeedService;
 
+        @Autowired(required = false)
+        private AkolaJsonQuestionLoader akolaJsonQuestionLoader;
+
         private static final String TEST_USER_EMAIL = "student@bodhganga.com";
 
         @BeforeEach
@@ -60,24 +63,30 @@ public class QuizControllerSecurityAndGradingTests {
                 quizAttemptRepo.deleteAll();
                 userRepo.deleteAll();
 
+                if (akolaJsonQuestionLoader != null) {
+                        try {
+                                akolaJsonQuestionLoader.loadAkolaDemoQuestions();
+                        } catch (Exception ignored) {
+                        }
+                }
+                questionSeedService.seedQuestions();
+
                 User user = new User();
                 user.setId(UUID.randomUUID().toString());
                 user.setEmail(TEST_USER_EMAIL);
                 user.setName("Student Test User");
                 userRepo.save(user);
-
-                questionSeedService.seedQuestions();
         }
 
         @Test
         void test1_questionRepositoryFiltering() {
-                List<Question> blrEasy = questionRepo
+                List<Question> akolaEasy = questionRepo
                                 .findByStateSlugAndDistrictSlugAndTestTypeAndIsActiveTrueOrderByQuestionNumberAsc(
-                                                "karnataka", "bengaluru", "easy");
-                assertFalse(blrEasy.isEmpty());
-                assertEquals("karnataka", blrEasy.get(0).getStateSlug());
-                assertEquals("bengaluru", blrEasy.get(0).getDistrictSlug());
-                assertEquals("easy", blrEasy.get(0).getTestType());
+                                                "maharashtra", "akola", "easy");
+                assertFalse(akolaEasy.isEmpty());
+                assertEquals("maharashtra", akolaEasy.get(0).getStateSlug());
+                assertEquals("akola", akolaEasy.get(0).getDistrictSlug());
+                assertEquals("easy", akolaEasy.get(0).getTestType());
         }
 
         @Test
@@ -91,8 +100,8 @@ public class QuizControllerSecurityAndGradingTests {
         @WithMockUser(username = TEST_USER_EMAIL)
         void test3_questionApiReturnsSanitizedQuestionsWithoutAnswerKeys() throws Exception {
                 mockMvc.perform(get("/api/quiz/questions")
-                                .param("stateSlug", "karnataka")
-                                .param("districtSlug", "bengaluru")
+                                .param("stateSlug", "maharashtra")
+                                .param("districtSlug", "akola")
                                 .param("testType", "easy"))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.success").value(true))
@@ -108,13 +117,25 @@ public class QuizControllerSecurityAndGradingTests {
         @WithMockUser(username = TEST_USER_EMAIL)
         void test4_questionFilteringByStateDistrictTestTypeAndTopic() throws Exception {
                 mockMvc.perform(get("/api/quiz/questions")
-                                .param("stateSlug", "chhattisgarh")
-                                .param("districtSlug", "balod")
+                                .param("stateSlug", "maharashtra")
+                                .param("districtSlug", "akola")
                                 .param("testType", "easy")
-                                .param("topic", "Geography"))
+                                .param("topic", "History"))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.success").value(true))
-                                .andExpect(jsonPath("$.data[0].topic").value("Geography"));
+                                .andExpect(jsonPath("$.data[0].topic").value("History"));
+        }
+
+        @Test
+        @WithMockUser(username = TEST_USER_EMAIL)
+        void test4b_unauthorizedLocationReturnsComingSoonForbidden() throws Exception {
+                mockMvc.perform(get("/api/quiz/questions")
+                                .param("stateSlug", "chhattisgarh")
+                                .param("districtSlug", "balod")
+                                .param("testType", "easy"))
+                                .andExpect(status().isForbidden())
+                                .andExpect(jsonPath("$.success").value(false))
+                                .andExpect(jsonPath("$.data.code").value("QUESTION_BANK_COMING_SOON"));
         }
 
         @Test
@@ -122,7 +143,7 @@ public class QuizControllerSecurityAndGradingTests {
         void test5_serverSideGradingCalculatesScoreCorrectlyAndIgnoresForgedPayload() throws Exception {
                 List<Question> qList = questionRepo
                                 .findByStateSlugAndDistrictSlugAndTestTypeAndIsActiveTrueOrderByQuestionNumberAsc(
-                                                "karnataka", "bengaluru", "easy");
+                                                "maharashtra", "akola", "easy");
                 assertTrue(qList.size() >= 2);
 
                 Question q1 = qList.get(0); // correct ans 1
@@ -134,8 +155,8 @@ public class QuizControllerSecurityAndGradingTests {
                 answers.put(q2.getId(), (q2.getCorrectAnswer() + 1) % 4); // Incorrect
 
                 Map<String, Object> forgedBody = new HashMap<>();
-                forgedBody.put("stateSlug", "karnataka");
-                forgedBody.put("districtSlug", "bengaluru");
+                forgedBody.put("stateSlug", "maharashtra");
+                forgedBody.put("districtSlug", "akola");
                 forgedBody.put("testType", "easy");
                 forgedBody.put("timeTaken", 45);
                 forgedBody.put("questionIds", qIds);
@@ -164,7 +185,7 @@ public class QuizControllerSecurityAndGradingTests {
         void test6_unansweredQuestionsHandledCorrectly() throws Exception {
                 List<Question> qList = questionRepo
                                 .findByStateSlugAndDistrictSlugAndTestTypeAndIsActiveTrueOrderByQuestionNumberAsc(
-                                                "karnataka", "bengaluru", "easy");
+                                                "maharashtra", "akola", "easy");
                 assertTrue(qList.size() >= 2);
 
                 Question q1 = qList.get(0);
@@ -175,8 +196,8 @@ public class QuizControllerSecurityAndGradingTests {
                 answers.put(q1.getId(), q1.getCorrectAnswer()); // 1 correct, q2 unanswered
 
                 QuizSubmissionDTO submission = QuizSubmissionDTO.builder()
-                                .stateSlug("karnataka")
-                                .districtSlug("bengaluru")
+                                .stateSlug("maharashtra")
+                                .districtSlug("akola")
                                 .testType("easy")
                                 .timeTaken(30)
                                 .questionIds(qIds)
