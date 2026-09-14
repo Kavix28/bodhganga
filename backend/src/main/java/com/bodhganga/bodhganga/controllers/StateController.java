@@ -33,9 +33,17 @@ public class StateController {
         this.quizAvailabilityService = quizAvailabilityService;
     }
 
-    public record DistrictInfo(String district, String districtSlug, long count, boolean quizAvailable) {
+    public record DistrictInfo(
+            String district,
+            String districtSlug,
+            long count,
+            Boolean quizAvailable) {
         public DistrictInfo(String district, String districtSlug, long count) {
             this(district, districtSlug, count, false);
+        }
+
+        public boolean isQuizAvailable() {
+            return Boolean.TRUE.equals(quizAvailable);
         }
     }
 
