@@ -196,7 +196,8 @@ export default function DistrictResourcesPage() {
           try {
             const pRes = await api.get("/payment/district/purchased");
             const list = Array.isArray(pRes) ? pRes : (pRes?.data || []);
-            setPurchased(list.includes(districtSlug));
+            const normList = list.map(s => String(s).toLowerCase().trim());
+            setPurchased(normList.includes(String(districtSlug).toLowerCase().trim()));
           } catch { /* ignore error */ }
         }
       } catch (e) {

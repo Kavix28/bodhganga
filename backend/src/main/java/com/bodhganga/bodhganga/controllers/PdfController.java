@@ -12,10 +12,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.Optional;
 import java.util.List;
 
@@ -26,18 +24,18 @@ public class PdfController {
     private final S3Service s3Service;
     private final ProductRepo productRepo;
     private final com.bodhganga.bodhganga.repo.PurchaseRepo purchaseRepo;
-    private final com.bodhganga.bodhganga.repo.UserRepo userRepo;
+    private final com.bodhganga.bodhganga.util.AuthUserResolver authUserResolver;
 
     // 20MB limit
     private static final long MAX_FILE_SIZE = 20 * 1024 * 1024;
 
     public PdfController(S3Service s3Service, ProductRepo productRepo,
             com.bodhganga.bodhganga.repo.PurchaseRepo purchaseRepo,
-            com.bodhganga.bodhganga.repo.UserRepo userRepo) {
+            com.bodhganga.bodhganga.util.AuthUserResolver authUserResolver) {
         this.s3Service = s3Service;
         this.productRepo = productRepo;
         this.purchaseRepo = purchaseRepo;
-        this.userRepo = userRepo;
+        this.authUserResolver = authUserResolver;
     }
 
     /**
@@ -149,9 +147,7 @@ public class PdfController {
                                     .success(false).message("Authentication required.").build());
                         }
 
-                        com.bodhganga.bodhganga.entity.User user = userRepo
-                                .findByEmailIgnoreCase(authentication.getName().trim())
-                                .or(() -> userRepo.findByPhoneNo(authentication.getName().trim()))
+                        com.bodhganga.bodhganga.entity.User user = authUserResolver.resolveUser(authentication)
                                 .orElse(null);
 
                         if (user == null) {
@@ -216,6 +212,12 @@ public class PdfController {
         }
     }
 
+    private String normalizeSlug(String raw) {
+        if (raw == null || raw.isBlank())
+            return "";
+        return raw.trim().toLowerCase(java.util.Locale.ROOT);
+    }
+
     /**
      * Verifies that user's purchase matches BOTH districtSlug and stateSlug of
      * product.
@@ -225,19 +227,19 @@ public class PdfController {
     private boolean isDistrictPurchasedForProduct(Product product, Purchase purchase) {
         if (product == null || purchase == null)
             return false;
-        String pDist = product.getDistrictSlug();
-        String purDist = purchase.getDistrictSlug();
-        if (pDist == null || pDist.isBlank() || purDist == null || purDist.isBlank())
+        String pDist = normalizeSlug(product.getDistrictSlug());
+        String purDist = normalizeSlug(purchase.getDistrictSlug());
+        if (pDist.isEmpty() || purDist.isEmpty())
             return false;
         if (!pDist.equals(purDist))
             return false;
 
-        String pState = product.getStateSlug();
-        String purState = purchase.getStateSlug();
+        String pState = normalizeSlug(product.getStateSlug());
+        String purState = normalizeSlug(purchase.getStateSlug());
 
         // If product is associated with a state, purchase MUST match that state.
-        if (pState != null && !pState.isBlank()) {
-            if (purState == null || purState.isBlank())
+        if (!pState.isEmpty()) {
+            if (purState.isEmpty())
                 return false; // Fail closed if purchase state is missing
             return pState.equals(purState);
         }
