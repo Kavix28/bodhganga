@@ -1,13 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Clock, CheckCircle, AlertCircle, ArrowLeft, ArrowRight, Bookmark, ShieldCheck, Zap, Loader2, RefreshCw } from 'lucide-react';
-
+import { Loader2, AlertCircle, RefreshCw, ArrowLeft } from 'lucide-react';
 import api from '../services/api';
+
+// Exam Components
+import ExamHeader from '../components/exam/ExamHeader';
+import ExamInstructionsModal from '../components/exam/ExamInstructionsModal';
+import QuestionWorkspace from '../components/exam/QuestionWorkspace';
+import QuestionPalette from '../components/exam/QuestionPalette';
+import SubmitConfirmModal from '../components/exam/SubmitConfirmModal';
 
 const QuizEngine = () => {
     const { stateId, districtId, testType } = useParams(); // 'easy', 'medium', 'hard', 'extra', 'master'
     const navigate = useNavigate();
 
+    // Core Data & API State
     const [questions, setQuestions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [fetchError, setFetchError] = useState(null);
@@ -15,12 +22,25 @@ const QuizEngine = () => {
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState(null);
 
+    // Exam Flow State
+    const [examState, setExamState] = useState('INSTRUCTIONS'); // 'INSTRUCTIONS' | 'IN_PROGRESS' | 'SUBMITTING'
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [selectedAnswers, setSelectedAnswers] = useState({});
-    const [bookmarks, setBookmarks] = useState({});
-    const [timeLeft, setTimeLeft] = useState(1200); // 20 mins default
+    const [answers, setAnswers] = useState({}); // { [questionIndex]: optionIndex }
+    const [visited, setVisited] = useState({ 0: true }); // { [questionIndex]: boolean }
+    const [markedForReview, setMarkedForReview] = useState({}); // { [questionIndex]: boolean }
+    const [bookmarks, setBookmarks] = useState({}); // { [questionIndex]: boolean }
+    
+    // Timer State
+    const [timeLeft, setTimeLeft] = useState(1500); // 25 mins default
+    const isUntimed = testType === 'extra' || testType === 'practice';
+    const totalTimeAllowedRef = useRef(1500);
 
-    const fetchQuestions = async () => {
+    // Modals & Drawers
+    const [showSubmitModal, setShowSubmitModal] = useState(false);
+    const [showMobilePalette, setShowMobilePalette] = useState(false);
+
+    // Fetch Questions from API
+    const fetchQuestions = useCallback(async () => {
         setLoading(true);
         setFetchError(null);
         setIsComingSoon(false);
@@ -36,11 +56,17 @@ const QuizEngine = () => {
             if (response && response.success && Array.isArray(response.data) && response.data.length > 0) {
                 const fetchedQs = response.data;
                 setQuestions(fetchedQs);
-                if (testType === 'extra' || testType === 'practice') {
-                    setTimeLeft(0); // Untimed practice
-                } else {
-                    setTimeLeft(1500); // Fixed 25 minutes (1500 seconds)
+                
+                // Set appropriate duration based on test type & total questions
+                let initialSeconds = 1500; // 25 minutes
+                if (testType === 'easy' || testType === 'medium' || testType === 'hard') {
+                    initialSeconds = 1500;
+                } else if (testType === 'master') {
+                    initialSeconds = Math.min(fetchedQs.length * 75, 7200); // ~1.25 mins per Q up to 2 hours
                 }
+
+                totalTimeAllowedRef.current = initialSeconds;
+                setTimeLeft(initialSeconds);
             } else if (response && response.success && Array.isArray(response.data) && response.data.length === 0) {
                 setFetchError('No published questions available for this district test yet.');
                 setQuestions([]);
@@ -61,48 +87,119 @@ const QuizEngine = () => {
         } finally {
             setLoading(false);
         }
-    };
-
-    useEffect(() => {
-        fetchQuestions();
     }, [stateId, districtId, testType]);
 
     useEffect(() => {
-        if (loading || questions.length === 0 || fetchError || testType === 'extra' || testType === 'practice') return;
+        fetchQuestions();
+    }, [fetchQuestions]);
+
+    // Timer Countdown Effect
+    useEffect(() => {
+        if (loading || questions.length === 0 || fetchError || isUntimed || examState !== 'IN_PROGRESS') {
+            return;
+        }
+
         const timer = setInterval(() => {
             setTimeLeft(prev => {
                 if (prev <= 1) {
                     clearInterval(timer);
-                    handleSubmitQuiz();
+                    // Time expired auto-submit
+                    handleAutoSubmitOnTimeExpire();
                     return 0;
                 }
                 return prev - 1;
             });
         }, 1000);
-        return () => clearInterval(timer);
-    }, [loading, questions, fetchError, testType]);
 
-    const formatTime = (seconds) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        return () => clearInterval(timer);
+    }, [loading, questions, fetchError, isUntimed, examState]);
+
+    // Prevent accidental page reload / navigate away while test is in progress
+    useEffect(() => {
+        const handleBeforeUnload = (e) => {
+            if (examState === 'IN_PROGRESS') {
+                e.preventDefault();
+                e.returnValue = 'Your active examination responses will be lost if you leave this page.';
+                return e.returnValue;
+            }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [examState]);
+
+    // Action Handlers
+    const handleStartExam = () => {
+        setExamState('IN_PROGRESS');
     };
 
-    const handleOptionSelect = (optionIndex) => {
-        setSelectedAnswers(prev => ({
+    const handleOptionSelect = (optionIdx) => {
+        setAnswers(prev => ({
             ...prev,
-            [currentIndex]: optionIndex
+            [currentIndex]: optionIdx
+        }));
+        setVisited(prev => ({
+            ...prev,
+            [currentIndex]: true
         }));
     };
 
-    const toggleBookmark = () => {
+    const handleClearResponse = () => {
+        setAnswers(prev => {
+            const next = { ...prev };
+            delete next[currentIndex];
+            return next;
+        });
+    };
+
+    const handleToggleMarkForReview = () => {
+        setMarkedForReview(prev => ({
+            ...prev,
+            [currentIndex]: !prev[currentIndex]
+        }));
+    };
+
+    const handleToggleBookmark = () => {
         setBookmarks(prev => ({
             ...prev,
             [currentIndex]: !prev[currentIndex]
         }));
     };
 
-    const handleSubmitQuiz = async () => {
+    const handleSelectQuestion = (index) => {
+        if (index < 0 || index >= questions.length) return;
+        setCurrentIndex(index);
+        setVisited(prev => ({
+            ...prev,
+            [index]: true
+        }));
+    };
+
+    const handlePrevious = () => {
+        if (currentIndex > 0) {
+            handleSelectQuestion(currentIndex - 1);
+        }
+    };
+
+    const handleSaveAndNext = () => {
+        setVisited(prev => ({
+            ...prev,
+            [currentIndex]: true
+        }));
+        if (currentIndex < questions.length - 1) {
+            setCurrentIndex(prev => prev + 1);
+            setVisited(prev => ({
+                ...prev,
+                [currentIndex + 1]: true
+            }));
+        } else {
+            // Reached last question, open submit confirmation modal
+            setShowSubmitModal(true);
+        }
+    };
+
+    // Submission Logic
+    const executeSubmit = async () => {
         if (submitting) return;
         setSubmitting(true);
         setSubmitError(null);
@@ -110,20 +207,23 @@ const QuizEngine = () => {
         const questionIds = questions.map(q => q.id);
         const answersMap = {};
         questions.forEach((q, idx) => {
-            if (selectedAnswers[idx] !== undefined) {
-                answersMap[q.id] = selectedAnswers[idx];
+            if (answers[idx] !== undefined && answers[idx] !== null && answers[idx] >= 0) {
+                answersMap[q.id] = answers[idx];
             }
         });
 
         const bookmarkedQuestionIds = Object.keys(bookmarks)
             .filter(idxKey => bookmarks[idxKey])
-            .map(idxKey => questions[parseInt(idxKey)]?.id || String(idxKey));
+            .map(idxKey => questions[parseInt(idxKey)]?.id)
+            .filter(Boolean);
+
+        const timeTaken = isUntimed ? 0 : (totalTimeAllowedRef.current - timeLeft);
 
         const submissionData = {
             stateSlug: stateId,
             districtSlug: districtId,
             testType,
-            timeTaken: (questions.length * 60) - timeLeft,
+            timeTaken,
             questionIds,
             answers: answersMap,
             bookmarkedQuestionIds
@@ -133,16 +233,16 @@ const QuizEngine = () => {
             const response = await api.post('/quiz/submit', submissionData);
             if (response && response.success && response.data) {
                 const serverResult = response.data;
+                setShowSubmitModal(false);
                 navigate(`/test-series/${stateId}/${districtId}/result`, {
                     state: {
                         result: {
                             ...serverResult,
                             questions,
-                            selectedAnswers
+                            selectedAnswers: answers
                         }
                     }
                 });
-                return;
             } else {
                 setSubmitError(response?.message || 'Failed to grade quiz submission on server.');
             }
@@ -159,26 +259,38 @@ const QuizEngine = () => {
         }
     };
 
+    const handleAutoSubmitOnTimeExpire = () => {
+        setShowSubmitModal(true);
+        executeSubmit();
+    };
+
+    // Calculate Status Counts
+    const answeredCount = Object.keys(answers).filter(k => answers[k] !== undefined && answers[k] !== null && answers[k] >= 0).length;
+    const markedCount = Object.keys(markedForReview).filter(k => markedForReview[k]).length;
+    const unansweredCount = questions.length - answeredCount;
+
+    // Render Loading State
     if (loading) {
         return (
             <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center pt-24">
-                <div className="flex flex-col items-center gap-3">
+                <div className="flex flex-col items-center gap-3 bg-slate-900 border border-white/10 p-8 rounded-3xl shadow-2xl">
                     <Loader2 className="w-8 h-8 text-gold animate-spin" />
-                    <span className="text-sm font-bold text-slate-300">Loading Question Bank...</span>
+                    <span className="text-sm font-bold text-slate-300 font-serif">Loading Examination Environment...</span>
                 </div>
             </div>
         );
     }
 
+    // Render Error or Coming Soon State
     if (fetchError || questions.length === 0) {
         return (
             <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center pt-24 px-4">
                 <div className="bg-slate-900 border border-amber-500/30 p-8 rounded-3xl text-center space-y-4 max-w-md shadow-2xl">
                     <AlertCircle className="w-12 h-12 text-amber-400 mx-auto" />
-                    <h2 className="text-xl font-bold text-white">
-                        {isComingSoon ? 'Coming Soon' : 'Question Bank Unavailable'}
+                    <h2 className="text-xl font-serif font-bold text-white">
+                        {isComingSoon ? 'Content Coming Soon' : 'Question Bank Unavailable'}
                     </h2>
-                    <p className="text-xs text-slate-300 leading-relaxed">
+                    <p className="text-xs text-slate-300 leading-relaxed font-sans">
                         {fetchError || 'Tests for this district are coming soon.'}
                     </p>
                     <div className="flex gap-3 justify-center pt-2">
@@ -192,9 +304,9 @@ const QuizEngine = () => {
                         )}
                         <button
                             onClick={() => navigate(`/test-series/${stateId}/${districtId}`)}
-                            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-gold to-gold-dark text-slate-950 font-bold text-xs uppercase shadow-md"
+                            className="px-5 py-2.5 rounded-xl bg-white/10 text-white font-bold text-xs uppercase shadow-md flex items-center gap-2 hover:bg-white/20"
                         >
-                            Back to District
+                            <ArrowLeft className="w-4 h-4" /> Back to District
                         </button>
                     </div>
                 </div>
@@ -202,151 +314,94 @@ const QuizEngine = () => {
         );
     }
 
-    const q = questions[currentIndex];
+    const currentQuestion = questions[currentIndex];
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white pt-24 pb-20 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-4xl mx-auto space-y-6">
-                {/* Submit Error Banner */}
-                {submitError && (
-                    <div className="bg-red-950/80 border border-red-500/50 p-4 rounded-2xl flex items-center justify-between text-red-200 text-xs font-bold">
-                        <div className="flex items-center gap-2">
-                            <AlertCircle className="w-5 h-5 text-red-400" />
-                            <span>{submitError}</span>
-                        </div>
-                        <button
-                            onClick={handleSubmitQuiz}
-                            className="px-4 py-1.5 rounded-xl bg-red-500 text-white text-[10px] font-black uppercase tracking-wider"
-                        >
-                            Retry Submission
-                        </button>
-                    </div>
-                )}
+        <div className="min-h-screen bg-slate-950 text-white flex flex-col justify-between selection:bg-gold selection:text-slate-950">
+            {/* Ambient Background Glow */}
+            <div className="fixed inset-0 pointer-events-none z-0">
+                <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[700px] h-[700px] bg-emerald-600/5 rounded-full blur-[170px]" />
+                <div className="absolute bottom-10 right-10 w-[500px] h-[500px] bg-gold/5 rounded-full blur-[150px]" />
+            </div>
 
-                {/* Header Bar */}
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-900 border border-white/10 p-4 sm:px-6 rounded-2xl">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-xl bg-gold/10 text-gold border border-gold/30">
-                            {testType === 'easy' ? <Zap className="w-5 h-5" /> : <ShieldCheck className="w-5 h-5" />}
-                        </div>
-                        <div>
-                            <span className="text-[10px] font-extrabold uppercase text-gold tracking-widest">{districtId} District Test</span>
-                            <h2 className="text-lg font-serif font-bold text-white uppercase">
-                                {testType === 'easy' ? 'District Quick Challenge (Free)' : testType === 'advanced' ? 'District Advanced Challenge (Free)' : 'District Master Test (Paid)'}
-                            </h2>
-                        </div>
-                    </div>
+            <div className="relative z-10 flex flex-col min-h-screen">
+                {/* 1. Header (Sticky Top Bar) */}
+                <ExamHeader
+                    stateName={stateId?.toUpperCase()}
+                    districtName={districtId?.toUpperCase()}
+                    testType={testType}
+                    currentIndex={currentIndex}
+                    totalQuestions={questions.length}
+                    answeredCount={answeredCount}
+                    unansweredCount={unansweredCount}
+                    markedCount={markedCount}
+                    timeLeft={timeLeft}
+                    isUntimed={isUntimed}
+                    onTimeExpired={handleAutoSubmitOnTimeExpire}
+                    onSubmitClick={() => setShowSubmitModal(true)}
+                    onTogglePaletteMobile={() => setShowMobilePalette(true)}
+                />
 
-                    <div className="flex items-center gap-6">
-                        <div className="flex items-center gap-2 bg-emerald-950/60 border border-emerald-500/30 px-3.5 py-1.5 rounded-xl text-emerald-400 font-mono font-bold text-sm">
-                            <Clock className="w-4 h-4" />
-                            <span>{formatTime(timeLeft)}</span>
-                        </div>
-                        <button
-                            onClick={handleSubmitQuiz}
-                            disabled={submitting}
-                            className="px-5 py-2 rounded-xl bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-black text-xs uppercase tracking-widest hover:shadow-lg transition-all disabled:opacity-50 flex items-center gap-2"
-                        >
-                            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Submit Test'}
-                        </button>
-                    </div>
-                </div>
-
-                {/* Main Question Card */}
-                <div className="bg-slate-900/90 border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl relative">
-                    {/* Top Meta info */}
-                    <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                        <div className="flex items-center gap-3">
-                            <span className="text-xs font-bold text-gold">Question {currentIndex + 1} of {questions.length}</span>
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/5 text-slate-300 border border-white/10 uppercase">
-                                {q.topic || 'General'}
-                            </span>
-                        </div>
-                        <button
-                            onClick={toggleBookmark}
-                            className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl border transition-all ${
-                                bookmarks[currentIndex]
-                                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                                    : 'bg-white/5 text-slate-400 border-white/10 hover:text-white'
-                            }`}
-                        >
-                            <Bookmark className="w-3.5 h-3.5" />
-                            {bookmarks[currentIndex] ? 'Bookmarked' : 'Bookmark'}
-                        </button>
+                {/* 2. Main Workspace Layout Grid */}
+                <div className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col lg:flex-row gap-6">
+                    {/* Primary Question Paper */}
+                    <div className="flex-1">
+                        <QuestionWorkspace
+                            question={currentQuestion}
+                            currentIndex={currentIndex}
+                            totalQuestions={questions.length}
+                            selectedOption={answers[currentIndex]}
+                            isMarkedForReview={Boolean(markedForReview[currentIndex])}
+                            isBookmarked={Boolean(bookmarks[currentIndex])}
+                            onOptionSelect={handleOptionSelect}
+                            onClearResponse={handleClearResponse}
+                            onToggleMarkForReview={handleToggleMarkForReview}
+                            onToggleBookmark={handleToggleBookmark}
+                            onPrevious={handlePrevious}
+                            onSaveAndNext={handleSaveAndNext}
+                        />
                     </div>
 
-                    {/* Question text */}
-                    <div className="text-base sm:text-lg font-medium text-slate-100 whitespace-pre-line leading-relaxed">
-                        {q.question}
-                    </div>
-
-                    {/* Options list */}
-                    <div className="space-y-3">
-                        {q.options && q.options.map((opt, idx) => {
-                            const isSelected = selectedAnswers[currentIndex] === idx;
-                            return (
-                                <button
-                                    key={idx}
-                                    onClick={() => handleOptionSelect(idx)}
-                                    className={`w-full text-left p-4 rounded-2xl border transition-all flex items-center justify-between text-xs sm:text-sm font-medium ${
-                                        isSelected
-                                            ? 'bg-gold/15 border-gold text-gold font-bold shadow-md'
-                                            : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:text-white'
-                                    }`}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <span className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold ${
-                                            isSelected ? 'bg-gold text-emerald-950' : 'bg-slate-800 text-slate-400'
-                                        }`}>
-                                            {String.fromCharCode(65 + idx)}
-                                        </span>
-                                        <span>{opt}</span>
-                                    </div>
-                                    {isSelected && <CheckCircle className="w-4 h-4 text-gold" />}
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* Bottom Question Palette & Controls */}
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-900/60 border border-white/10 p-4 rounded-2xl">
-                    <button
-                        disabled={currentIndex === 0}
-                        onClick={() => setCurrentIndex(prev => prev - 1)}
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white disabled:opacity-40 text-xs font-bold uppercase tracking-wider"
-                    >
-                        <ArrowLeft className="w-4 h-4" /> Previous
-                    </button>
-
-                    {/* Question Palette Dots */}
-                    <div className="flex flex-wrap gap-1.5 justify-center max-w-md">
-                        {questions.map((_, idx) => (
-                            <button
-                                key={idx}
-                                onClick={() => setCurrentIndex(idx)}
-                                className={`w-7 h-7 rounded-lg text-[10px] font-bold transition-all ${
-                                    currentIndex === idx
-                                        ? 'ring-2 ring-gold bg-gold text-emerald-950'
-                                        : selectedAnswers[idx] !== undefined
-                                        ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/40'
-                                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
-                                }`}
-                            >
-                                {idx + 1}
-                            </button>
-                        ))}
-                    </div>
-
-                    <button
-                        disabled={currentIndex === questions.length - 1}
-                        onClick={() => setCurrentIndex(prev => prev + 1)}
-                        className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white disabled:opacity-40 text-xs font-bold uppercase tracking-wider"
-                    >
-                        Next <ArrowRight className="w-4 h-4" />
-                    </button>
+                    {/* Right Question Palette (Desktop Sidebar & Mobile Drawer) */}
+                    <QuestionPalette
+                        totalQuestions={questions.length}
+                        currentIndex={currentIndex}
+                        answers={answers}
+                        visited={visited}
+                        markedForReview={markedForReview}
+                        onSelectQuestion={handleSelectQuestion}
+                        isOpenMobile={showMobilePalette}
+                        onCloseMobile={() => setShowMobilePalette(false)}
+                    />
                 </div>
             </div>
+
+            {/* 3. Instructions Modal (Appears on initial launch until user clicks Begin Examination) */}
+            <ExamInstructionsModal
+                isOpen={examState === 'INSTRUCTIONS'}
+                onClose={() => navigate(`/test-series/${stateId}/${districtId}`)}
+                onStartExam={handleStartExam}
+                testType={testType}
+                totalQuestions={questions.length}
+                timeLimitMinutes={Math.round(totalTimeAllowedRef.current / 60)}
+                districtName={districtId}
+                stateName={stateId}
+            />
+
+            {/* 4. Submit Confirmation Dialog */}
+            <SubmitConfirmModal
+                isOpen={showSubmitModal}
+                onClose={() => setShowSubmitModal(false)}
+                onConfirmSubmit={executeSubmit}
+                submitting={submitting}
+                submitError={submitError}
+                totalQuestions={questions.length}
+                answeredCount={answeredCount}
+                unansweredCount={unansweredCount}
+                markedCount={markedCount}
+                timeLeft={timeLeft}
+                isUntimed={isUntimed}
+            />
         </div>
     );
 };
