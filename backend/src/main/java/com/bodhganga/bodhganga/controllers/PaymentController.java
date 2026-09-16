@@ -274,7 +274,7 @@ public class PaymentController {
             String expectedSignature = hmacSha256(payload, razorpayKeySecret);
 
             if (!expectedSignature.equals(req.razorpaySignature())) {
-                log.warn("Payment signature mismatch for order: {}", req.razorpayOrderId());
+                log.warn("Payment verification failed for order: {}", req.razorpayOrderId());
 
                 // If it is a course payment, mark the Payment as FAILED
                 Optional<Payment> paymentOpt = paymentRepo.findByOrderId(req.razorpayOrderId());
@@ -711,7 +711,7 @@ public class PaymentController {
         try {
             String expectedSig = hmacSha256(payload, razorpayKeySecret);
             if (!expectedSig.equals(signature)) {
-                log.warn("Webhook signature mismatch");
+                log.warn("Webhook validation failed");
                 return ResponseEntity.status(400).body("Invalid signature");
             }
 
