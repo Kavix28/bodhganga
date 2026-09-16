@@ -29,7 +29,7 @@ const QuizEngine = () => {
     const [visited, setVisited] = useState({ 0: true }); // { [questionIndex]: boolean }
     const [markedForReview, setMarkedForReview] = useState({}); // { [questionIndex]: boolean }
     const [bookmarks, setBookmarks] = useState({}); // { [questionIndex]: boolean }
-    
+
     // Timer State
     const [timeLeft, setTimeLeft] = useState(1500); // 25 mins default
     const isUntimed = testType === 'extra' || testType === 'practice';
@@ -56,10 +56,12 @@ const QuizEngine = () => {
             if (response && response.success && Array.isArray(response.data) && response.data.length > 0) {
                 const fetchedQs = response.data;
                 setQuestions(fetchedQs);
-                
+
                 // Set appropriate duration based on test type & total questions
-                let initialSeconds = 1500; // 25 minutes
-                if (testType === 'easy' || testType === 'medium' || testType === 'hard') {
+                let initialSeconds = 900; // 15 minutes default
+                if (testType === 'foundation' || testType === 'statement-based' || testType === 'statement_based') {
+                    initialSeconds = 900; // 15 minutes for 10-question free tests
+                } else if (testType === 'easy' || testType === 'medium' || testType === 'hard') {
                     initialSeconds = 1500;
                 } else if (testType === 'master') {
                     initialSeconds = Math.min(fetchedQs.length * 75, 7200); // ~1.25 mins per Q up to 2 hours

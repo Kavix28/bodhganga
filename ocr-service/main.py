@@ -39,12 +39,13 @@ async def process_ocr_page(file: UploadFile = File(...)):
         contents = await file.read()
         image = Image.open(io.BytesIO(contents)).convert("RGB")
         
-        # Run Tesseract OCR on rendered page image
-        text = pytesseract.image_to_string(image, lang="eng")
+        # Run Tesseract OCR on rendered page image using PSM 6 (uniform block of text)
+        tess_config = "--psm 6"
+        text = pytesseract.image_to_string(image, lang="eng", config=tess_config)
         
         # Calculate confidence metric if data available
         try:
-            ocr_data = pytesseract.image_to_data(image, output_type=pytesseract.Output.DICT)
+            ocr_data = pytesseract.image_to_data(image, lang="eng", config=tess_config, output_type=pytesseract.Output.DICT)
             confidences = [int(c) for c in ocr_data.get("conf", []) if int(c) >= 0]
             avg_conf = (sum(confidences) / len(confidences) / 100.0) if confidences else 0.85
         except Exception:

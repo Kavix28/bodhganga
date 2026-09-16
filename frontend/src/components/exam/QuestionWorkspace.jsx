@@ -49,11 +49,6 @@ const QuestionWorkspace = ({
                     <span className="text-sm font-bold text-gold font-serif">
                         Question {currentIndex + 1} <span className="text-slate-400 font-sans font-normal">of {totalQuestions}</span>
                     </span>
-                    {question.topic && (
-                        <span className="px-3 py-0.5 rounded-full text-[10px] font-bold bg-white/5 text-slate-300 border border-white/10 uppercase tracking-wider">
-                            Topic: {question.topic}
-                        </span>
-                    )}
                     {question.difficulty && (
                         <span className="px-3 py-0.5 rounded-full text-[10px] font-bold bg-gold/10 text-gold border border-gold/20 uppercase tracking-wider">
                             {question.difficulty}

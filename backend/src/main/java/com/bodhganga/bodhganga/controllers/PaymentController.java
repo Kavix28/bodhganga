@@ -180,6 +180,8 @@ public class PaymentController {
                 Courses course = courseRepo.findById(courseId)
                         .orElseThrow(() -> new RuntimeException("Course not found: " + finalCourseId));
                 amountPaise = (int) Math.round(course.getCoursePrice() * 100);
+            } else if (normDistrictSlug != null && !normDistrictSlug.isBlank()) {
+                amountPaise = 4900; // ₹49 server-side enforced pricing for district lifetime access
             } else if (req.amountPaise() != null) {
                 amountPaise = req.amountPaise();
             } else {

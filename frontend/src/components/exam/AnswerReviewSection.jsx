@@ -113,11 +113,7 @@ const AnswerReviewSection = ({ gradedQuestions = [], bookmarkedQuestionIds = [] 
                                                         <XCircle className="w-3 h-3" /> Incorrect (-0.5)
                                                     </span>
                                                 )}
-                                                {q.topic && (
-                                                    <span className="text-[10px] text-slate-400 bg-white/5 px-2 py-0.5 rounded-md font-mono">
-                                                        {q.topic}
-                                                    </span>
-                                                )}
+
                                                 {isBookmarked && (
                                                     <span className="inline-flex items-center gap-1 text-[10px] text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-md font-bold border border-amber-500/30">
                                                         <Bookmark className="w-3 h-3" /> Bookmarked
