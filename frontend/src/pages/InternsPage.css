@@ -1,0 +1,38 @@
+.intern-card {
+  opacity: 0;
+}
+
+.intern-card.from-left {
+  transform: translateX(-120px);
+}
+
+.intern-card.from-right {
+  transform: translateX(120px);
+}
+
+/* Animation when visible */
+.intern-card.show {
+  animation: cardAppear 0.9s ease-out forwards;
+}
+
+@keyframes cardAppear {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .intern-card.from-left {
+    transform: translateX(-60px);
+  }
+
+  .intern-card.from-right {
+    transform: translateX(60px);
+  }
+}

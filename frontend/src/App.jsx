@@ -17,7 +17,7 @@ import AuthGateModal from './components/common/AuthGateModal';
 import './utils/healthCheck';
 import ChatWidget from './components/ChatWidget';
 import { useAuth } from './hooks/useAuth';
-
+import InternsPage from "./pages/InternsPage";
 // ── Lazy loaded Pages ────────────────────────────────────────────────────────
 const Landing          = lazy(() => import('./pages/Landing'));
 const Register         = lazy(() => import('./pages/Register'));
@@ -130,7 +130,7 @@ function App() {
                                             <Route path="/forgot-password" element={<ForgotPassword />} />
                                             <Route path="/error"          element={<ErrorPage />} />
                                             <Route path="/dev/dashboard"  element={<StudentDashboard />} />
-                                            
+                                            <Route path="/interns" element={<InternsPage />} />
 
                                             {/* ── Old states/UTs routes — kept for backward compat ── */}
                                                                                         <Route path="/union-territories" element={<ProtectedRoute><UnionTerritories /></ProtectedRoute>} />

@@ -9,6 +9,9 @@ import Logo from './Logo';
 const navLinks = [
     { path: '/state', label: 'States & UTs', icon: MapPin, public: true },
     { path: '/test-series', label: 'Test Your Knowledge', icon: Award, public: true },
+
+    // Interns
+    { path: '/interns', label: 'Interns', icon: Award, public: true },
 ];
 
 const aboutLinks = [
