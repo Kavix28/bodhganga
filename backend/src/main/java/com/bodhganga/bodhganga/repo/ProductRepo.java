@@ -8,6 +8,7 @@ import java.util.Optional;
 
 public interface ProductRepo extends MongoRepository<Product, String> {
 
+<<<<<<< HEAD
     // Published product queries (used by frontend APIs)
     List<Product> findByIsPublishedTrue();
     List<Product> findByStateSlugAndIsPublishedTrue(String stateSlug);
@@ -33,13 +34,16 @@ public interface ProductRepo extends MongoRepository<Product, String> {
     List<Product> findByS3KeyOrStorageKeyRegex(String regexPattern);
     Optional<Product> findByChecksum(String checksum);
     Product findByStateSlugAndDistrictSlugAndFileName(String stateSlug, String districtSlug, String fileName);
+=======
+        // Published product queries (used by frontend APIs)
+        List<Product> findByIsPublishedTrue();
 
-    // Existence checks (fast, index-backed)
-    boolean existsByGoogleDriveFileId(String googleDriveFileId);
-    boolean existsBySourceFileId(String sourceFileId);
-    boolean existsByS3Key(String s3Key);
-    boolean existsByFileName(String fileName);
+        List<Product> findByStateSlugAndIsPublishedTrue(String stateSlug);
+>>>>>>> origin/main
 
+        List<Product> findByStateSlugAndCategoryAndIsPublishedTrue(String stateSlug, String category);
+
+<<<<<<< HEAD
     // Import, version & publish status queries
     List<Product> findByImportedFromDrive(Boolean importedFromDrive);
     List<Product> findByIsPublishedFalseAndImportedFromDriveTrue();
@@ -54,4 +58,70 @@ public interface ProductRepo extends MongoRepository<Product, String> {
     long countByIsDeletedTrue();
     long countByStateSlugAndDistrictSlugAndIsPublishedTrue(String stateSlug, String districtSlug);
     long countByStateSlugAndIsPublishedTrue(String stateSlug);
+=======
+        List<Product> findByStateSlugAndDistrictSlugAndIsPublishedTrue(String stateSlug, String districtSlug);
+
+        List<Product> findByDistrictSlugAndIsPublishedTrue(String districtSlug);
+
+        List<Product> findByIsFreeTrueAndIsPublishedTrue();
+
+        // Duplicate detection queries (ordered: most specific first)
+        Product findByGoogleDriveFileId(String googleDriveFileId);
+
+        Product findBySourceFileId(String sourceFileId);
+
+        Optional<Product> findByS3Key(String s3Key);
+
+        Optional<Product> findByStorageKey(String storageKey);
+
+        Product findByStateSlugAndDistrictSlugAndFileName(String stateSlug, String districtSlug, String fileName);
+
+        // Existence checks (fast, index-backed)
+        boolean existsByGoogleDriveFileId(String googleDriveFileId);
+
+        boolean existsBySourceFileId(String sourceFileId);
+
+        boolean existsByS3Key(String s3Key);
+
+        boolean existsByFileName(String fileName);
+
+        // Import and publish status queries
+        List<Product> findByImportedFromDrive(Boolean importedFromDrive);
+
+        List<Product> findByIsPublishedFalseAndImportedFromDriveTrue();
+
+        List<Product> findByStateSlug(String stateSlug);
+
+        // Aggregate counts for audit reports
+        long countByImportedFromDriveTrue();
+
+        long countByIsPublishedTrue();
+
+        long countByIngestionStatus(IngestionStatus ingestionStatus);
+
+        long countByArchivedTrue();
+
+        long countByStateSlugAndDistrictSlugAndIsPublishedTrue(String stateSlug, String districtSlug);
+
+        long countByStateSlugAndIsPublishedTrue(String stateSlug);
+
+        // New query methods for Admin State Resources system
+        Optional<Product> findByStateSlugAndDistrictSlugAndIsFreeAndContentHash(String stateSlug, String districtSlug,
+                        boolean isFree, String contentHash);
+
+        List<Product> findByStateSlugAndDistrictSlugAndIsPublishedTrueAndArchivedFalse(String stateSlug,
+                        String districtSlug);
+
+        List<Product> findByStateSlugAndDistrictSlugAndArchivedFalse(String stateSlug, String districtSlug);
+
+        List<Product> findByStateSlugAndDistrictSlugAndIsFreeAndIsPublishedTrueAndArchivedFalse(String stateSlug,
+                        String districtSlug, boolean isFree);
+
+        long countByStateSlugAndIsPublishedTrueAndArchivedFalse(String stateSlug);
+
+        long countByStateSlugAndDistrictSlugAndIsPublishedTrueAndArchivedFalse(String stateSlug, String districtSlug);
+
+        long countByStateSlugAndDistrictSlugAndIsFreeAndIsPublishedTrueAndArchivedFalse(String stateSlug,
+                        String districtSlug, boolean isFree);
+>>>>>>> origin/main
 }

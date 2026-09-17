@@ -26,10 +26,13 @@ import software.amazon.awssdk.services.s3.model.GetBucketCorsRequest;
 import software.amazon.awssdk.services.s3.model.GetBucketCorsResponse;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
+<<<<<<< HEAD
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+=======
+>>>>>>> origin/main
 @Service
 public class S3Service {
 
@@ -55,10 +58,10 @@ public class S3Service {
      */
     public String uploadPdf(MultipartFile file) throws IOException {
         String originalFilename = file.getOriginalFilename();
-        String sanitizedFilename = originalFilename != null 
-                ? originalFilename.replaceAll("[^a-zA-Z0-9.-]", "_") 
+        String sanitizedFilename = originalFilename != null
+                ? originalFilename.replaceAll("[^a-zA-Z0-9.-]", "_")
                 : "document.pdf";
-        
+
         String key = "pdfs/" + UUID.randomUUID().toString() + "-" + sanitizedFilename;
 
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
@@ -67,7 +70,7 @@ public class S3Service {
                 .contentType("application/pdf")
                 .build();
 
-        s3Client.putObject(putObjectRequest, 
+        s3Client.putObject(putObjectRequest,
                 RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
 
         return key;
@@ -78,10 +81,10 @@ public class S3Service {
      * Returns the S3 key.
      */
     public String uploadPdf(byte[] bytes, String originalFilename) {
-        String sanitizedFilename = originalFilename != null 
-                ? originalFilename.replaceAll("[^a-zA-Z0-9.-]", "_") 
+        String sanitizedFilename = originalFilename != null
+                ? originalFilename.replaceAll("[^a-zA-Z0-9.-]", "_")
                 : "document.pdf";
-        
+
         String key = "pdfs/" + UUID.randomUUID().toString() + "-" + sanitizedFilename;
 
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
@@ -90,7 +93,7 @@ public class S3Service {
                 .contentType("application/pdf")
                 .build();
 
-        s3Client.putObject(putObjectRequest, 
+        s3Client.putObject(putObjectRequest,
                 RequestBody.fromBytes(bytes));
 
         return key;
@@ -98,21 +101,23 @@ public class S3Service {
 
     /**
      * Upload a PDF file from an InputStream to S3 under pdfs/{uuid}-{filename}
-     * Returns the S3 key. Useful for streaming from external sources like Google Drive.
+     * Returns the S3 key. Useful for streaming from external sources like Google
+     * Drive.
      */
     public String uploadPdf(java.io.InputStream inputStream, long size, String originalFilename) {
         return uploadPdf(inputStream, size, originalFilename, "pdfs");
     }
 
     /**
-     * Upload a PDF file from an InputStream to S3 under a custom path {customPath}/{uuid}-{filename}
+     * Upload a PDF file from an InputStream to S3 under a custom path
+     * {customPath}/{uuid}-{filename}
      */
     public String uploadPdf(java.io.InputStream inputStream, long size, String originalFilename, String customPath) {
-        String sanitizedFilename = originalFilename != null 
-                ? originalFilename.replaceAll("[^a-zA-Z0-9.-]", "_") 
+        String sanitizedFilename = originalFilename != null
+                ? originalFilename.replaceAll("[^a-zA-Z0-9.-]", "_")
                 : "document.pdf";
-        
-        String key = (customPath != null && !customPath.isEmpty() ? customPath + "/" : "") 
+
+        String key = (customPath != null && !customPath.isEmpty() ? customPath + "/" : "")
                 + UUID.randomUUID().toString() + "-" + sanitizedFilename;
 
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
@@ -121,7 +126,7 @@ public class S3Service {
                 .contentType("application/pdf")
                 .build();
 
-        s3Client.putObject(putObjectRequest, 
+        s3Client.putObject(putObjectRequest,
                 RequestBody.fromInputStream(inputStream, size));
 
         return key;
@@ -136,7 +141,8 @@ public class S3Service {
     }
 
     /**
-     * Generate a short-lived (temporary) signed URL for secure download with custom expiry minutes
+     * Generate a short-lived (temporary) signed URL for secure download with custom
+     * expiry minutes
      */
     public String generatePresignedUrl(String objectKey, int expiryMinutes) {
         GetObjectRequest getObjectRequest = GetObjectRequest.builder()
@@ -184,11 +190,13 @@ public class S3Service {
 
         try {
             if (size <= 0) {
-                // For Google Workspace exports, size is unknown (0). We must read the stream into memory.
+                // For Google Workspace exports, size is unknown (0). We must read the stream
+                // into memory.
                 byte[] bytes = inputStream.readAllBytes();
                 s3Client.putObject(putObjectRequest, software.amazon.awssdk.core.sync.RequestBody.fromBytes(bytes));
             } else {
-                s3Client.putObject(putObjectRequest, software.amazon.awssdk.core.sync.RequestBody.fromInputStream(inputStream, size));
+                s3Client.putObject(putObjectRequest,
+                        software.amazon.awssdk.core.sync.RequestBody.fromInputStream(inputStream, size));
             }
         } catch (java.io.IOException e) {
             throw new RuntimeException("Failed to read input stream for S3 upload", e);
@@ -248,6 +256,7 @@ public class S3Service {
     }
 
     /**
+<<<<<<< HEAD
      * Get current CORS rules for S3 bucket.
      */
     public List<CORSRule> getBucketCors() {
@@ -296,6 +305,21 @@ public class S3Service {
             log.info("Successfully updated S3 bucket CORS configuration on {}", bucketName);
         } catch (Exception e) {
             log.error("Failed to configure S3 bucket CORS on {}: {}", bucketName, e.getMessage(), e);
+=======
+     * Delete an object from S3 bucket (used for compensation on Mongo save
+     * failure).
+     */
+    public void deleteObject(String s3Key) {
+        if (s3Key == null || s3Key.isBlank())
+            return;
+        try {
+            s3Client.deleteObject(software.amazon.awssdk.services.s3.model.DeleteObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(s3Key)
+                    .build());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to delete S3 object key: " + s3Key, e);
+>>>>>>> origin/main
         }
     }
 }

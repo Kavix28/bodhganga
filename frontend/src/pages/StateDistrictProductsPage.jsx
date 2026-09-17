@@ -2,20 +2,26 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../hooks/useAuth";
-import SecurePdfViewer from "../components/SecurePdfViewer";
+import toast from "react-hot-toast";
+import ChambaMCQFeature from "../components/states/ChambaMCQFeature";
+import StateSectionTabs from "../components/states/StateSectionTabs";
 
 const FILE_ICONS = {
-  pdf: { icon: "📄", color: "text-red-400", label: "PDF" },
-  docx: { icon: "📝", color: "text-blue-400", label: "DOCX" },
-  doc: { icon: "📝", color: "text-blue-400", label: "DOC" },
-  xlsx: { icon: "📊", color: "text-green-400", label: "XLSX" },
+  pdf:  { icon: "📄", color: "text-red-400",    label: "PDF" },
+  docx: { icon: "📝", color: "text-blue-400",   label: "DOCX" },
+  doc:  { icon: "📝", color: "text-blue-400",   label: "DOC" },
+  xlsx: { icon: "📊", color: "text-green-400",  label: "XLSX" },
   pptx: { icon: "📋", color: "text-orange-400", label: "PPTX" },
-  png: { icon: "🖼️", color: "text-purple-400", label: "Image" },
-  jpg: { icon: "🖼️", color: "text-purple-400", label: "Image" },
+  png:  { icon: "🖼️", color: "text-purple-400", label: "Image" },
+  jpg:  { icon: "🖼️", color: "text-purple-400", label: "Image" },
   jpeg: { icon: "🖼️", color: "text-purple-400", label: "Image" },
   webp: { icon: "🖼️", color: "text-purple-400", label: "Image" },
-  mp3: { icon: "🎵", color: "text-pink-400", label: "Audio" },
-  m4a: { icon: "🎵", color: "text-pink-400", label: "Audio" },
+  mp3:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
+  m4a:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
+  wav:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
+  aac:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
+  ogg:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
+  mp4:  { icon: "🎬", color: "text-cyan-400",   label: "Video" },
 };
 
 function formatSize(bytes) {
@@ -25,49 +31,19 @@ function formatSize(bytes) {
 }
 
 function ResourceModal({ resource, onClose }) {
-  const { user } = useAuth();
-  const [pdfSignedUrl, setPdfSignedUrl] = useState(null);
-  const [pdfError, setPdfError] = useState(null);
-  const [pdfLoading, setPdfLoading] = useState(true);
-
-  const key = resource.storageKey || resource.s3Key;
-  const ext = (resource.fileExtension || key?.split('.').pop() || "").toLowerCase();
-  const url = resource.s3Url;
+  const ext = (resource.fileExtension || "").toLowerCase();
+  const url  = resource.s3Url;
   const title = resource.displayTitle || resource.title || resource.fileName;
   const officeExts = ["docx", "doc", "xlsx", "xls", "pptx", "ppt"];
-  const imageExts = ["png", "jpg", "jpeg", "webp"];
-  const audioExts = ["mp3", "m4a", "wav"];
+  const imageExts  = ["png", "jpg", "jpeg", "webp"];
+  const audioExts  = ["mp3", "m4a", "wav", "aac", "ogg"];
+  const videoExts  = ["mp4"];
 
   useEffect(() => {
     const h = (e) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", h);
     return () => window.removeEventListener("keydown", h);
   }, [onClose]);
-
-  useEffect(() => {
-    if (ext === "pdf") {
-      setPdfLoading(true);
-      const accessKey = key || url;
-      if (!accessKey) {
-        setPdfError("Resource storage key is missing.");
-        setPdfLoading(false);
-        return;
-      }
-      api.get(`/pdf/${accessKey}`)
-        .then(res => {
-          const urlVal = res.url || res.data?.url || (typeof res === 'string' ? res : null);
-          if (urlVal) {
-            setPdfSignedUrl(urlVal);
-          } else {
-            setPdfError(res.message || "Failed to retrieve secure presigned URL.");
-          }
-        })
-        .catch(err => {
-          setPdfError(err.response?.data?.message || err.message || "Failed to load secure PDF material.");
-        })
-        .finally(() => setPdfLoading(false));
-    }
-  }, [key, url, ext]);
 
   return (
     <div
@@ -99,24 +75,11 @@ function ResourceModal({ resource, onClose }) {
         {/* Body */}
         <div className="flex-1 overflow-hidden p-4">
           {ext === "pdf" ? (
-            pdfLoading ? (
-              <div className="w-full h-full flex items-center justify-center text-white">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-400"></div>
-              </div>
-            ) : pdfError || !pdfSignedUrl ? (
-              <div className="w-full h-full flex flex-col items-center justify-center text-white p-6 text-center">
-                <p className="text-red-400 font-bold mb-2">Access Restricted</p>
-                <p className="text-slate-300 text-sm max-w-md">{pdfError || "Failed to load secure PDF material."}</p>
-              </div>
-            ) : (
-              <SecurePdfViewer
-                pdfUrl={pdfSignedUrl}
-                title={title}
-                watermarkText={`${user?.email || user?.phoneNo || 'Student'} • BodhGanga Protected Copy`}
-                onClose={onClose}
-                className="w-full h-full border-none rounded-lg"
-              />
-            )
+            <iframe
+              src={`https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`}
+              className="w-full h-full rounded-lg"
+              title={title}
+            />
           ) : imageExts.includes(ext) ? (
             <div className="w-full h-full flex items-center justify-center overflow-auto">
               <img src={url} alt={title} className="max-w-full max-h-full object-contain rounded-lg" />
@@ -128,6 +91,12 @@ function ResourceModal({ resource, onClose }) {
               <audio controls className="w-full max-w-md" src={url}>
                 Your browser does not support audio.
               </audio>
+            </div>
+          ) : videoExts.includes(ext) ? (
+            <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-black rounded-lg p-4">
+              <video controls className="max-w-full max-h-full rounded-lg shadow-lg" src={url}>
+                Your browser does not support video playback.
+              </video>
             </div>
           ) : officeExts.includes(ext) ? (
             <iframe
@@ -151,20 +120,21 @@ export default function StateDistrictProductsPage() {
   const { stateSlug, districtSlug } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get("tab") || "free";
+  const activeSection = searchParams.get("section") || searchParams.get("tab") || "history";
 
   const [allResources, setAllResources] = useState([]);
+  const [sectionAvailability, setSectionAvailability] = useState(null);
   const [districtName, setDistrictName] = useState("");
-  const [stateName, setStateName] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [purchased, setPurchased] = useState(false);
-  const [selected, setSelected] = useState(null);
-  const { user, isAuthenticated, openAuthModal } = useAuth();
+  const [stateName, setStateName]   = useState("");
+  const [loading, setLoading]       = useState(true);
+  const [purchased, setPurchased]   = useState(false);
+  const [selected, setSelected]     = useState(null);
+  const { isAuthenticated, openAuthModal } = useAuth();
   const [mcqFlowState, setMcqFlowState] = useState(null);
 
   useEffect(() => {
     setMcqFlowState(null);
-  }, [activeTab]);
+  }, [activeSection]);
 
   useEffect(() => {
     const load = async () => {
@@ -172,24 +142,32 @@ export default function StateDistrictProductsPage() {
         const res = await api.get(`/products/state/${stateSlug}/district/${districtSlug}`);
         const products = Array.isArray(res) ? res : (res?.data || []);
         setAllResources(products);
-        const toTitleCase = (str) => String(str || "").replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
         if (products.length > 0) {
-          setDistrictName(products[0].district || products[0].navbarCategory || products[0].districtName || toTitleCase(districtSlug));
-          setStateName(products[0].state || products[0].stateName || toTitleCase(stateSlug));
+          setDistrictName(products[0].district || products[0].districtName || districtSlug);
+          setStateName(products[0].state   || products[0].stateName   || stateSlug);
         } else {
-          setDistrictName(toTitleCase(districtSlug));
-          setStateName(toTitleCase(stateSlug));
+          const dFormatted = districtSlug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+          const sFormatted = stateSlug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+          setDistrictName(dFormatted);
+          setStateName(sFormatted);
         }
-        // Check purchase status (only when logged in)
-        if (user) {
-          try {
-            const pRes = await api.get("/payment/district/purchased");
-            const list = Array.isArray(pRes) ? pRes : (pRes?.data || []);
-            setPurchased(list.includes(districtSlug));
-          } catch { setPurchased(false); }
-        } else {
-          setPurchased(false);
+
+        try {
+          const secRes = await api.get(`/products/state/${stateSlug}/district/${districtSlug}/sections`);
+          const secData = secRes?.data?.sections || secRes?.sections || null;
+          if (secData) {
+            setSectionAvailability(secData);
+          }
+        } catch (err) {
+          console.error("Failed to load section availability:", err);
         }
+
+        try {
+          const pRes = await api.get("/payment/district/purchased");
+          const list = Array.isArray(pRes) ? pRes : (pRes?.data || []);
+          const normList = list.map(s => String(s).toLowerCase().trim());
+          setPurchased(normList.includes(String(districtSlug).toLowerCase().trim()));
+        } catch { /* unauthenticated */ }
       } catch (err) {
         console.error("Failed to load resources:", err);
       } finally {
@@ -199,9 +177,71 @@ export default function StateDistrictProductsPage() {
     load();
   }, [stateSlug, districtSlug]);
 
+  const handleOpenResource = async (resource) => {
+    const key = resource.s3Key || resource.storageKey;
+    if (!key) {
+      toast.error("Resource storage key is missing.");
+      return;
+    }
+    try {
+      const res = await api.get(`/pdf/${key}`);
+      const signedUrl = res.url || res.data?.url || (typeof res.data === 'string' ? res.data : null);
+      if (signedUrl) {
+        setSelected({ ...resource, s3Url: signedUrl });
+      } else {
+        toast.error("Failed to obtain secure viewing link.");
+      }
+    } catch (err) {
+      if (err.response?.status === 401) {
+        toast.error("Please login to access this resource.");
+        if (openAuthModal) openAuthModal('welcome');
+      } else if (err.response?.status === 403) {
+        toast.error("District unlock required to access this paid resource.");
+      } else {
+        toast.error("Could not open resource.");
+      }
+    }
+  };
+
   const freeRes = allResources.filter((r) => r.free || r.isFree || r.price === 0);
   const paidRes = allResources.filter((r) => !r.free && !r.isFree && r.price > 0);
-  const shown = activeTab === "free" ? freeRes : paidRes;
+
+  const getFilteredSectionResources = (sectionId) => {
+    if (sectionId === "paid") return paidRes;
+    return freeRes.filter((p) => {
+      const cat = String(p.category || "").toLowerCase();
+      const title = String(p.title || p.displayTitle || "").toLowerCase();
+      const desc = String(p.description || "").toLowerCase();
+      const combined = `${cat} ${title} ${desc}`;
+
+      if (sectionId === "heritage-monuments") {
+        return combined.includes("heritage") || combined.includes("monument") || combined.includes("landmark");
+      }
+      if (sectionId === "geography") {
+        return combined.includes("geography") || combined.includes("geographic") || combined.includes("demography") || combined.includes("map");
+      }
+      if (sectionId === "art-culture") {
+        return combined.includes("art") || combined.includes("culture") || combined.includes("tradition") || combined.includes("festival");
+      }
+      if (sectionId === "history") {
+        const isOther = (combined.includes("heritage") || combined.includes("monument") || combined.includes("landmark")) ||
+                        (combined.includes("geography") || combined.includes("geographic") || combined.includes("demography") || combined.includes("map")) ||
+                        (combined.includes("art") || combined.includes("culture") || combined.includes("tradition") || combined.includes("festival"));
+        return !isOther || combined.includes("history") || combined.includes("historical") || combined.includes("notes");
+      }
+      return true;
+    });
+  };
+
+  const shown = getFilteredSectionResources(activeSection);
+  const isPaidTab = activeSection === "paid";
+  const sectionLabels = {
+    history: "History",
+    "heritage-monuments": "Heritage Sites & Monuments",
+    geography: "Geography",
+    "art-culture": "Art & Culture",
+    paid: "Paid District Package (₹99)"
+  };
 
   if (loading) {
     return (
@@ -236,35 +276,40 @@ export default function StateDistrictProductsPage() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Tabs */}
-        <div className="flex gap-1 mb-8 border-b border-gray-800">
+      <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
+        {/* Section Tabs Component */}
+        <StateSectionTabs
+          stateSlug={stateSlug}
+          districtSlug={districtSlug}
+          activeSection={activeSection}
+          sectionAvailability={sectionAvailability}
+          onSectionChange={(secId) => setSearchParams({ section: secId })}
+        />
+
+        {/* Section View Control */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-800 pb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Active Section:</span>
+            <span className="text-sm font-bold text-amber-400">
+              {sectionLabels[activeSection] || activeSection}
+            </span>
+          </div>
+
           <button
-            onClick={() => setSearchParams({ tab: "free" })}
-            className={[
-              "px-5 py-2.5 text-sm font-bold rounded-t-lg transition-colors",
-              activeTab === "free"
-                ? "bg-green-900/60 text-green-300 border-b-2 border-green-500"
-                : "text-gray-500 hover:text-white",
-            ].join(" ")}
+            onClick={() => setSearchParams({ section: activeSection === "paid" ? "history" : "paid" })}
+            className={`px-4 py-2 text-xs font-bold rounded-xl transition-all border flex items-center gap-2 ${
+              activeSection === "paid"
+                ? "bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-md"
+                : "bg-gray-900/80 text-gray-400 border-gray-700 hover:text-amber-400 hover:border-gray-600"
+            }`}
           >
-            🟢 Free ({freeRes.length})
-          </button>
-          <button
-            onClick={() => setSearchParams({ tab: "paid" })}
-            className={[
-              "px-5 py-2.5 text-sm font-bold rounded-t-lg transition-colors",
-              activeTab === "paid"
-                ? "bg-amber-900/60 text-amber-300 border-b-2 border-amber-500"
-                : "text-gray-500 hover:text-white",
-            ].join(" ")}
-          >
-            🔒 Paid ({paidRes.length})
+            <span>🔒 Paid District Package ({paidRes.length})</span>
+            {purchased && <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded">Unlocked</span>}
           </button>
         </div>
 
-        {/* Paid tab — locked state */}
-        {activeTab === "paid" && !purchased && paidRes.length > 0 && (
+        {/* Paid Tab — Locked State */}
+        {isPaidTab && !purchased && paidRes.length > 0 && (
           <div className="text-center py-16 border border-gray-800 rounded-xl bg-gray-900/60 mb-8">
             <div className="text-5xl mb-4">🔒</div>
             <h3 className="text-xl font-bold text-white mb-2">
@@ -274,11 +319,7 @@ export default function StateDistrictProductsPage() {
               Get access to all {paidRes.length} paid resources for this district
             </p>
             <button
-              onClick={() => {
-                if (!isAuthenticated) {
-                  openAuthModal('login');
-                }
-              }}
+              onClick={() => navigate(`/states-browse/${stateSlug}`)}
               className="bg-amber-500 hover:bg-amber-400 text-black font-bold py-3 px-8 rounded-lg transition-colors"
             >
               Unlock District →
@@ -287,49 +328,91 @@ export default function StateDistrictProductsPage() {
         )}
 
         {/* Resources grid */}
-        {(activeTab === "free" || purchased) && (
+        {(!isPaidTab || purchased) && (
           shown.length === 0 ? (
-            <div className="text-gray-600 text-center py-20">
-              No resources in this section yet.
+            <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-12 text-center space-y-4 max-w-xl mx-auto shadow-xl my-6 animate-fadeIn">
+              <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto text-2xl">
+                ⏳
+              </div>
+              <span className="px-3 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold uppercase tracking-widest rounded-full inline-block">
+                Coming Soon
+              </span>
+              <h3 className="text-xl font-bold text-white font-serif">
+                {sectionLabels[activeSection] || activeSection} — {districtName}
+              </h3>
+              <p className="text-sm text-gray-400 leading-relaxed max-w-md mx-auto">
+                Study resources for <strong className="text-amber-400 font-semibold">{sectionLabels[activeSection] || activeSection}</strong> in <strong className="text-white font-semibold">{districtName}</strong> are currently being prepared by our editorial team and will be available soon.
+              </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {shown.map((r) => {
-                const ext = (r.fileExtension || "").toLowerCase();
-                const meta = FILE_ICONS[ext] || { icon: "📎", color: "text-gray-400", label: ext.toUpperCase() || "FILE" };
-                const title = r.displayTitle || r.title || r.fileName;
-                return (
-                  <div
-                    key={r.id}
-                    className="bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-amber-500 transition-all duration-200 hover:shadow-lg hover:shadow-amber-500/10 flex flex-col"
-                  >
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="text-2xl">{meta.icon}</span>
-                      <span className={`text-[10px] font-bold uppercase ${meta.color} bg-gray-800 px-2 py-0.5 rounded`}>
-                        {meta.label}
-                      </span>
-                      {(r.free || r.isFree || r.price === 0) && (
-                        <span className="text-[10px] font-bold uppercase text-green-400 bg-green-900/40 border border-green-800 px-2 py-0.5 rounded ml-auto">
-                          Free
+            mcqFlowState ? (
+              <ChambaMCQFeature
+                onBack={() => setMcqFlowState(null)}
+              />
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {shown.map((r) => {
+                  const ext  = (r.fileExtension || "").toLowerCase();
+                  const meta = FILE_ICONS[ext] || { icon: "📎", color: "text-gray-400", label: ext.toUpperCase() || "FILE" };
+                  const title = r.displayTitle || r.title || r.fileName;
+                  const titleNorm = (r.title || r.displayTitle || r.fileName || "").toLowerCase();
+                  const isChambaMCQ = (stateSlug === 'himachal-pradesh' && districtSlug.includes('chamba')) &&
+                                       (titleNorm.includes("sample mcqs question bank chamba district") ||
+                                        titleNorm.includes("chamba district practice mcq"));
+                  return (
+                    <div
+                      key={r.id}
+                      className="bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-amber-500 transition-all duration-200 hover:shadow-lg hover:shadow-amber-500/10 flex flex-col"
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="text-2xl">{meta.icon}</span>
+                        <span className={`text-[10px] font-bold uppercase ${meta.color} bg-gray-800 px-2 py-0.5 rounded`}>
+                          {meta.label}
                         </span>
+                        {(r.free || r.isFree || r.price === 0) && (
+                          <span className="text-[10px] font-bold uppercase text-green-400 bg-green-900/40 border border-green-800 px-2 py-0.5 rounded ml-auto">
+                            Free
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-sm font-semibold text-white mb-1 line-clamp-2 flex-1">
+                        {title}
+                      </h3>
+                      {r.fileSize && (
+                        <p className="text-xs text-gray-500 mb-3">{formatSize(r.fileSize)}</p>
+                      )}
+                      {isChambaMCQ ? (
+                        <div className="flex gap-2 mt-2 w-full">
+                          <button
+                            onClick={() => handleOpenResource(r)}
+                            className="flex-1 text-center bg-amber-500 hover:bg-amber-400 text-black font-semibold py-2 px-2.5 rounded-lg transition-colors text-xs md:text-sm">
+                            View PDF
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (!isAuthenticated) {
+                                openAuthModal('welcome');
+                              } else {
+                                  setMcqFlowState('select-level');
+                              }
+                            }}
+                            className="flex-1 text-center bg-amber-500 hover:bg-amber-400 text-black font-semibold py-2 px-2.5 rounded-lg transition-colors text-xs md:text-sm">
+                            Practice MCQs
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleOpenResource(r)}
+                          className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold py-2 px-4 rounded-lg text-sm transition-colors mt-2"
+                        >
+                          View Resource
+                        </button>
                       )}
                     </div>
-                    <h3 className="text-sm font-semibold text-white mb-1 line-clamp-2 flex-1">
-                      {title}
-                    </h3>
-                    {r.fileSize && (
-                      <p className="text-xs text-gray-500 mb-3">{formatSize(r.fileSize)}</p>
-                    )}
-                    <button
-                      onClick={() => setSelected(r)}
-                      className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold py-2 px-4 rounded-lg text-sm transition-colors mt-2"
-                    >
-                      View Resource
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )
           )
         )}
       </div>

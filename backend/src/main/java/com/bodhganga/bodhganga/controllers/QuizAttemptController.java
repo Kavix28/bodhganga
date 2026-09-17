@@ -1,9 +1,13 @@
 package com.bodhganga.bodhganga.controllers;
 
 import com.bodhganga.bodhganga.dto.ApiResponseDTO;
+import com.bodhganga.bodhganga.dto.PublicQuestionDTO;
 import com.bodhganga.bodhganga.dto.QuizAttemptRequestDTO;
+import com.bodhganga.bodhganga.dto.QuizSubmissionDTO;
+import com.bodhganga.bodhganga.entity.Question;
 import com.bodhganga.bodhganga.entity.QuizAttempt;
 import com.bodhganga.bodhganga.entity.QuizAttempt.TopicStats;
+import com.bodhganga.bodhganga.repo.QuestionRepo;
 import com.bodhganga.bodhganga.repo.QuizAttemptRepo;
 import com.bodhganga.bodhganga.repo.UserRepo;
 import org.springframework.http.ResponseEntity;
@@ -14,28 +18,463 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.stream.Collectors;
+
+import com.bodhganga.bodhganga.service.DistrictAccessService;
+import com.bodhganga.bodhganga.service.QuizAvailabilityService;
+import com.bodhganga.bodhganga.util.AuthUserResolver;
+import org.springframework.http.HttpStatus;
 
 @RestController
 @RequestMapping("/api/quiz")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000",
-        "https://bodhganga.in", "https://www.bodhganga.in"})
+@CrossOrigin(origins = { "http://localhost:5173", "http://localhost:3000",
+        "https://bodhganga.in", "https://www.bodhganga.in" })
 public class QuizAttemptController {
 
     private final QuizAttemptRepo quizAttemptRepo;
     private final UserRepo userRepo;
+    private final QuestionRepo questionRepo;
+    private final QuizAvailabilityService quizAvailabilityService;
+    private final DistrictAccessService districtAccessService;
+    private final AuthUserResolver authUserResolver;
 
-    public QuizAttemptController(QuizAttemptRepo quizAttemptRepo, UserRepo userRepo) {
+    public QuizAttemptController(QuizAttemptRepo quizAttemptRepo, UserRepo userRepo, QuestionRepo questionRepo,
+            QuizAvailabilityService quizAvailabilityService, DistrictAccessService districtAccessService,
+            AuthUserResolver authUserResolver) {
         this.quizAttemptRepo = quizAttemptRepo;
         this.userRepo = userRepo;
+        this.questionRepo = questionRepo;
+        this.quizAvailabilityService = quizAvailabilityService;
+        this.districtAccessService = districtAccessService;
+        this.authUserResolver = authUserResolver;
     }
 
     private String getUserId(String email) {
         return userRepo.findByEmail(email).map(com.bodhganga.bodhganga.entity.User::getId).orElse(null);
     }
 
+    private boolean isStatementQuestion(Question q) {
+        if (q == null || q.getQuestion() == null)
+            return false;
+        String text = q.getQuestion().toLowerCase(Locale.ROOT);
+        return text.contains("consider the following") ||
+                text.contains("which of the statement") ||
+                text.contains("which of the pair") ||
+                text.contains("statement 1") ||
+                text.contains("correctly matched") ||
+                text.contains("1.") ||
+                text.contains("2.");
+    }
+
+    @GetMapping("/districts/{districtSlug}/question-bank/access")
+    public ResponseEntity<ApiResponseDTO> checkDistrictQuestionBankAccess(
+            @PathVariable String districtSlug,
+            Authentication authentication) {
+        Optional<com.bodhganga.bodhganga.entity.User> userOpt = authUserResolver.resolveUser(authentication);
+        com.bodhganga.bodhganga.entity.User user = userOpt.orElse(null);
+        boolean hasAccess = districtAccessService.hasAccessOrIsAdmin(user, districtSlug);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("districtSlug", districtSlug);
+        data.put("unlocked", hasAccess);
+        data.put("accessType", hasAccess ? "LIFETIME" : "LOCKED");
+        data.put("priceINR", 49);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+                .success(true)
+                .message("District question bank access retrieved")
+                .data(data)
+                .build());
+    }
+
+    @GetMapping("/districts/{districtSlug}/question-bank")
+    public ResponseEntity<ApiResponseDTO> getDistrictQuestionBank(
+            @PathVariable String districtSlug,
+            @RequestParam(required = false) String stateSlug,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            Authentication authentication) {
+        Optional<com.bodhganga.bodhganga.entity.User> userOpt = authUserResolver.resolveUser(authentication);
+        if (userOpt.isEmpty()) {
+            Map<String, Object> err = new HashMap<>();
+            err.put("code", "UNAUTHORIZED");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("Authentication required to access complete question bank.")
+                    .data(err)
+                    .build());
+        }
+        com.bodhganga.bodhganga.entity.User user = userOpt.get();
+        if (!districtAccessService.hasAccessOrIsAdmin(user, districtSlug)) {
+            Map<String, Object> err = new HashMap<>();
+            err.put("code", "DISTRICT_LOCKED");
+            err.put("districtSlug", districtSlug);
+            err.put("priceINR", 49);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("Complete district question bank requires ₹49 lifetime access.")
+                    .data(err)
+                    .build());
+        }
+
+        String stSlug = (stateSlug != null && !stateSlug.isBlank()) ? stateSlug : "maharashtra";
+        List<Question> allQuestions = questionRepo
+                .findByStateSlugAndDistrictSlugAndStatusAndIsActiveTrueOrderByQuestionNumberAsc(
+                        stSlug, districtSlug, "PUBLISHED");
+
+        int totalElements = allQuestions.size();
+        int safeSize = Math.max(1, size);
+        int totalPages = (int) Math.ceil((double) totalElements / safeSize);
+        int safePage = Math.max(0, Math.min(page, Math.max(0, totalPages - 1)));
+
+        int start = safePage * safeSize;
+        int end = Math.min(start + safeSize, totalElements);
+
+        List<Question> pageQuestions = (start < totalElements) ? allQuestions.subList(start, end)
+                : Collections.emptyList();
+
+        List<PublicQuestionDTO> dtos = pageQuestions.stream()
+                .map(q -> PublicQuestionDTO.builder()
+                        .id(q.getId())
+                        .stateSlug(q.getStateSlug())
+                        .districtSlug(q.getDistrictSlug())
+                        .topic(q.getTopic())
+                        .testType(q.getTestType())
+                        .question(q.getQuestion())
+                        .options(q.getOptions())
+                        .difficulty(q.getDifficulty())
+                        .questionNumber(q.getQuestionNumber() != null ? q.getQuestionNumber() : 0)
+                        .build())
+                .collect(Collectors.toList());
+
+        Map<String, Object> pageData = new HashMap<>();
+        pageData.put("content", dtos);
+        pageData.put("totalElements", totalElements);
+        pageData.put("totalPages", totalPages);
+        pageData.put("page", safePage);
+        pageData.put("size", safeSize);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+                .success(true)
+                .message("District question bank retrieved successfully")
+                .data(pageData)
+                .build());
+    }
+
+    @GetMapping("/questions")
+    public ResponseEntity<ApiResponseDTO> getQuestions(
+            @RequestParam(required = false) String stateSlug,
+            @RequestParam(required = false) String districtSlug,
+            @RequestParam(required = false) String testType,
+            @RequestParam(required = false) String topic,
+            @RequestParam(required = false, defaultValue = "0") int limit) {
+
+        // Server-side availability policy enforcement
+        if (stateSlug != null && districtSlug != null) {
+            if (!quizAvailabilityService.isDistrictAvailable(stateSlug, districtSlug)) {
+                Map<String, Object> errData = new HashMap<>();
+                errData.put("code", "QUESTION_BANK_COMING_SOON");
+                errData.put("stateSlug", stateSlug);
+                errData.put("districtSlug", districtSlug);
+                errData.put("quizAvailable", false);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponseDTO.builder()
+                        .success(false)
+                        .message("The question bank for this location is coming soon.")
+                        .data(errData)
+                        .build());
+            }
+        } else if (stateSlug != null && !quizAvailabilityService.isStateAvailable(stateSlug)) {
+            Map<String, Object> errData = new HashMap<>();
+            errData.put("code", "QUESTION_BANK_COMING_SOON");
+            errData.put("stateSlug", stateSlug);
+            errData.put("quizAvailable", false);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("The question bank for this location is coming soon.")
+                    .data(errData)
+                    .build());
+        }
+
+        List<Question> questions;
+        boolean isFoundationType = "foundation".equalsIgnoreCase(testType);
+        boolean isStatementType = "statement-based".equalsIgnoreCase(testType)
+                || "statement_based".equalsIgnoreCase(testType);
+
+        if ((isFoundationType || isStatementType) && stateSlug != null && districtSlug != null) {
+            List<Question> allDistQuestions = questionRepo
+                    .findByStateSlugAndDistrictSlugAndStatusAndIsActiveTrueOrderByQuestionNumberAsc(
+                            stateSlug, districtSlug, "PUBLISHED");
+
+            List<Question> filteredQuestions = allDistQuestions.stream().filter(q -> {
+                boolean stmt = isStatementQuestion(q);
+                return isStatementType ? stmt : !stmt;
+            }).collect(Collectors.toList());
+
+            // Server-side randomization to ensure unique test experience each time
+            Collections.shuffle(filteredQuestions, new Random(System.currentTimeMillis()));
+
+            int targetLimit = (limit > 0) ? limit : 10;
+            if (filteredQuestions.size() > targetLimit) {
+                filteredQuestions = filteredQuestions.subList(0, targetLimit);
+            }
+            questions = filteredQuestions;
+        } else if (stateSlug != null && districtSlug != null) {
+            if ("master".equalsIgnoreCase(testType)) {
+                questions = questionRepo.findByStateSlugAndDistrictSlugAndStatusAndIsActiveTrueOrderByQuestionNumberAsc(
+                        stateSlug, districtSlug, "PUBLISHED");
+            } else if (testType != null && !testType.isBlank()) {
+                questions = questionRepo
+                        .findByStateSlugAndDistrictSlugAndTestTypeAndIsActiveTrueOrderByQuestionNumberAsc(
+                                stateSlug, districtSlug, testType);
+            } else {
+                questions = questionRepo.findByStateSlugAndDistrictSlugAndStatusAndIsActiveTrueOrderByQuestionNumberAsc(
+                        stateSlug, districtSlug, "PUBLISHED");
+            }
+        } else if (districtSlug != null && testType != null) {
+            questions = questionRepo.findByDistrictSlugAndTestTypeAndIsActiveTrueOrderByQuestionNumberAsc(
+                    districtSlug,
+                    testType);
+        } else if (stateSlug != null && testType != null) {
+            questions = questionRepo.findByStateSlugAndTestTypeAndIsActiveTrueOrderByQuestionNumberAsc(stateSlug,
+                    testType);
+        } else {
+            questions = questionRepo.findByIsActiveTrue();
+        }
+
+        if (topic != null && !topic.isBlank()) {
+            questions = questions.stream()
+                    .filter(q -> topic.equalsIgnoreCase(q.getTopic()))
+                    .collect(Collectors.toList());
+        }
+
+        // Only return published questions publicly
+        questions = questions.stream()
+                .filter(q -> q.getStatus() == null || "PUBLISHED".equalsIgnoreCase(q.getStatus()))
+                .collect(Collectors.toList());
+
+        // Determine effective question limit based on challenge type if not handled
+        // above
+        if (!isFoundationType && !isStatementType) {
+            int targetLimit = limit;
+            if (targetLimit <= 0) {
+                if ("easy".equalsIgnoreCase(testType) || "medium".equalsIgnoreCase(testType)
+                        || "hard".equalsIgnoreCase(testType) || "advanced".equalsIgnoreCase(testType)) {
+                    targetLimit = 20; // Fixed 20-question limit for Easy, Medium, Hard timed pools
+                } else if ("extra".equalsIgnoreCase(testType) || "practice".equalsIgnoreCase(testType)) {
+                    targetLimit = 200; // Untimed Extra Practice pool
+                } else {
+                    targetLimit = 200; // Master test cap
+                }
+            }
+
+            if (targetLimit > 0 && questions.size() > targetLimit) {
+                questions = questions.subList(0, targetLimit);
+            }
+        }
+
+        List<PublicQuestionDTO> publicQuestions = questions.stream()
+                .map(q -> PublicQuestionDTO.builder()
+                        .id(q.getId())
+                        .stateSlug(q.getStateSlug())
+                        .districtSlug(q.getDistrictSlug())
+                        .topic(q.getTopic())
+                        .testType(q.getTestType())
+                        .question(q.getQuestion())
+                        .options(q.getOptions())
+                        .difficulty(q.getDifficulty())
+                        .questionNumber(q.getQuestionNumber() != null ? q.getQuestionNumber() : 0)
+                        .build())
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+                .success(true)
+                .message("Questions retrieved successfully")
+                .data(publicQuestions)
+                .build());
+    }
+
+    @GetMapping("/published-count")
+    public ResponseEntity<ApiResponseDTO> getPublishedCount(
+            @RequestParam(required = false) String stateSlug,
+            @RequestParam(required = false) String districtSlug) {
+        if (stateSlug != null && districtSlug != null) {
+            if (!quizAvailabilityService.isDistrictAvailable(stateSlug, districtSlug)) {
+                Map<String, Object> errData = new HashMap<>();
+                errData.put("code", "QUESTION_BANK_COMING_SOON");
+                errData.put("stateSlug", stateSlug);
+                errData.put("districtSlug", districtSlug);
+                errData.put("quizAvailable", false);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponseDTO.builder()
+                        .success(false)
+                        .message("The question bank for this location is coming soon.")
+                        .data(errData)
+                        .build());
+            }
+        } else if (stateSlug != null && !quizAvailabilityService.isStateAvailable(stateSlug)) {
+            Map<String, Object> errData = new HashMap<>();
+            errData.put("code", "QUESTION_BANK_COMING_SOON");
+            errData.put("stateSlug", stateSlug);
+            errData.put("quizAvailable", false);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("The question bank for this location is coming soon.")
+                    .data(errData)
+                    .build());
+        }
+
+        long count;
+        if (stateSlug != null && districtSlug != null) {
+            count = questionRepo.countByStateSlugAndDistrictSlugAndStatusAndIsActiveTrue(stateSlug, districtSlug,
+                    "PUBLISHED");
+        } else {
+            count = questionRepo.countByStatusAndIsActiveTrue("PUBLISHED");
+        }
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("count", count);
+        data.put("available", count > 0);
+        data.put("quizAvailable", true);
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+                .success(true)
+                .message("Published question count retrieved")
+                .data(data)
+                .build());
+    }
+
+    @PostMapping("/submit")
+    public ResponseEntity<ApiResponseDTO> submitQuiz(@RequestBody QuizSubmissionDTO submissionDTO,
+            Authentication authentication) {
+        // Enforce availability check on submission
+        if (submissionDTO.getStateSlug() != null && submissionDTO.getDistrictSlug() != null) {
+            if (!quizAvailabilityService.isDistrictAvailable(submissionDTO.getStateSlug(),
+                    submissionDTO.getDistrictSlug())) {
+                Map<String, Object> errData = new HashMap<>();
+                errData.put("code", "QUESTION_BANK_COMING_SOON");
+                errData.put("stateSlug", submissionDTO.getStateSlug());
+                errData.put("districtSlug", submissionDTO.getDistrictSlug());
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponseDTO.builder()
+                        .success(false)
+                        .message("The question bank for this location is coming soon.")
+                        .data(errData)
+                        .build());
+            }
+        }
+        String userEmail = authentication != null ? authentication.getName() : null;
+        String userId = userEmail != null ? getUserId(userEmail) : "anonymous";
+
+        List<String> questionIds = submissionDTO.getQuestionIds();
+        if (questionIds == null || questionIds.isEmpty()) {
+            return ResponseEntity.ok(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("No question IDs provided")
+                    .build());
+        }
+
+        List<Question> questions = questionRepo.findByIdInAndIsActiveTrue(questionIds);
+        Map<String, Question> questionMap = questions.stream()
+                .collect(Collectors.toMap(Question::getId, q -> q, (q1, q2) -> q1));
+
+        int correctCount = 0;
+        int incorrectCount = 0;
+        int unattemptedCount = 0;
+
+        Map<String, TopicStats> topicAnalysis = new HashMap<>();
+        Map<String, Integer> answers = submissionDTO.getAnswers() != null ? submissionDTO.getAnswers()
+                : Collections.emptyMap();
+        List<Map<String, Object>> gradedQuestions = new ArrayList<>();
+
+        for (String qId : questionIds) {
+            Question q = questionMap.get(qId);
+            if (q == null)
+                continue;
+
+            String topic = q.getTopic() != null ? q.getTopic() : "General";
+            TopicStats stats = topicAnalysis.computeIfAbsent(topic, k -> new TopicStats(0, 0, 0));
+            stats.setTotal(stats.getTotal() + 1);
+
+            Integer selectedAns = answers.get(qId);
+            boolean isCorrect = false;
+            boolean isUnattempted = (selectedAns == null || selectedAns < 0);
+
+            if (isUnattempted) {
+                unattemptedCount++;
+            } else if (selectedAns == q.getCorrectAnswer()) {
+                correctCount++;
+                stats.setCorrect(stats.getCorrect() + 1);
+                isCorrect = true;
+            } else {
+                incorrectCount++;
+                stats.setIncorrect(stats.getIncorrect() + 1);
+            }
+
+            Map<String, Object> gradedQ = new HashMap<>();
+            gradedQ.put("id", q.getId());
+            gradedQ.put("question", q.getQuestion());
+            gradedQ.put("options", q.getOptions());
+            gradedQ.put("topic", q.getTopic());
+            gradedQ.put("difficulty", q.getDifficulty());
+            gradedQ.put("selectedAnswer", selectedAns);
+            gradedQ.put("correctAnswer", q.getCorrectAnswer());
+            gradedQ.put("explanation", q.getExplanation());
+            gradedQ.put("isCorrect", isCorrect);
+            gradedQ.put("isUnattempted", isUnattempted);
+            gradedQuestions.add(gradedQ);
+        }
+
+        int totalQuestions = questionIds.size();
+        double score = Math.round(((correctCount * 2.0) - (incorrectCount * 0.5)) * 100.0) / 100.0;
+        int percentage = totalQuestions > 0 ? (int) Math.round(((double) correctCount / totalQuestions) * 100.0) : 0;
+        int attempted = correctCount + incorrectCount;
+        int accuracy = attempted > 0 ? (int) Math.round(((double) correctCount / attempted) * 100.0) : 0;
+
+        QuizAttempt attempt = QuizAttempt.builder()
+                .userId(userId)
+                .stateSlug(submissionDTO.getStateSlug())
+                .districtSlug(submissionDTO.getDistrictSlug())
+                .testType(submissionDTO.getTestType())
+                .totalQuestions(totalQuestions)
+                .correctCount(correctCount)
+                .incorrectCount(incorrectCount)
+                .unattemptedCount(unattemptedCount)
+                .score(score)
+                .percentage(percentage)
+                .accuracy(accuracy)
+                .timeTaken(submissionDTO.getTimeTaken())
+                .topicAnalysis(topicAnalysis)
+                .bookmarkedQuestionIds(submissionDTO.getBookmarkedQuestionIds())
+                .attemptedAt(Instant.now())
+                .build();
+
+        QuizAttempt savedAttempt = userId != null && !userId.equals("anonymous") ? quizAttemptRepo.save(attempt)
+                : attempt;
+
+        Map<String, Object> responseData = new HashMap<>();
+        responseData.put("id", savedAttempt.getId());
+        responseData.put("stateId", submissionDTO.getStateSlug());
+        responseData.put("districtId", submissionDTO.getDistrictSlug());
+        responseData.put("testType", submissionDTO.getTestType());
+        responseData.put("totalQuestions", totalQuestions);
+        responseData.put("correctCount", correctCount);
+        responseData.put("incorrectCount", incorrectCount);
+        responseData.put("unattemptedCount", unattemptedCount);
+        responseData.put("score", score);
+        responseData.put("percentage", percentage);
+        responseData.put("accuracy", accuracy);
+        responseData.put("timeTaken", submissionDTO.getTimeTaken());
+        responseData.put("topicAnalysis", topicAnalysis);
+        responseData.put("bookmarkedQuestionIds", submissionDTO.getBookmarkedQuestionIds());
+        responseData.put("gradedQuestions", gradedQuestions);
+
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+                .success(true)
+                .message("Quiz submitted and graded successfully")
+                .data(responseData)
+                .build());
+    }
+
     @PostMapping("/attempt")
     public ResponseEntity<ApiResponseDTO> saveAttempt(@RequestBody QuizAttemptRequestDTO requestDTO,
-                                                      Authentication authentication) {
+            Authentication authentication) {
         String userEmail = authentication.getName();
         String userId = getUserId(userEmail);
 
@@ -90,7 +529,8 @@ public class QuizAttemptController {
 
         List<QuizAttempt> attempts;
         if (stateSlug != null && districtSlug != null) {
-            attempts = quizAttemptRepo.findByUserIdAndStateSlugAndDistrictSlugOrderByAttemptedAtDesc(userId, stateSlug, districtSlug);
+            attempts = quizAttemptRepo.findByUserIdAndStateSlugAndDistrictSlugOrderByAttemptedAtDesc(userId, stateSlug,
+                    districtSlug);
         } else if (stateSlug != null) {
             attempts = quizAttemptRepo.findByUserIdAndStateSlugOrderByAttemptedAtDesc(userId, stateSlug);
         } else if (districtSlug != null) {
@@ -251,7 +691,8 @@ public class QuizAttemptController {
     }
 
     private int calculateCurrentStreak(Set<LocalDate> dates) {
-        if (dates.isEmpty()) return 0;
+        if (dates.isEmpty())
+            return 0;
         LocalDate today = LocalDate.now();
         LocalDate yesterday = today.minusDays(1);
 
@@ -269,7 +710,8 @@ public class QuizAttemptController {
     }
 
     private int calculateLongestStreak(Set<LocalDate> dates) {
-        if (dates.isEmpty()) return 0;
+        if (dates.isEmpty())
+            return 0;
         List<LocalDate> sortedDates = new ArrayList<>(dates);
         Collections.sort(sortedDates);
 

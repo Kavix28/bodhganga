@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import StateSectionTabs from "../components/states/StateSectionTabs";
 
+import StateNavbar from "../components/states/StateNavbar";
+
 export default function StateDistrictsPage() {
   const { stateSlug } = useParams();
   const navigate = useNavigate();
@@ -16,87 +18,54 @@ export default function StateDistrictsPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        // Fetch official district list for state as well as state products
-        const [distRes, prodRes] = await Promise.allSettled([
-          api.get(`/states/${stateSlug}/districts`),
-          api.get(`/products/state/${stateSlug}`)
-        ]);
+        // Fetch canonical districts from backend
+        const distRes = await api.get(`/states/${stateSlug}/districts`);
+        const distList = Array.isArray(distRes) ? distRes : (distRes?.data || []);
 
-        const distList = distRes.status === "fulfilled" ? (Array.isArray(distRes.value) ? distRes.value : (distRes.value?.data || [])) : [];
-        const res = prodRes.status === "fulfilled" ? prodRes.value : [];
-        const products = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : res?.data?.data || res?.data?.content || [];
+        // Also fetch published products to enrich district counts
+        const prodRes = await api.get(`/products/state/${stateSlug}`);
+        const products = Array.isArray(prodRes) ? prodRes : (prodRes?.data || []);
 
         if (products.length > 0) {
           setStateName(products[0].state || products[0].stateName || stateSlug);
+        } else {
+          // Capitalize slug if stateName not found in products
+          const formatted = stateSlug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+          setStateName(formatted);
         }
 
-        // Group by navbarSlug → count free and paid per district
-        const districtMap = {};
-        const NON_DISTRICT_KEYS = ["general", "state-images", "stateimages", "images", "state images"];
-
-        // Seed official districts from aggregation endpoint
-        distList.forEach((d) => {
-          const dSlug = d.districtSlug;
-          const dName = d.district || dSlug;
-          if (!dSlug) return;
-          const normSlug = String(dSlug).toLowerCase().trim();
-          const normName = String(dName).toLowerCase().trim();
-          if (NON_DISTRICT_KEYS.includes(normSlug) || NON_DISTRICT_KEYS.includes(normName)) return;
-
-          districtMap[dSlug] = {
-            districtSlug: dSlug,
-            districtName: dName,
-            free: 0,
-            paid: 0,
-            total: d.count || 0
-          };
-        });
-
-        // Compute free and paid counts per district from products
+        const countMap = {};
         products.forEach((p) => {
-          const dSlug = p.navbarSlug || p.categorySlug || p.districtSlug;
-          const dName = p.navbarCategory || p.district || dSlug;
+          const dSlug = p.districtSlug;
           if (!dSlug) return;
-          const normSlug = String(dSlug).toLowerCase().trim();
-          const normName = String(dName).toLowerCase().trim();
-          if (NON_DISTRICT_KEYS.includes(normSlug) || NON_DISTRICT_KEYS.includes(normName)) return;
-
-          if (!districtMap[dSlug]) {
-            districtMap[dSlug] = {
-              districtSlug: dSlug,
-              districtName: dName,
-              navbarSlug: p.navbarSlug || dSlug,
-              navbarCategory: p.navbarCategory || dName,
-              free: 0,
-              paid: 0,
-              total: 0
-            };
+          if (!countMap[dSlug]) {
+            countMap[dSlug] = { free: 0, paid: 0, total: 0 };
           }
-          if (p.free || p.isFree || p.price === 0) districtMap[dSlug].free++;
-          else districtMap[dSlug].paid++;
-          districtMap[dSlug].total = districtMap[dSlug].free + districtMap[dSlug].paid;
+          countMap[dSlug].total++;
+          if (p.free || p.isFree || p.price === 0) countMap[dSlug].free++;
+          else countMap[dSlug].paid++;
         });
 
-        setDistricts(Object.values(districtMap).sort((a, b) => a.districtName.localeCompare(b.districtName)));
-        setIsActiveState(Object.keys(districtMap).length > 0 || ['haryana', 'himachal-pradesh', 'jharkhand'].includes(stateSlug));
+        const NON_DISTRICT_KEYS = ["general", "state-images", "stateimages", "images", "state images"];
+        const merged = distList
+          .filter((d) => {
+            const normSlug = String(d.districtSlug || "").toLowerCase().trim();
+            const normName = String(d.district || "").toLowerCase().trim();
+            return !NON_DISTRICT_KEYS.includes(normSlug) && !NON_DISTRICT_KEYS.includes(normName);
+          })
+          .map((d) => ({
+            districtSlug: d.districtSlug,
+            districtName: d.district,
+            free: countMap[d.districtSlug]?.free ?? 0,
+            paid: countMap[d.districtSlug]?.paid ?? 0,
+            total: d.count ?? (countMap[d.districtSlug]?.total ?? 0),
+          }));
+
+        setDistricts(merged.sort((a, b) => a.districtName.localeCompare(b.districtName)));
+        setIsActiveState(true);
       } catch (err) {
         console.error("Failed to load districts:", err);
-        if (import.meta.env.DEV) {
-          setIsActiveState(['haryana', 'himachal-pradesh', 'jharkhand'].includes(stateSlug));
-          if (stateSlug === 'haryana') {
-            setDistricts([
-              { districtSlug: 'district-44-kurukshetra', districtName: 'District 44 - Kurukshetra', navbarSlug: 'district-44-kurukshetra', navbarCategory: 'District 44 - Kurukshetra', free: 3, paid: 5, total: 8 },
-              { districtSlug: 'panchkula', districtName: 'Panchkula', navbarSlug: 'panchkula', navbarCategory: 'Panchkula', free: 2, paid: 4, total: 6 },
-              { districtSlug: 'ambala', districtName: 'Ambala', navbarSlug: 'ambala', navbarCategory: 'Ambala', free: 1, paid: 3, total: 4 }
-            ]);
-          } else {
-            setDistricts([
-              { districtSlug: 'mock-district', districtName: 'Mock District', navbarSlug: 'mock-district', navbarCategory: 'Mock District', free: 1, paid: 2, total: 3 }
-            ]);
-          }
-        } else {
-          setError("Could not load district data. Please try again.");
-        }
+        setError("Could not load district data. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -145,6 +114,8 @@ export default function StateDistrictsPage() {
       {/* <div className="max-w-6xl mx-auto px-4 py-8"> */}
         <div className="max-w-6xl mx-auto px-4 py-8">
 
+        <StateNavbar />
+
         {error ? (
           <div className="text-red-400 text-center py-20 space-y-3">
             <div className="text-4xl">⚠️</div>
@@ -156,14 +127,28 @@ export default function StateDistrictsPage() {
               Try again
             </button>
           </div>
+        ) : !isActiveState ? (
+          <div className="max-w-md mx-auto my-12 bg-gray-900 border border-gray-800 rounded-2xl p-8 text-center space-y-4">
+            <span className="text-xs font-black uppercase tracking-widest bg-amber-500/20 text-amber-400 border border-amber-500/30 px-3 py-1 rounded-full inline-block">
+              Coming Soon
+            </span>
+            <h2 className="text-2xl font-bold text-white">{stateName || stateSlug}</h2>
+            <p className="text-gray-400 text-sm leading-relaxed">
+              Study resources for this state are currently being prepared by our editorial team and will be available soon.
+            </p>
+            <button
+              onClick={() => navigate("/state")}
+              className="mt-4 px-6 py-2.5 bg-amber-500 text-black font-bold text-xs uppercase tracking-wider rounded-xl hover:bg-amber-400 transition-colors"
+            >
+              ← Back to All States
+            </button>
+          </div>
         ) : (
           <>
             {/* Tabs Bar */}
-            {isActiveState && (
-              <div className="mb-8">
-                <StateSectionTabs stateSlug={stateSlug} activeSection="" />
-              </div>
-            )}
+            <div className="mb-8">
+              <StateSectionTabs stateSlug={stateSlug} activeSection="" />
+            </div>
 
             {/* Search */}
             <input
@@ -185,7 +170,7 @@ export default function StateDistrictsPage() {
                     key={d.districtSlug}
                     district={d}
                     onClick={() =>
-                      navigate(`/state/${stateSlug}/district/${d.districtSlug || d.navbarSlug}`)
+                      navigate(`/state/${stateSlug}/district/${d.districtSlug}/products`)
                     }
                   />
                 ))}
@@ -223,9 +208,9 @@ function DistrictCard({ district, onClick }) {
             {district.paid} Paid
           </span>
         )}
-        {district.total === 0 && (
-          <span className="text-[10px] font-bold uppercase tracking-wider bg-gray-800 text-gray-500 px-2 py-0.5 rounded-full">
-            No resources
+        {district.free === 0 && (
+          <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-300/80 border border-amber-500/20 px-2 py-0.5 rounded-full">
+            Coming Soon
           </span>
         )}
       </div>

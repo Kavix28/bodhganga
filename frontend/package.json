@@ -8,14 +8,14 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint ."
+    "lint": "eslint src",
+    "test": "node src/tests/stateAvailability.test.js && node src/tests/examEngine.test.js"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.95.2",
     "axios": "^1.6.7",
     "framer-motion": "^12.40.0",
     "lucide-react": "^0.562.0",
-    "pdfjs-dist": "^6.2.108",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hot-toast": "^2.4.1",
@@ -27,6 +27,9 @@
     "swiper": "^12.2.0"
   },
   "devDependencies": {
+    "@babel/core": "^8.0.5",
+    "@babel/eslint-parser": "^8.0.5",
+    "@babel/preset-react": "^8.0.1",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.2.1",

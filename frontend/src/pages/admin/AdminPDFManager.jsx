@@ -1,27 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, FileText, Trash2, Check, X, Filter, Download, ExternalLink, RefreshCw, Plus, Eye, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Upload, FileText, Trash2, Check, X, Filter, Download, ExternalLink, RefreshCw, Plus, Loader2 } from 'lucide-react';
 import api from '../../services/api';
-import AdminPdfUploadModal from '../../components/admin/AdminPdfUploadModal';
-import SecurePdfViewerModal from '../../components/SecurePdfViewerModal';
 
 /**
  * AdminPDFManager Component
- * Admin interface for importing and managing PDFs on BodhGanga S3 & MongoDB
+ * Admin interface for managing PDFs on BodhGanga S3 & MongoDB
  */
 const AdminPDFManager = () => {
-    const [showUploadModal, setShowUploadModal] = useState(false);
     const [filterType, setFilterType] = useState('all');
     const [filterRegion, setFilterRegion] = useState('all');
     
     // Real PDF products state
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(false);
-
-    const [activePdfModal, setActivePdfModal] = useState({
-        isOpen: false,
-        pdfUrl: '',
-        title: ''
-    });
 
     useEffect(() => {
         fetchProducts();
@@ -125,17 +117,13 @@ const AdminPDFManager = () => {
                         <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                     </button>
                     
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setShowUploadModal(true);
-                        }}
+                    <Link
+                        to="/admin/state-resources"
                         className="btn-premium btn-premium-primary text-xs py-2.5 px-4 flex items-center gap-1.5 shadow-md"
-                        style={{ pointerEvents: 'auto', cursor: 'pointer', zIndex: 999, position: 'relative' }}
                     >
                         <Plus className="w-4 h-4" />
-                        Upload PDF
-                    </button>
+                        Upload PDF in State Resources
+                    </Link>
                 </div>
             </div>
 
@@ -260,20 +248,20 @@ const AdminPDFManager = () => {
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end gap-1.5">
-                                                {/* Open Secure Reader Preview */}
-                                                {(pdf.previewUrl || pdf.storageKey) && (
-                                                    <button
-                                                        onClick={() => setActivePdfModal({
-                                                            isOpen: true,
-                                                            pdfUrl: pdf.previewUrl || `${api.defaults.baseURL || ''}/api/pdf/${pdf.storageKey}`,
-                                                            title: pdf.title || 'PDF Preview'
-                                                        })}
+                                                {/* Open Presigned URL */}
+                                                {pdf.previewUrl && (
+                                                    <a
+                                                        href={pdf.previewUrl}
+                                                        target="_blank"
+                                                        rel="noreferrer"
                                                         className="p-2 text-emerald-premium hover:bg-emerald-premium/5 border border-transparent hover:border-emerald-premium/10 rounded-xl transition-all"
-                                                        title="Open Secure Reader Preview"
+                                                        title="Open Preview"
                                                     >
-                                                        <Eye className="w-4 h-4" />
-                                                    </button>
+                                                        <ExternalLink className="w-4 h-4" />
+                                                    </a>
                                                 )}
+                                                
+
                                                 
                                                 {/* Delete */}
                                                 <button
@@ -301,30 +289,11 @@ const AdminPDFManager = () => {
                         <p className="text-xs text-slate-400 max-w-xs mx-auto">
                             {filterType !== 'all' || filterRegion !== 'all'
                                 ? 'No imported PDFs match your current filter settings. Try adjusting filters.'
-                                : 'Import your first PDF document from Google Drive to get started.'}
+                                : 'Upload PDF resources in State Resources to get started.'}
                         </p>
                     </div>
                 )}
             </div>
-
-            {/* Google Drive Import Modal */}
-            {showUploadModal && (
-                <AdminPdfUploadModal
-                    onClose={() => setShowUploadModal(false)}
-                    onSuccess={() => {
-                        setShowUploadModal(false);
-                        fetchContent();
-                    }}
-                />
-            )}
-
-            <SecurePdfViewerModal
-                isOpen={activePdfModal.isOpen}
-                onClose={() => setActivePdfModal({ isOpen: false, pdfUrl: '', title: '' })}
-                pdfUrl={activePdfModal.pdfUrl}
-                title={activePdfModal.title}
-                watermarkText="ADMIN PREVIEW • BodhGanga Protected Copy"
-            />
         </div>
     );
 };

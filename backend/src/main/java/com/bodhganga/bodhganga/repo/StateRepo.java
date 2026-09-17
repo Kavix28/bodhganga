@@ -8,9 +8,13 @@ import java.util.Optional;
 
 public interface StateRepo extends MongoRepository<State, String> {
     Optional<State> findByCode(String code);
+
     List<State> findByType(String type);
+
     boolean existsByCode(String code);
 
     /** Count states/UTs by type ("STATE" or "UT") */
     long countByType(String type);
+
+    Optional<State> findByNameIgnoreCase(String name);
 }
