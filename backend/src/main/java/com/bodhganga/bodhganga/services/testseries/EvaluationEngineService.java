@@ -2,7 +2,7 @@ package com.bodhganga.bodhganga.services.testseries;
 
 import com.bodhganga.bodhganga.entity.QuizAttempt.TopicStats;
 import com.bodhganga.bodhganga.entity.testseries.*;
-import com.bodhganga.bodhganga.repo.testseries.QuestionRepo;
+import com.bodhganga.bodhganga.repo.testseries.TestSeriesQuestionRepo;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -11,9 +11,9 @@ import java.util.*;
 @Service
 public class EvaluationEngineService {
 
-    private final QuestionRepo questionRepo;
+    private final TestSeriesQuestionRepo questionRepo;
 
-    public EvaluationEngineService(QuestionRepo questionRepo) {
+    public EvaluationEngineService(TestSeriesQuestionRepo questionRepo) {
         this.questionRepo = questionRepo;
     }
 
@@ -132,3 +132,5 @@ public class EvaluationEngineService {
         return set1.equals(set2);
     }
 }
+
+

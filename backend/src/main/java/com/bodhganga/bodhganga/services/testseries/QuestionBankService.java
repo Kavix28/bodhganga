@@ -1,7 +1,7 @@
 package com.bodhganga.bodhganga.services.testseries;
 
 import com.bodhganga.bodhganga.entity.testseries.Question;
-import com.bodhganga.bodhganga.repo.testseries.QuestionRepo;
+import com.bodhganga.bodhganga.repo.testseries.TestSeriesQuestionRepo;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -12,9 +12,9 @@ import java.util.List;
 @Service
 public class QuestionBankService {
 
-    private final QuestionRepo questionRepo;
+    private final TestSeriesQuestionRepo questionRepo;
 
-    public QuestionBankService(QuestionRepo questionRepo) {
+    public QuestionBankService(TestSeriesQuestionRepo questionRepo) {
         this.questionRepo = questionRepo;
     }
 
@@ -60,3 +60,5 @@ public class QuestionBankService {
         questionRepo.save(existing);
     }
 }
+
+
