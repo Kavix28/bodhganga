@@ -8,57 +8,13 @@ import java.util.Optional;
 
 public interface ProductRepo extends MongoRepository<Product, String> {
 
-<<<<<<< HEAD
-    // Published product queries (used by frontend APIs)
-    List<Product> findByIsPublishedTrue();
-    List<Product> findByStateSlugAndIsPublishedTrue(String stateSlug);
-    List<Product> findByStateSlugAndCategoryAndIsPublishedTrue(String stateSlug, String category);
-    List<Product> findByStateSlugAndCategorySlugAndIsPublishedTrue(String stateSlug, String categorySlug);
-    List<Product> findByStateSlugAndNavbarSlugAndIsPublishedTrue(String stateSlug, String navbarSlug);
-    List<Product> findByStateSlugAndNavbarCategoryAndIsPublishedTrue(String stateSlug, String navbarCategory);
-    List<Product> findByStateSlugAndDistrictSlugAndIsPublishedTrue(String stateSlug, String districtSlug);
-    List<Product> findByStateSlugAndDistrictSlugAndPublishedTrue(String stateSlug, String districtSlug);
-    List<Product> findByStateSlugAndCategoryRegexAndIsPublishedTrue(String stateSlug, String categoryRegex);
-    List<Product> findByStateSlugAndDistrictIgnoreCaseAndIsPublishedTrue(String stateSlug, String district);
-    List<Product> findByDistrictSlugAndIsPublishedTrue(String districtSlug);
-    List<Product> findByIsFreeTrueAndIsPublishedTrue();
-
-    // Duplicate & Versioning detection queries
-    Product findByGoogleDriveFileId(String googleDriveFileId);
-    List<Product> findByGoogleDriveFileIdOrderByVersionDesc(String googleDriveFileId);
-    Optional<Product> findByGoogleDriveFileIdAndIsLatestVersionTrue(String googleDriveFileId);
-    Product findBySourceFileId(String sourceFileId);
-    Optional<Product> findByS3Key(String s3Key);
-    Optional<Product> findByStorageKey(String storageKey);
-    @org.springframework.data.mongodb.repository.Query("{ '$or': [ { 's3Key': { '$regex': ?0, '$options': 'i' } }, { 'storageKey': { '$regex': ?0, '$options': 'i' } } ] }")
-    List<Product> findByS3KeyOrStorageKeyRegex(String regexPattern);
-    Optional<Product> findByChecksum(String checksum);
-    Product findByStateSlugAndDistrictSlugAndFileName(String stateSlug, String districtSlug, String fileName);
-=======
         // Published product queries (used by frontend APIs)
         List<Product> findByIsPublishedTrue();
 
         List<Product> findByStateSlugAndIsPublishedTrue(String stateSlug);
->>>>>>> origin/main
 
         List<Product> findByStateSlugAndCategoryAndIsPublishedTrue(String stateSlug, String category);
 
-<<<<<<< HEAD
-    // Import, version & publish status queries
-    List<Product> findByImportedFromDrive(Boolean importedFromDrive);
-    List<Product> findByIsPublishedFalseAndImportedFromDriveTrue();
-    List<Product> findByStateSlug(String stateSlug);
-    List<Product> findByIsDeletedFalse();
-
-    // Aggregate counts for audit reports
-    long countByImportedFromDriveTrue();
-    long countByIsPublishedTrue();
-    long countByIngestionStatus(IngestionStatus ingestionStatus);
-    long countByArchivedTrue();
-    long countByIsDeletedTrue();
-    long countByStateSlugAndDistrictSlugAndIsPublishedTrue(String stateSlug, String districtSlug);
-    long countByStateSlugAndIsPublishedTrue(String stateSlug);
-=======
         List<Product> findByStateSlugAndDistrictSlugAndIsPublishedTrue(String stateSlug, String districtSlug);
 
         List<Product> findByDistrictSlugAndIsPublishedTrue(String districtSlug);
@@ -67,7 +23,9 @@ public interface ProductRepo extends MongoRepository<Product, String> {
 
         // Duplicate detection queries (ordered: most specific first)
         Product findByGoogleDriveFileId(String googleDriveFileId);
+        List<Product> findByGoogleDriveFileIdOrderByVersionDesc(String googleDriveFileId);
 
+        Product findByChecksum(String checksum);
         Product findBySourceFileId(String sourceFileId);
 
         Optional<Product> findByS3Key(String s3Key);
@@ -123,5 +81,4 @@ public interface ProductRepo extends MongoRepository<Product, String> {
 
         long countByStateSlugAndDistrictSlugAndIsFreeAndIsPublishedTrueAndArchivedFalse(String stateSlug,
                         String districtSlug, boolean isFree);
->>>>>>> origin/main
 }

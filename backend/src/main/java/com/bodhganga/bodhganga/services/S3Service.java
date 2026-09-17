@@ -19,24 +19,9 @@ import java.util.stream.Collectors;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.S3Object;
-import software.amazon.awssdk.services.s3.model.CORSRule;
-import software.amazon.awssdk.services.s3.model.CORSConfiguration;
-import software.amazon.awssdk.services.s3.model.PutBucketCorsRequest;
-import software.amazon.awssdk.services.s3.model.GetBucketCorsRequest;
-import software.amazon.awssdk.services.s3.model.GetBucketCorsResponse;
-import software.amazon.awssdk.services.s3.model.S3Exception;
 
-<<<<<<< HEAD
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-=======
->>>>>>> origin/main
 @Service
 public class S3Service {
-
-    private static final Logger log = LoggerFactory.getLogger(S3Service.class);
 
     private final S3Client s3Client;
     private final S3Presigner s3Presigner;
@@ -161,24 +146,6 @@ public class S3Service {
     }
 
     /**
-     * Check if an object exists in S3 bucket.
-     */
-    public boolean doesObjectExist(String objectKey) {
-        try {
-            s3Client.headObject(software.amazon.awssdk.services.s3.model.HeadObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(objectKey)
-                    .build());
-            return true;
-        } catch (software.amazon.awssdk.services.s3.model.NoSuchKeyException e) {
-            return false;
-        } catch (Exception e) {
-            log.warn("S3 headObject check failed for key {}: {}", objectKey, e.getMessage());
-            return true;
-        }
-    }
-
-    /**
      * Upload a file with an explicit S3 key.
      */
     public String uploadFileWithKey(java.io.InputStream inputStream, long size, String s3Key, String contentType) {
@@ -254,58 +221,13 @@ public class S3Service {
             return false;
         }
     }
-
     /**
-<<<<<<< HEAD
-     * Get current CORS rules for S3 bucket.
-     */
-    public List<CORSRule> getBucketCors() {
-        try {
-            GetBucketCorsResponse response = s3Client.getBucketCors(
-                    GetBucketCorsRequest.builder().bucket(bucketName).build());
-            return response.corsRules();
-        } catch (S3Exception e) {
-            if (e.statusCode() == 404 || (e.awsErrorDetails() != null && "NoSuchCORSConfiguration".equalsIgnoreCase(e.awsErrorDetails().errorCode()))) {
-                log.info("No CORS configuration currently set on S3 bucket: {}", bucketName);
-                return List.of();
-            }
-            log.error("AWS S3 error while retrieving CORS configuration for {}: {} (Status Code: {}, Error Code: {})",
-                    bucketName, e.getMessage(), e.statusCode(), e.awsErrorDetails() != null ? e.awsErrorDetails().errorCode() : "N/A", e);
-            throw e;
-        } catch (Exception e) {
-            log.error("Failed to retrieve S3 bucket CORS configuration for {}: {}", bucketName, e.getMessage(), e);
-            throw e;
-        }
+ * Backward-compatible method used by tests.
+ */
+    public boolean doesObjectExist(String s3Key) {
+        return objectExists(s3Key);
     }
-
     /**
-     * Configure CORS on S3 bucket for production frontend origins.
-     */
-    public void configureBucketCors(List<String> allowedOrigins) {
-        try {
-            log.info("Configuring S3 bucket CORS for origins: {} on bucket: {}", allowedOrigins, bucketName);
-            CORSRule rule = CORSRule.builder()
-                    .allowedOrigins(allowedOrigins)
-                    .allowedMethods("GET", "HEAD")
-                    .allowedHeaders("*")
-                    .exposeHeaders("Content-Length", "Content-Type", "Accept-Ranges", "ETag")
-                    .maxAgeSeconds(3000)
-                    .build();
-
-            CORSConfiguration configuration = CORSConfiguration.builder()
-                    .corsRules(rule)
-                    .build();
-
-            PutBucketCorsRequest putCorsRequest = PutBucketCorsRequest.builder()
-                    .bucket(bucketName)
-                    .corsConfiguration(configuration)
-                    .build();
-
-            s3Client.putBucketCors(putCorsRequest);
-            log.info("Successfully updated S3 bucket CORS configuration on {}", bucketName);
-        } catch (Exception e) {
-            log.error("Failed to configure S3 bucket CORS on {}: {}", bucketName, e.getMessage(), e);
-=======
      * Delete an object from S3 bucket (used for compensation on Mongo save
      * failure).
      */
@@ -319,7 +241,6 @@ public class S3Service {
                     .build());
         } catch (Exception e) {
             throw new RuntimeException("Failed to delete S3 object key: " + s3Key, e);
->>>>>>> origin/main
         }
     }
 }

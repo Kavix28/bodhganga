@@ -364,7 +364,7 @@ public class DriveToS3PipelineTask {
         if (existing == null)
             existing = productRepo.findByS3Key(s3Key).orElse(null);
         if (existing == null && checksum != null)
-            existing = productRepo.findByChecksum(checksum).orElse(null);
+            existing = productRepo.findByChecksum(checksum);
 
         // Incremental sync: If checksum matches existing record, skip re-uploading
         if (existing != null && checksum != null && checksum.equals(existing.getChecksum())
