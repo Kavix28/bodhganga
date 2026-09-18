@@ -9,7 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint src",
-    "test": "node src/tests/stateAvailability.test.js && node src/tests/examEngine.test.js"
+    "test": "node src/tests/stateAvailability.test.js && node src/tests/examEngine.test.js && node src/tests/questionBankUpload.test.js"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.95.2",

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import {
     Map as MapIcon,
@@ -102,17 +103,16 @@ const AdminStateResources = () => {
         setSelectedDistrict(null);
         setResources([]);
         setLoadingDistricts(true);
-
         try {
-            const rawDistricts = await getDistricts(state.stateSlug);
-            const districtList = Array.isArray(rawDistricts) ? rawDistricts : [];
-            setDistricts(districtList);
-            if (districtList.length > 0) {
-                handleSelectDistrict(state, districtList[0]);
+            const rawData = await getDistricts(state.stateSlug);
+            const data = Array.isArray(rawData) ? rawData : [];
+            setDistricts(data);
+            if (data.length > 0) {
+                handleSelectDistrict(state, data[0]);
             }
         } catch (err) {
             console.error('Failed to load districts:', err);
-            toast.error(`Failed to load districts for ${state.name}`);
+            toast.error('Failed to load district list');
             setDistricts([]);
         } finally {
             setLoadingDistricts(false);
@@ -121,19 +121,17 @@ const AdminStateResources = () => {
 
     const handleSelectDistrict = async (state, district) => {
         setSelectedDistrict(district);
-        const stateSlug = state.stateSlug;
-        const districtSlug = district.districtSlug;
-        fetchResources(stateSlug, districtSlug);
+        fetchResources(state.stateSlug, district.districtSlug);
     };
 
     const fetchResources = async (stateSlug, districtSlug) => {
         setLoadingResources(true);
         try {
-            const rawResources = await getDistrictResources(stateSlug, districtSlug);
-            const resList = Array.isArray(rawResources) ? rawResources : [];
-            setResources(resList);
+            const rawData = await getDistrictResources(stateSlug, districtSlug);
+            const data = Array.isArray(rawData) ? rawData : [];
+            setResources(data);
         } catch (err) {
-            console.error('Failed to load resources:', err);
+            console.error('Failed to load district resources:', err);
             toast.error('Failed to load district resources');
             setResources([]);
         } finally {
@@ -141,20 +139,16 @@ const AdminStateResources = () => {
         }
     };
 
-    const handleTogglePublish = async (resource) => {
+    const handleStatusToggle = async (resource) => {
+        const nextStatus = !resource.isPublished;
         setStatusUpdatingId(resource.id);
-        const currentPublished = resource.published || resource.isPublished;
-        const targetPublished = !currentPublished;
-
         try {
-            await updateAdminResourceStatus(resource.id, targetPublished);
-            toast.success(`Resource ${targetPublished ? 'published' : 'unpublished'} successfully.`);
-            setResources(prev =>
-                (Array.isArray(prev) ? prev : []).map(r => r.id === resource.id ? { ...r, published: targetPublished, isPublished: targetPublished } : r)
-            );
+            await updateAdminResourceStatus(resource.id, nextStatus);
+            toast.success(nextStatus ? 'Resource published successfully' : 'Resource unpublished');
+            setResources(prev => prev.map(r => r.id === resource.id ? { ...r, isPublished: nextStatus, published: nextStatus } : r));
         } catch (err) {
-            console.error('Failed to update status:', err);
-            toast.error('Failed to update publication status.');
+            console.error('Failed to toggle status:', err);
+            toast.error(err?.message || 'Failed to update resource publication status');
         } finally {
             setStatusUpdatingId(null);
         }
@@ -162,16 +156,15 @@ const AdminStateResources = () => {
 
     const handleConfirmArchive = async () => {
         if (!archiveCandidate) return;
-        const id = archiveCandidate.id;
-
+        const resId = archiveCandidate.id;
         try {
-            await archiveAdminResource(id);
-            toast.success('Resource archived successfully.');
-            setResources(prev => (Array.isArray(prev) ? prev : []).filter(r => r.id !== id));
+            await archiveAdminResource(resId);
+            toast.success('Resource archived successfully');
+            setResources(prev => prev.filter(r => r.id !== resId));
             setArchiveCandidate(null);
         } catch (err) {
             console.error('Failed to archive resource:', err);
-            toast.error('Failed to archive resource.');
+            toast.error(err?.message || 'Failed to archive resource');
         }
     };
 
@@ -189,13 +182,19 @@ const AdminStateResources = () => {
         (d?.districtSlug || '').toLowerCase().includes(districtSearch.toLowerCase())
     );
 
-    const freeResources = safeResources.filter(r => r.isFree || r.free || r.price === 0);
-    const paidResources = safeResources.filter(r => !r.isFree && !r.free && r.price > 0);
+    const freeResources = safeResources.filter(r => r.accessTier === 'FREE' || r.isFree || r.free || r.price === 0);
+    const paidResources = safeResources.filter(r => r.accessTier === 'PAID' || (!r.isFree && !r.free && r.price > 0));
+
+    const filteredResources = safeResources.filter(r => {
+        if (resourceTab === 'FREE') return r.accessTier === 'FREE' || r.isFree || r.free || r.price === 0;
+        if (resourceTab === 'PAID') return r.accessTier === 'PAID' || (!r.isFree && !r.free && r.price > 0);
+        return true;
+    });
 
     return (
-        <div className="space-y-6 animate-fadeIn">
+        <div className="min-h-screen bg-gray-900 text-gray-100 p-6 space-y-6">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gray-800/60 p-6 rounded-2xl border border-gray-700/80 shadow-lg">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-800 pb-6">
                 <div>
                     <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-400 mb-1">
                         <MapIcon className="w-4 h-4" />
@@ -205,6 +204,13 @@ const AdminStateResources = () => {
                     <p className="text-xs text-gray-400 mt-1">
                         Direct multi-file upload for PDF, Image, Audio, and Video resources across State and District hierarchies.
                     </p>
+                    <div className="flex items-center gap-2 mt-3 p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-300">
+                        <FileText className="w-4 h-4 text-amber-400 shrink-0" />
+                        <span>Looking to ingest Question Bank & Answer PDFs with OCR?</span>
+                        <Link to="/admin/question-bank" className="ml-auto font-bold text-amber-400 hover:underline flex items-center gap-1">
+                            Open Question Bank OCR Manager <ChevronRight className="w-3.5 h-3.5" />
+                        </Link>
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-3">
