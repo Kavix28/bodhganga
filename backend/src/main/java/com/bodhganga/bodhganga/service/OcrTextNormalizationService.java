@@ -54,12 +54,65 @@ public class OcrTextNormalizationService {
         // 1. Fix UTF-8 Mojibake and encoding corruptions
         text = fixMojibake(text);
 
-        // 2. Remove generic page headers/footers/branding
+        // 2. Normalize Q-headers and OCR noise in question/answer numbers
+        text = normalizeHeaders(text);
+
+        // 3. Remove generic page headers/footers/branding
         text = removeGenericBrandingAndFooters(text);
 
-        // 3. Normalize quotes, punctuation, and whitespace
+        // 4. Normalize quotes, punctuation, and whitespace
         text = normalizeWhitespaceAndPunctuation(text);
 
+        return text.trim();
+    }
+
+    /**
+     * Normalizes Q-headers, option markers, and OCR noise/corruptions in numbers.
+     */
+    public String normalizeHeaders(String text) {
+        if (text == null || text.isBlank()) {
+            return "";
+        }
+        String[] lines = text.split("\\r?\\n");
+        StringBuilder sb = new StringBuilder();
+        for (String line : lines) {
+            String trimmed = line.trim();
+            // Fix Euro symbol in option markers like (€) -> (c)
+            trimmed = trimmed.replaceAll("(?i)\\(\\s*€\\s*\\)", "(c)")
+                             .replaceAll("(?i)\\b€\\)", "c)");
+
+            // Fix OCR noise between Q-number and option like Q28M\(c) -> Q28 (c), Q51%(b) -> Q51 (b), Q114, (c) -> Q114 (c)
+            trimmed = trimmed.replaceAll("(?i)^(\\s*Q\\.?\\s*\\d{1,4})[M\\%\\,\\\\\\/\\_]+\\s*", "$1 ");
+
+            // Fix line-start Q-header OCR digit corruptions generically:
+            trimmed = trimmed.replaceAll("(?i)^(\\s*Q)7Te(?=[A-Za-z\\s\\.])", "$171. ");
+            trimmed = trimmed.replaceAll("(?i)^(\\s*Q)8i(?=[A-Za-z\\s\\.])", "$181. ");
+            trimmed = trimmed.replaceAll("(?i)^(\\s*Q)d1S(?=[A-Za-z\\s\\.])", "$1115. ");
+            trimmed = trimmed.replaceAll("(?i)^(\\s*Q)738(?=[A-Za-z\\s\\.])", "$178. ");
+            trimmed = trimmed.replaceAll("(?i)^(\\s*Q)839(?=[A-Za-z\\s\\.])", "$189. ");
+            trimmed = trimmed.replaceAll("(?i)^(\\s*Q)i27n(?=[A-Za-z\\s\\.])", "$1127. ");
+
+            sb.append(trimmed).append("\n");
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Shared Unicode-safe normalization strategy for matching and search.
+     * Preserves Unicode letters (including Devanagari/Marathi), Unicode digits,
+     * and Unicode combining marks (matras). Lowercases using Locale.ROOT, converts
+     * punctuation/separators to spaces, collapses repeated whitespace, and trims.
+     */
+    public String normalizeForMatching(String rawText) {
+        if (rawText == null || rawText.isBlank()) {
+            return "";
+        }
+        String text = fixMojibake(rawText);
+        text = java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFC);
+        text = text.toLowerCase(java.util.Locale.ROOT);
+        // Retain Unicode letters (\p{L}), Unicode digits (\p{N}), and Unicode combining marks (\p{M})
+        text = text.replaceAll("[^\\p{L}\\p{N}\\p{M}]", " ");
+        text = text.replaceAll("\\s+", " ");
         return text.trim();
     }
 

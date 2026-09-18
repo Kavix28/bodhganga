@@ -99,7 +99,7 @@ const States = () => {
                     </div>
                     <h1 className="text-4xl md:text-5xl font-bold font-serif tracking-tight">States & Union Territories</h1>
                     <p className="text-white/60 text-xs sm:text-sm max-w-3xl leading-relaxed font-medium">
-                        Select your state to explore district-wise study material — notes, maps, MCQs and more curated for every major PSC examination.
+                        Select your state to explore district-wise study material â€” notes, maps, MCQs and more curated for every major PSC examination.
                     </p>
                     <div className="flex gap-2 bg-white/5 p-1 rounded-xl border border-white/10 self-start inline-flex mt-4">
                         {[{id:'all',label:'All Regions'},{id:'states',label:'28 States'},{id:'uts',label:'8 UTs'}].map(tab => (
@@ -134,7 +134,7 @@ const States = () => {
                 </div>
 
                 <p className="text-[9px] font-extrabold uppercase tracking-widest text-emerald-dark/50">
-                    Showing {filteredItems.length} regions · {activeItems.length} active
+                    Showing {filteredItems.length} regions Â· {activeItems.length} active
                 </p>
 
                 {isLoading ? (
@@ -150,7 +150,7 @@ const States = () => {
                             <div className="space-y-4">
                                 <div className="flex items-center gap-2">
                                     <span className="w-2 h-2 rounded-full bg-emerald animate-pulse" />
-                                    <span className="text-[9px] font-extrabold uppercase tracking-widest text-emerald-dark/60">Active · Content Available</span>
+                                    <span className="text-[9px] font-extrabold uppercase tracking-widest text-emerald-dark/60">Active Â· Content Available</span>
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start">
                                     {activeItems.map(item => <StateCard key={item.id} state={item} />)}
@@ -161,7 +161,7 @@ const States = () => {
                             <div className="space-y-4 mt-8">
                                 <div className="flex items-center gap-2">
                                     <span className="w-2 h-2 rounded-full bg-gold/60" />
-                                    <span className="text-[9px] font-extrabold uppercase tracking-widest text-emerald-dark/60">Coming Soon · Being Prepared</span>
+                                    <span className="text-[9px] font-extrabold uppercase tracking-widest text-emerald-dark/60">Coming Soon Â· Being Prepared</span>
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start">
                                     {comingSoonItems.map(item => <StateCard key={item.id} state={item} />)}

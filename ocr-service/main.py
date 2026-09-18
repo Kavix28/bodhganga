@@ -39,17 +39,26 @@ async def process_ocr_page(file: UploadFile = File(...)):
         contents = await file.read()
         image = Image.open(io.BytesIO(contents)).convert("RGB")
         
-        # Run Tesseract OCR on rendered page image using PSM 6 (uniform block of text)
+        # Configurable OCR languages (default: eng+mar)
+        ocr_lang = os.environ.get("OCR_LANGUAGES", "eng+mar")
         tess_config = "--psm 6"
-        text = pytesseract.image_to_string(image, lang="eng", config=tess_config)
-        
-        # Calculate confidence metric if data available
+
+        # Attempt OCR with configured language pack, fallback gracefully to 'eng' if language pack is missing
         try:
-            ocr_data = pytesseract.image_to_data(image, lang="eng", config=tess_config, output_type=pytesseract.Output.DICT)
-            confidences = [int(c) for c in ocr_data.get("conf", []) if int(c) >= 0]
-            avg_conf = (sum(confidences) / len(confidences) / 100.0) if confidences else 0.85
+            text = pytesseract.image_to_string(image, lang=ocr_lang, config=tess_config)
+            ocr_data = pytesseract.image_to_data(image, lang=ocr_lang, config=tess_config, output_type=pytesseract.Output.DICT)
         except Exception:
-            avg_conf = 0.85
+            # Fallback to eng if requested language dataset (e.g. mar) is not installed
+            ocr_lang = "eng"
+            text = pytesseract.image_to_string(image, lang=ocr_lang, config=tess_config)
+            ocr_data = pytesseract.image_to_data(image, lang=ocr_lang, config=tess_config, output_type=pytesseract.Output.DICT)
+
+        confidences = [int(c) for c in ocr_data.get("conf", []) if int(c) >= 0]
+        if confidences:
+            avg_conf = sum(confidences) / len(confidences) / 100.0
+            avg_conf = max(0.0, min(1.0, avg_conf))
+        else:
+            avg_conf = -1.0 # Unknown confidence sentinel when word confidence is unavailable
 
         return {
             "success": True,

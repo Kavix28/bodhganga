@@ -44,13 +44,20 @@ public class QuestionIngestionService {
         private int totalParsed;
         private int draftCount;
         private int reviewRequiredCount;
+        private int exactMatchCount;
+        private int fuzzyMatchCount;
+        private int unmatchedCount;
+        private double averageConfidence;
+        private boolean dryRun;
         private List<Question> ingestedQuestions;
 
         public IngestionResult() {
         }
 
         public IngestionResult(boolean success, String message, String sourceDocumentId, String fileHash,
-                int totalParsed, int draftCount, int reviewRequiredCount, List<Question> ingestedQuestions) {
+                int totalParsed, int draftCount, int reviewRequiredCount, int exactMatchCount,
+                int fuzzyMatchCount, int unmatchedCount, double averageConfidence, boolean dryRun,
+                List<Question> ingestedQuestions) {
             this.success = success;
             this.message = message;
             this.sourceDocumentId = sourceDocumentId;
@@ -58,6 +65,11 @@ public class QuestionIngestionService {
             this.totalParsed = totalParsed;
             this.draftCount = draftCount;
             this.reviewRequiredCount = reviewRequiredCount;
+            this.exactMatchCount = exactMatchCount;
+            this.fuzzyMatchCount = fuzzyMatchCount;
+            this.unmatchedCount = unmatchedCount;
+            this.averageConfidence = averageConfidence;
+            this.dryRun = dryRun;
             this.ingestedQuestions = ingestedQuestions;
         }
 
@@ -93,6 +105,26 @@ public class QuestionIngestionService {
             return reviewRequiredCount;
         }
 
+        public int getExactMatchCount() {
+            return exactMatchCount;
+        }
+
+        public int getFuzzyMatchCount() {
+            return fuzzyMatchCount;
+        }
+
+        public int getUnmatchedCount() {
+            return unmatchedCount;
+        }
+
+        public double getAverageConfidence() {
+            return averageConfidence;
+        }
+
+        public boolean isDryRun() {
+            return dryRun;
+        }
+
         public List<Question> getIngestedQuestions() {
             return ingestedQuestions;
         }
@@ -105,6 +137,11 @@ public class QuestionIngestionService {
             private int totalParsed;
             private int draftCount;
             private int reviewRequiredCount;
+            private int exactMatchCount;
+            private int fuzzyMatchCount;
+            private int unmatchedCount;
+            private double averageConfidence;
+            private boolean dryRun;
             private List<Question> ingestedQuestions;
 
             public IngestionResultBuilder success(boolean success) {
@@ -142,6 +179,31 @@ public class QuestionIngestionService {
                 return this;
             }
 
+            public IngestionResultBuilder exactMatchCount(int exactMatchCount) {
+                this.exactMatchCount = exactMatchCount;
+                return this;
+            }
+
+            public IngestionResultBuilder fuzzyMatchCount(int fuzzyMatchCount) {
+                this.fuzzyMatchCount = fuzzyMatchCount;
+                return this;
+            }
+
+            public IngestionResultBuilder unmatchedCount(int unmatchedCount) {
+                this.unmatchedCount = unmatchedCount;
+                return this;
+            }
+
+            public IngestionResultBuilder averageConfidence(double averageConfidence) {
+                this.averageConfidence = averageConfidence;
+                return this;
+            }
+
+            public IngestionResultBuilder dryRun(boolean dryRun) {
+                this.dryRun = dryRun;
+                return this;
+            }
+
             public IngestionResultBuilder ingestedQuestions(List<Question> ingestedQuestions) {
                 this.ingestedQuestions = ingestedQuestions;
                 return this;
@@ -149,7 +211,8 @@ public class QuestionIngestionService {
 
             public IngestionResult build() {
                 return new IngestionResult(success, message, sourceDocumentId, fileHash, totalParsed, draftCount,
-                        reviewRequiredCount, ingestedQuestions);
+                        reviewRequiredCount, exactMatchCount, fuzzyMatchCount, unmatchedCount, averageConfidence,
+                        dryRun, ingestedQuestions);
             }
         }
     }
@@ -160,6 +223,17 @@ public class QuestionIngestionService {
             String stateSlug,
             String districtSlug,
             String testType) throws IOException {
+        boolean isEnvDryRun = Boolean.parseBoolean(System.getProperty("OCR_INGESTION_DRY_RUN", "false"));
+        return ingestQuestionBankPdfs(questionPdfFile, answerPdfFile, stateSlug, districtSlug, testType, isEnvDryRun);
+    }
+
+    public IngestionResult ingestQuestionBankPdfs(
+            MultipartFile questionPdfFile,
+            MultipartFile answerPdfFile,
+            String stateSlug,
+            String districtSlug,
+            String testType,
+            boolean dryRun) throws IOException {
 
         validatePdfFile(questionPdfFile, "Question Bank PDF");
         validatePdfFile(answerPdfFile, "Answer PDF");
@@ -170,8 +244,9 @@ public class QuestionIngestionService {
         String fileHash = computeSHA256(qBytes, aBytes);
 
         // Check if exact file pair already ingested (idempotency check)
-        List<Question> existing = questionRepo.findByFileHash(fileHash);
-        if (!existing.isEmpty()) {
+        List<Question> existing = questionRepo != null ? questionRepo.findByFileHash(fileHash)
+                : Collections.emptyList();
+        if (!existing.isEmpty() && !dryRun) {
             long draftC = existing.stream().filter(q -> "DRAFT".equalsIgnoreCase(q.getStatus())).count();
             long reviewC = existing.stream().filter(q -> "REVIEW_REQUIRED".equalsIgnoreCase(q.getStatus())).count();
             return IngestionResult.builder()
@@ -182,6 +257,7 @@ public class QuestionIngestionService {
                     .totalParsed(existing.size())
                     .draftCount((int) draftC)
                     .reviewRequiredCount((int) reviewC)
+                    .dryRun(false)
                     .ingestedQuestions(existing)
                     .build();
         }
@@ -190,17 +266,18 @@ public class QuestionIngestionService {
         String qS3Key = "quiz/sources/" + stateSlug + "/" + districtSlug + "/" + sourceDocId + "-question.pdf";
         String aS3Key = "quiz/sources/" + stateSlug + "/" + districtSlug + "/" + sourceDocId + "-answer.pdf";
 
-        // Store S3 objects if s3Service is available
-        try {
-            if (s3Service != null) {
-                s3Service.uploadFileWithKey(questionPdfFile.getInputStream(), questionPdfFile.getSize(), qS3Key,
-                        "application/pdf");
-                s3Service.uploadFileWithKey(answerPdfFile.getInputStream(), answerPdfFile.getSize(), aS3Key,
-                        "application/pdf");
+        // Store S3 objects if s3Service is available and not in dryRun
+        if (!dryRun) {
+            try {
+                if (s3Service != null) {
+                    s3Service.uploadFileWithKey(questionPdfFile.getInputStream(), questionPdfFile.getSize(), qS3Key,
+                            "application/pdf");
+                    s3Service.uploadFileWithKey(answerPdfFile.getInputStream(), answerPdfFile.getSize(), aS3Key,
+                            "application/pdf");
+                }
+            } catch (Exception e) {
+                System.err.println("S3 upload skipped/failed in current environment: " + e.getMessage());
             }
-        } catch (Exception e) {
-            // Logging warning, non-blocking for local/offline dev mode
-            System.err.println("S3 upload skipped/failed in current environment: " + e.getMessage());
         }
 
         List<String> qPages;
@@ -217,6 +294,7 @@ public class QuestionIngestionService {
                     .totalParsed(0)
                     .draftCount(0)
                     .reviewRequiredCount(0)
+                    .dryRun(dryRun)
                     .build();
         }
 
@@ -229,16 +307,24 @@ public class QuestionIngestionService {
                     .totalParsed(0)
                     .draftCount(0)
                     .reviewRequiredCount(0)
+                    .dryRun(dryRun)
                     .build();
         }
 
         List<QuestionParserService.ParsedQuestion> parsedQs = questionParserService.parseQuestionsFromPages(qPages);
         Map<Integer, AnswerParserService.ParsedAnswer> parsedAs = answerParserService.parseAnswersFromPages(aPages);
 
-        List<Question> matchedQuestions = questionMatchingService.matchAndBuildQuestions(
+        QuestionMatchingService.MatchReport matchReport = questionMatchingService.matchAndBuildReport(
                 parsedQs, parsedAs, stateSlug, districtSlug, testType, sourceDocId, qS3Key, aS3Key, fileHash);
 
-        List<Question> savedQuestions = questionRepo.saveAll(matchedQuestions);
+        List<Question> matchedQuestions = matchReport.getQuestions();
+        List<Question> savedQuestions;
+
+        if (dryRun) {
+            savedQuestions = matchedQuestions;
+        } else {
+            savedQuestions = questionRepo != null ? questionRepo.saveAll(matchedQuestions) : matchedQuestions;
+        }
 
         int draftCount = 0;
         int reviewCount = 0;
@@ -250,14 +336,23 @@ public class QuestionIngestionService {
             }
         }
 
+        String msg = dryRun
+                ? "Dry run completed successfully. Parsed " + savedQuestions.size() + " questions (DB persist skipped)"
+                : "Successfully ingested " + savedQuestions.size() + " questions from PDFs";
+
         return IngestionResult.builder()
                 .success(true)
-                .message("Successfully ingested " + savedQuestions.size() + " questions from PDFs")
+                .message(msg)
                 .sourceDocumentId(sourceDocId)
                 .fileHash(fileHash)
                 .totalParsed(savedQuestions.size())
                 .draftCount(draftCount)
                 .reviewRequiredCount(reviewCount)
+                .exactMatchCount(matchReport.getExactMatchCount())
+                .fuzzyMatchCount(matchReport.getFuzzyMatchCount())
+                .unmatchedCount(matchReport.getUnmatchedCount())
+                .averageConfidence(matchReport.getAverageConfidence())
+                .dryRun(dryRun)
                 .ingestedQuestions(savedQuestions)
                 .build();
     }

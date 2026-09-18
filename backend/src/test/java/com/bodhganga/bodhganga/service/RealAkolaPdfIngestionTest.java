@@ -36,6 +36,9 @@ public class RealAkolaPdfIngestionTest {
     private QuestionIngestionService questionIngestionService;
 
     @Autowired
+    private QuestionMatchingService questionMatchingService;
+
+    @Autowired
     private QuestionRepo questionRepo;
 
     private File findFile(String pattern) {
@@ -126,5 +129,82 @@ public class RealAkolaPdfIngestionTest {
         assertTrue(idempotentResult.isSuccess());
         assertTrue(idempotentResult.getMessage().contains("already ingested")
                 || idempotentResult.getMessage().contains("idempotent skip"));
+    }
+
+    @Test
+    void testRealAkolaPdfDryRunMode() throws Exception {
+        File qFile = findFile("question");
+        File aFile = findFile("solution");
+        if (aFile == null)
+            aFile = findFile("explanation");
+
+        assertNotNull(qFile);
+        assertNotNull(aFile);
+
+        byte[] qBytes = Files.readAllBytes(qFile.toPath());
+        byte[] aBytes = Files.readAllBytes(aFile.toPath());
+
+        MockMultipartFile qMultipart = new MockMultipartFile("questionPdf", qFile.getName(), "application/pdf", qBytes);
+        MockMultipartFile aMultipart = new MockMultipartFile("answerPdf", aFile.getName(), "application/pdf", aBytes);
+
+        questionRepo.deleteAll();
+        long dbCountBefore = questionRepo.count();
+
+        // Perform single OCR extraction for diagnostics and dry-run
+        List<String> qPages = pdfExtractionService.extractTextPerPage(qBytes);
+        List<String> aPages = pdfExtractionService.extractTextPerPage(aBytes);
+
+        List<QuestionParserService.ParsedQuestion> parsedQs = questionParserService.parseQuestionsFromPages(qPages);
+        Map<Integer, AnswerParserService.ParsedAnswer> parsedAs = answerParserService.parseAnswersFromPages(aPages);
+
+        QuestionMatchingService.MatchReport matchReport = questionMatchingService.matchAndBuildReport(
+                parsedQs, parsedAs, "maharashtra", "akola", "easy", "dry-run-source", "s3-q", "s3-a", "hash");
+
+        long dbCountAfter = questionRepo.count();
+
+        System.out.println("==================================================");
+        System.out.println("REAL AKOLA DRY RUN DIAGNOSTIC REPORT");
+        System.out.println("==================================================");
+        System.out.println("Total Parsed Questions: " + parsedQs.size());
+        System.out.println("Total Parsed Answers: " + parsedAs.size());
+        long draftCount = matchReport.getQuestions().stream().filter(q -> "DRAFT".equalsIgnoreCase(q.getStatus())).count();
+        long reviewRequiredCount = matchReport.getQuestions().stream().filter(q -> "REVIEW_REQUIRED".equalsIgnoreCase(q.getStatus())).count();
+
+        System.out.println("Exact Matches: " + matchReport.getExactMatchCount());
+        System.out.println("Fuzzy Matches: " + matchReport.getFuzzyMatchCount());
+        System.out.println("Unmatched: " + matchReport.getUnmatchedCount());
+        System.out.println("DRAFT Count: " + draftCount);
+        System.out.println("REVIEW_REQUIRED Count: " + reviewRequiredCount);
+        System.out.println("Average Matching Confidence: " + matchReport.getAverageConfidence());
+        System.out.println("DB Count Before: " + dbCountBefore);
+        System.out.println("DB Count After: " + dbCountAfter);
+        System.out.println("==================================================");
+
+        Set<Integer> qNums = new TreeSet<>();
+        for (QuestionParserService.ParsedQuestion pq : parsedQs) {
+            qNums.add(pq.getQuestionNumber());
+        }
+
+        Set<Integer> aNums = new TreeSet<>(parsedAs.keySet());
+
+        System.out.println("PARSED QUESTION NUMBERS (" + qNums.size() + "): " + qNums);
+        System.out.println("PARSED ANSWER NUMBERS (" + aNums.size() + "): " + aNums);
+
+        Set<Integer> missingInQ = new TreeSet<>();
+        for (int i = 1; i <= 136; i++) {
+            if (!qNums.contains(i)) missingInQ.add(i);
+        }
+        System.out.println("MISSING QUESTION NUMBERS (1 to 136): " + missingInQ);
+
+        Set<Integer> unmatchedAnswerKeys = new TreeSet<>(aNums);
+        unmatchedAnswerKeys.removeAll(qNums);
+        System.out.println("ANSWER KEYS NOT IN QUESTIONS (" + unmatchedAnswerKeys.size() + "): " + unmatchedAnswerKeys);
+
+        Set<Integer> questionKeysWithoutAnswers = new TreeSet<>(qNums);
+        questionKeysWithoutAnswers.removeAll(aNums);
+        System.out.println("QUESTION KEYS WITHOUT ANSWERS (" + questionKeysWithoutAnswers.size() + "): " + questionKeysWithoutAnswers);
+
+        assertEquals(dbCountBefore, dbCountAfter, "Dry run must NOT persist any questions to DB");
+        assertEquals(0, dbCountAfter, "DB must remain empty after dry run");
     }
 }

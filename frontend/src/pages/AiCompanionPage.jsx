@@ -37,7 +37,7 @@ export default function AiCompanionPage() {
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      text: "Namaste! I am your BodhGanga Study Companion. I know your purchased districts and can help you prepare for your state competitive exam. Ask me anything � topics, MCQs, study plans, or concept explanations!",
+      text: "Namaste! I am your BodhGanga Study Companion. I know your purchased districts and can help you prepare for your state competitive exam. Ask me anything â€” topics, MCQs, study plans, or concept explanations!",
     },
   ]);
   const [input, setInput] = useState("");
@@ -113,7 +113,7 @@ export default function AiCompanionPage() {
           <div style={{ color: "#c8a96e", fontSize: "12px" }}>AI-powered exam prep</div>
         </div>
         <div style={{ marginLeft: "auto", color: "rgba(255,255,255,0.3)", fontSize: "12px" }}>
-          Powered by Gemini
+          Powered by Groq AI
         </div>
       </div>
 
@@ -164,7 +164,7 @@ export default function AiCompanionPage() {
         )}
         <div ref={messagesEndRef} />
 
-        {/* Suggested prompts � show only at start */}
+        {/* Suggested prompts â€” show only at start */}
         {messages.length === 1 && (
           <div style={{ marginTop: "8px" }}>
             <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "12px", marginBottom: "10px" }}>

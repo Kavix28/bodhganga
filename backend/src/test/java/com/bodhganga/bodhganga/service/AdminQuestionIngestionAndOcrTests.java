@@ -284,4 +284,170 @@ public class AdminQuestionIngestionAndOcrTests {
                                 .andExpect(jsonPath("$.data[0].correctAnswer").doesNotExist())
                                 .andExpect(jsonPath("$.data[0].explanation").doesNotExist());
         }
+
+        @Test
+        void test17_dryRunModeProcessesPdfsWithoutDatabasePersistence() throws Exception {
+                byte[] qPdf = createSamplePdfBytes(Arrays.asList(
+                                "History",
+                                "Q1. DryRun Question?",
+                                "(A) OptA",
+                                "(B) OptB",
+                                "(C) OptC",
+                                "(D) OptD"));
+                byte[] aPdf = createSamplePdfBytes(Arrays.asList(
+                                "Q1. (A) DryRun Explanation"));
+
+                MockMultipartFile qFile = new MockMultipartFile("questionPdf", "dry_q.pdf", "application/pdf", qPdf);
+                MockMultipartFile aFile = new MockMultipartFile("answerPdf", "dry_a.pdf", "application/pdf", aPdf);
+
+                QuestionIngestionService.IngestionResult dryRes = questionIngestionService.ingestQuestionBankPdfs(
+                                qFile, aFile, "maharashtra", "akola", "easy", true);
+
+                assertTrue(dryRes.isSuccess());
+                assertTrue(dryRes.isDryRun());
+                assertTrue(dryRes.getMessage().contains("Dry run completed"));
+                assertEquals(1, dryRes.getTotalParsed());
+                assertEquals(1, dryRes.getExactMatchCount());
+                // Verify zero questions were written to DB
+                assertEquals(0, questionRepo.count());
+        }
+
+        @Test
+        void test18_layeredMatchingReturnsExactAndFuzzyStats() {
+                QuestionParserService.ParsedQuestion pq1 = QuestionParserService.ParsedQuestion.builder()
+                                .questionNumber(1)
+                                .questionText("What is the capital of Akola?")
+                                .options(Arrays.asList("Akola City", "B", "C", "D"))
+                                .pageNumber(1)
+                                .build();
+
+                QuestionParserService.ParsedQuestion pq2 = QuestionParserService.ParsedQuestion.builder()
+                                .questionNumber(2)
+                                .questionText("Which river flows in Akola district?")
+                                .options(Arrays.asList("Morna River", "B", "C", "D"))
+                                .pageNumber(1)
+                                .build();
+
+                Map<Integer, AnswerParserService.ParsedAnswer> answers = new HashMap<>();
+                // Q1 exact match
+                answers.put(1, AnswerParserService.ParsedAnswer.builder()
+                                .questionNumber(1)
+                                .correctOptionIndex(0)
+                                .explanation("Akola City is capital.")
+                                .build());
+                // Q2 fuzzy match (missing Q2 key, but explanation has 'Which river flows in
+                // Akola')
+                answers.put(99, AnswerParserService.ParsedAnswer.builder()
+                                .questionNumber(99)
+                                .correctOptionIndex(0)
+                                .explanation("Which river flows in Akola district? Morna River flows through Akola.")
+                                .build());
+
+                QuestionMatchingService.MatchReport report = questionMatchingService.matchAndBuildReport(
+                                Arrays.asList(pq1, pq2), answers, "maharashtra", "akola", "easy", "doc1", "qKey",
+                                "aKey", "hash1");
+
+                assertEquals(2, report.getQuestions().size());
+                assertEquals(1, report.getExactMatchCount());
+                assertEquals(1, report.getFuzzyMatchCount());
+                assertEquals(0, report.getUnmatchedCount());
+                assertTrue(report.getAverageConfidence() > 0.90);
+        }
+
+        @Test
+        void test19_marathiUnicodeNormalizerAndMatching() {
+                OcrTextNormalizationService normService = new OcrTextNormalizationService();
+                String rawMarathi = "अकोला जिल्ह्यातून कोणती नदी वाहते?";
+                String normalized = normService.normalizeForMatching(rawMarathi);
+
+                assertEquals("अकोला जिल्ह्यातून कोणती नदी वाहते", normalized,
+                                "Unicode normalizer must preserve Devanagari letters, matras, and spaces");
+
+                double similarity = questionMatchingService.calculateSimilarity(
+                                "अकोला जिल्ह्यातून कोणती नदी वाहते?",
+                                "अकोला जिल्ह्यातून मोरणा नदी वाहते.");
+                assertTrue(similarity >= 0.70, "Marathi text similarity matching must function deterministically");
+        }
+
+        @Test
+        void test20_questionNumberMatchWithContradictoryAnswerTriggersReviewRequired() {
+                QuestionParserService.ParsedQuestion pq37 = QuestionParserService.ParsedQuestion.builder()
+                                .questionNumber(37)
+                                .questionText("Which river flows through Akola?")
+                                .options(Arrays.asList("Morna", "Ganga", "Yamuna", "Godavari"))
+                                .pageNumber(1)
+                                .build();
+
+                // Answer key selects Ganga (index 1), but explanation explicitly contradicts Ganga
+                AnswerParserService.ParsedAnswer pa37 = AnswerParserService.ParsedAnswer.builder()
+                                .questionNumber(37)
+                                .correctOptionIndex(1) // Option B = Ganga
+                                .explanation("The Ganga is not the river described in the question.")
+                                .build();
+
+                Map<Integer, AnswerParserService.ParsedAnswer> answers = new HashMap<>();
+                answers.put(37, pa37);
+
+                QuestionMatchingService.MatchReport report = questionMatchingService.matchAndBuildReport(
+                                Arrays.asList(pq37), answers, "maharashtra", "akola", "easy", "doc1", "qKey", "aKey",
+                                "hash37");
+
+                assertEquals(1, report.getQuestions().size());
+                Question q37 = report.getQuestions().get(0);
+
+                assertEquals("REVIEW_REQUIRED", q37.getStatus(),
+                                "Contradictory answer explanation MUST trigger REVIEW_REQUIRED status");
+                assertFalse(q37.getIsActive(), "Contradictory answer question must remain inactive");
+                assertEquals("QUESTION_NUMBER_CONFLICT", report.getMatchResults().get(0).getMatchMethod());
+                assertNotEquals(1.0, report.getMatchResults().get(0).getConfidence(),
+                                "Contradictory answer match must not retain 1.0 confidence");
+        }
+
+        @Test
+        void test21_invalidAnswerOptionKeyTriggersReviewRequired() {
+                QuestionParserService.ParsedQuestion pq1 = QuestionParserService.ParsedQuestion.builder()
+                                .questionNumber(1)
+                                .questionText("Valid Question Text for Q1")
+                                .options(Arrays.asList("Opt A", "Opt B", "Opt C", "Opt D"))
+                                .pageNumber(1)
+                                .build();
+
+                // Invalid option index (99)
+                AnswerParserService.ParsedAnswer pa1 = AnswerParserService.ParsedAnswer.builder()
+                                .questionNumber(1)
+                                .correctOptionIndex(99)
+                                .explanation("Explanation for Q1")
+                                .build();
+
+                Map<Integer, AnswerParserService.ParsedAnswer> answers = new HashMap<>();
+                answers.put(1, pa1);
+
+                QuestionMatchingService.MatchReport report = questionMatchingService.matchAndBuildReport(
+                                Arrays.asList(pq1), answers, "maharashtra", "akola", "easy", "doc1", "qKey", "aKey",
+                                "hashInvalidOpt");
+
+                Question q1 = report.getQuestions().get(0);
+                assertEquals("REVIEW_REQUIRED", q1.getStatus(),
+                                "Invalid option index must force REVIEW_REQUIRED status");
+        }
+
+        @Test
+        void test22_partialPageOcrFailureQuarantinesAffectedQuestions() {
+                // Page 1 has valid text, Page 2 is empty/failed OCR
+                List<String> pagesText = Arrays.asList(
+                                "Q1. Valid question on Page 1?\n(A) A1\n(B) B1\n(C) C1\n(D) D1\n",
+                                "", // Page 2 OCR failed
+                                "===PAGE:3===\nQ2. Valid question on Page 3?\n(A) A2\n(B) B2\n(C) C2\n(D) D2\n");
+
+                List<QuestionParserService.ParsedQuestion> parsedQs = questionParserService
+                                .parseQuestionsFromPages(pagesText);
+
+                assertTrue(parsedQs.size() >= 1);
+                for (QuestionParserService.ParsedQuestion pq : parsedQs) {
+                        if (pq.getPageNumber() == 2) {
+                                assertTrue(pq.isSuspicious(),
+                                                "Question on failed OCR page 2 must be flagged suspicious");
+                        }
+                }
+        }
 }

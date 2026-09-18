@@ -6,7 +6,7 @@ import com.bodhganga.bodhganga.entity.User;
 import com.bodhganga.bodhganga.repo.OrderRepo;
 import com.bodhganga.bodhganga.repo.ProductRepo;
 import com.bodhganga.bodhganga.repo.UserRepo;
-import com.bodhganga.bodhganga.services.GeminiAiService;
+import com.bodhganga.bodhganga.services.GroqAiService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -24,14 +24,14 @@ public class AiController {
 
     private static final Logger log = LoggerFactory.getLogger(AiController.class);
 
-    private final GeminiAiService geminiAiService;
+    private final GroqAiService groqAiService;
     private final OrderRepo orderRepo;
     private final ProductRepo productRepo;
     private final UserRepo userRepo;
 
-    public AiController(GeminiAiService geminiAiService, OrderRepo orderRepo,
+    public AiController(GroqAiService groqAiService, OrderRepo orderRepo,
                         ProductRepo productRepo, UserRepo userRepo) {
-        this.geminiAiService = geminiAiService;
+        this.groqAiService = groqAiService;
         this.orderRepo = orderRepo;
         this.productRepo = productRepo;
         this.userRepo = userRepo;
@@ -49,7 +49,7 @@ public class AiController {
             List<Map<String, Object>> history =
                 (List<Map<String, Object>>) body.getOrDefault("history", List.of());
 
-            String reply = geminiAiService.generalChat(history, message);
+            String reply = groqAiService.generalChat(history, message);
             return ResponseEntity.ok(Map.of("success", true, "reply", reply));
 
         } catch (Exception e) {
@@ -89,7 +89,7 @@ public class AiController {
             }
 
             List<String> purchasedDistricts = getPurchasedDistricts(userId);
-            String reply = geminiAiService.studyChat(userName, purchasedDistricts, history, message);
+            String reply = groqAiService.studyChat(userName, purchasedDistricts, history, message);
             return ResponseEntity.ok(Map.of("success", true, "reply", reply));
 
         } catch (Exception e) {

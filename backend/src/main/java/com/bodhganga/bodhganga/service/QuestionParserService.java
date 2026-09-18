@@ -202,11 +202,15 @@ public class QuestionParserService {
             TextNormalizationFilter documentFilter) {
         List<ParsedQuestion> result = new ArrayList<>();
 
+        java.util.Set<Integer> failedOrEmptyPages = new java.util.HashSet<>();
         StringBuilder combinedText = new StringBuilder();
         for (int i = 0; i < pagesText.size(); i++) {
             String page = pagesText.get(i);
-            if (page != null && !page.isBlank()) {
-                combinedText.append("\n===PAGE:").append(i + 1).append("===\n");
+            int pageNum = i + 1;
+            if (page == null || page.isBlank()) {
+                failedOrEmptyPages.add(pageNum);
+            } else {
+                combinedText.append("\n===PAGE:").append(pageNum).append("===\n");
                 combinedText.append(page).append("\n");
             }
         }
@@ -280,6 +284,13 @@ public class QuestionParserService {
                 if (currentQNum > 0 && currentBlock.length() > 0) {
                     ParsedQuestion parsed = parseSingleBlock(currentQNum, currentBlock.toString(), currentTopic,
                             currentLevel, currentQPageNum);
+                    if (failedOrEmptyPages.contains(currentQPageNum)) {
+                        parsed.setSuspicious(true);
+                        String prevWarn = parsed.getWarningReason();
+                        parsed.setWarningReason(prevWarn != null
+                                ? prevWarn + "; Question on failed OCR page " + currentQPageNum
+                                : "Question on failed OCR page " + currentQPageNum);
+                    }
                     result.add(parsed);
                     currentBlock.setLength(0);
                 }
@@ -299,6 +310,13 @@ public class QuestionParserService {
         if (currentQNum > 0 && currentBlock.length() > 0) {
             ParsedQuestion parsed = parseSingleBlock(currentQNum, currentBlock.toString(), currentTopic,
                     currentLevel, currentQPageNum);
+            if (failedOrEmptyPages.contains(currentQPageNum)) {
+                parsed.setSuspicious(true);
+                String prevWarn = parsed.getWarningReason();
+                parsed.setWarningReason(prevWarn != null
+                        ? prevWarn + "; Question on failed OCR page " + currentQPageNum
+                        : "Question on failed OCR page " + currentQPageNum);
+            }
             result.add(parsed);
         }
 
@@ -313,17 +331,20 @@ public class QuestionParserService {
     public ParsedQuestion parseSingleBlock(int qNum, String blockText, String topic, String level, int pageNum) {
         String cleanBlock = blockText.trim();
 
-        List<String> options = new ArrayList<>();
-        String questionText = cleanBlock;
+        // Split inline option markers (e.g. "(a) Opt1 (b) Opt2") onto separate lines
+        String expandedBlock = cleanBlock.replaceAll("(?i)(?<=\\S)\\s+((?:\\()?[A-Da-d1-4][\\)\\.\\:]\\s*)", "\n$1");
 
-        String[] lines = cleanBlock.split("\\r?\\n");
+        List<String> options = new ArrayList<>();
+        String questionText = expandedBlock;
+
+        String[] lines = expandedBlock.split("\\r?\\n");
         StringBuilder qBuilder = new StringBuilder();
         String currentOptionLabel = null;
         StringBuilder currentOptionText = new StringBuilder();
 
         for (String line : lines) {
             String trimmed = line.trim();
-            Matcher optMatcher = Pattern.compile("^(?:\\()?([A-Da-d])[\\)\\.\\:]\\s*(.*)$", Pattern.CASE_INSENSITIVE)
+            Matcher optMatcher = Pattern.compile("^(?:\\()?([A-Ea-e1-4©€])[\\)\\.\\:\\,]\\s*(.*)$", Pattern.CASE_INSENSITIVE)
                     .matcher(trimmed);
             if (optMatcher.find()) {
                 if (currentOptionLabel != null) {
@@ -336,7 +357,13 @@ public class QuestionParserService {
                 } else {
                     questionText = qBuilder.toString().trim();
                 }
-                currentOptionLabel = optMatcher.group(1).toUpperCase();
+                String rawLabel = optMatcher.group(1).toUpperCase(java.util.Locale.ROOT);
+                if ("1".equals(rawLabel)) rawLabel = "A";
+                else if ("2".equals(rawLabel)) rawLabel = "B";
+                else if ("3".equals(rawLabel) || "E".equals(rawLabel) || "©".equals(rawLabel) || "€".equals(rawLabel)) rawLabel = "C";
+                else if ("4".equals(rawLabel)) rawLabel = "D";
+
+                currentOptionLabel = rawLabel;
                 currentOptionText.append(optMatcher.group(2));
             } else {
                 if (currentOptionLabel != null) {
