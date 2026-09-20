@@ -10,7 +10,7 @@ const interns = [
   },
   {
     id: 2,
-    name: "Aditya Shukhla",
+    name: "Aditya Shukla",
     post: "Machine Learning Intern",
     photo: "/interns/Aditya.jpeg",
   },

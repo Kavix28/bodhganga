@@ -11,7 +11,7 @@ const navLinks = [
     { path: '/test-series', label: 'Test Your Knowledge', icon: Award, public: true },
 
     // Interns
-    { path: '/interns', label: 'Interns', icon: Award, public: true },
+    
 ];
 
 const aboutLinks = [
