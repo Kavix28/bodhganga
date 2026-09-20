@@ -1,14 +1,99 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { statesAndUtTestData } from '../data/testSeriesData';
-import { Search, MapPin, CheckCircle, Clock, ChevronRight, BookOpen, Sparkles, Layers, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { Search, MapPin, CheckCircle, Clock, ChevronRight, BookOpen, Sparkles, Layers, ShieldCheck, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
+import api from '../services/api';
 
 const StateTestZone = () => {
     const { stateId } = useParams();
     const [searchDistrict, setSearchDistrict] = useState('');
     const [activeTab, setActiveTab] = useState('DISTRICTS'); // 'DISTRICTS' or 'SUBJECTS'
+    const [availabilityMap, setAvailabilityMap] = useState({});
 
-    const stateData = statesAndUtTestData.find(s => s.id === stateId) || statesAndUtTestData[0];
+    const normalizedStateId = (stateId || '').toLowerCase();
+    const isMaharashtra = normalizedStateId === 'maharashtra' || normalizedStateId === 'mh';
+    const stateData = statesAndUtTestData.find(s => s.id === normalizedStateId) || {
+        id: stateId,
+        name: stateId ? stateId.charAt(0).toUpperCase() + stateId.slice(1) : 'State',
+        type: 'State',
+        totalDistricts: 0,
+        districts: []
+    };
+
+    useEffect(() => {
+        let isMounted = true;
+        const fetchDistrictAvailability = async () => {
+            if (!isMaharashtra || !stateData || !stateData.districts || stateData.districts.length === 0) return;
+
+            // Set loading state for all districts of current state
+            const initialMap = {};
+            stateData.districts.forEach(d => {
+                initialMap[d.id] = { loading: true, available: false, count: 0 };
+            });
+            setAvailabilityMap(initialMap);
+
+            // Fetch availability for each district
+            const results = {};
+            await Promise.all(
+                stateData.districts.map(async (dist) => {
+                    try {
+                        const response = await api.get('/quiz/published-count', {
+                            params: {
+                                stateSlug: stateData.id,
+                                districtSlug: dist.id
+                            }
+                        });
+                        if (response && response.success && response.data) {
+                            results[dist.id] = {
+                                loading: false,
+                                available: Boolean(response.data.available && response.data.count > 0),
+                                count: response.data.count || 0,
+                                error: false
+                            };
+                        } else {
+                            results[dist.id] = { loading: false, available: false, count: 0, error: false };
+                        }
+                    } catch (err) {
+                        const isComingSoon = err?.code === 'QUESTION_BANK_COMING_SOON' || err?.data?.code === 'QUESTION_BANK_COMING_SOON' || err?.status === 403;
+                        if (isComingSoon) {
+                            results[dist.id] = { loading: false, available: false, count: 0, error: false };
+                        } else {
+                            results[dist.id] = { loading: false, available: false, count: 0, error: true, errorMessage: err.message || 'Error checking availability' };
+                        }
+                    }
+                })
+            );
+
+            if (isMounted) {
+                setAvailabilityMap(results);
+            }
+        };
+
+        fetchDistrictAvailability();
+        return () => { isMounted = false; };
+    }, [stateId, isMaharashtra]);
+
+    if (!isMaharashtra) {
+        return (
+            <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center pt-24 px-4">
+                <div className="bg-slate-900 border border-amber-500/30 p-8 rounded-3xl text-center space-y-4 max-w-md shadow-2xl">
+                    <Clock className="w-12 h-12 text-amber-400 mx-auto" />
+                    <h2 className="text-xl font-bold text-white">State Test Zone Coming Soon</h2>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                        Test content for {stateData?.name || stateId} is currently under preparation. Only Maharashtra (Akola district) is currently enabled.
+                    </p>
+                    <div className="pt-2">
+                        <Link
+                            to="/test-series"
+                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-gold to-gold-dark text-slate-950 font-bold text-xs uppercase shadow-md"
+                        >
+                            <ArrowLeft className="w-4 h-4" /> Explore Available Tests
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     const filteredDistricts = (stateData.districts || []).filter(d => 
         d.name.toLowerCase().includes(searchDistrict.toLowerCase())
@@ -56,7 +141,9 @@ const StateTestZone = () => {
                             </div>
                             <div className="flex-1 md:w-48 bg-white/5 border border-gold/20 p-3.5 rounded-2xl">
                                 <div className="text-[10px] uppercase font-bold text-gold">Covered Districts</div>
-                                <div className="text-2xl font-serif font-bold text-gold">{stateData.coveredDistrictsCount} Ready</div>
+                                <div className="text-2xl font-serif font-bold text-gold">
+                                    {Object.values(availabilityMap).filter(a => a.available).length} Ready
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -109,49 +196,69 @@ const StateTestZone = () => {
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                            {filteredDistricts.map((dist) => (
-                                <div
-                                    key={dist.id}
-                                    className={`p-5 rounded-2xl border transition-all duration-300 flex flex-col justify-between space-y-4 ${
-                                        dist.isAvailable
-                                            ? 'bg-slate-900/80 hover:bg-slate-900 border-gold/30 hover:border-gold shadow-md hover:shadow-gold/10 hover:-translate-y-1'
-                                            : 'bg-slate-900/30 border-white/5 opacity-60'
-                                    }`}
-                                >
-                                    <div className="space-y-2">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-[10px] font-extrabold uppercase text-gold tracking-widest">District</span>
-                                            {dist.isAvailable ? (
-                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                                                    <CheckCircle className="w-3 h-3" /> Tests Available
-                                                </span>
-                                            ) : (
-                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                                                    <Clock className="w-3 h-3" /> Coming Soon
-                                                </span>
-                                            )}
-                                        </div>
-                                        <h3 className="text-xl font-serif font-bold text-white">{dist.name}</h3>
-                                        <p className="text-xs text-slate-300 line-clamp-2">
-                                            {dist.description || 'Complete coverage of district history, geography, economy, and administration.'}
-                                        </p>
-                                    </div>
+                            {filteredDistricts.map((dist) => {
+                                const distAvail = availabilityMap[dist.id] || { loading: true, available: false, count: 0, error: false };
+                                const isDistAvailable = distAvail.available && distAvail.count > 0;
+                                const isDistError = distAvail.error;
 
-                                    {dist.isAvailable ? (
-                                        <Link
-                                            to={`/test-series/${stateData.id}/${dist.id}`}
-                                            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-wider hover:opacity-95 transition-all shadow-md"
-                                        >
-                                            <span>Open {dist.name} Test Page</span>
-                                            <ChevronRight className="w-4 h-4" />
-                                        </Link>
-                                    ) : (
-                                        <button disabled className="w-full py-2.5 px-4 rounded-xl bg-white/5 text-slate-500 text-xs font-bold uppercase tracking-wider cursor-not-allowed">
-                                            Coming Soon
-                                        </button>
-                                    )}
-                                </div>
-                            ))}
+                                return (
+                                    <div
+                                        key={dist.id}
+                                        className={`p-5 rounded-2xl border transition-all duration-300 flex flex-col justify-between space-y-4 ${
+                                            isDistAvailable
+                                                ? 'bg-slate-900/80 hover:bg-slate-900 border-gold/30 hover:border-gold shadow-md hover:shadow-gold/10 hover:-translate-y-1'
+                                                : isDistError
+                                                ? 'bg-red-950/20 border-red-500/20'
+                                                : 'bg-slate-900/30 border-white/5 opacity-60'
+                                        }`}
+                                    >
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[10px] font-extrabold uppercase text-gold tracking-widest">District</span>
+                                                {distAvail.loading ? (
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/5 text-slate-400 border border-white/10">
+                                                        <Loader2 className="w-3 h-3 animate-spin" /> Checking...
+                                                    </span>
+                                                ) : isDistAvailable ? (
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                                        <CheckCircle className="w-3 h-3" /> {distAvail.count} MCQs
+                                                    </span>
+                                                ) : isDistError ? (
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-300 border border-red-500/30">
+                                                        <AlertCircle className="w-3 h-3" /> Check Failed
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                                        <Clock className="w-3 h-3" /> Coming Soon
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <h3 className="text-xl font-serif font-bold text-white">{dist.name}</h3>
+                                            <p className="text-xs text-slate-300 line-clamp-2">
+                                                {dist.description || 'Complete coverage of district history, geography, economy, and administration.'}
+                                            </p>
+                                        </div>
+
+                                        {isDistAvailable ? (
+                                            <Link
+                                                to={`/test-series/${stateData.id}/${dist.id}`}
+                                                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-wider hover:opacity-95 transition-all shadow-md"
+                                            >
+                                                <span>Open {dist.name} Test Page</span>
+                                                <ChevronRight className="w-4 h-4" />
+                                            </Link>
+                                        ) : isDistError ? (
+                                            <button disabled className="w-full py-2.5 px-4 rounded-xl bg-red-950/40 text-red-300 text-xs font-bold uppercase tracking-wider cursor-not-allowed border border-red-500/30">
+                                                Unable to check availability
+                                            </button>
+                                        ) : (
+                                            <button disabled className="w-full py-2.5 px-4 rounded-xl bg-white/5 text-slate-500 text-xs font-bold uppercase tracking-wider cursor-not-allowed">
+                                                {distAvail.loading ? 'Checking Status...' : 'Coming Soon'}
+                                            </button>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 )}

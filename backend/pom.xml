@@ -129,7 +129,6 @@
             <artifactId>google-auth-library-oauth2-http</artifactId>
             <version>1.23.0</version>
         </dependency>
-        
         <!-- Email Integration -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

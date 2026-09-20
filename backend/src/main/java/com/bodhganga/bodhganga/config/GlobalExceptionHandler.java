@@ -58,6 +58,14 @@ public class GlobalExceptionHandler {
                 ApiResponseDTO.builder().success(false).message("An unexpected error occurred.").build());
     }
 
+    /** 404 No Resource Found */
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<ApiResponseDTO> handleNoResourceFound(
+            org.springframework.web.servlet.resource.NoResourceFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                ApiResponseDTO.builder().success(false).message("Endpoint or resource not found.").build());
+    }
+
     /** Catch-all */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponseDTO> handleGeneral(Exception ex) {

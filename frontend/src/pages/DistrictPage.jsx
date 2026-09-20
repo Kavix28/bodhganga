@@ -3,6 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import toast from "react-hot-toast";
 
+import { getAuthToken } from "../utils/storage";
+
 export default function DistrictPage() {
   const { stateSlug } = useParams();
   const navigate = useNavigate();
@@ -38,7 +40,8 @@ export default function DistrictPage() {
 
         try {
           const pRes = await api.get("/payment/district/purchased");
-          setPurchasedSlugs(pRes?.data || []);
+          const list = pRes?.data || [];
+          setPurchasedSlugs(list.map(s => String(s).toLowerCase().trim()));
         } catch {
           // not logged in, ignore
         }
@@ -52,7 +55,7 @@ export default function DistrictPage() {
   }, [stateSlug]);
 
   const handleUnlock = async (district) => {
-    const token = localStorage.getItem("authToken") || localStorage.getItem("token");
+    const token = getAuthToken();
     if (!token) {
       toast.error("Please log in to unlock this district");
       navigate("/login");
@@ -85,7 +88,8 @@ export default function DistrictPage() {
               stateSlug
             });
             toast.success("District unlocked! Enjoy your resources 🎉");
-            setPurchasedSlugs(prev => [...prev, district.districtSlug]);
+            const normSlug = String(district.districtSlug).toLowerCase().trim();
+            setPurchasedSlugs(prev => [...prev, normSlug]);
           } catch {
             toast.error("Payment verification failed. Contact support.");
           }
@@ -105,7 +109,8 @@ export default function DistrictPage() {
 
   const isUnlocked = (district) => {
     const allFree = district.resources.every(r => r.isFree === true);
-    return allFree || purchasedSlugs.includes(district.districtSlug);
+    const normSlug = String(district.districtSlug).toLowerCase().trim();
+    return allFree || purchasedSlugs.includes(normSlug);
   };
 
   if (loading) return (

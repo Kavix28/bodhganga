@@ -12,10 +12,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.Optional;
 import java.util.List;
 
@@ -26,18 +24,18 @@ public class PdfController {
     private final S3Service s3Service;
     private final ProductRepo productRepo;
     private final com.bodhganga.bodhganga.repo.PurchaseRepo purchaseRepo;
-    private final com.bodhganga.bodhganga.repo.UserRepo userRepo;
+    private final com.bodhganga.bodhganga.util.AuthUserResolver authUserResolver;
 
     // 20MB limit
     private static final long MAX_FILE_SIZE = 20 * 1024 * 1024;
 
-    public PdfController(S3Service s3Service, ProductRepo productRepo, 
-                         com.bodhganga.bodhganga.repo.PurchaseRepo purchaseRepo, 
-                         com.bodhganga.bodhganga.repo.UserRepo userRepo) {
+    public PdfController(S3Service s3Service, ProductRepo productRepo,
+            com.bodhganga.bodhganga.repo.PurchaseRepo purchaseRepo,
+            com.bodhganga.bodhganga.util.AuthUserResolver authUserResolver) {
         this.s3Service = s3Service;
         this.productRepo = productRepo;
         this.purchaseRepo = purchaseRepo;
-        this.userRepo = userRepo;
+        this.authUserResolver = authUserResolver;
     }
 
     /**
@@ -101,7 +99,7 @@ public class PdfController {
             @PathVariable String key,
             @RequestParam(value = "redirect", defaultValue = "false") boolean redirect,
             org.springframework.security.core.Authentication authentication) {
-        
+
         if (key == null || key.isBlank()) {
             return ResponseEntity.badRequest().body(ApiResponseDTO.builder()
                     .success(false).message("Key is required.").build());
@@ -113,327 +111,138 @@ public class PdfController {
         }
 
         try {
-            boolean isAuthenticated = authentication != null 
-                    && authentication.isAuthenticated() 
+            boolean isAuthenticated = authentication != null && authentication.isAuthenticated()
                     && !"anonymousUser".equals(authentication.getName());
 
             boolean isAdmin = isAuthenticated && authentication.getAuthorities().contains(
                     new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN"));
 
-            Product matchedProduct = null;
             if (!isAdmin) {
-                // Tier 1: Exact s3Key lookup
+                // Try to find the product matching this key in DB
                 Optional<Product> prodOpt = productRepo.findByS3Key(key);
                 if (prodOpt.isEmpty()) {
-                    // Tier 2: Exact storageKey lookup
                     prodOpt = productRepo.findByStorageKey(key);
                 }
                 if (prodOpt.isEmpty()) {
-                    // Tier 3: Whitespace-insensitive regex lookup
-                    String regexPattern = buildWhitespaceInsensitiveRegex(key);
-                    List<Product> matches = productRepo.findByS3KeyOrStorageKeyRegex(regexPattern);
+                    // Search dynamically matching suffix/substring
+                    final String finalKey = key;
+                    List<Product> matches = productRepo.findAll().stream()
+                            .filter(p -> (p.getS3Key() != null && p.getS3Key().contains(finalKey)) ||
+                                    (p.getStorageKey() != null && p.getStorageKey().contains(finalKey)))
+                            .collect(java.util.stream.Collectors.toList());
                     if (!matches.isEmpty()) {
-                        List<Product> validMatches = matches.stream()
-                                .filter(p -> p.isPublished() && !p.isArchived())
-                                .collect(java.util.stream.Collectors.toList());
-                        if (validMatches.size() == 1) {
-                            matchedProduct = validMatches.get(0);
-                        } else if (!validMatches.isEmpty()) {
-                            validMatches.sort((a, b) -> {
-                                java.util.Date d1 = a.getCreatedAt() != null ? a.getCreatedAt() : new java.util.Date(0);
-                                java.util.Date d2 = b.getCreatedAt() != null ? b.getCreatedAt() : new java.util.Date(0);
-                                return d2.compareTo(d1);
-                            });
-                            matchedProduct = validMatches.get(0);
-                            log.warn("Multiple catalog products matched key regex '{}'. Resolved to latest product ID {}", key, matchedProduct.getId());
-                        } else {
-                            matchedProduct = matches.get(0);
-                        }
+                        prodOpt = Optional.of(matches.get(0));
                     }
-                } else {
-                    matchedProduct = prodOpt.get();
                 }
 
-                final Product product = matchedProduct;
-                if (product != null) {
-                    boolean isFreeResource = product.isFree() || (product.getPrice() != null && product.getPrice() == 0.0);
-                    
-                    if (!isFreeResource) {
-                        // Paid resource requires authentication
+                if (prodOpt.isPresent()) {
+                    Product product = prodOpt.get();
+                    boolean isFree = product.isFree()
+                            || (product.getPrice() != null && product.getPrice() == 0.0);
+
+                    if (!isFree) {
+                        // PAID resource: MUST require authentication
                         if (!isAuthenticated) {
                             return ResponseEntity.status(401).body(ApiResponseDTO.builder()
-                                    .success(false).message("Authentication required to access paid document.").build());
+                                    .success(false).message("Authentication required.").build());
                         }
 
-                        com.bodhganga.bodhganga.entity.User user = userRepo.findByEmailIgnoreCase(authentication.getName().trim())
-                                .or(() -> userRepo.findByPhoneNo(authentication.getName().trim()))
+                        com.bodhganga.bodhganga.entity.User user = authUserResolver.resolveUser(authentication)
                                 .orElse(null);
 
+                        if (user == null) {
+                            return ResponseEntity.status(401).body(ApiResponseDTO.builder()
+                                    .success(false).message("User not found.").build());
+                        }
+
                         boolean isAccessible = false;
-                        if (user != null) {
-                            // Check if user purchased the specific product/course
-                            Optional<Purchase> purchaseOpt = purchaseRepo.findByUserIdAndProductId(user.getId(), product.getId());
-                            if (purchaseOpt.isPresent()) {
+
+                        // Check if user purchased the specific product/course
+                        Optional<Purchase> purchaseOpt = purchaseRepo.findByUserIdAndProductId(user.getId(),
+                                product.getId());
+                        if (purchaseOpt.isPresent()) {
+                            isAccessible = true;
+                        }
+
+                        if (!isAccessible && product.getDistrictSlug() != null
+                                && !product.getDistrictSlug().isBlank()) {
+                            // Check if user purchased the district in the matching state
+                            List<Purchase> userPurchases = purchaseRepo.findByUserId(user.getId());
+                            boolean districtPurchased = userPurchases.stream()
+                                    .anyMatch(p -> isDistrictPurchasedForProduct(product, p));
+                            if (districtPurchased) {
                                 isAccessible = true;
-                            }
-                            
-                            if (!isAccessible && product.getDistrictSlug() != null && !product.getDistrictSlug().isBlank()) {
-                                // Check if user purchased the district
-                                List<Purchase> userPurchases = purchaseRepo.findByUserId(user.getId());
-                                isAccessible = userPurchases.stream()
-                                        .anyMatch(p -> product.getDistrictSlug().equals(p.getDistrictSlug()));
                             }
                         }
 
                         if (!isAccessible) {
                             return ResponseEntity.status(403).body(ApiResponseDTO.builder()
-                                    .success(false).message("You do not own this document. Please claim or purchase it.").build());
+                                    .success(false)
+                                    .message("You do not own this document. Please claim or purchase it.")
+                                    .build());
                         }
                     }
                 } else {
+                    // Document not found in catalog. If unauthenticated, return 401; otherwise 403
+                    if (!isAuthenticated) {
+                        return ResponseEntity.status(401).body(ApiResponseDTO.builder()
+                                .success(false).message("Authentication required.").build());
+                    }
                     return ResponseEntity.status(403).body(ApiResponseDTO.builder()
                             .success(false).message("Document not found in catalog or unauthorized.").build());
                 }
             }
 
-            // Determine authoritative S3 key from matched product, fallback to incoming key
-            String s3KeyToUse = (matchedProduct != null && matchedProduct.getS3Key() != null && !matchedProduct.getS3Key().isBlank())
-                    ? matchedProduct.getS3Key()
-                    : ((matchedProduct != null && matchedProduct.getStorageKey() != null && !matchedProduct.getStorageKey().isBlank())
-                            ? matchedProduct.getStorageKey()
-                            : key);
-
-            if (!s3Service.doesObjectExist(s3KeyToUse)) {
-                return ResponseEntity.status(404).body(ApiResponseDTO.builder()
-                        .success(false).message("Missing S3 object: The requested document file is not available in storage.").build());
-            }
-
-            String signedUrl = s3Service.generatePresignedUrl(s3KeyToUse);
+            String signedUrl = s3Service.generatePresignedUrl(key);
 
             if (redirect) {
                 return ResponseEntity.status(302)
                         .header("Location", signedUrl)
-                        .header("Cache-Control", "no-cache, no-store, must-revalidate")
-                        .header("X-Content-Type-Options", "nosniff")
                         .build();
             }
 
             Map<String, String> response = new HashMap<>();
             response.put("url", signedUrl);
-            return ResponseEntity.ok()
-                    .header("Cache-Control", "no-cache, no-store, must-revalidate")
-                    .header("X-Content-Type-Options", "nosniff")
-                    .body(response);
+            return ResponseEntity.ok(response);
 
-        } catch (software.amazon.awssdk.services.s3.model.NoSuchKeyException e) {
-            log.error("S3 object key not found: {}: {}", key, e.getMessage());
-            return ResponseEntity.status(404).body(ApiResponseDTO.builder()
-                    .success(false).message("Missing S3 object: The requested document file is not available in storage.").build());
-        } catch (software.amazon.awssdk.core.exception.SdkClientException e) {
-            log.error("AWS S3 Presigned URL client error for key {}: {}", key, e.getMessage());
-            return ResponseEntity.status(500).body(ApiResponseDTO.builder()
-                    .success(false).message("Presigned URL generation failure: " + e.getMessage()).build());
         } catch (Exception e) {
             log.error("Failed to generate presigned URL for key {}: {}", key, e.getMessage());
-            return ResponseEntity.status(500).body(ApiResponseDTO.builder()
-                    .success(false).message("Presigned URL generation failure: " + e.getMessage()).build());
+            return ResponseEntity.status(404).body(ApiResponseDTO.builder()
+                    .success(false).message("PDF file not found or failed to generate access link.").build());
         }
+    }
+
+    private String normalizeSlug(String raw) {
+        if (raw == null || raw.isBlank())
+            return "";
+        return raw.trim().toLowerCase(java.util.Locale.ROOT);
     }
 
     /**
-     * POST /api/admin/import-pdf-from-drive
-     * Automatically downloads a PDF from Google Drive and uploads it to S3.
-     * Accessible by admins.
+     * Verifies that user's purchase matches BOTH districtSlug and stateSlug of
+     * product.
+     * Fails closed if product has stateSlug but purchase lacks stateSlug or
+     * stateSlug differs.
      */
-    @PostMapping("/api/admin/import-pdf-from-drive")
-    public ResponseEntity<?> importPdfFromDrive(@RequestBody ImportDriveRequest req) {
-        if (req == null || req.googleDriveUrl() == null || req.googleDriveUrl().isBlank()) {
-            return ResponseEntity.badRequest().body(ApiResponseDTO.builder()
-                    .success(false).message("googleDriveUrl is required.").build());
+    private boolean isDistrictPurchasedForProduct(Product product, Purchase purchase) {
+        if (product == null || purchase == null)
+            return false;
+        String pDist = normalizeSlug(product.getDistrictSlug());
+        String purDist = normalizeSlug(purchase.getDistrictSlug());
+        if (pDist.isEmpty() || purDist.isEmpty())
+            return false;
+        if (!pDist.equals(purDist))
+            return false;
+
+        String pState = normalizeSlug(product.getStateSlug());
+        String purState = normalizeSlug(purchase.getStateSlug());
+
+        // If product is associated with a state, purchase MUST match that state.
+        if (!pState.isEmpty()) {
+            if (purState.isEmpty())
+                return false; // Fail closed if purchase state is missing
+            return pState.equals(purState);
         }
-        if (req.title() == null || req.title().isBlank()) {
-            return ResponseEntity.badRequest().body(ApiResponseDTO.builder()
-                    .success(false).message("PDF Title is required.").build());
-        }
-        if (req.category() == null || req.category().isBlank()) {
-            return ResponseEntity.badRequest().body(ApiResponseDTO.builder()
-                    .success(false).message("Category is required.").build());
-        }
-
-        String driveUrl = req.googleDriveUrl().trim();
-        String fileId = extractFileId(driveUrl);
-        if (fileId == null) {
-            return ResponseEntity.badRequest().body(ApiResponseDTO.builder()
-                    .success(false).message("Invalid Google Drive URL. Supported format: https://drive.google.com/file/d/{id}/view").build());
-        }
-
-        String downloadUrl = "https://drive.google.com/uc?export=download&id=" + fileId;
-
-        try {
-            org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
-            
-            // Set User-Agent to mimic browser download
-            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
-            headers.set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
-            org.springframework.http.HttpEntity<Void> entity = new org.springframework.http.HttpEntity<>(headers);
-
-            ResponseEntity<byte[]> response = restTemplate.exchange(downloadUrl, org.springframework.http.HttpMethod.GET, entity, byte[].class);
-
-            if (response.getStatusCode().value() != 200 || response.getBody() == null) {
-                return ResponseEntity.status(400).body(ApiResponseDTO.builder()
-                        .success(false).message("Failed to download file from Google Drive. Verify file sharing permissions.").build());
-            }
-
-            // Validate content type
-            String contentType = response.getHeaders().getFirst("Content-Type");
-            if (contentType == null || !contentType.equalsIgnoreCase("application/pdf")) {
-                log.warn("Invalid file type from Drive download: {}", contentType);
-                return ResponseEntity.badRequest().body(ApiResponseDTO.builder()
-                        .success(false).message("Downloaded file is not a valid PDF. Content-Type: " + contentType).build());
-            }
-
-            byte[] pdfBytes = response.getBody();
-            // Validate size (max 20MB)
-            if (pdfBytes.length > MAX_FILE_SIZE) {
-                return ResponseEntity.badRequest().body(ApiResponseDTO.builder()
-                        .success(false).message("Downloaded PDF file exceeds the 20MB limit.").build());
-            }
-
-            // Try to resolve filename from Content-Disposition header
-            String contentDisposition = response.getHeaders().getFirst("Content-Disposition");
-            String filename = "drive_" + fileId + ".pdf";
-            if (contentDisposition != null) {
-                int fnIndex = contentDisposition.indexOf("filename=");
-                if (fnIndex != -1) {
-                    String sub = contentDisposition.substring(fnIndex + 9);
-                    if (sub.startsWith("\"")) {
-                        filename = sub.substring(1, sub.indexOf("\"", 1));
-                    } else {
-                        int spaceIndex = sub.indexOf(" ");
-                        filename = spaceIndex != -1 ? sub.substring(0, spaceIndex) : sub;
-                    }
-                }
-            }
-
-            String key = s3Service.uploadPdf(pdfBytes, filename);
-            String url = s3Service.generatePresignedUrl(key);
-
-            log.info("Successfully uploaded PDF to S3: key={}, size={} bytes", key, pdfBytes.length);
-
-            // Create Product document in MongoDB
-            Product product = new Product();
-            product.setId(UUID.randomUUID().toString());
-            product.setTitle(req.title().trim());
-            product.setDescription(req.description() != null ? req.description().trim() : "");
-            product.setType("PDF");
-            
-            boolean isFree = (req.isPaid() == null || !req.isPaid());
-            product.setFree(isFree);
-            product.setPrice(isFree ? 0.0 : 99.0);
-            
-            product.setPreviewUrl(url); // Store preview URL or signed URL
-            product.setStorageKey(key); // Store S3 Object Key
-            product.setPublished(true);
-            product.setCreatedAt(new Date());
-
-            // Set new fields
-            product.setCategory(req.category().trim());
-            product.setCourseId(req.courseId() != null ? req.courseId().trim() : "");
-            product.setFileName(filename);
-            product.setFileSize((long) pdfBytes.length);
-            product.setS3Key(key);
-            product.setDriveUrl(driveUrl);
-            product.setImportedFromDrive(true);
-
-            // Map category to state and slugs for marketplace filters
-            String categoryClean = req.category().trim();
-            product.setState(categoryClean);
-            product.setStateSlug(Product.generateSlug(categoryClean));
-            product.setDistrict("general");
-            product.setDistrictSlug("general");
-
-            Product savedProduct = productRepo.save(product);
-            log.info("Successfully imported PDF from Google Drive and saved Product: key={}, id={}", key, savedProduct.getId());
-
-            Map<String, Object> responseData = new HashMap<>();
-            responseData.put("success", true);
-            responseData.put("message", "PDF imported successfully");
-            responseData.put("productId", savedProduct.getId());
-            responseData.put("s3Key", key);
-            responseData.put("fileName", filename);
-            responseData.put("fileSize", pdfBytes.length);
-            return ResponseEntity.ok(responseData);
-
-        } catch (Exception e) {
-            log.error("Google Drive PDF import failed: {}", e.getMessage(), e);
-            return ResponseEntity.status(500).body(ApiResponseDTO.builder()
-                    .success(false).message("Google Drive import failed: " + e.getMessage()).build());
-        }
+        return true;
     }
-
-    private String buildWhitespaceInsensitiveRegex(String inputKey) {
-        if (inputKey == null || inputKey.isBlank()) {
-            return "^$";
-        }
-        String norm = inputKey.trim().replaceAll("\\s+", " ");
-        StringBuilder sb = new StringBuilder("^");
-        for (char c : norm.toCharArray()) {
-            if ("\\.^$*+?()[]{}|".indexOf(c) != -1) {
-                sb.append('\\').append(c);
-            } else if (c == ' ') {
-                sb.append("\\s+");
-            } else {
-                sb.append(c);
-            }
-        }
-        sb.append("$");
-        return sb.toString();
-    }
-
-    private String extractFileId(String url) {
-        try {
-            int dIndex = url.indexOf("/d/");
-            if (dIndex == -1) return null;
-            String remaining = url.substring(dIndex + 3);
-            int slashIndex = remaining.indexOf("/");
-            if (slashIndex == -1) {
-                int questionIndex = remaining.indexOf("?");
-                return questionIndex != -1 ? remaining.substring(0, questionIndex) : remaining;
-            }
-            return remaining.substring(0, slashIndex);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    @org.springframework.web.bind.annotation.GetMapping("/admin/s3-cors")
-    public ResponseEntity<?> getS3CorsStatus() {
-        var rules = s3Service.getBucketCors();
-        return ResponseEntity.ok(ApiResponseDTO.builder()
-                .success(true)
-                .message("Current S3 Bucket CORS rules for " + s3Service.getBucketName())
-                .data(rules)
-                .build());
-    }
-
-    @org.springframework.web.bind.annotation.PostMapping("/admin/s3-cors")
-    public ResponseEntity<?> configureS3Cors() {
-        List<String> origins = List.of("https://bodhganga.in", "https://www.bodhganga.in");
-        s3Service.configureBucketCors(origins);
-        return ResponseEntity.ok(ApiResponseDTO.builder()
-                .success(true)
-                .message("S3 Bucket CORS rules updated for origins: " + origins)
-                .data(s3Service.getBucketCors())
-                .build());
-    }
-
-    public record ImportDriveRequest(
-        String title,
-        String description,
-        String googleDriveUrl,
-        String courseId,
-        String category,
-        Boolean isPaid,
-        Double price
-    ) {}
 }

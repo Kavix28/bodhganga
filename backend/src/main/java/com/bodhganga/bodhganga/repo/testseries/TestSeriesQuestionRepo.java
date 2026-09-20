@@ -9,7 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface QuestionRepo extends MongoRepository<Question, String> {
+public interface TestSeriesQuestionRepo extends MongoRepository<Question, String> {
 
     List<Question> findByIdInAndIsDeletedFalse(List<String> ids);
 
@@ -25,3 +25,4 @@ public interface QuestionRepo extends MongoRepository<Question, String> {
 
     long countByIsDeletedFalse();
 }
+

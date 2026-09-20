@@ -1,0 +1,2639 @@
+{
+  "district": "Chamba",
+  "state": "Himachal Pradesh",
+  "resource": "Sample MCQs Question bank Chamba District",
+  "levels": {
+    "easy": [
+      {
+        "id": 1,
+        "question": "Chamba district is located in which state?",
+        "options": {
+          "a": "Uttarakhand",
+          "b": "Jammu & Kashmir",
+          "c": "Himachal Pradesh",
+          "d": "Punjab"
+        },
+        "correctAnswer": "c",
+        "difficulty": "easy",
+        "explanation": "Chamba is an alpine frontier district situated in the extreme north-western corner of Himachal Pradesh."
+      },
+      {
+        "id": 2,
+        "question": "Which ruler founded the Chamba Dynasty?",
+        "options": {
+          "a": "Sahil Varman",
+          "b": "Raja Maru",
+          "c": "Meru Varman",
+          "d": "Bhuri Singh"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "The ancient ruling house of Chamba was established by Raja Maru (c. 550 AD), a Suryavanshi monarch who migrated to the hills from Ayodhya."
+      },
+      {
+        "id": 3,
+        "question": "What was the ancient capital established by Raja Maru?",
+        "options": {
+          "a": "Chamba",
+          "b": "Dalhousie",
+          "c": "Bharmour",
+          "d": "Kangra"
+        },
+        "correctAnswer": "c",
+        "difficulty": "easy",
+        "explanation": "Raja Maru originally named his alpine mountain capital Brahmpura, which over centuries evolved into modern-day Bharmour."
+      },
+      {
+        "id": 4,
+        "question": "Chamba town was named after:",
+        "options": {
+          "a": "Champavati",
+          "b": "Sunayana Devi",
+          "c": "Lakshmi Devi",
+          "d": "Chitralekha"
+        },
+        "correctAnswer": "a",
+        "difficulty": "easy",
+        "explanation": "The historical town of Chamba was named in honor of Princess Champavati, the revered daughter of Raja Sahil Varman."
+      },
+      {
+        "id": 5,
+        "question": "Which ruler shifted the capital from Bharmour to Chamba?",
+        "options": {
+          "a": "Raja Maru",
+          "b": "Meru Varman",
+          "c": "Sahil Varman",
+          "d": "Chatter Singh"
+        },
+        "correctAnswer": "c",
+        "difficulty": "easy",
+        "explanation": "Raja Sahil Varman carried out the strategic shift of the capital from Bharmour to Chamba town in the early 10th century."
+      },
+      {
+        "id": 6,
+        "question": "The administrative divisions called Mandlas, later Wizarats, were introduced by:",
+        "options": {
+          "a": "Raja Maru",
+          "b": "Aditya Varman",
+          "c": "Sahil Varman",
+          "d": "Raja Sham Singh"
+        },
+        "correctAnswer": "c",
+        "difficulty": "easy",
+        "explanation": "To consolidate his territory, Raja Sahil Varman restructured governance by dividing the kingdom into administrative units called Mandlas, later transformed into Wizarats."
+      },
+      {
+        "id": 7,
+        "question": "Which ruler was the first to officially adopt the suffix “Varman”?",
+        "options": {
+          "a": "Raja Maru",
+          "b": "Aditya Varman",
+          "c": "Meru Varman",
+          "d": "Musan Varman"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "Raja Aditya Varman (c. 620 AD) was the earliest documented ruler of this line to officially adopt the title suffix “Varman”."
+      },
+      {
+        "id": 8,
+        "question": "Raja Chatter Singh is remembered for:",
+        "options": {
+          "a": "Founding Chamba town",
+          "b": "Opposing Aurangzeb’s anti-temple policy",
+          "c": "Establishing Chamba Dynasty",
+          "d": "Building Bhuri Singh Museum"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "In 1678 AD, Raja Chatter Singh revolted against Mughal Emperor Aurangzeb's orders to destroy Hindu shrines, instead placing gilded pinnacles (kalashas) atop Chamba's temples."
+      },
+      {
+        "id": 9,
+        "question": "During whose reign was the Rihalu region annexed by the Mughals?",
+        "options": {
+          "a": "Babur",
+          "b": "Humayun",
+          "c": "Akbar",
+          "d": "Aurangzeb"
+        },
+        "correctAnswer": "c",
+        "difficulty": "easy",
+        "explanation": "The fertile Rihalu tract, long a source of conflict, was seized and brought under central Mughal administration during Emperor Akbar's reign."
+      },
+      {
+        "id": 10,
+        "question": "Chamba became a British Protectorate in:",
+        "options": {
+          "a": "1815",
+          "b": "1835",
+          "c": "1847",
+          "d": "1857"
+        },
+        "correctAnswer": "c",
+        "difficulty": "easy",
+        "explanation": "Following the First Anglo-Sikh War and treaty protocols, Chamba entered protectorate status under British paramountcy in 1847."
+      },
+      {
+        "id": 11,
+        "question": "Who played a key role in preventing Chamba’s merger with Jammu & Kashmir?",
+        "options": {
+          "a": "Wazir Nathu",
+          "b": "Wazir Bhaga",
+          "c": "Raja Bhuri Singh",
+          "d": "Raja Ram Singh"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "Wazir Bhaga served as a diplomat during 1846–1847, negotiating with the British to protect Chamba from annexation into the newly formed princely state of Jammu & Kashmir."
+      },
+      {
+        "id": 12,
+        "question": "Which ruler signed the Instrument of Accession after Independence?",
+        "options": {
+          "a": "Raja Bhuri Singh",
+          "b": "Raja Ram Singh",
+          "c": "Raja Laxman Singh",
+          "d": "Raja Sham Singh"
+        },
+        "correctAnswer": "c",
+        "difficulty": "easy",
+        "explanation": "Raja Laxman Singh was the final ruler of the princely state, executing the Instrument of Accession to unify Chamba with the Dominion of India."
+      },
+      {
+        "id": 13,
+        "question": "Chamba merged with Himachal Pradesh on:",
+        "options": {
+          "a": "26 January 1950",
+          "b": "15 August 1947",
+          "c": "15 April 1948",
+          "d": "1 November 1966"
+        },
+        "correctAnswer": "c",
+        "difficulty": "easy",
+        "explanation": "Chamba merged into independent India as one of the four original constituent districts of the newly created Chief Commissioner's Province of Himachal Pradesh on 15 April 1948."
+      },
+      {
+        "id": 14,
+        "question": "Chamba is located in which part of Himachal Pradesh?",
+        "options": {
+          "a": "South-eastern frontier",
+          "b": "North-western frontier",
+          "c": "Central plain region",
+          "d": "Eastern plateau region"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "Chamba is positioned in the high-altitude, extreme north-western frontier zone of Himachal Pradesh."
+      },
+      {
+        "id": 15,
+        "question": "Chamba district shares its boundary with which Union Territory in the north-west?",
+        "options": {
+          "a": "Ladakh",
+          "b": "Chandigarh",
+          "c": "Jammu & Kashmir",
+          "d": "Delhi"
+        },
+        "correctAnswer": "c",
+        "difficulty": "easy",
+        "explanation": "Chamba shares its extensive northern and northwestern borders with the mountain ridges of Jammu & Kashmir."
+      },
+      {
+        "id": 16,
+        "question": "Which district of Himachal Pradesh lies toward the south and south-east of Chamba?",
+        "options": {
+          "a": "Kinnaur",
+          "b": "Kangra",
+          "c": "Solan",
+          "d": "Una"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "Kangra district borders Chamba along its southern and southeastern frontier, separated mainly by the Dhauladhar crest line."
+      },
+      {
+        "id": 17,
+        "question": "Which Punjab districts lie toward the south-west of Chamba district?",
+        "options": {
+          "a": "Amritsar and Tarn Taran",
+          "b": "Ludhiana and Jalandhar",
+          "c": "Pathankot and Gurdaspur",
+          "d": "Patiala and Sangrur"
+        },
+        "correctAnswer": "c",
+        "difficulty": "easy",
+        "explanation": "Towards the southwest, Chamba's foothills link with the plains of Punjab through the border districts of Pathankot and Gurdaspur."
+      },
+      {
+        "id": 18,
+        "question": "Ravi Valley is also known as:",
+        "options": {
+          "a": "Pangi Valley",
+          "b": "Chamba Valley",
+          "c": "Beas Valley",
+          "d": "Chenab Valley"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "The central, densely populated hydrological basin formed by the Ravi River is commonly referred to as Chamba Valley or Ravi Valley."
+      },
+      {
+        "id": 19,
+        "question": "Ravi Valley / Chamba Valley lies between which two mountain ranges?",
+        "options": {
+          "a": "Zanskar and Karakoram",
+          "b": "Pir Panjal and Dhauladhar",
+          "c": "Aravalli and Vindhya",
+          "d": "Shivalik and Satpura"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "The main Chamba Valley is bracketed between the Pir Panjal Range to its north and the Dhauladhar Range to its south."
+      },
+      {
+        "id": 20,
+        "question": "Which valley forms the main cultural and settlement core of Chamba district?",
+        "options": {
+          "a": "Ravi / Chamba Valley",
+          "b": "Pangi Valley",
+          "c": "Beas Valley Zone",
+          "d": "Chenab Valley"
+        },
+        "correctAnswer": "a",
+        "difficulty": "easy",
+        "explanation": "The Ravi / Chamba Valley is the population, economic, and cultural core of the district because its lower, wide alluvial terraces offer a more hospitable climate and better arable land than the rugged northern canyons."
+      },
+      {
+        "id": 21,
+        "question": "Chenab Valley of Chamba is mainly associated with which region?",
+        "options": {
+          "a": "Dalhousie",
+          "b": "Pangi Valley",
+          "c": "Khajjiar",
+          "d": "Sihunta"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "Within the high-altitude topography of Chamba district, the trans-Himalayan catchment of the Chenab Valley is fundamentally associated with the isolated Pangi Valley region."
+      },
+      {
+        "id": 22,
+        "question": "Pangi Valley is mainly drained by which river system?",
+        "options": {
+          "a": "Ravi River system",
+          "b": "Beas River system",
+          "c": "Chenab River system",
+          "d": "Yamuna River system"
+        },
+        "correctAnswer": "c",
+        "difficulty": "easy",
+        "explanation": "The rugged Pangi Valley forms a distinct geological canyon that is directly carved and drained by the high-velocity Chenab River system (historically formed by the Chandra and Bhaga rivers)."
+      },
+      {
+        "id": 23,
+        "question": "Which one of the following lakes of Chamba district is famous for a floating island?",
+        "options": {
+          "a": "Manimahesh Lake",
+          "b": "Khajjiar Lake",
+          "c": "Lama Dal Lake",
+          "d": "Gadasaru Mahadev Lake"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "Located in a glade of deodar trees, Khajjiar Lake is internationally celebrated for its unique environmental feature — a central, weed-based floating island that shifts across the lake surface."
+      },
+      {
+        "id": 24,
+        "question": "Which of the following is correctly matched?",
+        "options": {
+          "a": "Baira Nallah — Tributary of Chenab River",
+          "b": "Tundah Nallah — Tributary of Ravi River",
+          "c": "Saho River — Left-bank tributary of Ravi River",
+          "d": "Siul River — Tributary of Beas River"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "Tundah Nallah is correctly identified as a key right-bank, snow-fed tributary of the Ravi River. Baira and Siul are also part of the Ravi basin, while Saho is a right-bank stream."
+      },
+      {
+        "id": 25,
+        "question": "Which of the following waterfalls is associated with seven mineral springs?",
+        "options": {
+          "a": "Hadsar Waterfall",
+          "b": "Ghugh Chho Waterfall",
+          "c": "Satdhara Falls",
+          "d": "Panchpula Waterfall"
+        },
+        "correctAnswer": "c",
+        "difficulty": "easy",
+        "explanation": "Located in the vicinity of Dalhousie, Satdhara Falls derives its name from seven natural, therapeutically active mineral springs that merge into a single cascade."
+      },
+      {
+        "id": 26,
+        "question": "Panchpula Waterfall is associated with the memorial of which freedom fighter?",
+        "options": {
+          "a": "Bhagat Singh",
+          "b": "Sardar Ajit Singh",
+          "c": "Lala Lajpat Rai",
+          "d": "Udham Singh"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "The Panchpula Waterfall area houses the samadhi monument of the legendary freedom fighter Sardar Ajit Singh (uncle of Shaheed Bhagat Singh), who spent his final days there."
+      },
+      {
+        "id": 27,
+        "question": "Which of the following is the correct sequence from north/north-east to south in Chamba district?",
+        "options": {
+          "a": "Outer Beas Zone → Ravi Valley → Pangi Valley",
+          "b": "Pangi Valley → Ravi Valley → Outer Himalayan / Beas Valley Zone",
+          "c": "Ravi Valley → Pangi Valley → Beas Valley Zone",
+          "d": "Beas Valley Zone → Pangi Valley → Ravi Valley"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "Navigating from the far north down to the southern borders reveals a strict sequence: the trans-Himalayan Pangi Valley, crossing the Pir Panjal into the central Ravi Valley, and descending to the Outer Himalayan foothills that border Kangra."
+      },
+      {
+        "id": 28,
+        "question": "Which of the following best explains the strategic-geographical importance of Chamba district?",
+        "options": {
+          "a": "It is a desert district connecting Rajasthan with Punjab.",
+          "b": "It is a frontier Himalayan district connected with Jammu & Kashmir, Ladakh, Punjab and Kangra.",
+          "c": "It is an island district located in the Arabian Sea.",
+          "d": "It is a plateau district located in central India."
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "Chamba holds major strategic-geographical importance as a frontier Himalayan district sharing borders with the Union Territories of Jammu & Kashmir and Ladakh, alongside Punjab and Kangra."
+      },
+      {
+        "id": 29,
+        "question": "Which of the following statements about Chamera Lake is correct?",
+        "options": {
+          "a": "It is a natural glacial lake near Manimahesh Kailash.",
+          "b": "It is a man-made reservoir near Dalhousie associated with Chamera Dam on Ravi River.",
+          "c": "It is located in the Pangi Valley on the Chenab River.",
+          "d": "It is a saltwater lake near Punjab."
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "Chamera Lake is a vast artificial reservoir formed by the backwaters of NHPC's major run-of-the-river hydroelectric dam on the Ravi River."
+      },
+      {
+        "id": 30,
+        "question": "Outer Himalayan / Beas Valley Zone is located on the southern slopes of which range?",
+        "options": {
+          "a": "Pir Panjal Range",
+          "b": "Dhauladhar Range",
+          "c": "Zanskar Range",
+          "d": "Ladakh Range"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "The lower Outer Himalayan belt (including regions like Sihunta and Bhattiyat) is located along the humid southern slopes of the Dhauladhar Range."
+      },
+      {
+        "id": 31,
+        "question": "Chamba district is drained by how many major river systems?",
+        "options": {
+          "a": "One",
+          "b": "Two",
+          "c": "Three",
+          "d": "Four"
+        },
+        "correctAnswer": "c",
+        "difficulty": "easy",
+        "explanation": "Chamba district is hydrographically divided and carved by exactly two major river systems: the Ravi and the Chenab."
+      },
+      {
+        "id": 32,
+        "question": "Which is the principal river of Chamba district?",
+        "options": {
+          "a": "Beas",
+          "b": "Ravi",
+          "c": "Yamuna",
+          "d": "Sutlej"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "The Ravi River is the principal and most populated river valley traversing the central heartland of the district."
+      },
+      {
+        "id": 33,
+        "question": "The Ravi River was known in ancient Vedic texts as:",
+        "options": {
+          "a": "Vipasha",
+          "b": "Shutudri",
+          "c": "Purushni",
+          "d": "Asikni"
+        },
+        "correctAnswer": "c",
+        "difficulty": "easy",
+        "explanation": "In early Vedic texts, the Ravi River was designated as the Purushni (and later referred to as Iravati in classical Sanskrit literature)."
+      },
+      {
+        "id": 34,
+        "question": "Which range forms the northern boundary of Chamba district?",
+        "options": {
+          "a": "Dhauladhar Range",
+          "b": "Pir Panjal Range",
+          "c": "Aravalli Range",
+          "d": "Shivalik Range"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "The towering, snow-capped Pir Panjal Range acts as a massive physical barrier that forms the northern wall of the main Chamba valley, separating it from Jammu & Kashmir and Pangi."
+      },
+      {
+        "id": 35,
+        "question": "Which range forms the southern boundary of Chamba district?",
+        "options": {
+          "a": "Pir Panjal Range",
+          "b": "Dhauladhar Range",
+          "c": "Zanskar Range",
+          "d": "Karakoram Range"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "The southern boundary of Chamba district is physically demarcated by the Dhauladhar Range, separating it from the plains and lower hills."
+      },
+      {
+        "id": 36,
+        "question": "Which range separates the Ravi Valley from Pangi and Chenab valleys?",
+        "options": {
+          "a": "Dhauladhar Range",
+          "b": "Pir Panjal Range",
+          "c": "Shivalik Range",
+          "d": "Mahabharat Range"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "The structural mountain wall that divides Chamba into two distinct halves — separating the central Ravi Valley from the trans-Himalayan Pangi and Chenab valleys — is the Pir Panjal Range."
+      },
+      {
+        "id": 37,
+        "question": "Which mountain range separates Chamba district from Kangra?",
+        "options": {
+          "a": "Zanskar Range",
+          "b": "Pir Panjal Range",
+          "c": "Dhauladhar Range",
+          "d": "Ladakh Range"
+        },
+        "correctAnswer": "c",
+        "difficulty": "easy",
+        "explanation": "The jagged peaks of the Dhauladhar Range form the natural geographical boundary separating Chamba district from Kangra district."
+      },
+      {
+        "id": 38,
+        "question": "Which range influences the eastern and north-eastern high-altitude regions of Chamba, especially Pangi?",
+        "options": {
+          "a": "Zanskar Range",
+          "b": "Satpura Range",
+          "c": "Vindhya Range",
+          "d": "Aravalli Range"
+        },
+        "correctAnswer": "a",
+        "difficulty": "easy",
+        "explanation": "The extreme northeastern, high-altitude alpine belts of Chamba — particularly the outer margins of the Pangi region — feel the geographical influence of the trans-Himalayan Zanskar Range."
+      },
+      {
+        "id": 39,
+        "question": "Which is considered the most sacred and highest peak of Chamba district?",
+        "options": {
+          "a": "Hanuman Tibba",
+          "b": "Manimahesh Kailash Peak",
+          "c": "Gaurjunda Peak",
+          "d": "Deo Tibba"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "Standing at an elevation of 5,653 meters, the majestic Manimahesh Kailash Peak is revered as the highest and most sacred peak in Chamba district."
+      },
+      {
+        "id": 40,
+        "question": "Manimahesh Kailash Peak is associated with which deity?",
+        "options": {
+          "a": "Lord Vishnu",
+          "b": "Lord Shiva",
+          "c": "Lord Brahma",
+          "d": "Lord Kartikeya"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "The peak of Manimahesh Kailash is culturally and religiously dedicated to Lord Shiva, believed by pilgrims to be his eternal Himalayan abode."
+      },
+      {
+        "id": 41,
+        "question": "Manimahesh Kailash Peak is associated with which annual pilgrimage?",
+        "options": {
+          "a": "Amarnath Yatra",
+          "b": "Kailash Mansarovar Yatra",
+          "c": "Manimahesh Yatra",
+          "d": "Char Dham Yatra"
+        },
+        "correctAnswer": "c",
+        "difficulty": "easy",
+        "explanation": "The prominent proglacial lake situated at the foot of the Manimahesh Kailash peak is the central destination for the annual Manimahesh Yatra, a major state-level pilgrimage that takes place during August and September."
+      },
+      {
+        "id": 42,
+        "question": "Which peak is a prominent snow-clad peak visible from the Bharmour region?",
+        "options": {
+          "a": "Gaurjunda Peak",
+          "b": "Nanda Devi",
+          "c": "Kamet",
+          "d": "Trisul"
+        },
+        "correctAnswer": "a",
+        "difficulty": "easy",
+        "explanation": "Gaurjunda Peak stands as a highly prominent, snow-clad mountain peak visible directly from the ancient valley and settlements of the Bharmour region."
+      },
+      {
+        "id": 43,
+        "question": "Which is the most important and famous pass of Chamba district?",
+        "options": {
+          "a": "Padri Pass",
+          "b": "Sach Pass",
+          "c": "Indrahar Pass",
+          "d": "Chabia Pass"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "Reaching a towering altitude of about 4,414 meters, the Sach Pass is structurally the most famous, rugged, and strategically vital mountain pass located entirely within Chamba district."
+      },
+      {
+        "id": 44,
+        "question": "Sach Pass connects Chamba Valley with which remote valley?",
+        "options": {
+          "a": "Kangra Valley",
+          "b": "Pangi Valley",
+          "c": "Kullu Valley",
+          "d": "Spiti Valley"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "The Sach Pass acts as the primary physical gateway over the Pir Panjal range, connecting the central Chamba/Ravi Valley with the hyper-isolated, trans-Himalayan Pangi Valley."
+      },
+      {
+        "id": 45,
+        "question": "Sach Pass lies across which mountain range?",
+        "options": {
+          "a": "Dhauladhar Range",
+          "b": "Pir Panjal Range",
+          "c": "Zanskar Range",
+          "d": "Shivalik Range"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "The path of the Sach Pass is carved directly across the core axis of the rugged Pir Panjal Range (frequently referred to as the Pangi Range within the district)."
+      },
+      {
+        "id": 46,
+        "question": "Drati Pass connects which broad regions?",
+        "options": {
+          "a": "Chamba and Pangi",
+          "b": "Chamba and Kangra",
+          "c": "Chamba and Punjab",
+          "d": "Chamba and Shimla"
+        },
+        "correctAnswer": "a",
+        "difficulty": "easy",
+        "explanation": "Alongside the Sach Pass, the high-altitude Drati Pass serves as another traditional, historic mountain crossing that links the Chamba heartland to the remote Pangi region."
+      },
+      {
+        "id": 47,
+        "question": "Indrahar Pass is located in which range?",
+        "options": {
+          "a": "Pir Panjal Range",
+          "b": "Dhauladhar Range",
+          "c": "Zanskar Range",
+          "d": "Ladakh Range"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "The Indrahar Pass is a physically challenging mountain pass carved across the jagged granite crest of the Outer Himalayan Dhauladhar Range."
+      },
+      {
+        "id": 48,
+        "question": "Indrahar Pass connects Dharamshala / McLeod Ganj with which Chamba region?",
+        "options": {
+          "a": "Pangi",
+          "b": "Bharmour",
+          "c": "Salooni",
+          "d": "Dalhousie"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "The Indrahar Pass functions as a famous trekking route that crosses the Dhauladhar wall to connect Dharamshala and McLeod Ganj (in Kangra district) directly with the tribal Bharmour sub-division."
+      },
+      {
+        "id": 49,
+        "question": "Ravi Valley / Chamba Valley is also famously known as:",
+        "options": {
+          "a": "Valley of Flowers",
+          "b": "Valley of Honey and Milk",
+          "c": "Valley of Lakes",
+          "d": "Valley of Kings"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "Due to its lush alpine meadows, fertile river terraces, and abundant dairy-centric pastoral wealth, the central Ravi Valley is historically nicknamed the Valley of Honey and Milk."
+      },
+      {
+        "id": 50,
+        "question": "Pangi Valley is also associated with which river valley system?",
+        "options": {
+          "a": "Chenab Valley",
+          "b": "Ganga Valley",
+          "c": "Yamuna Valley",
+          "d": "Narmada Valley"
+        },
+        "correctAnswer": "a",
+        "difficulty": "easy",
+        "explanation": "In terms of regional drainage networks, the Pangi Valley corresponds to the deep mountain canyon that forms the main catchment of the Chenab Valley system inside Chamba."
+      },
+      {
+        "id": 51,
+        "question": "Pangi Valley is carved by which river?",
+        "options": {
+          "a": "Ravi River",
+          "b": "Chandrabhaga / Chenab River",
+          "c": "Beas River",
+          "d": "Sutlej River"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "The Pangi Valley is structurally carved and drained by the high-discharge, swift Chandrabhaga River, which takes on the name Chenab as it enters the district."
+      },
+      {
+        "id": 52,
+        "question": "Which valley was historically known as the remotest tribal region of Himachal Pradesh?",
+        "options": {
+          "a": "Ravi Valley",
+          "b": "Pangi Valley",
+          "c": "Bhandal Valley",
+          "d": "Sihunta Valley"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "Surrounded by vertical glacier walls and completely cut off from the outer world for six months each year by heavy snow, the Pangi Valley was historically recorded as the remotest and most inaccessible tribal zone of Himachal Pradesh."
+      },
+      {
+        "id": 53,
+        "question": "Chamera Dam is built on which river?",
+        "options": {
+          "a": "Beas",
+          "b": "Chenab",
+          "c": "Ravi",
+          "d": "Sutlej"
+        },
+        "correctAnswer": "c",
+        "difficulty": "easy",
+        "explanation": "NHPC's massive concrete gravity structure, the Chamera Dam (Phase I, II, and III), is built to harness the perennial flow of the Ravi River."
+      },
+      {
+        "id": 54,
+        "question": "The primary purpose of Chamera Dam is:",
+        "options": {
+          "a": "Irrigation",
+          "b": "Flood control",
+          "c": "Hydroelectricity generation",
+          "d": "Navigation"
+        },
+        "correctAnswer": "c",
+        "difficulty": "easy",
+        "explanation": "The primary purpose behind the construction of the Chamera dam network is large-scale hydroelectricity generation, taking advantage of the steep hydraulic drop in the valley."
+      },
+      {
+        "id": 55,
+        "question": "Chamera Hydroelectric Project is divided into how many phases?",
+        "options": {
+          "a": "Two",
+          "b": "Three",
+          "c": "Four",
+          "d": "Five"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "The Chamera Hydroelectric Project operates as a highly successful multi-stage cascade infrastructure divided into three distinct phases (Chamera-I, Chamera-II, and Chamera-III)."
+      },
+      {
+        "id": 56,
+        "question": "The three phases of Chamera Hydroelectric Plants were completed in:",
+        "options": {
+          "a": "1980, 1990 and 2000",
+          "b": "1994, 2003 and 2012",
+          "c": "1991, 2001 and 2011",
+          "d": "1985, 1995 and 2005"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "The three phases of the Chamera Hydroelectric plants were commissioned progressively, with Phase I completed in 1994, Phase II in 2003, and Phase III entering commercial operation in 2012."
+      },
+      {
+        "id": 57,
+        "question": "Chamera Lake is a reservoir formed on which river?",
+        "options": {
+          "a": "Ravi",
+          "b": "Chenab",
+          "c": "Yamuna",
+          "d": "Uhl"
+        },
+        "correctAnswer": "a",
+        "difficulty": "easy",
+        "explanation": "The expansive, blue man-made reservoir known as Chamera Lake was formed on the Ravi River as a storage pool for the Phase-I power house."
+      },
+      {
+        "id": 58,
+        "question": "Baira Siul Power Station was the first hydro station built by:",
+        "options": {
+          "a": "NTPC",
+          "b": "NHPC",
+          "c": "BHEL",
+          "d": "SJVN"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "The Baira Siul Power Station holds historical significance as it was the very first milestone project constructed and successfully managed by the National Hydroelectric Power Corporation (NHPC)."
+      },
+      {
+        "id": 59,
+        "question": "Baira Siul Power Station has a capacity of:",
+        "options": {
+          "a": "120 MW",
+          "b": "150 MW",
+          "c": "180 MW",
+          "d": "300 MW"
+        },
+        "correctAnswer": "c",
+        "difficulty": "easy",
+        "explanation": "Located on the major tributaries of the Ravi (Baira, Siul, and Bhaledh streams), this pioneer run-of-the-river power complex has a total installed capacity of 180 MW."
+      },
+      {
+        "id": 60,
+        "question": "Traditional irrigation channels in the hill areas of Chamba are known as:",
+        "options": {
+          "a": "Johads",
+          "b": "Kuhls",
+          "c": "Baolis",
+          "d": "Zings"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "In the traditional mountain farming systems of Chamba, gravity-guided community irrigation channels carved carefully along the contours of the hills are locally termed Kuhls."
+      },
+      {
+        "id": 61,
+        "question": "Low Hill Soils of Chamba are generally:",
+        "options": {
+          "a": "Black cotton soils",
+          "b": "Greyish to yellowish-brown soils",
+          "c": "Red lateritic soils",
+          "d": "Saline desert soils"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "The low hill soils of Chamba district generally exhibit a characteristic greyish to yellowish-brown color, reflecting typical sub-mountainous temperate weathering patterns."
+      },
+      {
+        "id": 62,
+        "question": "Which of the following are primary Kharif crops of Chamba district?",
+        "options": {
+          "a": "Wheat and barley",
+          "b": "Maize and paddy",
+          "c": "Gram and mustard",
+          "d": "Apple and walnut"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "In the agricultural system of Chamba, maize and paddy serve as the principal crops cultivated during the rainy Kharif season."
+      },
+      {
+        "id": 63,
+        "question": "Which is the most famous fair of Chamba district?",
+        "options": {
+          "a": "Chattradi Jatar",
+          "b": "Minjar Mela",
+          "c": "Bharmour Jatra",
+          "d": "Suhi Mata Mela"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "The Minjar Mela is celebrated as the most widely known and culturally significant cultural fair of Chamba district."
+      },
+      {
+        "id": 64,
+        "question": "Minjar Mela is associated with the victory of Raja Sahil Varman / Raja of Chamba over the ruler of:",
+        "options": {
+          "a": "Kashmir",
+          "b": "Trigarta",
+          "c": "Mewar",
+          "d": "Malwa"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "Historical tradition ties the celebration of Minjar Mela to a celebratory commemoration of the victory of the Raja of Chamba (Raja Sahil Varman) over the neighboring ruler of Trigarta."
+      },
+      {
+        "id": 65,
+        "question": "Trigarta is associated with present-day:",
+        "options": {
+          "a": "Kangra",
+          "b": "Kullu",
+          "c": "Shimla",
+          "d": "Mandi"
+        },
+        "correctAnswer": "a",
+        "difficulty": "easy",
+        "explanation": "In ancient and early medieval historical geography, the kingdom of Trigarta corresponds to present-day Kangra district and its adjoining plains."
+      },
+      {
+        "id": 66,
+        "question": "Minjar Mela begins with:",
+        "options": {
+          "a": "Rath Yatra",
+          "b": "Minjar Flag Hoisting",
+          "c": "Boat race",
+          "d": "Cattle fair"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "The week-long celebrations of the traditional Minjar Mela officially commence with the ceremonial Minjar Flag Hoisting event."
+      },
+      {
+        "id": 67,
+        "question": "Minjar Flag Hoisting takes place at:",
+        "options": {
+          "a": "Bharmour Temple",
+          "b": "Chowgan Ground",
+          "c": "Manimahesh Lake",
+          "d": "Shakti Devi Temple"
+        },
+        "correctAnswer": "b",
+        "difficulty": "easy",
+        "explanation": "The flag hoisting and major public festivities of the Minjar Mela take place on the expansive lawns of Chamba town's central Chowgan Ground."
+      }
+    ],
+    "medium": [
+      {
+        "id": 68,
+        "question": "Minjar Mela is recognized as:",
+        "options": {
+          "a": "Village fair of Punjab",
+          "b": "International Fair of Himachal Pradesh",
+          "c": "National Sports Festival",
+          "d": "Tribal dance festival of India"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "Given its historical depth, rich socio-cultural value, and large attendance, the Minjar Mela is formally recognized as an official International Fair of Himachal Pradesh."
+      },
+      {
+        "id": 69,
+        "question": "Suhi Mata Mela is associated with:",
+        "options": {
+          "a": "Rani Sunayana",
+          "b": "Rani Lakshmibai",
+          "c": "Rani Durgavati",
+          "d": "Rani Padmini"
+        },
+        "correctAnswer": "a",
+        "difficulty": "medium",
+        "explanation": "The Suhi Mata Mela is held exclusively to commemorate the supreme altruistic sacrifice of Rani Sunayana, who buried herself alive to bring drinking water to the capital town."
+      },
+      {
+        "id": 70,
+        "question": "Rani Sunayana was the wife of:",
+        "options": {
+          "a": "Raja Bhuri Singh",
+          "b": "Raja Umed Singh",
+          "c": "Raja Sahil Varman",
+          "d": "Raja Prithvi Singh"
+        },
+        "correctAnswer": "c",
+        "difficulty": "medium",
+        "explanation": "Rani Sunayana was the queen consort of Raja Sahil Varman, the 10th-century monarch who established Chamba town."
+      },
+      {
+        "id": 71,
+        "question": "The main Rabi crops of Chamba district are:",
+        "options": {
+          "a": "Maize and paddy",
+          "b": "Wheat and barley",
+          "c": "Cotton and jute",
+          "d": "Tea and coffee"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "During the winter cropping season, wheat and barley serve as the primary Rabi crops cultivated across the arable lands of Chamba."
+      },
+      {
+        "id": 72,
+        "question": "The cold arid / dry temperate zone of Chamba is mainly caused by:",
+        "options": {
+          "a": "Coastal winds from the Indian Ocean",
+          "b": "Rain-shadow effect created by Pir Panjal Range",
+          "c": "Volcanic activity",
+          "d": "Cyclonic storms from the Bay of Bengal only"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "The extreme cold arid and dry temperate microclimate of the northern sub-divisions (like Pangi) is primarily caused by the severe rain-shadow effect generated by the massive towering wall of the Pir Panjal Range, which blocks the monsoon clouds."
+      },
+      {
+        "id": 73,
+        "question": "Which of the following fruits is an important horticulture crop in higher and cooler belts of Chamba?",
+        "options": {
+          "a": "Coconut",
+          "b": "Apple",
+          "c": "Banana",
+          "d": "Cashew"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "Because of the chilly climatic conditions, the apple has become the primary commercial horticulture crop grown in the high-altitude, cooler zones of the district (such as Bharmour, Churah, and Salooni)."
+      },
+      {
+        "id": 74,
+        "question": "Chamba district is renowned for producing good quality:",
+        "options": {
+          "a": "Marble",
+          "b": "Slate",
+          "c": "Coal",
+          "d": "Petroleum"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "Chamba is regionally well-known for mining and producing excellent quality, highly durable slate, which is extensively utilized for roofing traditional hill houses."
+      },
+      {
+        "id": 75,
+        "question": "Which valley is associated with over 135 bird species and around 175 butterfly species?",
+        "options": {
+          "a": "Bharmour Valley",
+          "b": "Pangi Valley",
+          "c": "Churah Valley",
+          "d": "Bhandal Valley"
+        },
+        "correctAnswer": "a",
+        "difficulty": "medium",
+        "explanation": "The pristine, ecologically rich forests of the remote Bhandal Valley are highly celebrated among naturalists, hosting over 135 avian species and around 175 diverse butterfly species."
+      },
+      {
+        "id": 76,
+        "question": "Ravi River finally becomes part of which river system?",
+        "options": {
+          "a": "Ganga System",
+          "b": "Brahmaputra System",
+          "c": "Indus System",
+          "d": "Narmada System"
+        },
+        "correctAnswer": "c",
+        "difficulty": "medium",
+        "explanation": "After traversing Chamba and descending into Punjab and Pakistan, the Ravi River ultimately flows into the Chenab River, making it an integral part of the broader Indus Basin System."
+      },
+      {
+        "id": 77,
+        "question": "Chenab River is formed by the confluence of which two streams?",
+        "options": {
+          "a": "Ravi and Beas",
+          "b": "Chandra and Bhaga",
+          "c": "Jhelum and Sutlej",
+          "d": "Tons and Yamuna"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "The Chenab River is initially formed in Lahaul by the confluence of two distinct glacial mountain streams: the Chandra and the Bhaga."
+      },
+      {
+        "id": 78,
+        "question": "Which is the largest tributary of Ravi River in Chamba district?",
+        "options": {
+          "a": "Siul River",
+          "b": "Buddhal River",
+          "c": "Saho River",
+          "d": "Tundah Nallah"
+        },
+        "correctAnswer": "a",
+        "difficulty": "medium",
+        "explanation": "Draining the northern slopes of the central district, the Siul River is hydrographically the largest and most voluminous tributary of the Ravi River within Chamba."
+      },
+      {
+        "id": 79,
+        "question": "Manimahesh Lake is located near which peak?",
+        "options": {
+          "a": "Deo Tibba",
+          "b": "Manimahesh Kailash",
+          "c": "Reo Purgyil",
+          "d": "Kamet"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "The sacred proglacial waters of Manimahesh Lake rest directly at the base of the towering, holy Manimahesh Kailash peak."
+      },
+      {
+        "id": 80,
+        "question": "Kalatop–Khajjiar Wildlife Sanctuary is located near which region of Chamba district?",
+        "options": {
+          "a": "Pangi Valley",
+          "b": "Dalhousie–Khajjiar region",
+          "c": "Bharmour region",
+          "d": "Salooni region"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "The dense coniferous tracts of the Kalatop–Khajjiar Wildlife Sanctuary are located across the high ridges connecting the Dalhousie and Khajjiar tourism zones."
+      },
+      {
+        "id": 81,
+        "question": "Kugti Wildlife Sanctuary is mainly associated with which region of Chamba district?",
+        "options": {
+          "a": "Bharmour",
+          "b": "Dalhousie",
+          "c": "Churah",
+          "d": "Sihunta"
+        },
+        "correctAnswer": "a",
+        "difficulty": "medium",
+        "explanation": "The Kugti Wildlife Sanctuary is situated in the high-altitude Bharmour sub-division, neighboring the famous Mani Mahesh region. It is the second-largest sanctuary in Himachal Pradesh."
+      },
+      {
+        "id": 82,
+        "question": "Which protected area of Chamba district is associated with Khajjiar, often called the “Mini Switzerland of India”?",
+        "options": {
+          "a": "Tundah Wildlife Sanctuary",
+          "b": "Sechu Tuan Nala Wildlife Sanctuary",
+          "c": "Kalatop–Khajjiar Wildlife Sanctuary",
+          "d": "Gamgul Siyabehi Wildlife Sanctuary"
+        },
+        "correctAnswer": "c",
+        "difficulty": "medium",
+        "explanation": "The Kalatop–Khajjiar Wildlife Sanctuary encompasses the dense deodar, oak, and coniferous forests surrounding the Khajjiar glade and lake ecosystem."
+      },
+      {
+        "id": 83,
+        "question": "Sechu Tuan Nala Wildlife Sanctuary is located in which valley of Chamba district?",
+        "options": {
+          "a": "Ravi Valley",
+          "b": "Pangi Valley",
+          "c": "Beas Valley",
+          "d": "Kangra Valley"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "The Sechu Tuan Nala Wildlife Sanctuary is located in the rugged, trans-Himalayan Pangi Valley sub-division along the Chenab basin."
+      },
+      {
+        "id": 84,
+        "question": "Which animal is commonly associated with high-altitude protected areas of Chamba district?",
+        "options": {
+          "a": "Asiatic Lion",
+          "b": "Snow Leopard",
+          "c": "One-horned Rhinoceros",
+          "d": "Nilgiri Tahr"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "The Snow Leopard is the apex predator native to the rugged, high-altitude alpine zones and rock-crested protected ecosystems of Chamba (especially Pangi and upper Bharmour)."
+      },
+      {
+        "id": 85,
+        "question": "Which sanctuary is important for reports of Kashmir stag / Hangul in Himachal Pradesh?",
+        "options": {
+          "a": "Tundah Wildlife Sanctuary",
+          "b": "Kugti Wildlife Sanctuary",
+          "c": "Gamgul Siyabehi Wildlife Sanctuary",
+          "d": "Kalatop–Khajjiar Wildlife Sanctuary"
+        },
+        "correctAnswer": "c",
+        "difficulty": "medium",
+        "explanation": "Located in the Bhandal valley near the Jammu & Kashmir border, the Gamgul Siyabehi Wildlife Sanctuary is uniquely famous for being the only habitat in Himachal Pradesh reporting the presence of the Kashmir Stag (Hangul)."
+      },
+      {
+        "id": 86,
+        "question": "Which of the following is NOT a protected area of Chamba district?",
+        "options": {
+          "a": "Kugti Wildlife Sanctuary",
+          "b": "Sechu Tuan Nala Wildlife Sanctuary",
+          "c": "Tundah Wildlife Sanctuary",
+          "d": "Pobitora Wildlife Sanctuary"
+        },
+        "correctAnswer": "d",
+        "difficulty": "medium",
+        "explanation": "Kugti, Sechu Tuan Nala, and Tundah are all indigenous sanctuaries of Chamba. Pobitora Wildlife Sanctuary is located in Assam (famous for the Indian one-horned rhinoceros)."
+      },
+      {
+        "id": 87,
+        "question": "The folk dance performed by young girls during Suhi Mata Mela is called:",
+        "options": {
+          "a": "Nati",
+          "b": "Sukraat",
+          "c": "Ghoomar",
+          "d": "Bihu"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "Sukraat is a traditional folk song and dance performed exclusively by young girls during the Suhi Mata Mela to commemorate the structural water sacrifice made by Rani Sunayana."
+      },
+      {
+        "id": 88,
+        "question": "Manimahesh Lake is located near:",
+        "options": {
+          "a": "Bharmour",
+          "b": "Dalhousie",
+          "c": "Churah",
+          "d": "Kangra"
+        },
+        "correctAnswer": "a",
+        "difficulty": "medium",
+        "explanation": "Manimahesh Lake sits at an altitude of 4,080 meters at the base of the sacred Manimahesh Kailash peak within the Bharmour sub-division."
+      },
+      {
+        "id": 89,
+        "question": "Chattradi Jatar celebrates the heritage of which tribal community?",
+        "options": {
+          "a": "Gaddi",
+          "b": "Bodo",
+          "c": "Santhal",
+          "d": "Bhil"
+        },
+        "correctAnswer": "a",
+        "difficulty": "medium",
+        "explanation": "The historic Chattradi Jatar is a deeply spiritual annual festival that celebrates the ancient heritage and religious protective rituals of the transhumant Gaddi community."
+      },
+      {
+        "id": 90,
+        "question": "Which of the following is one of the major tribal communities of Chamba district?",
+        "options": {
+          "a": "Gaddi",
+          "b": "Toda",
+          "c": "Khasi",
+          "d": "Mizo"
+        },
+        "correctAnswer": "a",
+        "difficulty": "medium",
+        "explanation": "The Gaddi tribe (alongside the Pangwals) forms the structural core of the indigenous tribal demographics of Chamba district."
+      },
+      {
+        "id": 91,
+        "question": "Kunjari Malhar is associated with which district of Himachal Pradesh?",
+        "options": {
+          "a": "Kangra",
+          "b": "Chamba",
+          "c": "Kullu",
+          "d": "Mandi"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "Kunjari Malhar is a famous, melancholic seasonal folk music genre native specifically to Chamba district."
+      },
+      {
+        "id": 92,
+        "question": "Kunjari Malhar is closely associated with which fair of Chamba?",
+        "options": {
+          "a": "Sui Mata Mela",
+          "b": "Minjar Mela",
+          "c": "Kullu Dussehra",
+          "d": "Lavi Fair"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "The soulful Kunjari Malhar melodies are traditionally sung by local artists during the rainy monsoon season to mark the arrival of the Minjar Mela."
+      },
+      {
+        "id": 93,
+        "question": "Aanchali folk songs are primarily sung during which ceremony?",
+        "options": {
+          "a": "Nuala ceremony",
+          "b": "Rath Yatra",
+          "c": "Baisakhi fair",
+          "d": "Losar festival"
+        },
+        "correctAnswer": "a",
+        "difficulty": "medium",
+        "explanation": "Aanchali folk songs are sacred religious epics and choruses sung exclusively during the Nuala ceremony by professional musicians."
+      },
+      {
+        "id": 94,
+        "question": "Nuala ceremony is dedicated to:",
+        "options": {
+          "a": "Lord Vishnu",
+          "b": "Lord Shiva",
+          "c": "Lord Brahma",
+          "d": "Lord Indra"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "The Nuala ceremony is a grand thanksgiving home ritual performed by every Gaddi household, completely dedicated to Lord Shiva."
+      },
+      {
+        "id": 95,
+        "question": "Aanchali songs are deeply associated with which community of Chamba?",
+        "options": {
+          "a": "Toda community",
+          "b": "Gaddi community",
+          "c": "Bhil community",
+          "d": "Khasi community"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "The complex performance of Aanchali songs and Nuala altars is deeply rooted in the socio-religious identity of the Gaddi community."
+      },
+      {
+        "id": 96,
+        "question": "Musada Gayan is a traditional folk singing style of:",
+        "options": {
+          "a": "Chamba district",
+          "b": "Jaipur district",
+          "c": "Kutch district",
+          "d": "Tanjavur district"
+        },
+        "correctAnswer": "a",
+        "difficulty": "medium",
+        "explanation": "Musada Gayan is an ancient, highly specialized ballad-singing tradition involving historical or mythological story recitations native to Chamba district."
+      },
+      {
+        "id": 97,
+        "question": "Musada Gayan is mainly associated with which community?",
+        "options": {
+          "a": "Pangwal",
+          "b": "Gaddi",
+          "c": "Naga",
+          "d": "Bodo"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "Musada Gayan (often recounting heroic martial lineages and local royal folklore) is traditionally preserved and sung by oral historians within the Gaddi community."
+      },
+      {
+        "id": 98,
+        "question": "Chamba Rumal received GI tag in which year?",
+        "options": {
+          "a": "2005",
+          "b": "2008",
+          "c": "2012",
+          "d": "2015"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "The historic handicraft embroidery of the Chamba Rumal was formally granted its elite legal Intellectual Property Protection via the Geographical Indication (GI) tag in the year 2008."
+      },
+      {
+        "id": 99,
+        "question": "Chamba Rumal is famous for which technique?",
+        "options": {
+          "a": "Block printing",
+          "b": "Do-Rukha",
+          "c": "Tie and dye",
+          "d": "Kalamkari"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "The hallmark feature of Chamba Rumal textile art is the Do-Rukha embroidery technique, meaning the needlework is perfectly reversible."
+      },
+      {
+        "id": 100,
+        "question": "Do-Rukha means:",
+        "options": {
+          "a": "Lost-wax casting",
+          "b": "Reversible double-satin stitch",
+          "c": "Chain-stitch embroidery",
+          "d": "Brass trumpet making"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "Technically, Do-Rukha translates directly to a reversible double-satin stitch, leaving both sides of the untwisted silk thread work completely knot-free and identical."
+      },
+      {
+        "id": 101,
+        "question": "Chamba Rumal uses which base fabric?",
+        "options": {
+          "a": "Denim or nylon",
+          "b": "Khaddar or Malmal",
+          "c": "Velvet only",
+          "d": "Leather only"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "Traditional Chamba Rumals are hand-embroidered over a fine unbleached square or rectangular base of handspun Khaddar (coarse cotton) or Malmal (fine muslin fabric)."
+      },
+      {
+        "id": 102,
+        "question": "Chamba Miniature Painting belongs to which broader painting tradition?",
+        "options": {
+          "a": "Pahari miniature painting",
+          "b": "Warli painting",
+          "c": "Madhubani painting",
+          "d": "Kalighat painting"
+        },
+        "correctAnswer": "a",
+        "difficulty": "medium",
+        "explanation": "The narrative compositions on Chamba Rumals and palace murals belong strictly to the classical Pahari miniature painting tradition, heavily influenced by the Basholi and Kangra art schools."
+      },
+      {
+        "id": 103,
+        "question": "Which museum preserves important examples of Chamba paintings?",
+        "options": {
+          "a": "Salar Jung Museum",
+          "b": "Bhuri Singh Museum",
+          "c": "Indian Museum Kolkata",
+          "d": "Louvre Museum"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "Founded in 1908, the world-famous Bhuri Singh Museum in Chamba town is the principal custodian housing priceless original collections of Pahari-Chamba miniature art."
+      },
+      {
+        "id": 104,
+        "question": "Laharu / Lehru is associated with:",
+        "options": {
+          "a": "Chamba painting tradition",
+          "b": "Chamba chappal only",
+          "c": "Musada Gayan only",
+          "d": "Nuala ceremony only"
+        },
+        "correctAnswer": "a",
+        "difficulty": "medium",
+        "explanation": "Laharu (Lehru) along with Nikku are historically documented master painters who defined the gold-standard evolution of the Chamba painting tradition under royal courts."
+      },
+      {
+        "id": 105,
+        "question": "Chamba Chappals are known for:",
+        "options": {
+          "a": "Chamba Kadhai",
+          "b": "Do-Rukha stitch",
+          "c": "Pattachitra painting",
+          "d": "Blue pottery"
+        },
+        "correctAnswer": "a",
+        "difficulty": "medium",
+        "explanation": "Handcrafted Chamba Chappals are universally recognized for Chamba Kadhai, a delicate form of custom silk or metallic thread embroidery applied directly onto leather strips."
+      },
+      {
+        "id": 106,
+        "question": "Chamba Chappals are generally crafted from:",
+        "options": {
+          "a": "Sheep or goat leather",
+          "b": "Bamboo",
+          "c": "Iron",
+          "d": "Stone"
+        },
+        "correctAnswer": "a",
+        "difficulty": "medium",
+        "explanation": "Traditional Chamba Chappals are locally cured, cut, and assembled by hand utilizing durable sheep or goat leather for structural longevity."
+      },
+      {
+        "id": 107,
+        "question": "Chamba Chappal tradition dates back to the era of:",
+        "options": {
+          "a": "King Sahil Varman",
+          "b": "Raja Umed Singh",
+          "c": "Raja Raj Singh",
+          "d": "Raja Gopal Singh"
+        },
+        "correctAnswer": "a",
+        "difficulty": "medium",
+        "explanation": "While leather-working was old, the stylized embroidery-decorated Chamba Chappal craft received widespread patronage and layout formalization under the 18th-century ruler Raja Umed Singh (and heavily via a Kangra princess coming into the royal lineage)."
+      },
+      {
+        "id": 108,
+        "question": "Metal craft and bronze sculpture tradition of Chamba dates back to the period of:",
+        "options": {
+          "a": "King Meru Varman",
+          "b": "Akbar",
+          "c": "Ashoka",
+          "d": "Harsha"
+        },
+        "correctAnswer": "a",
+        "difficulty": "medium",
+        "explanation": "The exceptional metal craft and hollow bronze icon casting tradition of Chamba dates back to the late 7th/early 8th-century golden era of King Meru Varman in ancient Bharmour."
+      },
+      {
+        "id": 109,
+        "question": "Chamba metal craft is traditionally preserved by which community?",
+        "options": {
+          "a": "Dhadiar community",
+          "b": "Gaddi community",
+          "c": "Pangwal community",
+          "d": "Toda community"
+        },
+        "correctAnswer": "a",
+        "difficulty": "medium",
+        "explanation": "The intricate ancestral technical knowledge of melting, tracing, and forging traditional metallic art tools and utensils is systematically preserved by Chamba's specialized Dhadiar community."
+      },
+      {
+        "id": 110,
+        "question": "Chamba artisans use which technique for making deity idols?",
+        "options": {
+          "a": "Lost-wax casting",
+          "b": "Woodblock printing",
+          "c": "Tie-dye method",
+          "d": "Tempera painting"
+        },
+        "correctAnswer": "a",
+        "difficulty": "medium",
+        "explanation": "To forge highly symmetric, fine brass and copper-alloy statues of deities, Chamba's artisans use the ancient lost-wax casting (Cire Perdue) method."
+      },
+      {
+        "id": 111,
+        "question": "In Chamba metal craft, “Mohra” refers to:",
+        "options": {
+          "a": "Metallic masks of deities",
+          "b": "Embroidered handkerchiefs",
+          "c": "Leather footwear",
+          "d": "Romantic ballads"
+        },
+        "correctAnswer": "a",
+        "difficulty": "medium",
+        "explanation": "In the specific cultural-religious metalwork of Chamba, a Mohra refers to beautifully embossed metallic masks of deities, which are carried on portable wooden palanquins (Raths) during processions."
+      },
+      {
+        "id": 112,
+        "question": "The Gaddi tribe of Chamba is mainly associated with which traditional occupation?",
+        "options": {
+          "a": "Fishing",
+          "b": "Sheep and goat rearing",
+          "c": "Shipbuilding",
+          "d": "Tea plantation"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "The transhumant Gaddi tribe follows a highly organized migratory calendar built around their primary economic occupation of sheep and goat rearing."
+      },
+      {
+        "id": 113,
+        "question": "Pangwal community is mainly associated with which region of Chamba district?",
+        "options": {
+          "a": "Bharmour Valley",
+          "b": "Pangi Valley",
+          "c": "Kangra Valley",
+          "d": "Spiti Valley"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "The specialized, resilient Pangwal community is indigenous to the isolation and steep vertical geography of the Pangi Valley along the Chenab canyon."
+      },
+      {
+        "id": 114,
+        "question": "Gaddi Nati is associated with which community of Chamba district?",
+        "options": {
+          "a": "Pangwal",
+          "b": "Gaddi",
+          "c": "Bhil",
+          "d": "Santhal"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "Gaddi Nati is a rhythmic, communal circular folk dance that forms the foundational performance at marriages and festivals within the Gaddi community."
+      },
+      {
+        "id": 115,
+        "question": "Which folk dance of Chamba is performed predominantly by men of the Gaddi tribe?",
+        "options": {
+          "a": "Ghurai",
+          "b": "Dandaras",
+          "c": "Sukraat",
+          "d": "Santh"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "Dandaras is a high-energy, traditional staff or stick dance executed exclusively by the men of the Gaddi tribe during major religious shepherd migrations and festivals."
+      },
+      {
+        "id": 116,
+        "question": "Ghurai Dance is deeply tied to which place?",
+        "options": {
+          "a": "Pangi Valley",
+          "b": "Chamba town",
+          "c": "Kangra Valley",
+          "d": "Kullu town"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "The Ghurai Dance is a classical seasonal group performance that belongs uniquely to the cultural folklore and lifestyle of the women folk in the remote Pangi Valley."
+      },
+      {
+        "id": 117,
+        "question": "Which of the following protected areas is associated with the Manimahesh region?",
+        "options": {
+          "a": "Kugti Wildlife Sanctuary",
+          "b": "Kalatop–Khajjiar Wildlife Sanctuary",
+          "c": "Gamgul Siyabehi Wildlife Sanctuary",
+          "d": "Sechu Tuan Nala Wildlife Sanctuary"
+        },
+        "correctAnswer": "a",
+        "difficulty": "medium",
+        "explanation": "The high-altitude limits of the Kugti Wildlife Sanctuary physically wrap around and share geographical boundaries with the sacred alpine Manimahesh region."
+      },
+      {
+        "id": 118,
+        "question": "Which of the following is the most appropriate reason for the protected area significance of Chamba district?",
+        "options": {
+          "a": "It lies entirely in the Thar Desert.",
+          "b": "It contains alpine, sub-alpine and coniferous habitats of the Himalayas.",
+          "c": "It is the only district of India with mangrove forests.",
+          "d": "It is known only for marine protected areas."
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "Chamba holds deep environmental importance because its extreme terrain houses an intact altitude gradient featuring crucial alpine meadows, sub-alpine scrub, and rich coniferous zones of the Western Himalayas."
+      },
+      {
+        "id": 119,
+        "question": "Chamba Town is the district headquarters of which district?",
+        "options": {
+          "a": "Kangra",
+          "b": "Chamba",
+          "c": "Kullu",
+          "d": "Mandi"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "The historic settlement of Chamba Town serves as the administrative core and formal district headquarters of Chamba district."
+      },
+      {
+        "id": 120,
+        "question": "Chamba Town was the historical capital of which princely state?",
+        "options": {
+          "a": "Kangra princely state",
+          "b": "Mandi princely state",
+          "c": "Chamba princely state",
+          "d": "Bilaspur princely state"
+        },
+        "correctAnswer": "c",
+        "difficulty": "medium",
+        "explanation": "For over a millennium, Chamba Town stood as the un-annexed capital and seat of sovereign authority for the ancient, independent Chamba princely state."
+      },
+      {
+        "id": 121,
+        "question": "Chamba Town is situated on the banks of which river?",
+        "options": {
+          "a": "Beas",
+          "b": "Ravi",
+          "c": "Chenab",
+          "d": "Sutlej"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "The historical town of Chamba is physically situated on a prominent, flat structural river terrace developed on the right bank of the Ravi River."
+      },
+      {
+        "id": 122,
+        "question": "Dalhousie was established as a British summer retreat in:",
+        "options": {
+          "a": "1757",
+          "b": "1854",
+          "c": "1947",
+          "d": "1956"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "Dalhousie was established as a British summer retreat in the year 1854 when the British Empire acquired the site from the Raja of Chamba."
+      },
+      {
+        "id": 123,
+        "question": "Dalhousie is named after:",
+        "options": {
+          "a": "Lord Curzon",
+          "b": "Lord Dalhousie",
+          "c": "Lord Mountbatten",
+          "d": "Lord Wellesley"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "The hill station was named in honor of Lord Dalhousie, who was serving as the British Governor-General of India during its conceptualization."
+      },
+      {
+        "id": 124,
+        "question": "Lord Dalhousie served as British Governor-General in India during:",
+        "options": {
+          "a": "1798–1805",
+          "b": "1848–1856",
+          "c": "1905–1911",
+          "d": "1942–1947"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "Lord Dalhousie served his tenure as the Governor-General of India from 1848–1856, an era marked by aggressive territorial annexations and infrastructure expansions like railways and telegraph lines."
+      },
+      {
+        "id": 125,
+        "question": "Dalhousie is spread over how many hills?",
+        "options": {
+          "a": "Three",
+          "b": "Four",
+          "c": "Five",
+          "d": "Seven"
+        },
+        "correctAnswer": "c",
+        "difficulty": "medium",
+        "explanation": "The picturesque town of Dalhousie is topographically spread across five hills: Kathlog, Potreyn, Tehra, Bakrota, and Bhangora."
+      },
+      {
+        "id": 126,
+        "question": "Which of the following is one of the five hills of Dalhousie?",
+        "options": {
+          "a": "Rohtang",
+          "b": "Bakrota",
+          "c": "Dhaulagiri",
+          "d": "Nanda Devi"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "Bakrota is one of the five core hills that make up the layout of Dalhousie, famous for its scenic walking trails and high altitude."
+      },
+      {
+        "id": 127,
+        "question": "Subhash Baoli in Dalhousie is associated with:",
+        "options": {
+          "a": "Mahatma Gandhi",
+          "b": "Subhas Chandra Bose",
+          "c": "Sardar Patel",
+          "d": "Lala Lajpat Rai"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "Subhash Baoli is named after Netaji Subhas Chandra Bose, who spent a significant period in Dalhousie in 1937 to recuperate from illness, frequently drinking from this natural spring."
+      },
+      {
+        "id": 128,
+        "question": "Khajjiar is popularly called:",
+        "options": {
+          "a": "Queen of Hills",
+          "b": "Mini Switzerland",
+          "c": "City of Lakes",
+          "d": "Scotland of India"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "Khajjiar is popularly called Mini Switzerland due to its striking environmental resemblance to Swiss meadows, a title officially bestowed by Swiss envoy Willy P. Blazer in 1992."
+      },
+      {
+        "id": 129,
+        "question": "Bharmour is closely associated with which community?",
+        "options": {
+          "a": "Toda",
+          "b": "Gaddi",
+          "c": "Khasi",
+          "d": "Bodo"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "The high-altitude subdivision of Bharmour (ancient Brahmpura) is the homeland and cultural nucleus of the transhumant Gaddi community."
+      },
+      {
+        "id": 130,
+        "question": "Pangi Valley is associated with which community?",
+        "options": {
+          "a": "Pangwal community",
+          "b": "Bhil community",
+          "c": "Jarawa community",
+          "d": "Rabari community"
+        },
+        "correctAnswer": "a",
+        "difficulty": "medium",
+        "explanation": "The isolated, rugged terrain of the Pangi Valley along the Chenab canyon is the native home of the resilient Pangwal community."
+      },
+      {
+        "id": 131,
+        "question": "Churah / Tissa is associated with:",
+        "options": {
+          "a": "Churah Valley",
+          "b": "Chilika Lake",
+          "c": "Konkan Coast",
+          "d": "Rann of Kachchh"
+        },
+        "correctAnswer": "a",
+        "difficulty": "medium",
+        "explanation": "The northern and western sub-divisions of Churah and its headquarters Tissa are geographically associated with the pristine Churah Valley system."
+      },
+      {
+        "id": 132,
+        "question": "Ghurai Dance is performed during which fair?",
+        "options": {
+          "a": "Minjar Mela",
+          "b": "Sui Mela",
+          "c": "Kullu Dussehra",
+          "d": "Lavi Fair"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "The Ghurai Dance is a traditional performance exclusively executed by local women during the annual Sui Mela (Suhi Mata Mela)."
+      },
+      {
+        "id": 133,
+        "question": "Ghurai Dance is performed to honour the sacrifice of:",
+        "options": {
+          "a": "Rani Sunayana",
+          "b": "Rani Lakshmibai",
+          "c": "Rani Durgavati",
+          "d": "Rani Padmini"
+        },
+        "correctAnswer": "a",
+        "difficulty": "medium",
+        "explanation": "The dance and associated songs are performed to honor the supreme altruistic sacrifice of Rani Sunayana, who gave up her life to bring water to Chamba town."
+      },
+      {
+        "id": 134,
+        "question": "Pangwal dances Phrati and Santh are associated with:",
+        "options": {
+          "a": "Bharmour Valley",
+          "b": "Pangi Valley",
+          "c": "Chamba town",
+          "d": "Dalhousie"
+        },
+        "correctAnswer": "b",
+        "difficulty": "medium",
+        "explanation": "Traditional ritualistic community dances such as Phrati and Santh are indigenous to the tribal culture of the Pangi Valley."
+      }
+    ],
+    "hard": [
+      {
+        "id": 135,
+        "question": "Consider the following statements: 1. Raja Maru founded the Chamba Dynasty. 2. Aditya Varman was the first ruler to adopt the suffix “Varman”. 3. Meru Varman shifted the capital from Bharmour to Chamba. Which of the statements given above are correct?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 and 3 only",
+          "c": "1 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "Statements 1 and 2 are historically correct. Statement 3 is incorrect because Raja Sahil Varman shifted the capital from Bharmour to Chamba town, not Meru Varman."
+      },
+      {
+        "id": 136,
+        "question": "Arrange the following rulers chronologically: 1. Raja Maru 2. Aditya Varman 3. Meru Varman 4. Sahil Varman",
+        "options": {
+          "a": "1-2-3-4",
+          "b": "2-1-3-4",
+          "c": "1-3-2-4",
+          "d": "3-2-1-4"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "The correct chronological order is: Raja Maru (c. 550 AD) → Aditya Varman (c. 620 AD) → Meru Varman (c. 680–700 AD) → Sahil Varman (c. 920 AD)."
+      },
+      {
+        "id": 137,
+        "question": "With reference to Sahil Varman, consider the following statements: 1. He shifted the capital from Bharmour to Chamba. 2. Chamba town was named after his daughter Champavati. 3. He divided the kingdom into Mandlas. Which of the statements given above are correct?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 and 3 only",
+          "c": "1 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "All three statements are correct regarding the landmark reign of Raja Sahil Varman. He shifted the capital, named the town after Princess Champavati, and set up the Mandla administrative framework."
+      },
+      {
+        "id": 138,
+        "question": "Which of the following pairs is correctly matched? Ruler–Contribution: 1. Raja Maru–Founder of Chamba Dynasty 2. Meru Varman–Temple construction at Bharmour 3. Bhuri Singh–Bhuri Singh Museum",
+        "options": {
+          "a": "1 only",
+          "b": "1 and 2 only",
+          "c": "2 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "All pairs are perfectly matched: Raja Maru founded the state, Meru Varman commissioned the brass/wooden temples at Bharmour, and Raja Bhuri Singh established the Bhuri Singh Museum in 1908."
+      },
+      {
+        "id": 139,
+        "question": "Consider the following statements regarding Chamba under the British: 1. Chamba became a British Protectorate in 1847. 2. British initially considered merging it with Jammu & Kashmir. 3. Wazir Bhaga helped preserve its separate identity. Which of the statements given above are correct?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 and 3 only",
+          "c": "1 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "All statements are historically accurate. Following the 1846 Treaty of Lahore, the British initially intended to merge Chamba into Jammu & Kashmir, but Wazir Bhaga's timely diplomatic effort secured Chamba's independence under a British Sanad in 1847/1848."
+      },
+      {
+        "id": 140,
+        "question": "Which of the following developments is associated with Raja Bhuri Singh? 1. Promotion of education 2. Bhuri Singh Museum 3. Early hydroelectric project",
+        "options": {
+          "a": "1 only",
+          "b": "1 and 2 only",
+          "c": "2 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "Raja Bhuri Singh was an exceptionally progressive ruler whose contributions included modern public education, building the Bhuri Singh Museum, and commissioning one of the earliest hydroelectric projects in northern India (Bhuri Singh Power House, 1910)."
+      },
+      {
+        "id": 141,
+        "question": "Which of the following passes are associated with the Chamba–Pangi connection? 1. Sach Pass 2. Drati Pass 3. Cheni Pass 4. Indrahar Pass. Select the correct answer using the code below:",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "1, 2 and 3 only",
+          "c": "2, 3 and 4 only",
+          "d": "1, 2, 3 and 4"
+        },
+        "correctAnswer": "b",
+        "difficulty": "hard",
+        "explanation": "Sach Pass, Drati Pass, and Cheni Pass are all direct mountain passes crossing the Pir Panjal range to connect Chamba town with the Pangi Valley. Indrahar Pass instead connects Kangra (Dharamshala) with Bharmour."
+      },
+      {
+        "id": 142,
+        "question": "Which of the following passes are associated with the Chamba–Lahaul connection? 1. Kugti Pass 2. Kalicho Pass 3. Chabia Pass 4. Padri Pass. Select the correct answer using the code below:",
+        "options": {
+          "a": "1, 2 and 3 only",
+          "b": "1 and 4 only",
+          "c": "2 and 4 only",
+          "d": "1, 2, 3 and 4"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "Kugti Pass, Kalicho Pass, and Chabia Pass cross the high glaciers to connect the Bharmour sub-division of Chamba directly with Lahaul. Padri Pass connects Chamba (Churah) with the Bhaderwah region of Jammu & Kashmir."
+      },
+      {
+        "id": 143,
+        "question": "Which of the following passes are associated with the Dhauladhar Range / Chamba–Kangra side? 1. Indrahar Pass 2. Jalsu Ka Jot 3. Baleni Jot 4. Chauri Pass 5. Waru Pass. Select the correct answer using the code below:",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "1, 2 and 3 only",
+          "c": "1, 2, 3, 4 and 5",
+          "d": "3, 4 and 5 only"
+        },
+        "correctAnswer": "c",
+        "difficulty": "hard",
+        "explanation": "All five listed passes (Indrahar, Jalsu Ka Jot, Baleni Jot, Chauri Pass, and Waru Pass) are famous traditional passes across the majestic granite crest of the Dhauladhar Range, connecting Kangra with Chamba."
+      },
+      {
+        "id": 144,
+        "question": "Consider the following statements about Pangi Valley: 1. It lies between the Pir Panjal and Zanskar mountain ranges. 2. It is carved by the Chandrabhaga / Chenab River. 3. It is connected to the main Chamba Valley through Sach Pass. Which of the statements given above is/are correct?",
+        "options": {
+          "a": "1 only",
+          "b": "1 and 2 only",
+          "c": "2 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "All statements regarding Pangi Valley are correct: it lies between the Pir Panjal and Zanskar walls, is physically carved by the Chandrabhaga (Chenab), and is reached from Chamba via the grueling Sach Pass."
+      },
+      {
+        "id": 145,
+        "question": "Consider the following statements about Bharmour Valley: 1. It is associated with rich biodiversity including birds and butterflies. 2. It is connected to the main Ravi / Chamba Valley through Basodan Pass / Jot. 3. It lies in the Thar Desert zone. Which of the statements given above is/are correct?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 and 3 only",
+          "c": "1 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "Statement 1 is correct. Statement 2 is incorrect because Bharmour is connected to the main Ravi valley directly through river channels and low paths, while Basodan Pass connects Chamba town with Bhattiyat. Statement 3 is obviously false as it lies in the alpine Western Himalayas, not the Thar Desert."
+      },
+      {
+        "id": 146,
+        "question": "Arrange the following passes in increasing order of altitude: 1. Padri Pass 2. Indrahar Pass 3. Sach Pass 4. Kugti Pass. Select the correct answer:",
+        "options": {
+          "a": "1 → 2 → 3 → 4",
+          "b": "4 → 3 → 2 → 1",
+          "c": "2 → 1 → 3 → 4",
+          "d": "1 → 3 → 2 → 4"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "The correct order of increasing altitude is: Padri Pass (~3,050m) → Indrahar Pass (~4,300m) → Sach Pass (~4,414m) → Kugti Pass (~5,050m)."
+      },
+      {
+        "id": 147,
+        "question": "Consider the following statements about Chamba district: 1. It is a north-western frontier district of Himachal Pradesh. 2. It shares boundary with Jammu & Kashmir, Ladakh and Punjab. 3. It lies entirely in the Beas River basin. Which of the statements given above is/are correct?",
+        "options": {
+          "a": "1 only",
+          "b": "1 and 2 only",
+          "c": "2 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "b",
+        "difficulty": "hard",
+        "explanation": "Statements 1 and 2 are correct. Statement 3 is completely incorrect because Chamba lies in the Ravi and Chenab river basins, not the Beas basin."
+      },
+      {
+        "id": 148,
+        "question": "With reference to the physiography of Chamba district, consider the following pairs: 1. Ravi Valley–Main cultural and settlement core 2. Pangi Valley–Drained mainly by Chenab river system 3. Outer Himalayan Zone–Located on northern slopes of Pir Panjal. Which of the pairs given above is/are correctly matched?",
+        "options": {
+          "a": "1 only",
+          "b": "1 and 2 only",
+          "c": "2 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "b",
+        "difficulty": "hard",
+        "explanation": "Pairs 1 and 2 are correctly matched. Pair 3 is incorrectly matched because the Outer Himalayan Zone (Bhattiyat/Sihunta) is located on the southern slopes of the Dhauladhar Range, not the northern slopes of the Pir Panjal."
+      },
+      {
+        "id": 149,
+        "question": "Consider the following statements about Ravi River: 1. It is the principal river of Chamba district. 2. It was known as Purushni in ancient Vedic texts. 3. It is the largest river of the Indus system. Which of the statements given above is/are correct?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 and 3 only",
+          "c": "1 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "Statements 1 and 2 are true. Statement 3 is false because the Indus River itself, or the Chenab by volume, is larger; the Ravi is a major tributary but certainly not the largest river of the Indus system."
+      },
+      {
+        "id": 150,
+        "question": "Which of the following river systems drain Chamba district? 1. Ravi River system 2. Chenab River system 3. Beas drainage system 4. Ganga River system. Select the correct answer using the code below:",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "1, 2 and 3 only",
+          "c": "2, 3 and 4 only",
+          "d": "1, 2, 3 and 4"
+        },
+        "correctAnswer": "b",
+        "difficulty": "hard",
+        "explanation": "Chamba district is exclusively drained by exactly two major systems: the Ravi River system and the Chenab River system. The Beas and Ganga systems have no hydrological footprint inside Chamba."
+      },
+      {
+        "id": 151,
+        "question": "Which of the following is/are tributaries or streams associated with the Ravi River basin in Chamba district? 1. Siul River 2. Buddhal River 3. Saho / Sal River 4. Chirchind Nallah. Select the correct answer using the code below:",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 and 3 only",
+          "c": "1, 2, 3 and 4",
+          "d": "1 and 4 only"
+        },
+        "correctAnswer": "c",
+        "difficulty": "hard",
+        "explanation": "All four listed streams belong to the Ravi River drainage basin in Chamba. The Siul River is its largest tributary; the Buddhal River drains the Bharmour valley; the Saho/Sal River meets the Ravi right at Chamba town; and the Chirchind Nallah is a glacial mountain stream adding to the main upper catchment."
+      },
+      {
+        "id": 152,
+        "question": "Match the following: Water Body–Key Feature: 1. Khajjiar Lake–Mini Switzerland of India 2. Manimahesh Lake–Associated with Manimahesh Yatra 3. Chamera Lake–Man-made reservoir near Dalhousie. Select the correct answer:",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 and 3 only",
+          "c": "1 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "All three pairs are correctly matched. Khajjiar Lake is famous for its “Mini Switzerland” title; Manimahesh Lake is the focal destination of the annual state-level pilgrimage; and Chamera Lake is the massive artificial reservoir created by NHPC's dam near Dalhousie."
+      },
+      {
+        "id": 153,
+        "question": "With reference to Minjar Mela, consider the following statements: 1. It is the most famous fair of Chamba district. 2. It is celebrated in July–August during Shravana month. 3. It begins with Minjar Flag Hoisting at Chowgan Ground. Which of the statements given above are correct?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 and 3 only",
+          "c": "1 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "All statements regarding the International Minjar Mela are correct. It is the premier cultural fair of the district, held during the monsoon month of Shravana (July–August), and traditionally opens with the ceremonial hoisting of the Minjar flag at the central Chowgan Ground."
+      },
+      {
+        "id": 154,
+        "question": "With reference to Suhi Mata Mela, consider the following statements: 1. It is associated with Rani Sunayana, wife of Raja Sahil Varman. 2. It commemorates her sacrifice for bringing water to Chamba town. 3. It is primarily celebrated by married women and young girls. Which of the statements given above are correct?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 and 3 only",
+          "c": "1 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "All statements are historically accurate. The Suhi Mata Mela honors Rani Sunayana (wife of Raja Sahil Varman), who sacrificed her life to bring water to the new capital through an aqueduct line. By tradition, the core of the fair is celebrated exclusively by women and young girls."
+      },
+      {
+        "id": 155,
+        "question": "Consider the following festivals/fairs of Chamba district: 1. Minjar Mela 2. Suhi Mata Mela 3. Manimahesh Yatra 4. Chattradi Jatar. Which of the above is/are associated with religious or cultural memory of Chamba district?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 and 3 only",
+          "c": "1, 2 and 3 only",
+          "d": "1, 2, 3 and 4"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "All four events are deeply interwoven with the collective socio-cultural and religious historical memory of Chamba district, mapping everything from agrarian crop cycles to royal sacrifices and ancient temple legacies."
+      },
+      {
+        "id": 156,
+        "question": "Match the following: Festival / Fair–Association: 1. Minjar Mela–A. Lord Shiva and Manimahesh Kailash 2. Suhi Mata Mela–B. Victory over Trigarta 3. Manimahesh Yatra–C. Rani Sunayana 4. Chattradi Jatar–D. Shakti Devi Temple. Select the correct answer:",
+        "options": {
+          "a": "1-B, 2-C, 3-A, 4-D",
+          "b": "1-C, 2-B, 3-D, 4-A",
+          "c": "1-A, 2-D, 3-C, 4-B",
+          "d": "1-D, 2-A, 3-B, 4-C"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "The correct cross-matching is: Minjar Mela → commemorates the historic victory over the ruler of Trigarta (B); Suhi Mata Mela → honors the water sacrifice of Rani Sunayana (C); Manimahesh Yatra → dedicated to Lord Shiva at the high-altitude Kailash peak (A); Chattradi Jatar → held at the ancient Shakti Devi Temple (D)."
+      },
+      {
+        "id": 157,
+        "question": "With reference to Aanchali songs of Chamba, consider the following statements: 1. They are sung during religious and social occasions. 2. They are primarily sung during the Nuala ceremony. 3. The Nuala ceremony is a thanksgiving ritual dedicated to Lord Shiva. Which of the statements given above is/are correct?",
+        "options": {
+          "a": "1 only",
+          "b": "1 and 2 only",
+          "c": "2 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "All statements are correct. Aanchali songs are sacred religious epics sung primarily during the Nuala ceremony, which is a comprehensive thanksgiving ritual dedicated to Lord Shiva by Gaddi households."
+      },
+      {
+        "id": 158,
+        "question": "Consider the following pairs: Folk Tradition–Association: 1. Kunjari Malhar–Minjar Mela 2. Aanchali–Nuala ceremony 3. Pangwal Folk Songs–Pangi Valley 4. Musada Gayan–Gaddi community. Which of the pairs given above are correctly matched?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 and 3 only",
+          "c": "1, 2 and 4 only",
+          "d": "1, 2, 3 and 4"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "All four cultural combinations are perfectly matched. Kunjari Malhar provides the seasonal monsoon music for the Minjar Fair; Aanchali songs accompany the Nuala altars; Pangwal folk songs are unique to the Pangi Valley; and the oral ballad tradition of Musada Gayan is preserved by the Gaddi community."
+      },
+      {
+        "id": 159,
+        "question": "Consider the following love legends of Chamba: 1. Kunju-Chanchlo 2. Phulmu-Ranjhu 3. Raja-Gaddan. Which of the above are associated with Chamba’s romantic ballad tradition?",
+        "options": {
+          "a": "1 only",
+          "b": "1 and 2 only",
+          "c": "2 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "All three are famous traditional love legends of Chamba's rich folklore. Kunju-Chanchlo, Phulmu-Ranjhu, and Raja-Gaddan form the emotional cornerstone of Pahari romantic ballad singing (Gharees and Saddas)."
+      },
+      {
+        "id": 160,
+        "question": "With reference to Chamba Rumal, consider the following statements: 1. It received GI tag in 2008. 2. It is famous for the Do-Rukha technique. 3. It uses untwisted Pat silk threads. 4. It is mainly made using synthetic plastic threads. Which of the statements given above are correct?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "1, 2 and 3 only",
+          "c": "2, 3 and 4 only",
+          "d": "1, 2, 3 and 4"
+        },
+        "correctAnswer": "b",
+        "difficulty": "hard",
+        "explanation": "Statements 1, 2, and 3 are technically correct. The Chamba Rumal received GI protection in 2008, uses the double-sided reversible Do-Rukha stitch, and is crafted using untwisted silk threads (Pat). Statement 4 is completely false as synthetic plastic threads have no place in this heritage craft."
+      },
+      {
+        "id": 161,
+        "question": "With reference to Chamba Miniature Painting, consider the following statements: 1. It developed under royal patronage. 2. It is known for bright colours, delicate lines and graceful figures. 3. Bhuri Singh Museum preserves important examples of Chamba paintings. 4. It is mainly associated with maritime trade scenes only. Which of the statements given above are correct?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "1, 2 and 3 only",
+          "c": "2, 3 and 4 only",
+          "d": "1, 2, 3 and 4"
+        },
+        "correctAnswer": "b",
+        "difficulty": "hard",
+        "explanation": "Statements 1, 2, and 3 are correct. The Chamba painting style flourished under royal courts, is celebrated for its bright hues and graceful Pahari miniature style, and is protected in the Bhuri Singh Museum. Statement 4 is incorrect because it depicts themes from Hindu epics, Ragamala, and court life, not maritime trade."
+      },
+      {
+        "id": 162,
+        "question": "Which of the following themes are associated with Chamba Miniature Painting? 1. Radha-Krishna 2. Ragamala 3. Epics 4. Royal portraits. Select the correct answer:",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 and 3 only",
+          "c": "1, 2 and 4 only",
+          "d": "1, 2, 3 and 4"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "All four themes are highly characteristic of Chamba Miniature Paintings. Artists extensively illustrated scenes from the Radha-Krishna love lore, musical modes (Ragamala sets), classical epics (Ramayana/Mahabharata), and formal royal portraits of the ruling Rajas."
+      },
+      {
+        "id": 163,
+        "question": "Which of the following statements about Lama Dal Lake is/are correct? 1. It is associated with the Dhauladhar Range. 2. It is linked with pilgrimage and trekking routes. 3. It remains snow-covered or frozen for a large part of the year. Select the correct answer using the code below:",
+        "options": {
+          "a": "1 only",
+          "b": "1 and 2 only",
+          "c": "2 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "All statements regarding Lama Dal Lake are correct. Situated at an altitude of around 3,960 meters across the Dhauladhar Range, it is a sacred high-altitude alpine lake linked with sheep-herder paths and pilgrimages, remaining frozen for most of the winter."
+      },
+      {
+        "id": 164,
+        "question": "Consider the following statements about the Pir Panjal Range: 1. It forms the northern boundary of Chamba district. 2. It separates Ravi Valley from Pangi and Chenab valleys. 3. Sach Pass is associated with this range. Which of the statements given above is/are correct?",
+        "options": {
+          "a": "1 only",
+          "b": "1 and 2 only",
+          "c": "2 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "All statements accurately describe the geography of the Pir Panjal Range in Chamba. It forms the northern wall of the main valley, splits the district by separating the Ravi basin from the Pangi (Chenab) canyon, and is crossed via the rugged Sach Pass."
+      },
+      {
+        "id": 165,
+        "question": "Consider the following statements about the Dhauladhar Range: 1. It forms the southern boundary of Chamba district. 2. It separates Chamba from Kangra. 3. It lies entirely outside Himachal Pradesh. Which of the statements given above is/are correct?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 and 3 only",
+          "c": "1 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "Statements 1 and 2 are geographically correct; the Dhauladhar Range forms the southern wall of Chamba and acts as the massive natural divider separating it from Kangra. Statement 3 is false because the Dhauladhar is a core mountain range of Himachal Pradesh."
+      },
+      {
+        "id": 166,
+        "question": "With reference to Chamba Chappals, consider the following statements: 1. They feature intricate chain-stitch embroidery known as Chamba Kadhai. 2. They are crafted from premium sheep or goat leather. 3. The tradition dates back to the era of King Sahil Varman. Which of the statements given above is/are correct?",
+        "options": {
+          "a": "1 only",
+          "b": "1 and 2 only",
+          "c": "2 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "Statements 2 and 3 are correct; Chamba Chappals are handcrafted from high-quality sheep or goat leather, a tradition dating back to royal historic eras. Statement 1 is incorrect because the embroidery technique applied directly to the leather straps is known as Tilla or thread-work embroidery, whereas Do-Rukha chain stitch specifically belongs to the Chamba Rumal textile art."
+      },
+      {
+        "id": 167,
+        "question": "With reference to Chamba metal craft, consider the following statements: 1. It has a tradition dating back to the 7th century AD. 2. It flourished under King Meru Varman. 3. The Dhadiar community traditionally preserved this art. 4. It uses the lost-wax casting technique. Which of the statements given above are correct?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 and 3 only",
+          "c": "1, 2 and 4 only",
+          "d": "1, 2, 3 and 4"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "All statements are completely correct. Chamba's advanced hollow metal alloy casting dates back to the 7th/8th century AD, flourished under King Meru Varman in Bharmour, was masterfully preserved through hereditary lineages by the Dhadiar community, and relies on classical lost-wax casting (Cire Perdue)."
+      },
+      {
+        "id": 168,
+        "question": "Consider the following pairs: Art / Craft–Key Feature: 1. Chamba Rumal–Do-Rukha stitch 2. Chamba Chappals–Chamba Kadhai 3. Metal craft–Lost-wax casting 4. Chamba Miniature Painting–Bright colours and delicate lines. Which of the pairs given above are correctly matched?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "1, 2 and 3 only",
+          "c": "2, 3 and 4 only",
+          "d": "1, 2, 3 and 4"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "All four artistic traditions are perfectly matched with their core technical design elements: Chamba Rumal with the Do-Rukha stitch; Chamba Chappals with Chamba Kadhai leather decoration; Metal craft with lost-wax casting; and Chamba Miniature Painting with bright colors and delicate Pahari lines."
+      },
+      {
+        "id": 169,
+        "question": "Consider the following: 1. Kunjari Malhar 2. Chamba Rumal 3. Chamba Chappals 4. Mohra art. Which of the above are associated with Chamba district?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 and 3 only",
+          "c": "1, 2 and 3 only",
+          "d": "1, 2, 3 and 4"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "All four items listed are signature cultural, artistic, or handicraft hallmarks native exclusively to Chamba district, forming the baseline database for the National Digital District Encyclopedia project."
+      },
+      {
+        "id": 170,
+        "question": "Which of the following pairs is correctly matched? Range / Peak–Key Feature: 1. Pir Panjal Range–Northern boundary of Chamba 2. Dhauladhar Range–Southern boundary of Chamba 3. Manimahesh Kailash–Sacred peak associated with Lord Shiva. Select the correct answer:",
+        "options": {
+          "a": "1 only",
+          "b": "1 and 2 only",
+          "c": "2 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "All three geographic items are accurately matched. The Pir Panjal forms the northern alpine barrier, the Dhauladhar forms the southern physical wall, and the unscaled peak of Manimahesh Kailash stands as the sacred home of Lord Shiva."
+      },
+      {
+        "id": 171,
+        "question": "Consider the following statements about Manimahesh Kailash Peak: 1. It is considered the most sacred peak of Chamba district. 2. It is associated with the Manimahesh Yatra. 3. It is located in the coastal zone of Himachal Pradesh. Which of the statements given above is/are correct?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 and 3 only",
+          "c": "1 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "Statements 1 and 2 are correct. Statement 3 is completely false because Chamba and the peak of Manimahesh Kailash are located in the high-alpine mountain zone of Himachal Pradesh, thousands of miles away from any coastal zone."
+      },
+      {
+        "id": 172,
+        "question": "With reference to Gaddi Nati, consider the following statements: 1. It is associated with the Gaddi community of Chamba. 2. It reflects pastoral life and mountain culture. 3. It is performed only by monks in monasteries. Which of the statements given above are correct?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 and 3 only",
+          "c": "1 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "Statements 1 and 2 are true; the Gaddi Nati is a circular community folk dance reflecting the mountain culture and transhumant pastoral lifestyle of the Gaddi tribe. Statement 3 is false as it is a secular, joyful community dance, not a monastic ritual performed by monks."
+      },
+      {
+        "id": 173,
+        "question": "Which of the following pairs is correctly matched?",
+        "options": {
+          "a": "Dandaras — Stick dance of Gaddi men",
+          "b": "Ghurai — Pangwal dance of Pangi Valley",
+          "c": "Santh — Fast-paced pair dance",
+          "d": "Sukraat — Dance of Minjar Mela"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "Dandaras is correctly matched as the high-energy traditional stick dance performed predominantly by the men of the Gaddi tribe during shepherd migrations. Ghurai belongs to the women of Sui Mela/Pangi; Santh is a group dance; and Sukraat is associated with the Suhi Mata fair, not Minjar."
+      },
+      {
+        "id": 174,
+        "question": "With reference to Ghurai Dance, consider the following statements: 1. It is a female folk dance. 2. It is performed during Sui Mela. 3. It honours Rani Sunayana’s sacrifice. Which of the statements given above are correct?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 and 3 only",
+          "c": "1 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "All statements regarding the Ghurai Dance are correct. It is a traditional female folk dance performed specifically during the Sui Mela to honor the emotional memory and supreme drinking-water sacrifice of Rani Sunayana."
+      },
+      {
+        "id": 175,
+        "question": "Consider the following dances: 1. Phrati 2. Santh 3. Dandaras 4. Sukraat. Which of the above are associated with Chamba district’s folk culture?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "3 and 4 only",
+          "c": "1, 2 and 3 only",
+          "d": "1, 2, 3 and 4"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "All four dances (Phrati, Santh, Dandaras, and Sukraat) are integral, living components of Chamba district's rich, multi-valley tribal and regional folk dance repertoire."
+      },
+      {
+        "id": 176,
+        "question": "Match the following: Folk Dance–Association: 1. Gaddi Nati–A. Pangi Valley 2. Dandaras–B. Pastoral life and mountain culture 3. Ghurai–C. Stick dance 4. Phrati and Santh–D. Sui Mela and Rani Sunayana. Select the correct answer:",
+        "options": {
+          "a": "1-B, 2-C, 3-D, 4-A",
+          "b": "1-C, 2-D, 3-A, 4-B",
+          "c": "1-D, 2-A, 3-B, 4-C",
+          "d": "1-A, 2-B, 3-C, 4-D"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "The correct matching is: Gaddi Nati → reflects pastoral life and mountain culture (B); Dandaras → high-energy stick dance of Gaddi men (C); Ghurai → performed during Sui Mela to honor Rani Sunayana (D); Phrati and Santh → indigenous folk dances of the Pangi Valley (A)."
+      },
+      {
+        "id": 177,
+        "question": "Consider the following statements about Chamera Dam / Chamera Hydroelectric Project: 1. It is built on the Ravi River. 2. It is divided into three phases. 3. Its combined generating capacity is 1,071 MW. 4. Its primary purpose is inland navigation. Which of the above statements are correct?",
+        "options": {
+          "a": "1, 2 and 3 only",
+          "b": "1 and 4 only",
+          "c": "2, 3 and 4 only",
+          "d": "1, 2, 3 and 4"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "Statements 1, 2, and 3 are correct. The Chamera Hydroelectric Project is a massive clean-energy cascade built across the Ravi River, split into three clear phases with a cumulative generating capacity of 1,071 MW. Statement 4 is false because its primary purpose is power generation, not inland navigation."
+      },
+      {
+        "id": 178,
+        "question": "Consider the following pairs: Protected Area–Associated Region: 1. Kalatop–Khajjiar Wildlife Sanctuary–Dalhousie–Khajjiar 2. Kugti Wildlife Sanctuary–Bharmour 3. Sechu Tuan Nala Wildlife Sanctuary–Pangi Valley. Which of the pairs given above is/are correctly matched?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 and 3 only",
+          "c": "1 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "All three wildlife sanctuaries are perfectly matched with their respective geographic zones: Kalatop-Khajjiar in the Dalhousie hills; Kugti flanking the high alpine slopes of Bharmour; and Sechu Tuan Nala deep inside the Trans-Pangi Valley region."
+      },
+      {
+        "id": 179,
+        "question": "Consider the following statements about Gamgul Siyabehi Wildlife Sanctuary: 1. It is located in Bhandal Valley of Chamba district. 2. It is associated with the Salooni region. 3. It is located near the coastal belt of Himachal Pradesh. Which of the statements given above is/are correct?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 only",
+          "c": "1 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "Statements 1 and 2 are correct. The Gamgul Siyabehi Wildlife Sanctuary is located in the Bhandal Valley within the northern Salooni ecosystem. Statement 3 is completely false as the district contains zero coastal zones."
+      },
+      {
+        "id": 180,
+        "question": "Consider the following fauna: 1. Snow leopard 2. Himalayan monal 3. Musk deer 4. One-horned rhinoceros. Which of the above are associated with Himalayan protected areas of Chamba district?",
+        "options": {
+          "a": "1, 2 and 3 only",
+          "b": "2 and 4 only",
+          "c": "1 and 4 only",
+          "d": "1, 2, 3 and 4"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "The alpine, sub-alpine, and dense coniferous forests of Chamba house native mountain fauna including the Snow leopard, Himalayan monal, and the endangered Musk deer. The One-horned rhinoceros is a swamp-dwelling animal native to the tropical plains of Assam and Nepal, not the high Western Himalayas."
+      },
+      {
+        "id": 181,
+        "question": "With reference to Kalatop–Khajjiar Wildlife Sanctuary, consider the following statements: 1. It is located near Dalhousie. 2. It is known for deodar forests. 3. It is located in Pangi Valley. Which of the statements given above is/are correct?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 and 3 only",
+          "c": "1 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "Statements 1 and 2 are correct. The Kalatop–Khajjiar Wildlife Sanctuary is situated right near Dalhousie and is renowned for its thick, pristine deodar and oak forests. Statement 3 is incorrect because it is located in the main Ravi basin/Dalhousie area, not the trans-Himalayan Pangi Valley."
+      },
+      {
+        "id": 182,
+        "question": "Consider the following statements: 1. Chamba district contains several high-altitude wildlife sanctuaries. 2. Protected areas of Chamba are important for Himalayan biodiversity. 3. All protected areas of Chamba are located in coastal wetlands. Which of the statements given above is/are correct?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 and 3 only",
+          "c": "1 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "Statements 1 and 2 are true; the high-altitude sanctuaries of Chamba protect rare alpine fauna and form a major corner of Western Himalayan biodiversity. Statement 3 is completely incorrect because the district is landlocked in the high mountains and contains zero coastal wetlands."
+      },
+      {
+        "id": 183,
+        "question": "Consider the following statements about Chamera Lake: 1. It is a reservoir formed by the Chamera project. 2. It is located on the Ravi River system. 3. It is important for boating and tourism. 4. It is located at sea level. Which of the above statements are correct?",
+        "options": {
+          "a": "1, 2 and 3 only",
+          "b": "2 and 4 only",
+          "c": "1 and 4 only",
+          "d": "1, 2, 3 and 4"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "Statements 1, 2, and 3 are correct. Chamera Lake is a vast artificial reservoir created by NHPC's Chamera Hydroelectric project on the Ravi River system and has evolved into a major hub for water sports and tourism. Statement 4 is false as it sits nestled deep within the inner Himalayan ranges, not at sea level."
+      },
+      {
+        "id": 184,
+        "question": "With reference to Baira Siul Power Station, consider the following statements: 1. It was the first hydro station built by NHPC Limited. 2. It has an installed capacity of 180 MW. 3. It harnesses the combined flow of Baira, Siul and Bhaledh. 4. It benefits only Himachal Pradesh. Which of the above statements are correct?",
+        "options": {
+          "a": "1, 2 and 3 only",
+          "b": "1 and 4 only",
+          "c": "2, 3 and 4 only",
+          "d": "1, 2, 3 and 4"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "Statements 1, 2, and 3 are correct. Baira Siul holds immense historical importance as the very first milestone hydro project constructed by NHPC, utilizing a total capacity of 180 MW by channeling the combined flow of the Baira, Siul, and Bhaledh streams. Statement 4 is incorrect because the power generated feeds into the Northern Regional Grid, benefiting multiple states, not just Himachal Pradesh."
+      },
+      {
+        "id": 185,
+        "question": "Which of the following pairs is/are correctly matched? Project / Feature–Associated Fact: 1. Chamera Dam–Ravi River 2. Baira Siul–First hydro station of NHPC 3. Kuhls–Traditional hill irrigation channels 4. Chamera Lake–Reservoir linked with tourism. Select the correct answer:",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "1, 2 and 3 only",
+          "c": "1, 2, 3 and 4",
+          "d": "3 and 4 only"
+        },
+        "correctAnswer": "c",
+        "difficulty": "hard",
+        "explanation": "All four pairs are perfectly matched. Chamera Dam taps the Ravi River; Baira Siul is NHPC's pioneer project; Kuhls are traditional gravity-fed mountain irrigation channels; and Chamera Lake is a premier tourist reservoir asset."
+      },
+      {
+        "id": 186,
+        "question": "Consider the following statements about Low Hill Soils of Chamba: 1. They are found in lower parts of the district. 2. They are generally greyish to yellowish-brown. 3. Their texture ranges from loamy sand to sandy loam. 4. They are always very rich in organic carbon. Which of the above statements are correct?",
+        "options": {
+          "a": "1, 2 and 3 only",
+          "b": "1 and 4 only",
+          "c": "2, 3 and 4 only",
+          "d": "1, 2, 3 and 4"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "Statements 1, 2, and 3 are correct. The Low Hill Soils occupy the lower, sub-mountainous tracts of the district, showing a greyish to yellowish-brown hue and ranging from loamy sand to sandy loam textures. Statement 4 is incorrect because while they support good agriculture, they are not always very rich in organic carbon due to leaching from monsoonal rain along the lower slopes."
+      },
+      {
+        "id": 187,
+        "question": "Mid Hill Soils of Chamba are comparatively suitable for agriculture because: 1. They are generally loam to clay loam. 2. They are well-drained. 3. They have medium to high organic carbon. 4. They are permanently frozen throughout the year. Select the correct answer:",
+        "options": {
+          "a": "1, 2 and 3 only",
+          "b": "1 and 4 only",
+          "c": "2 and 4 only",
+          "d": "1, 2, 3 and 4"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "Statements 1, 2, and 3 are true; the Mid Hill Soils are highly suited for intense terrace farming because they have a favorable loam to clay loam texture, are well-drained, and contain medium to high amounts of organic content. Statement 4 is false because these are temperate farming soils, not permanently frozen permafrost."
+      },
+      {
+        "id": 188,
+        "question": "Consider the following statements about Mountain Soils of Chamba: 1. They are found on high ridges and upper slopes of Dhauladhar and Pir Panjal. 2. They are generally shallow, gravelly and loamy. 3. Freeze-thaw action makes the topsoil unstable. 4. They are ideal for intensive paddy cultivation. Which of the above statements are correct?",
+        "options": {
+          "a": "1, 2 and 3 only",
+          "b": "1 and 4 only",
+          "c": "2, 3 and 4 only",
+          "d": "1, 2, 3 and 4"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "Statements 1, 2, and 3 are correct. Mountain Soils are situated on the upper ridges of the Dhauladhar and Pir Panjal, characterized by shallow, gravelly profiles where active freeze-thaw actions make the top layer highly unstable. Statement 4 is false because these rugged, unstable high terrains are completely unsuited for intensive paddy (rice) cultivation."
+      },
+      {
+        "id": 189,
+        "question": "Consider the following statements about agriculture in Chamba district: 1. Agricultural cultivation is restricted due to forests, alpine pastures and rugged terrain. 2. Maize and paddy are important Kharif crops. 3. Wheat and barley are important Rabi crops. 4. Coconut is the dominant plantation crop of Chamba. Which of the above statements are correct?",
+        "options": {
+          "a": "1, 2 and 3 only",
+          "b": "1 and 4 only",
+          "c": "2, 3 and 4 only",
+          "d": "1, 2, 3 and 4"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "Statements 1, 2, and 3 are highly accurate. Topography, pastures, and forests severely limit the total net sown area of Chamba, where maize and paddy dominate the summer Kharif cycle and wheat and barley dominate the winter Rabi cycle. Statement 4 is absurd as coconut is a tropical coastal crop and cannot grow in the alpine fields of Chamba."
+      },
+      {
+        "id": 190,
+        "question": "Consider the following statements about the Cold Arid / Dry Temperate Zone of Chamba: 1. It is generally found above 2,500 m. 2. It shows trans-Himalayan cold desert conditions. 3. Rainfall is low and much precipitation occurs as winter snowfall. 4. It receives heavy rainfall throughout the year due to the south-west monsoon. Which of the above statements are correct?",
+        "options": {
+          "a": "1, 2 and 3 only",
+          "b": "1 and 4 only",
+          "c": "2, 3 and 4 only",
+          "d": "1, 2, 3 and 4"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "Statements 1, 2, and 3 are correct. Found above 2,500 meters (such as in the Pangi Valley), this zone exhibits classic trans-Himalayan cold desert conditions where overall rain is scarce and most moisture is received through heavy winter snowfall. Statement 4 is incorrect because the Pir Panjal blocks the south-west monsoon, preventing heavy rain throughout the year."
+      },
+      {
+        "id": 191,
+        "question": "Which of the following are important cash crops of Chamba district? 1. Potato 2. Cabbage 3. Cauliflower 4. Peas 5. Tomato 6. Capsicum. Select the correct answer:",
+        "options": {
+          "a": "1, 2 and 3 only",
+          "b": "1, 4 and 6 only",
+          "c": "1, 2, 3, 4, 5 and 6",
+          "d": "2, 5 and 6 only"
+        },
+        "correctAnswer": "c",
+        "difficulty": "hard",
+        "explanation": "All the listed vegetables (Potato, Cabbage, Cauliflower, Peas, Tomato, and Capsicum) serve as major commercial, high-value cash crops grown extensively across Chamba's temperate zones to supply the markets in the plains."
+      },
+      {
+        "id": 192,
+        "question": "Consider the following statements about horticulture in Chamba district: 1. Apple is important in higher and cooler belts. 2. Plums, peaches, apricots and walnuts are also grown according to altitude. 3. Horticulture is influenced by altitude-based climatic variation. 4. Banana and coconut dominate the high-altitude horticulture belt. Which of the above statements are correct?",
+        "options": {
+          "a": "1, 2 and 3 only",
+          "b": "1 and 4 only",
+          "c": "2, 3 and 4 only",
+          "d": "1, 2, 3 and 4"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "Statements 1, 2, and 3 are correct. Apple cultivation thrives in the high, cold sub-divisions, while stone fruits (plums, peaches, apricots) and walnuts are distributed according to explicit altitudinal microclimates. Statement 4 is completely false as banana and coconut are tropical plants that cannot survive in high-altitude alpine belts."
+      },
+      {
+        "id": 193,
+        "question": "With reference to the climate of Chamba district, consider the following statements: 1. The district has strong altitude-based climatic variation. 2. Sub-tropical low hills may experience hot and humid summers. 3. Wet temperate high hills receive both monsoon rainfall and winter snowfall. 4. The entire district has a uniform coastal climate. Which of the above statements are correct?",
+        "options": {
+          "a": "1, 2 and 3 only",
+          "b": "1 and 4 only",
+          "c": "2, 3 and 4 only",
+          "d": "1, 2, 3 and 4"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "Statements 1, 2, and 3 are true. Chamba experiences extreme altitude-based climatic variation, ranging from hot, humid summers in the low sub-tropical valleys to wet temperate cycles in the middle mountains which experience both heavy rain and deep snow. Statement 4 is false as Chamba is an alpine Himalayan district with no uniform coastal weather."
+      },
+      {
+        "id": 194,
+        "question": "With reference to Chamba Town, consider the following statements: 1. It is the district headquarters of Chamba district. 2. It is situated on the banks of the Ravi River. 3. It is traditionally associated with Raja Sahil Varman. Which of the statements given above are correct?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 and 3 only",
+          "c": "1 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "All three statements are correct. Chamba Town functions as the formal administrative district headquarters, is built on the right-bank river terrace of the Ravi River, and was historically founded in the 10th century by Raja Sahil Varman."
+      },
+      {
+        "id": 195,
+        "question": "Which of the following are associated with Chamba Town? 1. Lakshmi Narayan Temple complex 2. Bhuri Singh Museum 3. Minjar Mela 4. Chamba Rumal. Select the correct answer using the code given below:",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "1, 2 and 3 only",
+          "c": "2, 3 and 4 only",
+          "d": "1, 2, 3 and 4"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "All four items are intimately tied to the layout, history, and culture of Chamba Town. It hosts the ancient six-shrine Lakshmi Narayan Temple Complex, preserves heritage at the Bhuri Singh Museum, holds the Minjar Mela on its Chaugan, and acts as the central production center for the GI-tagged Chamba Rumal."
+      },
+      {
+        "id": 196,
+        "question": "Consider the following statements about Dalhousie: 1. It was established as a British summer retreat. 2. It is named after the Earl of Dalhousie. 3. It is spread over five hills. Which of the statements given above are correct?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 and 3 only",
+          "c": "1 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "All statements are correct. Dalhousie was mapped out by the British Empire in 1854 as a cool summer retreat, named directly after the Earl of Dalhousie (Governor-General), and is topographically nestled across five distinct hills."
+      },
+      {
+        "id": 197,
+        "question": "Which of the following hills are associated with Dalhousie? 1. Kathlog 2. Potreyn 3. Bakrota 4. Bhangora / Balun. Select the correct answer using the code given below:",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "1, 2 and 3 only",
+          "c": "2, 3 and 4 only",
+          "d": "1, 2, 3 and 4"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "All four options (Kathlog, Potreyn, Bakrota, and Bhangora/Balun) represent the core hills that structurally make up the geographic municipal sprawl of Dalhousie."
+      },
+      {
+        "id": 198,
+        "question": "Consider the following pairs: Place–Associated Personality: 1. Subhash Baoli–Subhas Chandra Bose 2. Panchpula–Sardar Ajit Singh 3. Khajjiar–Raja Sahil Varman. Which of the pairs given above is/are correctly matched?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 and 3 only",
+          "c": "1 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "Pairs 1 and 2 are correctly matched. Subhash Baoli is named after Netaji Subhas Chandra Bose, who recuperated there, and Panchpula houses the samadhi of freedom fighter Sardar Ajit Singh. Pair 3 is incorrectly matched because the meadow of Khajjiar is historically and mythologically associated with the ancient Khajji Nag Temple and local serpent lore, not directly founded as a town layout by Raja Sahil Varman (who founded Chamba town instead)."
+      },
+      {
+        "id": 199,
+        "question": "With reference to Khajjiar, consider the following statements: 1. It is popularly called “Mini Switzerland”. 2. It is located near Dalhousie. 3. It is associated with Khajji Nag Temple. Which of the statements given above are correct?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 and 3 only",
+          "c": "1 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "All statements regarding Khajjiar are correct. It is popularly nicknamed “Mini Switzerland”, sits on a ridge near Dalhousie, and centers culturally around the ancient, wood-carved 12th-century Khajji Nag Temple."
+      },
+      {
+        "id": 200,
+        "question": "Khajjiar is important in the tourism geography of Chamba district because it is associated with: 1. Khajjiar Lake 2. Deodar forests 3. Kalatop–Khajjiar Wildlife Sanctuary 4. Mangrove ecosystem. Select the correct answer using the code given below:",
+        "options": {
+          "a": "1, 2 and 3 only",
+          "b": "2 and 4 only",
+          "c": "1 and 4 only",
+          "d": "1, 2, 3 and 4"
+        },
+        "correctAnswer": "a",
+        "difficulty": "hard",
+        "explanation": "Statements 1, 2, and 3 are correct. Khajjiar's famous tourist landscape is defined by its natural lake, thick surrounding deodar groves, and its inclusion within the broader Kalatop–Khajjiar Wildlife Sanctuary. Statement 4 is false because mangrove ecosystems exist only in saline coastal river deltas, not alpine Himalayan meadows."
+      },
+      {
+        "id": 201,
+        "question": "With reference to Pangi / Killar, consider the following statements: 1. It is a remote tribal valley of Chamba district. 2. It is associated with the Pangwal community. 3. It is connected with Sach Pass. Which of the statements given above are correct?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 and 3 only",
+          "c": "1 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "All statements are correct. Pangi (with its headquarters Killar) is a historically remote tribal valley in Chamba, populated primarily by the indigenous Pangwal community, and is reached by traveling over the rugged Sach Pass."
+      },
+      {
+        "id": 202,
+        "question": "Consider the following statements: 1. Chamba Town is associated with Chamba Rumal and Chamba miniature paintings. 2. Dalhousie is associated with colonial architecture and churches. 3. Khajjiar is associated with meadow-lake tourism. Which of the statements given above are correct?",
+        "options": {
+          "a": "1 and 2 only",
+          "b": "2 and 3 only",
+          "c": "1 and 3 only",
+          "d": "1, 2 and 3"
+        },
+        "correctAnswer": "d",
+        "difficulty": "hard",
+        "explanation": "This summary question accurately links all three locations with their primary geographical and cultural identities: Chamba Town with fine arts (Rumal and Pahari miniatures), Dalhousie with colonial-era architecture and churches, and Khajjiar with meadow-lake tourism."
+      }
+    ]
+  }
+}

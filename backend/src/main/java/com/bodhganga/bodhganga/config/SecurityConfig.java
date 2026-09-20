@@ -17,8 +17,11 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
@@ -45,12 +48,16 @@ public class SecurityConfig {
                                 "/api/auth/register",
                                 "/api/auth/health",
                                 "/api/auth/admin/login",
+                                "/api/auth/admin/otp/**",
+                                "/api/admin/auth/otp/**",
                                 "/api/auth/**",
                                 "/api/admin/system/**",
                                 "/api/admin/recovery/**",
                                 "/error",
+
                                 "/actuator/health"
                         ).permitAll()
+
                         // Public course reads
                         .requestMatchers("/api/courses/list", "/api/courses/category/**").permitAll()
                         // Public blog reads
@@ -63,10 +70,16 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/videos/**").permitAll()
                         // Public products (Digital Marketplace)
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/products/**").permitAll()
+
                         // Public PDF reads (resource-level authorization enforced in PdfController)
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/pdf/**").permitAll()
                         // Public Test Series catalog reads
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/test-series/**").permitAll()
+
+                        // Public PDF presigned link generator (fine-grained FREE vs PAID check in
+                        // controller)
+                        // .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/pdf/**").permitAll()
+
 
                         // Question Bank — catalog and search are public; test execution and dashboard require auth
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/question-bank/tests").permitAll()
@@ -83,7 +96,9 @@ public class SecurityConfig {
                         // AI companion — general is public, study requires auth
                         .requestMatchers("/api/ai/general").permitAll()
                         .requestMatchers("/api/ai/study").authenticated()
-                        .requestMatchers("/api/payment/webhook", "/api/payment/check-purchase/**").permitAll()
+                        .requestMatchers("/api/payment/webhook", "/api/payment/check-purchase/**",
+                                "/api/payment/district/purchased")
+                        .permitAll()
                         .requestMatchers("/api/payment/**").authenticated()
 
                         // Cart — count is public (returns 0 for guests), rest requires auth
@@ -96,13 +111,17 @@ public class SecurityConfig {
                         // Admin orders — require ADMIN role
                         .requestMatchers("/api/admin/orders/**").hasAuthority("ROLE_ADMIN")
 
-                        // Dashboard admin-stats is called with admin token; revenue/content/storage same
+                        // Dashboard admin-stats is called with admin token; revenue/content/storage
+                        // same
                         .requestMatchers("/api/dashboard/admin-stats").authenticated()
                         .requestMatchers("/api/dashboard/revenue").authenticated()
                         .requestMatchers("/api/dashboard/content").authenticated()
                         .requestMatchers("/api/dashboard/storage").authenticated()
 
-                        // Protected user endpoints
+                        // Quiz endpoints - public questions retrieval & grading submission, protected
+                        // management
+                        .requestMatchers("/api/quiz/questions", "/api/quiz/published-count", "/api/quiz/submit")
+                        .permitAll()
                         .requestMatchers("/api/quiz/**").authenticated()
                         .requestMatchers("/api/dashboard/**").authenticated()
                         .requestMatchers("/api/profile/**").authenticated()
@@ -111,15 +130,24 @@ public class SecurityConfig {
                         .requestMatchers("/api/courses/**").authenticated()
 
                         // Admin write endpoints — MUST have ADMIN role
-                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/states/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/states/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/states/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/blog/posts/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/blog/posts/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/blog/posts/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/content/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/content/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/content/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/states/**")
+                        .hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/states/**")
+                        .hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/states/**")
+                        .hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/blog/posts/**")
+                        .hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/blog/posts/**")
+                        .hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/blog/posts/**")
+                        .hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/content/**")
+                        .hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/content/**")
+                        .hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/content/**")
+                        .hasAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
 
                         // Disallow everything else
@@ -133,15 +161,17 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Known production origins — always allowed
-        java.util.List<String> origins = new java.util.ArrayList<>(java.util.List.of(
-            "http://localhost:5173",
-            "http://localhost:3000",
-            "https://bodhganga.in",
-            "https://www.bodhganga.in"
-        ));
-
         // Additional origins injected at runtime (e.g., staging, specific Vercel deployment URL)
+
+        java.util.List<String> origins = new java.util.ArrayList<>(java.util.List.of(
+                "http://localhost:5173",
+                "http://localhost:3000",
+                "http://127.0.0.1:*",
+                "https://bodhganga.in",
+                "https://www.bodhganga.in",
+                "https://*.vercel.app"));
+
+
         String envOrigins = System.getenv("ALLOWED_ORIGINS");
         if (envOrigins != null && !envOrigins.isBlank()) {
             for (String origin : envOrigins.split(",")) {
@@ -171,5 +201,3 @@ public class SecurityConfig {
         return source;
     }
 }
-
-

@@ -196,6 +196,7 @@ const AdminDashboard = () => {
     ];
 
     const quickActions = [
+        { label: 'Question Bank OCR', href: '/admin/question-bank', icon: '🤖', desc: 'Ingest & parse dual PDFs via OCR' },
         { label: 'Manage States & UTs',  href: '/admin/states',              icon: '🗺️', desc: 'Regulate prep portals' },
         { label: 'Publish Blog Post',     href: '/admin/blogs',               icon: '✍️', desc: 'Create & schedule core tutorials' },
         { label: 'Add Content Lecture',    href: '/admin/content',             icon: '📚', desc: 'Upload PDF and video lessons' },

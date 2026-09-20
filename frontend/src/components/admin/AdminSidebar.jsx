@@ -8,7 +8,9 @@ import {
     Upload,
     Users,
     Settings,
-    BarChart3
+    BarChart3,
+    FolderOpen,
+    Cpu
 } from 'lucide-react';
 
 /**
@@ -24,6 +26,18 @@ const AdminSidebar = () => {
             icon: LayoutDashboard,
             label: 'Dashboard',
             description: 'Overview & Analytics'
+        },
+        {
+            path: '/admin/question-bank',
+            icon: Cpu,
+            label: 'Question Bank OCR',
+            description: 'Dual PDF OCR Ingestion'
+        },
+        {
+            path: '/admin/state-resources',
+            icon: FolderOpen,
+            label: 'State Resources',
+            description: 'State & District PDFs'
         },
         {
             path: '/admin/states',

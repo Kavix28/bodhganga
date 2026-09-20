@@ -17,21 +17,21 @@ import java.util.Date;
 public class Product {
     @Id
     private String id;
-    
+
     private String title;
     private String description;
     @Indexed
     private String stateSlug; // To associate with a specific state
     private String type; // "PDF", "AUDIO", "VIDEO"
-    
+
     private Double price;
     private String previewUrl; // Thumbnail or sample audio
     private String storageKey; // AWS S3 Object Key for secure download
-    
+
     @Indexed
     private boolean isPublished;
     private Date createdAt;
- 
+
     // Fields for PDF import from Google Drive
     private String category;
     @Indexed
@@ -39,14 +39,16 @@ public class Product {
     private String courseId;
     private String fileName;
     private Long fileSize;
-    
+    private String sectionSlug;
+    private String contentArea;
+    private String contentHash;
     @Indexed(unique = true, sparse = true)
     private String s3Key;
     private String driveUrl;
-    
+
     @Indexed
     private Boolean importedFromDrive;
-    
+
     // Recursive State/District Ingestion Fields
     private String state;
     private String district;
@@ -62,7 +64,7 @@ public class Product {
 
     // Hardened pipeline fields
     private String fileExtension;
-    
+
     @Indexed(unique = true, sparse = true)
     private String googleDriveFileId;
     private IngestionStatus ingestionStatus;
@@ -107,7 +109,7 @@ public class Product {
     private String ocrText;
     private String summary;
     private java.util.List<Double> embeddings;
-    
+
     public Product() {
         this.createdAt = new Date();
         this.updatedAt = new Date();
@@ -139,8 +141,8 @@ public class Product {
     public String getStorageKey() { return storageKey; }
     public void setStorageKey(String storageKey) { this.storageKey = storageKey; }
     public boolean isPublished() { return isPublished; }
-    public void setPublished(boolean published) { 
-        this.isPublished = published; 
+    public void setPublished(boolean published) {
+        this.isPublished = published;
         this.published = published;
     }
     public Date getCreatedAt() { return createdAt; }
@@ -390,4 +392,27 @@ public class Product {
         }
         return "application/octet-stream";
     }
+    public String getSectionSlug() {
+    return sectionSlug;
+}
+
+public void setSectionSlug(String sectionSlug) {
+    this.sectionSlug = sectionSlug;
+}
+
+public String getContentArea() {
+    return contentArea;
+}
+
+public void setContentArea(String contentArea) {
+    this.contentArea = contentArea;
+}
+
+public String getContentHash() {
+    return contentHash;
+}
+
+public void setContentHash(String contentHash) {
+    this.contentHash = contentHash;
+}
 }
