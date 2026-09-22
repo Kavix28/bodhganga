@@ -26,6 +26,14 @@ public class QuizAvailabilityServiceTest {
         @Autowired
         private QuizAttemptController quizAttemptController;
 
+        @Autowired
+        private QuestionSeedService questionSeedService;
+
+        @org.junit.jupiter.api.BeforeEach
+        void setUp() {
+                questionSeedService.seedQuestions();
+        }
+
         @Test
         public void testStateAvailabilityPolicy() {
                 assertTrue(quizAvailabilityService.isStateAvailable("maharashtra"), "maharashtra -> true");
@@ -69,12 +77,12 @@ public class QuizAvailabilityServiceTest {
 
         @Test
         public void testBackendQuizControllerEnforcement() {
-                // 1. Akola questions return HTTP 200
-                ResponseEntity<ApiResponseDTO> akolaRes = quizAttemptController.getQuestions("maharashtra", "akola",
+                // 1. Bengaluru questions return HTTP 200
+                ResponseEntity<ApiResponseDTO> bengaluruRes = quizAttemptController.getQuestions("karnataka", "bengaluru",
                                 "easy",
                                 null, 0);
-                assertEquals(HttpStatus.OK, akolaRes.getStatusCode());
-                assertTrue(akolaRes.getBody().isSuccess());
+                assertEquals(HttpStatus.OK, bengaluruRes.getStatusCode());
+                assertTrue(bengaluruRes.getBody().isSuccess());
 
                 // 2. Pune questions return HTTP 403
                 ResponseEntity<ApiResponseDTO> puneRes = quizAttemptController.getQuestions("maharashtra", "pune",

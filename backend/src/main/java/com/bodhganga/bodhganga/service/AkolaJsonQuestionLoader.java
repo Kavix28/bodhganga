@@ -74,12 +74,35 @@ public class AkolaJsonQuestionLoader implements CommandLineRunner {
             AkolaQuestionJsonRecord rec = records.get(i);
             validateRecord(rec, seenIds);
 
+            String rawType = rec.getTestType() != null ? rec.getTestType().toLowerCase(java.util.Locale.ROOT) : "";
+            String rawLevel = rec.getLevel() != null ? rec.getLevel().toLowerCase(java.util.Locale.ROOT) : "";
+
+            String mappedTestType;
+            if ("advanced".equals(rawType) || "statement-based".equals(rawType) || "statement_based".equals(rawType)
+                    || "upsc-level".equals(rawLevel)) {
+                mappedTestType = "statement-based";
+            } else if ("master".equals(rawType)) {
+                mappedTestType = "master";
+            } else {
+                mappedTestType = "foundation";
+            }
+
+            String mappedLevel;
+            if ("upsc-level".equals(rawLevel) || "statement-based".equals(rawLevel)
+                    || "statement_based".equals(rawLevel) || "advanced".equals(rawType)) {
+                mappedLevel = "statement-based";
+            } else if ("master".equals(rawLevel)) {
+                mappedLevel = "master";
+            } else {
+                mappedLevel = "foundation";
+            }
+
             Question q = Question.builder()
                     .id(rec.getId())
                     .stateSlug(rec.getStateSlug())
                     .districtSlug(rec.getDistrictSlug())
-                    .testType(rec.getTestType())
-                    .level(rec.getLevel())
+                    .testType(mappedTestType)
+                    .level(mappedLevel)
                     .topic(rec.getTopic() != null ? rec.getTopic() : "General")
                     .question(rec.getQuestion())
                     .options(rec.getOptions())

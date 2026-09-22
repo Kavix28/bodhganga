@@ -80,13 +80,13 @@ public class QuizControllerSecurityAndGradingTests {
 
         @Test
         void test1_questionRepositoryFiltering() {
-                List<Question> akolaEasy = questionRepo
+                List<Question> akolaFoundation = questionRepo
                                 .findByStateSlugAndDistrictSlugAndTestTypeAndIsActiveTrueOrderByQuestionNumberAsc(
-                                                "maharashtra", "akola", "easy");
-                assertFalse(akolaEasy.isEmpty());
-                assertEquals("maharashtra", akolaEasy.get(0).getStateSlug());
-                assertEquals("akola", akolaEasy.get(0).getDistrictSlug());
-                assertEquals("easy", akolaEasy.get(0).getTestType());
+                                                "maharashtra", "akola", "foundation");
+                assertFalse(akolaFoundation.isEmpty());
+                assertEquals("maharashtra", akolaFoundation.get(0).getStateSlug());
+                assertEquals("akola", akolaFoundation.get(0).getDistrictSlug());
+                assertEquals("foundation", akolaFoundation.get(0).getTestType());
         }
 
         @Test
@@ -100,8 +100,8 @@ public class QuizControllerSecurityAndGradingTests {
         @WithMockUser(username = TEST_USER_EMAIL)
         void test3_questionApiReturnsSanitizedQuestionsWithoutAnswerKeys() throws Exception {
                 mockMvc.perform(get("/api/quiz/questions")
-                                .param("stateSlug", "maharashtra")
-                                .param("districtSlug", "akola")
+                                .param("stateSlug", "karnataka")
+                                .param("districtSlug", "bengaluru")
                                 .param("testType", "easy"))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.success").value(true))
@@ -117,8 +117,8 @@ public class QuizControllerSecurityAndGradingTests {
         @WithMockUser(username = TEST_USER_EMAIL)
         void test4_questionFilteringByStateDistrictTestTypeAndTopic() throws Exception {
                 mockMvc.perform(get("/api/quiz/questions")
-                                .param("stateSlug", "maharashtra")
-                                .param("districtSlug", "akola")
+                                .param("stateSlug", "karnataka")
+                                .param("districtSlug", "bengaluru")
                                 .param("testType", "easy")
                                 .param("topic", "History"))
                                 .andExpect(status().isOk())
@@ -143,7 +143,7 @@ public class QuizControllerSecurityAndGradingTests {
         void test5_serverSideGradingCalculatesScoreCorrectlyAndIgnoresForgedPayload() throws Exception {
                 List<Question> qList = questionRepo
                                 .findByStateSlugAndDistrictSlugAndTestTypeAndIsActiveTrueOrderByQuestionNumberAsc(
-                                                "maharashtra", "akola", "easy");
+                                                "karnataka", "bengaluru", "easy");
                 assertTrue(qList.size() >= 2);
 
                 Question q1 = qList.get(0); // correct ans 1
@@ -155,8 +155,8 @@ public class QuizControllerSecurityAndGradingTests {
                 answers.put(q2.getId(), (q2.getCorrectAnswer() + 1) % 4); // Incorrect
 
                 Map<String, Object> forgedBody = new HashMap<>();
-                forgedBody.put("stateSlug", "maharashtra");
-                forgedBody.put("districtSlug", "akola");
+                forgedBody.put("stateSlug", "karnataka");
+                forgedBody.put("districtSlug", "bengaluru");
                 forgedBody.put("testType", "easy");
                 forgedBody.put("timeTaken", 45);
                 forgedBody.put("questionIds", qIds);
@@ -185,7 +185,7 @@ public class QuizControllerSecurityAndGradingTests {
         void test6_unansweredQuestionsHandledCorrectly() throws Exception {
                 List<Question> qList = questionRepo
                                 .findByStateSlugAndDistrictSlugAndTestTypeAndIsActiveTrueOrderByQuestionNumberAsc(
-                                                "maharashtra", "akola", "easy");
+                                                "karnataka", "bengaluru", "easy");
                 assertTrue(qList.size() >= 2);
 
                 Question q1 = qList.get(0);
@@ -196,8 +196,8 @@ public class QuizControllerSecurityAndGradingTests {
                 answers.put(q1.getId(), q1.getCorrectAnswer()); // 1 correct, q2 unanswered
 
                 QuizSubmissionDTO submission = QuizSubmissionDTO.builder()
-                                .stateSlug("maharashtra")
-                                .districtSlug("akola")
+                                .stateSlug("karnataka")
+                                .districtSlug("bengaluru")
                                 .testType("easy")
                                 .timeTaken(30)
                                 .questionIds(qIds)

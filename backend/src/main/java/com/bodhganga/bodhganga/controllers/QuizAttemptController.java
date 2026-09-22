@@ -53,19 +53,6 @@ public class QuizAttemptController {
         return userRepo.findByEmail(email).map(com.bodhganga.bodhganga.entity.User::getId).orElse(null);
     }
 
-    private boolean isStatementQuestion(Question q) {
-        if (q == null || q.getQuestion() == null)
-            return false;
-        String text = q.getQuestion().toLowerCase(Locale.ROOT);
-        return text.contains("consider the following") ||
-                text.contains("which of the statement") ||
-                text.contains("which of the pair") ||
-                text.contains("statement 1") ||
-                text.contains("correctly matched") ||
-                text.contains("1.") ||
-                text.contains("2.");
-    }
-
     @GetMapping("/districts/{districtSlug}/question-bank/access")
     public ResponseEntity<ApiResponseDTO> checkDistrictQuestionBankAccess(
             @PathVariable String districtSlug,
@@ -196,28 +183,51 @@ public class QuizAttemptController {
         }
 
         List<Question> questions;
-        boolean isFoundationType = "foundation".equalsIgnoreCase(testType);
+        boolean isFoundationType = "foundation".equalsIgnoreCase(testType) || "easy".equalsIgnoreCase(testType);
         boolean isStatementType = "statement-based".equalsIgnoreCase(testType)
-                || "statement_based".equalsIgnoreCase(testType);
+                || "statement_based".equalsIgnoreCase(testType)
+                || "advanced".equalsIgnoreCase(testType);
 
         if ((isFoundationType || isStatementType) && stateSlug != null && districtSlug != null) {
-            List<Question> allDistQuestions = questionRepo
-                    .findByStateSlugAndDistrictSlugAndStatusAndIsActiveTrueOrderByQuestionNumberAsc(
-                            stateSlug, districtSlug, "PUBLISHED");
+            String targetTestType = isFoundationType ? Question.TEST_TYPE_FOUNDATION
+                    : Question.TEST_TYPE_STATEMENT_BASED;
+            List<Question> eligibleQuestions = questionRepo
+                    .findByStateSlugAndDistrictSlugAndTestTypeAndStatusAndIsActiveTrueOrderByQuestionNumberAsc(
+                            stateSlug, districtSlug, targetTestType, "PUBLISHED");
 
-            List<Question> filteredQuestions = allDistQuestions.stream().filter(q -> {
-                boolean stmt = isStatementQuestion(q);
-                return isStatementType ? stmt : !stmt;
-            }).collect(Collectors.toList());
-
-            // Server-side randomization to ensure unique test experience each time
-            Collections.shuffle(filteredQuestions, new Random(System.currentTimeMillis()));
-
-            int targetLimit = (limit > 0) ? limit : 10;
-            if (filteredQuestions.size() > targetLimit) {
-                filteredQuestions = filteredQuestions.subList(0, targetLimit);
+            if (eligibleQuestions.size() < 10) {
+                List<Question> allDistQuestions = questionRepo
+                        .findByStateSlugAndDistrictSlugAndStatusAndIsActiveTrueOrderByQuestionNumberAsc(
+                                stateSlug, districtSlug, "PUBLISHED");
+                eligibleQuestions = allDistQuestions.stream().filter(q -> {
+                    String qType = q.getTestType() != null ? q.getTestType().toLowerCase(Locale.ROOT) : "";
+                    String qLevel = q.getLevel() != null ? q.getLevel().toLowerCase(Locale.ROOT) : "";
+                    boolean isStmt = "statement-based".equals(qType) || "statement_based".equals(qType)
+                            || "statement-based".equals(qLevel) || "upsc-level".equals(qLevel)
+                            || "advanced".equals(qType);
+                    return isStatementType ? isStmt : !isStmt;
+                }).collect(Collectors.toList());
             }
-            questions = filteredQuestions;
+
+            int requiredCount = 10;
+            if (eligibleQuestions.size() < requiredCount) {
+                Map<String, Object> errData = new HashMap<>();
+                errData.put("code", "INSUFFICIENT_QUESTIONS");
+                errData.put("testType", testType);
+                errData.put("required", requiredCount);
+                errData.put("available", eligibleQuestions.size());
+                return ResponseEntity.badRequest().body(ApiResponseDTO.builder()
+                        .success(false)
+                        .message("Insufficient published questions for "
+                                + (isFoundationType ? "Foundation Test" : "Statement-Based Test")
+                                + ". Required: " + requiredCount + ", Available: " + eligibleQuestions.size())
+                        .data(errData)
+                        .build());
+            }
+
+            // Server-side randomization across full eligible pool
+            Collections.shuffle(eligibleQuestions, new Random(System.currentTimeMillis()));
+            questions = eligibleQuestions.subList(0, requiredCount);
         } else if (stateSlug != null && districtSlug != null) {
             if ("master".equalsIgnoreCase(testType)) {
                 questions = questionRepo.findByStateSlugAndDistrictSlugAndStatusAndIsActiveTrueOrderByQuestionNumberAsc(
@@ -252,19 +262,10 @@ public class QuizAttemptController {
                 .filter(q -> q.getStatus() == null || "PUBLISHED".equalsIgnoreCase(q.getStatus()))
                 .collect(Collectors.toList());
 
-        // Determine effective question limit based on challenge type if not handled
-        // above
         if (!isFoundationType && !isStatementType) {
             int targetLimit = limit;
             if (targetLimit <= 0) {
-                if ("easy".equalsIgnoreCase(testType) || "medium".equalsIgnoreCase(testType)
-                        || "hard".equalsIgnoreCase(testType) || "advanced".equalsIgnoreCase(testType)) {
-                    targetLimit = 20; // Fixed 20-question limit for Easy, Medium, Hard timed pools
-                } else if ("extra".equalsIgnoreCase(testType) || "practice".equalsIgnoreCase(testType)) {
-                    targetLimit = 200; // Untimed Extra Practice pool
-                } else {
-                    targetLimit = 200; // Master test cap
-                }
+                targetLimit = 200; // Master / practice test cap
             }
 
             if (targetLimit > 0 && questions.size() > targetLimit) {

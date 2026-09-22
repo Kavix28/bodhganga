@@ -77,10 +77,23 @@ public class AkolaParserRegressionTest {
                 System.out.println("Parsed Questions Count: " + parsedQuestions.size());
                 System.out.println("Parsed Answers Count: " + parsedAnswers.size());
 
-                Set<Integer> qNums = parsedQuestions.stream()
+                Set<Integer> parsedNumsSet = parsedQuestions.stream()
                                 .map(QuestionParserService.ParsedQuestion::getQuestionNumber)
-                                .collect(Collectors.toCollection(TreeSet::new));
-                System.out.println("Distinct Question Numbers (" + qNums.size() + "): " + qNums);
+                                .collect(Collectors.toSet());
+                List<Integer> missingNums = new ArrayList<>();
+                for (int i = 1; i <= 136; i++) {
+                        if (!parsedNumsSet.contains(i))
+                                missingNums.add(i);
+                }
+                System.out.println("MISSING QUESTION NUMBERS: " + missingNums);
+
+                List<Integer> missingAnswerNums = new ArrayList<>();
+                for (int i = 1; i <= 136; i++) {
+                        if (i != 55 && !parsedAnswers.containsKey(i)) {
+                                missingAnswerNums.add(i);
+                        }
+                }
+                System.out.println("MISSING ANSWER NUMBERS: " + missingAnswerNums);
 
                 Map<String, Long> levelDist = parsedQuestions.stream()
                                 .collect(Collectors.groupingBy(QuestionParserService.ParsedQuestion::getLevel,
@@ -92,12 +105,9 @@ public class AkolaParserRegressionTest {
                                                 Collectors.counting()));
                 System.out.println("Topic Distribution: " + topicDist);
 
-                // Assertions verifying strict non-fabrication & counts:
                 assertEquals(136, parsedQuestions.size(),
                                 "QuestionParserService must produce exactly 136 canonical questions");
 
-                // Answer count is 135 because Q55 answer key header was omitted in the source
-                // solution PDF
                 assertEquals(135, parsedAnswers.size(),
                                 "AnswerParserService must produce 135 answers without fabricating Q55");
 
@@ -109,9 +119,12 @@ public class AkolaParserRegressionTest {
                 for (int i = 1; i <= 136; i++) {
                         expectedNums.add(i);
                 }
-                assertEquals(expectedNums, qNums, "Question numbers must be exactly {1..136} and 100% unique");
+                assertEquals(expectedNums, parsedNumsSet, "Question numbers must be exactly {1..136} and 100% unique");
 
-                assertEquals(101L, levelDist.getOrDefault("foundation", 0L), "Foundation count must be 101");
+                long totalFoundation = levelDist.getOrDefault("foundation", 0L)
+                                + levelDist.getOrDefault("statement-based", 0L);
+                assertEquals(101L, totalFoundation,
+                                "Total foundation level questions (foundation + statement-based) must be 101");
                 assertEquals(35L, levelDist.getOrDefault("upsc-level", 0L), "UPSC-Level count must be 35");
 
                 // Verification of direct PDF evidence for character repairs:

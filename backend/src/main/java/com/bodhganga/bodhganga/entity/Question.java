@@ -15,8 +15,17 @@ public class Question {
     private String stateSlug;
     private String districtSlug;
 
-    private String testType; // 'easy', 'advanced', 'master'
-    private String level; // 'foundation', 'upsc-level', 'master'
+    public static final String TEST_TYPE_FOUNDATION = "foundation";
+    public static final String TEST_TYPE_STATEMENT_BASED = "statement-based";
+    public static final String TEST_TYPE_MASTER = "master";
+
+    public static final String LEVEL_FOUNDATION = "foundation";
+    public static final String LEVEL_STATEMENT_BASED = "statement-based";
+    public static final String LEVEL_UPSC = "upsc-level";
+    public static final String LEVEL_MASTER = "master";
+
+    private String testType; // 'foundation', 'statement-based', 'master'
+    private String level; // 'foundation', 'statement-based', 'upsc-level', 'master'
     private String topic;
 
     private String question;

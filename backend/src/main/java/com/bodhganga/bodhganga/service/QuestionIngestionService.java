@@ -20,6 +20,46 @@ public class QuestionIngestionService {
     private final QuestionMatchingService questionMatchingService;
     private final QuestionRepo questionRepo;
     private final S3Service s3Service;
+    private final GroqExtractionService groqExtractionService;
+
+    private final DocumentExtractionRouter documentExtractionRouter;
+    private final DeterministicQuestionClassifier deterministicQuestionClassifier;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public QuestionIngestionService(
+            PdfExtractionService pdfExtractionService,
+            QuestionParserService questionParserService,
+            AnswerParserService answerParserService,
+            QuestionMatchingService questionMatchingService,
+            QuestionRepo questionRepo,
+            S3Service s3Service,
+            GroqExtractionService groqExtractionService,
+            DocumentExtractionRouter documentExtractionRouter,
+            DeterministicQuestionClassifier deterministicQuestionClassifier) {
+        this.pdfExtractionService = pdfExtractionService;
+        this.questionParserService = questionParserService;
+        this.answerParserService = answerParserService;
+        this.questionMatchingService = questionMatchingService;
+        this.questionRepo = questionRepo;
+        this.s3Service = s3Service;
+        this.groqExtractionService = groqExtractionService;
+        this.documentExtractionRouter = documentExtractionRouter;
+        this.deterministicQuestionClassifier = deterministicQuestionClassifier;
+    }
+
+    public QuestionIngestionService(
+            PdfExtractionService pdfExtractionService,
+            QuestionParserService questionParserService,
+            AnswerParserService answerParserService,
+            QuestionMatchingService questionMatchingService,
+            QuestionRepo questionRepo,
+            S3Service s3Service,
+            GroqExtractionService groqExtractionService) {
+        this(pdfExtractionService, questionParserService, answerParserService, questionMatchingService, questionRepo,
+                s3Service, groqExtractionService,
+                new DocumentExtractionRouter(pdfExtractionService, new OcrService(), new PdfTextQualityAnalyzer()),
+                new DeterministicQuestionClassifier());
+    }
 
     public QuestionIngestionService(
             PdfExtractionService pdfExtractionService,
@@ -28,12 +68,10 @@ public class QuestionIngestionService {
             QuestionMatchingService questionMatchingService,
             QuestionRepo questionRepo,
             S3Service s3Service) {
-        this.pdfExtractionService = pdfExtractionService;
-        this.questionParserService = questionParserService;
-        this.answerParserService = answerParserService;
-        this.questionMatchingService = questionMatchingService;
-        this.questionRepo = questionRepo;
-        this.s3Service = s3Service;
+        this(pdfExtractionService, questionParserService, answerParserService, questionMatchingService, questionRepo,
+                s3Service, null,
+                new DocumentExtractionRouter(pdfExtractionService, new OcrService(), new PdfTextQualityAnalyzer()),
+                new DeterministicQuestionClassifier());
     }
 
     public static class IngestionResult {
@@ -282,13 +320,28 @@ public class QuestionIngestionService {
 
         List<String> qPages;
         List<String> aPages;
+        DocumentExtractionRouter.ExtractionResult qExtractResult;
+        DocumentExtractionRouter.ExtractionResult aExtractResult;
+
         try {
-            qPages = pdfExtractionService.extractTextPerPage(qBytes);
-            aPages = pdfExtractionService.extractTextPerPage(aBytes);
+            qExtractResult = documentExtractionRouter != null
+                    ? documentExtractionRouter.routeAndExtract(qBytes)
+                    : new DocumentExtractionRouter.ExtractionResult(
+                            DocumentExtractionRouter.ExtractionMethod.TEXT_LAYER,
+                            pdfExtractionService.extractTextPerPage(qBytes), null, null, true, "Direct extraction");
+
+            aExtractResult = documentExtractionRouter != null
+                    ? documentExtractionRouter.routeAndExtract(aBytes)
+                    : new DocumentExtractionRouter.ExtractionResult(
+                            DocumentExtractionRouter.ExtractionMethod.TEXT_LAYER,
+                            pdfExtractionService.extractTextPerPage(aBytes), null, null, true, "Direct extraction");
+
+            qPages = qExtractResult.getPageTexts();
+            aPages = aExtractResult.getPageTexts();
         } catch (Exception e) {
             return IngestionResult.builder()
                     .success(false)
-                    .message("OCR processing failed: " + e.getMessage())
+                    .message("PDF Extraction failed: " + e.getMessage())
                     .sourceDocumentId(sourceDocId)
                     .fileHash(fileHash)
                     .totalParsed(0)
@@ -311,8 +364,31 @@ public class QuestionIngestionService {
                     .build();
         }
 
-        List<QuestionParserService.ParsedQuestion> parsedQs = questionParserService.parseQuestionsFromPages(qPages);
-        Map<Integer, AnswerParserService.ParsedAnswer> parsedAs = answerParserService.parseAnswersFromPages(aPages);
+        List<QuestionParserService.ParsedQuestion> parsedQs = (groqExtractionService != null)
+                ? groqExtractionService.extractQuestionsFromPdfBytes(qBytes, qPages)
+                : questionParserService.parseQuestionsFromPages(qPages);
+
+        if (deterministicQuestionClassifier != null) {
+            for (QuestionParserService.ParsedQuestion pq : parsedQs) {
+                DeterministicQuestionClassifier.QuestionClassification cls = deterministicQuestionClassifier
+                        .classifyQuestion(pq.getQuestionText(), pq.getOptions(), pq.getLevel());
+
+                if (cls.getClassification() == DeterministicQuestionClassifier.ClassificationResult.STATEMENT_BASED) {
+                    pq.setLevel("upsc-level");
+                } else if (cls.getClassification() == DeterministicQuestionClassifier.ClassificationResult.FOUNDATION) {
+                    pq.setLevel("foundation");
+                } else if (cls.getClassification() == DeterministicQuestionClassifier.ClassificationResult.REVIEW_REQUIRED) {
+                    pq.setSuspicious(true);
+                    pq.setWarningReason(pq.getWarningReason() != null
+                            ? pq.getWarningReason() + "; " + cls.getReason()
+                            : cls.getReason());
+                }
+            }
+        }
+
+        Map<Integer, AnswerParserService.ParsedAnswer> parsedAs = (groqExtractionService != null)
+                ? groqExtractionService.extractSolutionsFromPdfBytes(aBytes, aPages)
+                : answerParserService.parseAnswersFromPages(aPages);
 
         QuestionMatchingService.MatchReport matchReport = questionMatchingService.matchAndBuildReport(
                 parsedQs, parsedAs, stateSlug, districtSlug, testType, sourceDocId, qS3Key, aS3Key, fileHash);

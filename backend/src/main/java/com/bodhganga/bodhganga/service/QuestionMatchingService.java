@@ -104,7 +104,8 @@ public class QuestionMatchingService {
     public static class MatchResult {
         private final QuestionParserService.ParsedQuestion question;
         private final AnswerParserService.ParsedAnswer answer;
-        private final String matchMethod; // QUESTION_NUMBER, NORMALIZED_TEXT, FUZZY_TEXT, QUESTION_NUMBER_CONFLICT, UNMATCHED
+        private final String matchMethod; // QUESTION_NUMBER, NORMALIZED_TEXT, FUZZY_TEXT, QUESTION_NUMBER_CONFLICT,
+                                          // UNMATCHED
         private final double confidence;
 
         public MatchResult(QuestionParserService.ParsedQuestion question, AnswerParserService.ParsedAnswer answer,
@@ -244,7 +245,8 @@ public class QuestionMatchingService {
             totalConfidence += confidence;
             matchResults.add(new MatchResult(pq, pa, matchMethod, confidence));
 
-            boolean needsReview = pq.isSuspicious() || confidence < 0.80 || "QUESTION_NUMBER_CONFLICT".equals(matchMethod);
+            boolean needsReview = pq.isSuspicious() || confidence < 0.80
+                    || "QUESTION_NUMBER_CONFLICT".equals(matchMethod);
             String reviewReason = pq.getWarningReason();
 
             Integer correctAnsIdx = null;
@@ -278,11 +280,22 @@ public class QuestionMatchingService {
                 needsReview = true;
             }
 
+            String rawLevel = pq.getLevel();
+            boolean isStatement = "upsc-level".equalsIgnoreCase(rawLevel)
+                    || "statement-based".equalsIgnoreCase(rawLevel)
+                    || "statement_based".equalsIgnoreCase(rawLevel);
+            boolean isFoundation = "foundation".equalsIgnoreCase(rawLevel);
+
+            if (!isStatement && !isFoundation) {
+                needsReview = true;
+                reviewReason = reviewReason != null ? reviewReason + "; Uncertain level classification"
+                        : "Uncertain level classification";
+            }
+
             String status = needsReview ? "REVIEW_REQUIRED" : "DRAFT";
-            String qLevel = pq.getLevel() != null ? pq.getLevel()
-                    : ("advanced".equalsIgnoreCase(testType) ? "upsc-level" : "foundation");
+            String qLevel = isStatement ? "statement-based" : "foundation";
             String mappedTestType = "master".equalsIgnoreCase(testType) ? "master"
-                    : ("upsc-level".equalsIgnoreCase(qLevel) ? "advanced" : testType);
+                    : (isStatement ? "statement-based" : "foundation");
 
             String questionId = stateSlug + "-" + districtSlug + "-" + mappedTestType + "-" + qNum + "-"
                     + UUID.randomUUID().toString().substring(0, 8);
@@ -341,10 +354,10 @@ public class QuestionMatchingService {
             String optLower = normOpt.toLowerCase(java.util.Locale.ROOT);
             String expLower = normExp.toLowerCase(java.util.Locale.ROOT);
 
-            boolean hasNegation = (!optLower.isBlank() && optLower.length() > 3) && (
-                    expLower.contains(optLower + " is not")
-                    || expLower.contains(optLower + " is incorrect")
-                    || expLower.contains(optLower + " is false"));
+            boolean hasNegation = (!optLower.isBlank() && optLower.length() > 3)
+                    && (expLower.contains(optLower + " is not")
+                            || expLower.contains(optLower + " is incorrect")
+                            || expLower.contains(optLower + " is false"));
 
             if (hasNegation) {
                 return new MatchResult(pq, pa, "QUESTION_NUMBER_CONFLICT", 0.60);

@@ -12,6 +12,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,45 +34,46 @@ public class GroqAiService {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private static final String GENERAL_SYSTEM_PROMPT =
-        "You are BodhGanga's friendly assistant. BodhGanga (bodhganga.in) is an Indian ed-tech platform " +
-        "providing district-specific study resources for state competitive exams (e.g. HPAS, HPPSC, state PSCs).\n\n" +
-        "Key facts:\n" +
-        "- Resources organized by State -> District\n" +
-        "- Paid district bundles cost Rs.99 (one-time per district)\n" +
-        "- Free resources (sample notes, MCQs, revision sheets) available without purchase\n" +
-        "- Register with mobile OTP, browse states/districts, pay via Razorpay (UPI/cards/net banking)\n" +
-        "- After payment, resources accessible from Library/Dashboard\n" +
-        "- Currently live: Himachal Pradesh -> Chamba District (free + paid resources)\n" +
-        "- More states/districts being added continuously\n" +
-        "- For support: contact via the website support section\n\n" +
-        "Tone: helpful, warm, concise. If asked about exam study topics, mention the Study Companion " +
-        "feature (available after login) can help with that. Keep answers short unless detail is needed.";
+    private static final String GENERAL_SYSTEM_PROMPT = "You are BodhGanga's friendly assistant. BodhGanga (bodhganga.in) is an Indian ed-tech platform "
+            +
+            "providing district-specific study resources for state competitive exams (e.g. HPAS, HPPSC, state PSCs).\n\n"
+            +
+            "Key facts:\n" +
+            "- Resources organized by State -> District\n" +
+            "- Paid district bundles cost Rs.99 (one-time per district)\n" +
+            "- Free resources (sample notes, MCQs, revision sheets) available without purchase\n" +
+            "- Register with mobile OTP, browse states/districts, pay via Razorpay (UPI/cards/net banking)\n" +
+            "- After payment, resources accessible from Library/Dashboard\n" +
+            "- Currently live: Himachal Pradesh -> Chamba District (free + paid resources)\n" +
+            "- More states/districts being added continuously\n" +
+            "- For support: contact via the website support section\n\n" +
+            "Tone: helpful, warm, concise. If asked about exam study topics, mention the Study Companion " +
+            "feature (available after login) can help with that. Keep answers short unless detail is needed.";
 
     public String generalChat(List<Map<String, Object>> history, String userMessage) {
         return callGroq(GENERAL_SYSTEM_PROMPT, history, userMessage);
     }
 
     public String studyChat(String userName, List<String> purchasedDistricts,
-                             List<Map<String, Object>> history, String userMessage) {
+            List<Map<String, Object>> history, String userMessage) {
         String districts = purchasedDistricts.isEmpty()
                 ? "none yet (free resources only)"
                 : String.join(", ", purchasedDistricts);
 
-        String systemPrompt =
-            "You are BodhGanga's AI Study Companion - a knowledgeable, encouraging exam prep tutor.\n\n" +
-            "Student profile:\n" +
-            "- Name: " + userName + "\n" +
-            "- Purchased districts: " + districts + "\n\n" +
-            "Your role:\n" +
-            "- Help prepare for Indian state competitive exams (HPAS, HPPSC, state PSCs, etc.)\n" +
-            "- Answer questions about history, geography, polity, economy, culture of their districts/states\n" +
-            "- Explain concepts clearly with state/district-relevant examples\n" +
-            "- Quiz them on demand (MCQ or short-answer style)\n" +
-            "- Give study strategies, important topics, exam tips for their specific state exam\n" +
-            "- Use bullet points for lists. Use Hindi terms where culturally relevant.\n" +
-            "- If asked about something outside their purchased districts, answer generally.\n\n" +
-            "Tone: encouraging, like a senior who cracked the exam. Never condescending.";
+        String systemPrompt = "You are BodhGanga's AI Study Companion - a knowledgeable, encouraging exam prep tutor.\n\n"
+                +
+                "Student profile:\n" +
+                "- Name: " + userName + "\n" +
+                "- Purchased districts: " + districts + "\n\n" +
+                "Your role:\n" +
+                "- Help prepare for Indian state competitive exams (HPAS, HPPSC, state PSCs, etc.)\n" +
+                "- Answer questions about history, geography, polity, economy, culture of their districts/states\n" +
+                "- Explain concepts clearly with state/district-relevant examples\n" +
+                "- Quiz them on demand (MCQ or short-answer style)\n" +
+                "- Give study strategies, important topics, exam tips for their specific state exam\n" +
+                "- Use bullet points for lists. Use Hindi terms where culturally relevant.\n" +
+                "- If asked about something outside their purchased districts, answer generally.\n\n" +
+                "Tone: encouraging, like a senior who cracked the exam. Never condescending.";
 
         return callGroq(systemPrompt, history, userMessage);
     }
@@ -111,22 +113,22 @@ public class GroqAiService {
 
             messages.add(Map.of("role", "user", "content", userMessage));
 
+            String effectiveModel = (model != null && !model.isBlank()) ? model : "llama-3.3-70b-versatile";
             Map<String, Object> body = Map.of(
-                "model", model,
-                "messages", messages,
-                "temperature", 0.7,
-                "max_tokens", 1024
-            );
+                    "model", effectiveModel,
+                    "messages", messages,
+                    "temperature", 0.7,
+                    "max_tokens", 1024);
 
             String url = "https://api.groq.com/openai/v1/chat/completions";
 
             HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Content-Type", "application/json")
-                .header("Authorization", "Bearer " + apiKey)
-                .timeout(Duration.ofSeconds(30))
-                .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body)))
-                .build();
+                    .uri(URI.create(url))
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Bearer " + apiKey)
+                    .timeout(Duration.ofSeconds(30))
+                    .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body)))
+                    .build();
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
@@ -151,9 +153,6 @@ public class GroqAiService {
             }
             Map<String, Object> choiceObj = choices.get(0);
             Map<String, Object> messageObj = (Map<String, Object>) choiceObj.get("message");
-            if (messageObj == null || !messageObj.containsKey("content")) {
-                throw new RuntimeException("Malformed response from Groq API: missing content");
-            }
             return (String) messageObj.get("content");
 
         } catch (IOException | InterruptedException e) {
@@ -161,4 +160,91 @@ public class GroqAiService {
             throw new RuntimeException("Failed to reach AI service: " + e.getMessage(), e);
         }
     }
+
+    public boolean hasApiKey() {
+        return apiKey != null && !apiKey.isBlank();
+    }
+
+    @SuppressWarnings("unchecked")
+    public String callGroqJson(String systemPrompt, String userMessage) {
+        if (!hasApiKey()) {
+            throw new IllegalStateException("Groq API key not configured");
+        }
+
+        int maxRetries = 3;
+        long backoffMs = 1000;
+
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                List<Map<String, String>> messages = List.of(
+                        Map.of("role", "system", "content", systemPrompt),
+                        Map.of("role", "user", "content", userMessage));
+
+                String targetModel = (model != null && !model.isBlank()) ? model : "llama-3.3-70b-versatile";
+                Map<String, Object> body = Map.of(
+                        "model", targetModel,
+                        "messages", messages,
+                        "temperature", 0.1,
+                        "max_tokens", 4096,
+                        "response_format", Map.of("type", "json_object"));
+
+                String url = "https://api.groq.com/openai/v1/chat/completions";
+
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(url))
+                        .header("Content-Type", "application/json")
+                        .header("Authorization", "Bearer " + apiKey)
+                        .timeout(Duration.ofSeconds(60))
+                        .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(body)))
+                        .build();
+
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+                if (response.statusCode() == 429) {
+                    log.warn("Groq API rate limit (429) on attempt {}/{}", attempt, maxRetries);
+                    if (attempt < maxRetries) {
+                        Thread.sleep(backoffMs * attempt);
+                        continue;
+                    }
+                }
+
+                if (response.statusCode() != 200) {
+                    log.error("Groq API error {}: {}", response.statusCode(), response.body());
+                    if (attempt < maxRetries && response.statusCode() >= 500) {
+                        Thread.sleep(backoffMs * attempt);
+                        continue;
+                    }
+                    throw new RuntimeException(
+                            "Groq API returned HTTP " + response.statusCode() + ": " + response.body());
+                }
+
+                Map<String, Object> parsed = objectMapper.readValue(response.body(), Map.class);
+                List<Map<String, Object>> choices = (List<Map<String, Object>>) parsed.get("choices");
+                if (choices == null || choices.isEmpty()) {
+                    throw new RuntimeException("Malformed response from Groq API: missing choices");
+                }
+                Map<String, Object> choiceObj = choices.get(0);
+                Map<String, Object> messageObj = (Map<String, Object>) choiceObj.get("message");
+                if (messageObj == null || !messageObj.containsKey("content")) {
+                    throw new RuntimeException("Malformed response from Groq API: missing content");
+                }
+                return (String) messageObj.get("content");
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Groq request interrupted", e);
+            } catch (IOException e) {
+                log.warn("Groq request I/O exception on attempt {}/{}: {}", attempt, maxRetries, e.getMessage());
+                if (attempt == maxRetries) {
+                    throw new RuntimeException("Failed to reach Groq API: " + e.getMessage(), e);
+                }
+                try {
+                    Thread.sleep(backoffMs * attempt);
+                } catch (InterruptedException ignored) {
+                }
+            }
+        }
+        throw new RuntimeException("Groq call failed after retries");
+    }
+
+
 }

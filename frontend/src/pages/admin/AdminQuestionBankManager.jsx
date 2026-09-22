@@ -441,16 +441,11 @@ const AdminQuestionBankManager = () => {
                                     )}
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-400 mb-2">Test Type Tier</label>
-                                    <select
-                                        value={testType}
-                                        onChange={(e) => setTestType(e.target.value)}
-                                        className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:border-gold focus:outline-none"
-                                    >
-                                        <option value="easy">Easy (Foundation Tier)</option>
-                                        <option value="advanced">Advanced (Statement-Based Tier)</option>
-                                        <option value="master">Master Test Series</option>
-                                    </select>
+                                    <label className="block text-xs font-bold text-slate-400 mb-2">Question Classification Mode</label>
+                                    <div className="w-full bg-slate-950 border border-emerald-500/30 rounded-xl px-4 py-2.5 text-xs text-emerald-400 font-bold flex items-center gap-2">
+                                        <Sparkles className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                                        <span>Automatic Header-Based Classification (Foundation & Statement-Based)</span>
+                                    </div>
                                 </div>
                             </div>
 

@@ -251,31 +251,44 @@ public class QuestionParserService {
                     && trimmed.length() < 60;
 
             if (isHeaderLine) {
+                boolean matchedHeader = false;
                 if (upper.contains("HISTORY")) {
                     currentTopic = "History";
                     currentLevel = "foundation";
+                    matchedHeader = true;
                 } else if (upper.contains("GEOGRAPHY")) {
                     currentTopic = "Geography";
                     currentLevel = "foundation";
+                    matchedHeader = true;
                 } else if (upper.contains("ECONOMY") || upper.contains("AGRICULTURE")
                         || upper.contains("DEVELOPMENT")) {
                     currentTopic = "Economy, Agriculture & Development";
                     currentLevel = "foundation";
+                    matchedHeader = true;
                 } else if (upper.contains("ART & CULTURE") || upper.contains("ART AND CULTURE")) {
                     currentTopic = "Art & Culture";
                     currentLevel = "foundation";
+                    matchedHeader = true;
                 } else if (upper.contains("HERITAGE") || upper.contains("MONUMENTS")) {
                     currentTopic = "Heritage & Monuments";
                     currentLevel = "foundation";
+                    matchedHeader = true;
                 } else if (upper.contains("POLITY") || upper.contains("ADMINISTRATION")) {
                     currentTopic = "State Polity & Administration";
                     currentLevel = "foundation";
+                    matchedHeader = true;
                 }
 
                 if (upper.contains("UPSC-LEVEL") || upper.contains("UPSC LEVEL") || upper.contains("ADVANCED LEVEL")) {
                     currentLevel = "upsc-level";
+                    matchedHeader = true;
                 } else if (upper.contains("FOUNDATION LEVEL") || upper.contains("FOUNDATION MCQ")) {
                     currentLevel = "foundation";
+                    matchedHeader = true;
+                }
+
+                if (matchedHeader) {
+                    continue;
                 }
             }
 
@@ -342,11 +355,37 @@ public class QuestionParserService {
         String currentOptionLabel = null;
         StringBuilder currentOptionText = new StringBuilder();
 
+        boolean hasLetterOptions = Pattern.compile("(?m)^(?:\\()?[A-Da-d][\\)\\.\\:]").matcher(expandedBlock).find();
+        boolean seenLetterOption = false;
+
         for (String line : lines) {
             String trimmed = line.trim();
-            Matcher optMatcher = Pattern.compile("^(?:\\()?([A-Ea-e1-4©€])[\\)\\.\\:\\,]\\s*(.*)$", Pattern.CASE_INSENSITIVE)
+            Matcher optMatcher = Pattern
+                    .compile("^(?:\\()?([A-Ea-e1-4©€])[\\)\\.\\:\\,]\\s*(.*)$", Pattern.CASE_INSENSITIVE)
                     .matcher(trimmed);
             if (optMatcher.find()) {
+                String rawLabel = optMatcher.group(1).toUpperCase(java.util.Locale.ROOT);
+                boolean isDigitLabel = rawLabel.matches("\\d+");
+
+                // If option D has already been parsed, trailing lines are footer/content, not
+                // new options
+                if ("D".equals(currentOptionLabel)) {
+                    currentOptionText.append(" ").append(trimmed);
+                    continue;
+                }
+
+                // If the question contains letter options (a..d), statement digits
+                // before the first letter option are part of question text
+                if (hasLetterOptions && !seenLetterOption && isDigitLabel) {
+                    qBuilder.append(line).append("\n");
+                    continue;
+                }
+
+                if ("A".equals(rawLabel) || "B".equals(rawLabel) || "C".equals(rawLabel) || "D".equals(rawLabel)
+                        || "E".equals(rawLabel)) {
+                    seenLetterOption = true;
+                }
+
                 if (currentOptionLabel != null) {
                     String optText = currentOptionText.toString().trim();
                     if (normalizationService != null) {
@@ -357,11 +396,15 @@ public class QuestionParserService {
                 } else {
                     questionText = qBuilder.toString().trim();
                 }
-                String rawLabel = optMatcher.group(1).toUpperCase(java.util.Locale.ROOT);
-                if ("1".equals(rawLabel)) rawLabel = "A";
-                else if ("2".equals(rawLabel)) rawLabel = "B";
-                else if ("3".equals(rawLabel) || "E".equals(rawLabel) || "©".equals(rawLabel) || "€".equals(rawLabel)) rawLabel = "C";
-                else if ("4".equals(rawLabel)) rawLabel = "D";
+
+                if ("1".equals(rawLabel))
+                    rawLabel = "A";
+                else if ("2".equals(rawLabel))
+                    rawLabel = "B";
+                else if ("3".equals(rawLabel) || "E".equals(rawLabel) || "©".equals(rawLabel) || "€".equals(rawLabel))
+                    rawLabel = "C";
+                else if ("4".equals(rawLabel))
+                    rawLabel = "D";
 
                 currentOptionLabel = rawLabel;
                 currentOptionText.append(optMatcher.group(2));

@@ -246,43 +246,62 @@ public class AdminQuestionIngestionAndOcrTests {
         @Test
         @WithMockUser(authorities = "ROLE_ADMIN")
         void test16_draftQuestionsHiddenFromPublicEndpointUntilPublished() throws Exception {
-                Question draftQ = Question.builder()
-                                .id("mh-akola-easy-1")
-                                .stateSlug("maharashtra")
-                                .districtSlug("akola")
-                                .testType("easy")
-                                .question("Draft Q text")
-                                .options(Arrays.asList("A", "B", "C", "D"))
-                                .correctAnswer(0)
-                                .explanation("Draft exp")
-                                .status("DRAFT")
-                                .isActive(false)
-                                .build();
-                questionRepo.save(draftQ);
+                List<Question> draftQuestions = new ArrayList<>();
+                for (int i = 1; i <= 10; i++) {
+                        draftQuestions.add(Question.builder()
+                                        .id("mh-akola-foundation-" + i)
+                                        .stateSlug("maharashtra")
+                                        .districtSlug("akola")
+                                        .testType("foundation")
+                                        .level("foundation")
+                                        .question("Draft Q text " + i)
+                                        .options(Arrays.asList("Opt A", "Opt B", "Opt C", "Opt D"))
+                                        .correctAnswer(0)
+                                        .explanation("Draft exp " + i)
+                                        .questionNumber(i)
+                                        .status("DRAFT")
+                                        .isActive(false)
+                                        .build());
+                }
+                questionRepo.saveAll(draftQuestions);
 
-                // Verify public API hides DRAFT question
+                // Verify public API returns 400 INSUFFICIENT_QUESTIONS while questions are
+                // DRAFT
                 mockMvc.perform(get("/api/quiz/questions")
                                 .param("stateSlug", "maharashtra")
                                 .param("districtSlug", "akola")
-                                .param("testType", "easy"))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.data", hasSize(0)));
+                                .param("testType", "foundation"))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.success").value(false))
+                                .andExpect(jsonPath("$.data.code").value("INSUFFICIENT_QUESTIONS"));
 
-                // Publish question via admin endpoint
-                mockMvc.perform(post("/api/admin/quiz/questions/mh-akola-easy-1/publish"))
-                                .andDo(org.springframework.test.web.servlet.result.MockMvcResultHandlers.print())
-                                .andExpect(status().isOk());
+                // Publish all 10 questions via admin endpoint
+                for (int i = 1; i <= 10; i++) {
+                        mockMvc.perform(post("/api/admin/quiz/questions/mh-akola-foundation-" + i + "/publish"))
+                                        .andExpect(status().isOk());
+                }
 
-                // Verify public API returns PUBLISHED question
+                // Verify public API returns 10 PUBLISHED questions for canonical foundation
+                // request
                 mockMvc.perform(get("/api/quiz/questions")
                                 .param("stateSlug", "maharashtra")
                                 .param("districtSlug", "akola")
-                                .param("testType", "easy"))
+                                .param("testType", "foundation"))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.data", hasSize(1)))
-                                .andExpect(jsonPath("$.data[0].id").value("mh-akola-easy-1"))
+                                .andExpect(jsonPath("$.data", hasSize(10)))
+                                .andExpect(jsonPath("$.data[*].stateSlug", everyItem(is("maharashtra"))))
+                                .andExpect(jsonPath("$.data[*].districtSlug", everyItem(is("akola"))))
+                                .andExpect(jsonPath("$.data[*].testType", everyItem(is("foundation"))))
                                 .andExpect(jsonPath("$.data[0].correctAnswer").doesNotExist())
                                 .andExpect(jsonPath("$.data[0].explanation").doesNotExist());
+
+                // Verify backward-compatibility for legacy "easy" param
+                mockMvc.perform(get("/api/quiz/questions")
+                                .param("stateSlug", "maharashtra")
+                                .param("districtSlug", "akola")
+                                .param("testType", "easy"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.data", hasSize(10)));
         }
 
         @Test
@@ -378,7 +397,8 @@ public class AdminQuestionIngestionAndOcrTests {
                                 .pageNumber(1)
                                 .build();
 
-                // Answer key selects Ganga (index 1), but explanation explicitly contradicts Ganga
+                // Answer key selects Ganga (index 1), but explanation explicitly contradicts
+                // Ganga
                 AnswerParserService.ParsedAnswer pa37 = AnswerParserService.ParsedAnswer.builder()
                                 .questionNumber(37)
                                 .correctOptionIndex(1) // Option B = Ganga
@@ -449,5 +469,75 @@ public class AdminQuestionIngestionAndOcrTests {
                                                 "Question on failed OCR page 2 must be flagged suspicious");
                         }
                 }
+        }
+
+        @Test
+        @WithMockUser(authorities = "ROLE_ADMIN")
+        void test23_eastJaintiaHillsQuestionBankAndSolutionIngestion() throws Exception {
+                byte[] qPdf = createSamplePdfBytes(Arrays.asList(
+                                "Geography of East Jaintia Hills",
+                                "Q1. Which district headquarters of East Jaintia Hills is located in Meghalaya?",
+                                "(A) Khliehriat",
+                                "(B) Jowai",
+                                "(C) Nongstoin",
+                                "(D) Williamnagar",
+                                "Q2. Consider the following statements regarding East Jaintia Hills district:",
+                                "1. It was carved out of West Jaintia Hills district in 2012.",
+                                "2. The district is rich in coal deposits.",
+                                "Which of the statements given above is/are correct?",
+                                "(A) 1 only",
+                                "(B) 2 only",
+                                "(C) Both 1 and 2",
+                                "(D) Neither 1 nor 2"));
+
+                byte[] aPdf = createSamplePdfBytes(Arrays.asList(
+                                "Q1. (A) Khliehriat is the district headquarters of East Jaintia Hills.",
+                                "Q2. (C) Both statements 1 and 2 are correct regarding East Jaintia Hills."));
+
+                MockMultipartFile qFile = new MockMultipartFile("questionPdf", "east_jaintia_q.pdf", "application/pdf",
+                                qPdf);
+                MockMultipartFile aFile = new MockMultipartFile("answerPdf", "east_jaintia_a.pdf", "application/pdf",
+                                aPdf);
+
+                mockMvc.perform(multipart("/api/admin/quiz/upload")
+                                .file(qFile)
+                                .file(aFile)
+                                .param("stateSlug", "meghalaya")
+                                .param("districtSlug", "east-jaintia-hills")
+                                .param("testType", "master"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.totalParsed").value(2));
+
+                List<Question> ingested = questionRepo
+                                .findByStateSlugAndDistrictSlugAndTestTypeAndIsActiveTrueOrderByQuestionNumberAsc(
+                                                "meghalaya", "east-jaintia-hills", "master");
+                assertTrue(ingested.isEmpty(), "Ingested draft questions must NOT be active before manual publish");
+
+                List<Question> allIngested = questionRepo.findAll().stream()
+                                .filter(q -> "meghalaya".equals(q.getStateSlug())
+                                                && "east-jaintia-hills".equals(q.getDistrictSlug()))
+                                .sorted(Comparator.comparingInt(Question::getQuestionNumber))
+                                .toList();
+
+                assertEquals(2, allIngested.size(), "Exactly 2 questions must be ingested for East Jaintia Hills");
+
+                Question q1 = allIngested.get(0);
+                assertEquals(1, q1.getQuestionNumber());
+                assertEquals("meghalaya", q1.getStateSlug());
+                assertEquals("east-jaintia-hills", q1.getDistrictSlug());
+                assertEquals("foundation", q1.getLevel());
+                assertEquals(4, q1.getOptions().size());
+                assertFalse(q1.getIsActive(), "Q1 must be inactive (DRAFT/REVIEW_REQUIRED)");
+                assertTrue("DRAFT".equals(q1.getStatus()) || "REVIEW_REQUIRED".equals(q1.getStatus()));
+
+                Question q2 = allIngested.get(1);
+                assertEquals(2, q2.getQuestionNumber());
+                assertEquals("meghalaya", q2.getStateSlug());
+                assertEquals("east-jaintia-hills", q2.getDistrictSlug());
+                assertEquals("statement-based", q2.getLevel());
+                assertEquals(4, q2.getOptions().size());
+                assertFalse(q2.getIsActive(), "Q2 must be inactive (DRAFT/REVIEW_REQUIRED)");
+                assertTrue("DRAFT".equals(q2.getStatus()) || "REVIEW_REQUIRED".equals(q2.getStatus()));
         }
 }

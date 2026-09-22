@@ -32,7 +32,7 @@ public class AdminQuestionController {
             @RequestParam("answerPdf") MultipartFile answerPdf,
             @RequestParam("stateSlug") String stateSlug,
             @RequestParam("districtSlug") String districtSlug,
-            @RequestParam(value = "testType", defaultValue = "easy") String testType) {
+            @RequestParam(value = "testType", required = false, defaultValue = "auto") String testType) {
 
         try {
             QuestionIngestionService.IngestionResult result = questionIngestionService.ingestQuestionBankPdfs(
