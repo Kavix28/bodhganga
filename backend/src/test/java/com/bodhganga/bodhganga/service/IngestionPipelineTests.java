@@ -28,6 +28,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import com.bodhganga.bodhganga.entity.User;
+import com.bodhganga.bodhganga.repo.UserRepo;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
 @SpringBootTest(classes = com.bodhganga.bodhganga.BodhgangaApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 public class IngestionPipelineTests {
@@ -37,6 +41,12 @@ public class IngestionPipelineTests {
 
         @Autowired
         private ProductRepo productRepo;
+
+        @Autowired
+        private UserRepo userRepo;
+
+        @Autowired
+        private PasswordEncoder passwordEncoder;
 
         @MockBean
         private GoogleDriveSyncService googleDriveSyncService;
@@ -291,6 +301,17 @@ public class IngestionPipelineTests {
 
         @Test
         void testAdminTriggerEndpoints() {
+                User adminUser = userRepo.findByPhoneNo("9958277244").orElseGet(() -> User.builder()
+                                .name("Test Pipeline Admin")
+                                .email("admin_pipeline@bodhganga.in")
+                                .phoneNo("9958277244")
+                                .build());
+                adminUser.setHashedPassword(passwordEncoder.encode("BodhGanga@2026"));
+                adminUser.setRole("ADMIN");
+                adminUser.setActive(true);
+                adminUser.setVerified(true);
+                userRepo.save(adminUser);
+
                 String loginUrl = "http://localhost:" + port + "/api/auth/login";
                 HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.APPLICATION_JSON);

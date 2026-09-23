@@ -287,39 +287,41 @@ public class DriveToS3PipelineTask {
         // Tier)
         HierarchicalMetadata metadata = ProductMetadataUtil.extractMetadata(folderPath, fileName);
 
-        // ── 1. STATE IMAGE HANDLING ────────────────────────────────────────────────
+        // ── 1. STATE IMAGE HANDLING & VALIDATION ────────────────────────────────────
         if (metadata.itemType == ProductMetadataUtil.ItemType.STATE_IMAGE) {
-            log.info(
-                    "[PIPELINE][STATE_IMAGE][SKIPPED] File '{}' (Drive ID: {}) in path {} is a state image. Skipping product ingestion.",
-                    fileName, file.getId(), folderPath);
-            filesSkipped.incrementAndGet();
-            return;
-        }
-
-        // ── 2. NON-RESOURCE HANDLING ──────────────────────────────────────────────
-        if (metadata.itemType == ProductMetadataUtil.ItemType.NON_RESOURCE) {
+            boolean inStateImagesFolder = folderPath != null && folderPath.stream()
+                    .anyMatch(ProductMetadataUtil::isStateImagesFolder);
+            if (inStateImagesFolder) {
+                log.info(
+                        "[PIPELINE][STATE_IMAGE][SKIPPED] File '{}' (Drive ID: {}) in path {} is inside State images folder. Skipping product ingestion.",
+                        fileName, file.getId(), folderPath);
+                filesSkipped.incrementAndGet();
+                return;
+            }
+            log.info("[PIPELINE][STATE_IMAGE] Processing state image '{}' for state '{}'", fileName, metadata.state);
+        } else if (metadata.itemType == ProductMetadataUtil.ItemType.NON_RESOURCE) {
             log.info(
                     "[PIPELINE][NON_RESOURCE][SKIPPED] File '{}' (Drive ID: {}) in path {} is not an educational resource. Skipping.",
                     fileName, file.getId(), folderPath);
             filesSkipped.incrementAndGet();
             return;
-        }
+        } else {
+            // ── FAIL-CLOSED PIPELINE VALIDATION FOR EDUCATIONAL RESOURCE ─────────────
+            if (!metadata.hasTierFolder || metadata.accessType == ProductMetadataUtil.AccessType.UNKNOWN) {
+                log.error(
+                        "[PIPELINE][RESOURCE][UNKNOWN][REJECTED] File '{}' (Drive ID: {}): Folder path {} lacks an explicit Free or Paid tier folder.",
+                        fileName, file.getId(), folderPath);
+                filesFailed.incrementAndGet();
+                return;
+            }
 
-        // ── 3. FAIL-CLOSED PIPELINE VALIDATION FOR EDUCATIONAL RESOURCE ─────────────
-        if (!metadata.hasTierFolder || metadata.accessType == ProductMetadataUtil.AccessType.UNKNOWN) {
-            log.error(
-                    "[PIPELINE][RESOURCE][UNKNOWN][REJECTED] File '{}' (Drive ID: {}): Folder path {} lacks an explicit Free or Paid tier folder.",
-                    fileName, file.getId(), folderPath);
-            filesFailed.incrementAndGet();
-            return;
-        }
-
-        if (metadata.accessType == ProductMetadataUtil.AccessType.FREE) {
-            log.info("[PIPELINE][RESOURCE][FREE] File '{}' (Drive ID: {}) in path {} classified as FREE.",
-                    fileName, file.getId(), folderPath);
-        } else if (metadata.accessType == ProductMetadataUtil.AccessType.PAID) {
-            log.info("[PIPELINE][RESOURCE][PAID] File '{}' (Drive ID: {}) in path {} classified as PAID.",
-                    fileName, file.getId(), folderPath);
+            if (metadata.accessType == ProductMetadataUtil.AccessType.FREE) {
+                log.info("[PIPELINE][RESOURCE][FREE] File '{}' (Drive ID: {}) in path {} classified as FREE.",
+                        fileName, file.getId(), folderPath);
+            } else if (metadata.accessType == ProductMetadataUtil.AccessType.PAID) {
+                log.info("[PIPELINE][RESOURCE][PAID] File '{}' (Drive ID: {}) in path {} classified as PAID.",
+                        fileName, file.getId(), folderPath);
+            }
         }
 
         String state = metadata.state;
@@ -328,13 +330,16 @@ public class DriveToS3PipelineTask {
         String navbarSlug = metadata.navbarSlug;
         String district = metadata.district;
         String districtSlug = metadata.districtSlug;
-        boolean isFree = metadata.isFree;
+        boolean isFree = (metadata.itemType == ProductMetadataUtil.ItemType.STATE_IMAGE) || metadata.isFree;
         double price = isFree ? 0.0 : 99.0;
 
         // ── Construct S3 Key ────────────────────────────────────────────────────────
+        // State Image structure: states/state-slug/filename.ext
         // Generic structure: state-slug/navbar-slug/filename.pdf
         // District structure: state-slug/category-slug/district-slug/tier/filename.pdf
-        String s3Key = metadata.buildS3Key(fileName);
+        String s3Key = (metadata.itemType == ProductMetadataUtil.ItemType.STATE_IMAGE)
+                ? "states/" + metadata.stateSlug + "/" + fileName
+                : metadata.buildS3Key(fileName);
         long size = file.getSize() != null ? file.getSize() : 0;
         String fileMimeType = targetMimeType != null ? targetMimeType : Product.determineMimeType(fileName);
         String contentType = Product.determineContentType(fileMimeType, fileName);
