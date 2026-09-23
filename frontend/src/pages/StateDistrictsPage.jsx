@@ -111,10 +111,7 @@ export default function StateDistrictsPage() {
         </div>
       </div>
 
-      {/* <div className="max-w-6xl mx-auto px-4 py-8"> */}
         <div className="max-w-6xl mx-auto px-4 py-8">
-
-        <StateNavbar />
 
         {error ? (
           <div className="text-red-400 text-center py-20 space-y-3">

@@ -162,6 +162,20 @@ const AdminQuestionBankManager = () => {
         }
     };
 
+    const handleClassificationChange = async (q, newType) => {
+        try {
+            await api.put(`/admin/quiz/questions/${q.id}`, {
+                ...q,
+                testType: newType,
+                level: newType
+            });
+            fetchAdminQuestions();
+        } catch (err) {
+            console.error('Failed to update classification:', err);
+            alert('Failed to update question classification.');
+        }
+    };
+
     const handleUploadSubmit = async (e) => {
         e.preventDefault();
         
@@ -579,7 +593,15 @@ const AdminQuestionBankManager = () => {
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs font-bold text-gold">Q{q.questionNumber}</span>
                                                 <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/5 border border-white/10 uppercase">{q.topic}</span>
-                                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase">{q.level}</span>
+                                                <select
+                                                    value={q.testType || q.level || 'FOUNDATION'}
+                                                    onChange={(e) => handleClassificationChange(q, e.target.value)}
+                                                    className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase cursor-pointer focus:outline-none"
+                                                    title="Click to override question classification"
+                                                >
+                                                    <option value="FOUNDATION" className="bg-slate-900 text-emerald-400">FOUNDATION</option>
+                                                    <option value="STATEMENT_BASED" className="bg-slate-900 text-amber-400">STATEMENT_BASED</option>
+                                                </select>
                                                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${q.status === 'PUBLISHED' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : q.status === 'REVIEW_REQUIRED' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-slate-800 text-slate-400'}`}>{q.status}</span>
                                             </div>
 
@@ -629,6 +651,29 @@ const AdminQuestionBankManager = () => {
                     <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
                         <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 max-w-2xl w-full space-y-4 max-h-[90vh] overflow-y-auto">
                             <h3 className="text-lg font-bold text-white">Edit Question Q{editingQuestion.questionNumber}</h3>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-400 mb-1">Topic</label>
+                                    <input
+                                        type="text"
+                                        value={editingQuestion.topic || ''}
+                                        onChange={(e) => setEditingQuestion({ ...editingQuestion, topic: e.target.value })}
+                                        className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-white"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-400 mb-1">Question Classification</label>
+                                    <select
+                                        value={editingQuestion.testType || editingQuestion.level || 'FOUNDATION'}
+                                        onChange={(e) => setEditingQuestion({ ...editingQuestion, testType: e.target.value, level: e.target.value })}
+                                        className="w-full bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs text-amber-300 font-bold"
+                                    >
+                                        <option value="FOUNDATION">FOUNDATION (Direct Fact / Concept)</option>
+                                        <option value="STATEMENT_BASED">STATEMENT_BASED (Analytical / Multi-statement)</option>
+                                    </select>
+                                </div>
+                            </div>
 
                             <div>
                                 <label className="block text-xs font-bold text-slate-400 mb-1">Question Text</label>

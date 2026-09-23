@@ -115,6 +115,10 @@ public class AdminQuestionController {
             q.setTopic(updateReq.getTopic());
         if (updateReq.getLevel() != null)
             q.setLevel(updateReq.getLevel());
+        if (updateReq.getTestType() != null) {
+            q.setTestType(updateReq.getTestType());
+            q.setLevel(updateReq.getTestType());
+        }
         if (updateReq.getStatus() != null)
             q.setStatus(updateReq.getStatus());
         if (updateReq.getIsActive() != null)

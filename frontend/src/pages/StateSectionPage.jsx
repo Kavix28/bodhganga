@@ -117,8 +117,6 @@ export default function StateSectionPage() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
-        <StateNavbar />
-
         <StateSectionTabs stateSlug={stateSlug} activeSection={section} />
 
         {loading ? (

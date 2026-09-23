@@ -71,6 +71,7 @@ const StateSectionPage           = lazy(() => import('./pages/StateSectionPage')
 const TestYourKnowledge = lazy(() => import('./pages/TestYourKnowledge'));
 const StateTestZone      = lazy(() => import('./pages/StateTestZone'));
 const DistrictTestPage   = lazy(() => import('./pages/DistrictTestPage'));
+const QuizEngine         = lazy(() => import('./pages/QuizEngine'));
 const QBTestEngine       = lazy(() => import('./pages/QBTestEngine'));
 const TestResult         = lazy(() => import('./pages/TestResult'));
 
@@ -173,8 +174,7 @@ function App() {
                                             <Route path="/test-series" element={<TestYourKnowledge />} />
                                             <Route path="/test-series/:stateId" element={<StateTestZone />} />
                                             <Route path="/test-series/:stateId/:districtId" element={<DistrictTestPage />} />
-                                            {/* Legacy quiz route — redirect to Question Bank (hardcoded demo data removed) */}
-                                            <Route path="/test-series/:stateId/:districtId/quiz/:testType" element={<Navigate to="/question-bank" replace />} />
+                                            <Route path="/test-series/:stateId/:districtId/quiz/:testType" element={<QuizEngine />} />
                                             <Route path="/test-series/:stateId/:districtId/result" element={<TestResult />} />
 
                                             {/* ── Question Bank Test Engine ───────────────────── */}
