@@ -24,6 +24,7 @@ public class QuestionIngestionService {
 
     private final DocumentExtractionRouter documentExtractionRouter;
     private final DeterministicQuestionClassifier deterministicQuestionClassifier;
+    private final AkolaTextNormalizationFilter akolaTextNormalizationFilter;
 
     @org.springframework.beans.factory.annotation.Autowired
     public QuestionIngestionService(
@@ -35,7 +36,8 @@ public class QuestionIngestionService {
             S3Service s3Service,
             GroqExtractionService groqExtractionService,
             DocumentExtractionRouter documentExtractionRouter,
-            DeterministicQuestionClassifier deterministicQuestionClassifier) {
+            DeterministicQuestionClassifier deterministicQuestionClassifier,
+            AkolaTextNormalizationFilter akolaTextNormalizationFilter) {
         this.pdfExtractionService = pdfExtractionService;
         this.questionParserService = questionParserService;
         this.answerParserService = answerParserService;
@@ -45,6 +47,22 @@ public class QuestionIngestionService {
         this.groqExtractionService = groqExtractionService;
         this.documentExtractionRouter = documentExtractionRouter;
         this.deterministicQuestionClassifier = deterministicQuestionClassifier;
+        this.akolaTextNormalizationFilter = akolaTextNormalizationFilter;
+    }
+
+    public QuestionIngestionService(
+            PdfExtractionService pdfExtractionService,
+            QuestionParserService questionParserService,
+            AnswerParserService answerParserService,
+            QuestionMatchingService questionMatchingService,
+            QuestionRepo questionRepo,
+            S3Service s3Service,
+            GroqExtractionService groqExtractionService,
+            DocumentExtractionRouter documentExtractionRouter,
+            DeterministicQuestionClassifier deterministicQuestionClassifier) {
+        this(pdfExtractionService, questionParserService, answerParserService, questionMatchingService, questionRepo,
+                s3Service, groqExtractionService, documentExtractionRouter, deterministicQuestionClassifier,
+                new AkolaTextNormalizationFilter());
     }
 
     public QuestionIngestionService(
@@ -58,7 +76,8 @@ public class QuestionIngestionService {
         this(pdfExtractionService, questionParserService, answerParserService, questionMatchingService, questionRepo,
                 s3Service, groqExtractionService,
                 new DocumentExtractionRouter(pdfExtractionService, new OcrService(), new PdfTextQualityAnalyzer()),
-                new DeterministicQuestionClassifier());
+                new DeterministicQuestionClassifier(),
+                new AkolaTextNormalizationFilter());
     }
 
     public QuestionIngestionService(
@@ -71,7 +90,8 @@ public class QuestionIngestionService {
         this(pdfExtractionService, questionParserService, answerParserService, questionMatchingService, questionRepo,
                 s3Service, null,
                 new DocumentExtractionRouter(pdfExtractionService, new OcrService(), new PdfTextQualityAnalyzer()),
-                new DeterministicQuestionClassifier());
+                new DeterministicQuestionClassifier(),
+                new AkolaTextNormalizationFilter());
     }
 
     public static class IngestionResult {
@@ -364,9 +384,14 @@ public class QuestionIngestionService {
                     .build();
         }
 
+        TextNormalizationFilter filter = ("akola".equalsIgnoreCase(districtSlug)
+                && akolaTextNormalizationFilter != null)
+                        ? akolaTextNormalizationFilter
+                        : null;
+
         List<QuestionParserService.ParsedQuestion> parsedQs = (groqExtractionService != null)
                 ? groqExtractionService.extractQuestionsFromPdfBytes(qBytes, qPages)
-                : questionParserService.parseQuestionsFromPages(qPages);
+                : questionParserService.parseQuestionsFromPages(qPages, filter);
 
         if (deterministicQuestionClassifier != null) {
             for (QuestionParserService.ParsedQuestion pq : parsedQs) {
@@ -377,7 +402,8 @@ public class QuestionIngestionService {
                     pq.setLevel("upsc-level");
                 } else if (cls.getClassification() == DeterministicQuestionClassifier.ClassificationResult.FOUNDATION) {
                     pq.setLevel("foundation");
-                } else if (cls.getClassification() == DeterministicQuestionClassifier.ClassificationResult.REVIEW_REQUIRED) {
+                } else if (cls
+                        .getClassification() == DeterministicQuestionClassifier.ClassificationResult.REVIEW_REQUIRED) {
                     pq.setSuspicious(true);
                     pq.setWarningReason(pq.getWarningReason() != null
                             ? pq.getWarningReason() + "; " + cls.getReason()
@@ -388,7 +414,7 @@ public class QuestionIngestionService {
 
         Map<Integer, AnswerParserService.ParsedAnswer> parsedAs = (groqExtractionService != null)
                 ? groqExtractionService.extractSolutionsFromPdfBytes(aBytes, aPages)
-                : answerParserService.parseAnswersFromPages(aPages);
+                : answerParserService.parseAnswersFromPages(aPages, filter);
 
         QuestionMatchingService.MatchReport matchReport = questionMatchingService.matchAndBuildReport(
                 parsedQs, parsedAs, stateSlug, districtSlug, testType, sourceDocId, qS3Key, aS3Key, fileHash);

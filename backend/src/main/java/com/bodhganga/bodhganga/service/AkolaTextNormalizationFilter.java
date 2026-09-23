@@ -103,11 +103,49 @@ public class AkolaTextNormalizationFilter implements TextNormalizationFilter {
                                 .replace("Q126. (4)", "Q126. (d)")
 
                                 // OCR evidence:
-                                // raw OCR: Qs. (¢)
+                                // raw OCR: Qs. (¢) / Qs. (९) / Qs.
                                 // intended source text: Q8. (c)
                                 // reason: Solution PDF OCR misread question number '8' as 's' and option '(c)'
-                                // as '(¢)'
+                                // as '(¢)' or '(९)'
                                 .replace("Qs. (¢)", "Q8. (c)")
+                                .replace("Qs. (९)", "Q8. (c)")
+                                .replace("Qs.", "Q8.")
+
+                                // OCR evidence:
+                                // raw OCR: ०284१ Buldhana / ०284१
+                                // intended source text: Q28. (b) Buldhana
+                                // reason: Solution PDF Page 4 OCR misread 'Q28. (b)' as '०284१'
+                                .replace("०284१ Buldhana", "Q28. (b) Buldhana")
+                                .replace("०284१", "Q28. (b)")
+
+                                // OCR evidence:
+                                // raw OCR: 0३५. (b) / 0३५.
+                                // intended source text: Q39. (b)
+                                // reason: Solution PDF Page 5 OCR misread 'Q39.' as '0३५.'
+                                .replace("0३५. (b)", "Q39. (b)")
+                                .replace("0३५.", "Q39.")
+
+                                // OCR evidence:
+                                // raw OCR: ०३.७) Patel / ०३.७)
+                                // intended source text: Q73. (b) Patel
+                                // reason: Solution PDF Page 8 OCR misread 'Q73. (b)' as '०३.७)'
+                                .replace("०३.७) Patel", "Q73. (b) Patel")
+                                .replace("०३.७)", "Q73. (b)")
+
+                                // OCR evidence:
+                                // raw OCR: 04103. (0) / 04103.
+                                // intended source text: Q103. (c)
+                                // reason: Solution PDF Page 11 OCR misread 'Q103. (c)' as '04103. (0)'
+                                .replace("04103. (0)", "Q103. (c)")
+                                .replace("04103.", "Q103.")
+
+                                // OCR evidence:
+                                // raw OCR: (a) Structural temple architecture a)”
+                                // intended source text: (a) Structural temple architecture
+                                // reason: Question PDF Page 26 OCR noise 'a)”' at end of option (a) causes
+                                // false option splitting
+                                .replace("Structural temple architecture a)”", "Structural temple architecture")
+                                .replace("Structural temple architecture a)\"", "Structural temple architecture")
 
                                 // OCR evidence:
                                 // raw OCR: Qao.
@@ -234,11 +272,22 @@ public class AkolaTextNormalizationFilter implements TextNormalizationFilter {
                                 .replace("080 During Rajeshwar Yatra", "Q81. During Rajeshwar Yatra")
 
                                 // OCR evidence:
-                                // raw OCR: ०4४१७४५१८5 the shape / ०4४१७४५१८5
+                                // raw OCR: 0159: During the Bahmani period / 0159: / 0159
+                                // intended source text: Q15. During the Bahmani period
+                                // reason: Question PDF Page 5 OCR misread 'Q15.' as '0159:'
+                                .replace("0159: During the Bahmani period", "Q15. During the Bahmani period")
+                                .replace("0159:", "Q15.")
+                                .replace("0159", "Q15.")
+
+                                // OCR evidence:
+                                // raw OCR: ०4४१७४५१८5 the shape / ०4४७ ४॥०८][5 the shape / ०4४७ ४॥०८][5
                                 // intended source text: Q115. What is the shape
-                                // reason: Question PDF Page 29 OCR misread 'Q115. What is' as '०4४१७४५१८5'
+                                // reason: Question PDF Page 29 OCR misread 'Q115. What is' as '०4४१७४५१८5' or
+                                // '०4४७ ४॥०८][5'
                                 .replace("०4४१७४५१८5 the shape", "Q115. What is the shape")
                                 .replace("०4४१७४५१८5", "Q115.")
+                                .replace("०4४७ ४॥०८][5 the shape", "Q115. What is the shape")
+                                .replace("०4४७ ४॥०८][5", "Q115. What is")
 
                                 // OCR evidence:
                                 // raw OCR: 035. / 042. / 068. / 069. / 074. / 0106. / 0109. / 0114. / 0118. /
@@ -247,6 +296,28 @@ public class AkolaTextNormalizationFilter implements TextNormalizationFilter {
                                 // reason: Tesseract OCR misread capital letter 'Q' as digit '0' or Devanagari
                                 // numeral
                                 .replaceAll("(?m)^[0०-९]+(\\d{1,3}\\.)", "Q$1")
+
+                                // OCR evidence:
+                                // raw OCR variants for Q15: Q1S. / Q1S / Qi5. / Qi5 / O15. / 015.
+                                // intended source text: Q15.
+                                // reason: Question PDF OCR misread '5' as 'S' or 'Q' as 'O'/'0'
+                                .replace("Q1S.", "Q15.")
+                                .replace("Q1S ", "Q15 ")
+                                .replace("Qi5.", "Q15.")
+                                .replace("Qi5 ", "Q15 ")
+                                .replaceAll("(?m)^O15\\.", "Q15.")
+                                .replaceAll("(?m)^015\\.", "Q15.")
+
+                                // OCR evidence:
+                                // raw OCR variants for Q115: Q11S. / Q11S / Qi15. / Qi15 / O115. / 0115.
+                                // intended source text: Q115.
+                                // reason: Additional OCR character misread variants for question 115
+                                .replace("Q11S.", "Q115.")
+                                .replace("Q11S", "Q115")
+                                .replace("Qi15.", "Q115.")
+                                .replace("Qi15", "Q115")
+                                .replaceAll("(?m)^O115\\.", "Q115.")
+                                .replaceAll("(?m)^0115\\.", "Q115.")
 
                                 // OCR evidence:
                                 // raw OCR: Q51%
