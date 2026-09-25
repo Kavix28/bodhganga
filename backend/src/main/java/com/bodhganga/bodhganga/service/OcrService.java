@@ -19,6 +19,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +48,14 @@ public class OcrService {
         return endpoint;
     }
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
+
+    public OcrService() {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(5000);
+        requestFactory.setReadTimeout(30000);
+        this.restTemplate = new RestTemplate(requestFactory);
+    }
 
     public static class PageOcrResult {
         private final int pageNumber;
@@ -272,10 +281,29 @@ public class OcrService {
                         "--psm", "6",
                         "txt", "tsv");
                 Process process = pb.start();
-                process.waitFor();
+                boolean completed = process.waitFor(60, TimeUnit.SECONDS);
 
                 File txtFile = new File(tempOutputBase.getAbsolutePath() + ".txt");
                 File tsvFile = new File(tempOutputBase.getAbsolutePath() + ".tsv");
+
+                if (!completed) {
+                    log.error("Local Tesseract execution timed out (>60s) for page {}", pageNumber);
+                    process.destroy();
+                    if (process.isAlive()) {
+                        process.destroyForcibly();
+                    }
+                    if (txtFile.exists()) {
+                        txtFile.delete();
+                    }
+                    if (tsvFile.exists()) {
+                        tsvFile.delete();
+                    }
+                    if (tempImage.exists()) {
+                        tempImage.delete();
+                    }
+                    throw new RuntimeException("Local Tesseract execution timed out on page " + pageNumber);
+                }
+
                 String text = "";
                 if (txtFile.exists()) {
                     text = Files.readString(txtFile.toPath());
