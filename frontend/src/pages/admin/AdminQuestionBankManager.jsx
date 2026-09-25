@@ -216,7 +216,7 @@ const AdminQuestionBankManager = () => {
         try {
             const res = await api.post('/admin/quiz/upload', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
-                timeout: 600000, // 10 minutes timeout for multi-page scanned PDF OCR ingestion pipeline
+                timeout: 0, // Disable client timeout for synchronous multi-page OCR ingestion
             });
 
             const resData = res?.data || res;

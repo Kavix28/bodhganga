@@ -3,6 +3,8 @@ package com.bodhganga.bodhganga.service;
 import com.bodhganga.bodhganga.entity.Question;
 import com.bodhganga.bodhganga.repo.QuestionRepo;
 import com.bodhganga.bodhganga.services.S3Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -13,6 +15,8 @@ import java.util.*;
 
 @Service
 public class QuestionIngestionService {
+
+    private static final Logger log = LoggerFactory.getLogger(QuestionIngestionService.class);
 
     private final PdfExtractionService pdfExtractionService;
     private final QuestionParserService questionParserService;
@@ -293,6 +297,9 @@ public class QuestionIngestionService {
             String testType,
             boolean dryRun) throws IOException {
 
+        long startTimeMs = System.currentTimeMillis();
+        log.info("[QUESTION BANK INGESTION] START state={} district={} testType={} dryRun={}", stateSlug, districtSlug, testType, dryRun);
+
         validatePdfFile(questionPdfFile, "Question Bank PDF");
         validatePdfFile(answerPdfFile, "Answer PDF");
 
@@ -307,6 +314,7 @@ public class QuestionIngestionService {
         if (!existing.isEmpty() && !dryRun) {
             long draftC = existing.stream().filter(q -> "DRAFT".equalsIgnoreCase(q.getStatus())).count();
             long reviewC = existing.stream().filter(q -> "REVIEW_REQUIRED".equalsIgnoreCase(q.getStatus())).count();
+            log.info("[QUESTION BANK INGESTION] SKIPPED (Idempotent file hash match) totalCount={}", existing.size());
             return IngestionResult.builder()
                     .success(true)
                     .message("Question bank already ingested previously (idempotent skip)")
@@ -358,6 +366,10 @@ public class QuestionIngestionService {
 
             qPages = qExtractResult.getPageTexts();
             aPages = aExtractResult.getPageTexts();
+
+            long ocrEndMs = System.currentTimeMillis();
+            log.info("[QUESTION BANK INGESTION] OCR COMPLETE elapsedMs={} qPages={} aPages={}",
+                    (ocrEndMs - startTimeMs), qPages.size(), aPages.size());
         } catch (Exception e) {
             return IngestionResult.builder()
                     .success(false)
@@ -420,6 +432,11 @@ public class QuestionIngestionService {
                 parsedQs, parsedAs, stateSlug, districtSlug, testType, sourceDocId, qS3Key, aS3Key, fileHash);
 
         List<Question> matchedQuestions = matchReport.getQuestions();
+
+        long matchEndMs = System.currentTimeMillis();
+        log.info("[QUESTION BANK INGESTION] PARSING & MATCHING COMPLETE elapsedMs={} parsedQs={} parsedAs={} matched={}",
+                (matchEndMs - startTimeMs), parsedQs.size(), parsedAs.size(), matchedQuestions.size());
+
         List<Question> savedQuestions;
 
         if (dryRun) {
@@ -437,6 +454,12 @@ public class QuestionIngestionService {
                 reviewCount++;
             }
         }
+
+        long persistEndMs = System.currentTimeMillis();
+        long totalElapsedMs = persistEndMs - startTimeMs;
+        log.info("[QUESTION BANK INGESTION] PERSISTENCE COMPLETE elapsedMs={} draft={} reviewRequired={}",
+                (persistEndMs - matchEndMs), draftCount, reviewCount);
+        log.info("[QUESTION BANK INGESTION] COMPLETE totalElapsedMs={} totalParsed={}", totalElapsedMs, savedQuestions.size());
 
         String msg = dryRun
                 ? "Dry run completed successfully. Parsed " + savedQuestions.size() + " questions (DB persist skipped)"
