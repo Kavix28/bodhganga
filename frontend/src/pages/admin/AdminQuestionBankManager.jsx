@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, FileText, CheckCircle, AlertTriangle, Eye, Edit3, Trash2, Send, Filter, CheckSquare, Loader2, ArrowLeft } from 'lucide-react';
+import { Upload, FileText, CheckCircle, AlertTriangle, Eye, Edit3, Trash2, Send, Filter, CheckSquare, Loader2, ArrowLeft, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import { getAvailableStates, getDistricts } from '../../services/adminService';
