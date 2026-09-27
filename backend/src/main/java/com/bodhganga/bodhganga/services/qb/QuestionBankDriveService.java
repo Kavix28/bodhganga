@@ -59,6 +59,10 @@ public class QuestionBankDriveService {
         return drive != null;
     }
 
+    public void setDrive(Drive drive) {
+        this.drive = drive;
+    }
+
     public List<File> listFilesInFolder(String folderId) throws IOException {
         requireConfigured("listFilesInFolder");
 

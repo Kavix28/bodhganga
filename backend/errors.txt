@@ -1,0 +1,22 @@
+﻿[INFO] Scanning for projects...
+[INFO] 
+[INFO] ----------------------< com.bodhganga:bodhganga >-----------------------
+[INFO] Building bodhganga 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ bodhganga ---
+[INFO] Copying 3 resources from src\main\resources to target\classes
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ bodhganga ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 171 source files with javac [debug parameters release 17] to target\classes
+[INFO] /C:/PROJECTS/bodhganga/backend/src/main/java/com/bodhganga/bodhganga/services/qb/GeminiQuestionParserService.java: Some input files use unchecked or unsafe operations.
+[INFO] /C:/PROJECTS/bodhganga/backend/src/main/java/com/bodhganga/bodhganga/services/qb/GeminiQuestionParserService.java: Recompile with -Xlint:unchecked for details.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  6.133 s
+[INFO] Finished at: 2026-09-27T02:29:04+05:30
+[INFO] ------------------------------------------------------------------------

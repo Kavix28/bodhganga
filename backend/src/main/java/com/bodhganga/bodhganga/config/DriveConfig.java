@@ -31,7 +31,8 @@ public class DriveConfig {
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
     private static final List<String> SCOPES = Collections.singletonList(DriveScopes.DRIVE);
 
-    public static Drive createDriveClient(String credentialsPath, String appName) throws IOException, GeneralSecurityException {
+    public static Drive createDriveClient(String credentialsPath, String appName)
+            throws IOException, GeneralSecurityException {
         if (credentialsPath == null || credentialsPath.isBlank()) {
             throw new IllegalArgumentException("Credentials path is blank.");
         }
@@ -49,9 +50,17 @@ public class DriveConfig {
                 throw new IOException("Credentials path '" + credentialsPath + "' points to a DIRECTORY, not a file.");
             }
             if (!f.exists()) {
-                throw new IOException("Credentials file does not exist at '" + credentialsPath + "'.");
+                credStream = DriveConfig.class.getClassLoader().getResourceAsStream("google-credentials.json");
+                if (credStream == null) {
+                    throw new IOException("Credentials file does not exist at '" + credentialsPath
+                            + "' and fallback classpath:google-credentials.json is not present.");
+                }
+                log.warn(
+                        "[DRIVE CONFIG] Credentials file not found at '{}'. Falling back to classpath:google-credentials.json",
+                        credentialsPath);
+            } else {
+                credStream = new FileInputStream(f);
             }
-            credStream = new FileInputStream(f);
         }
 
         GoogleCredentials credentials = GoogleCredentials.fromStream(credStream).createScoped(SCOPES);

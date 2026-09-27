@@ -2,13 +2,19 @@ package com.bodhganga.bodhganga.services.qb;
 
 import com.bodhganga.bodhganga.config.QuestionBankProperties;
 import com.bodhganga.bodhganga.entity.qb.QBAudit;
+import com.bodhganga.bodhganga.entity.qb.QBImportBatch;
+import com.bodhganga.bodhganga.entity.qb.QBImportItem;
 import com.bodhganga.bodhganga.entity.qb.QBQuestion;
 import com.bodhganga.bodhganga.repo.qb.QBAuditRepo;
+import com.bodhganga.bodhganga.repo.qb.QBImportBatchRepo;
+import com.bodhganga.bodhganga.repo.qb.QBImportItemRepo;
 import com.bodhganga.bodhganga.repo.qb.QBQuestionRepo;
+import com.bodhganga.bodhganga.service.*;
 import com.bodhganga.bodhganga.services.S3Service;
 import com.google.api.services.drive.model.File;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -23,28 +29,76 @@ public class QuestionBankPipelineTask {
 
     private final QuestionBankProperties props;
     private final QuestionBankDriveService driveService;
-    private final S3Service s3Service;
+    private final QuestionPdfPairingService pairingService;
+    private final DocumentExtractionRouter documentExtractionRouter;
+    private final QuestionParserService questionParserService;
+    private final AnswerParserService answerParserService;
+    private final QuestionMatchingService questionMatchingService;
     private final GeminiQuestionParserService geminiParserService;
     private final TestGeneratorService testGeneratorService;
+    private final S3Service s3Service;
     private final QBQuestionRepo questionRepo;
+    private final QBImportBatchRepo batchRepo;
+    private final QBImportItemRepo importItemRepo;
     private final QBAuditRepo auditRepo;
+    private final AkolaTextNormalizationFilter akolaTextNormalizationFilter;
+    private final DeterministicQuestionClassifier deterministicQuestionClassifier;
 
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
 
+    @Autowired
     public QuestionBankPipelineTask(QuestionBankProperties props,
-                                    QuestionBankDriveService driveService,
-                                    S3Service s3Service,
-                                    GeminiQuestionParserService geminiParserService,
-                                    TestGeneratorService testGeneratorService,
-                                    QBQuestionRepo questionRepo,
-                                    QBAuditRepo auditRepo) {
+            QuestionBankDriveService driveService,
+            QuestionPdfPairingService pairingService,
+            DocumentExtractionRouter documentExtractionRouter,
+            QuestionParserService questionParserService,
+            AnswerParserService answerParserService,
+            QuestionMatchingService questionMatchingService,
+            GeminiQuestionParserService geminiParserService,
+            TestGeneratorService testGeneratorService,
+            S3Service s3Service,
+            QBQuestionRepo questionRepo,
+            QBImportBatchRepo batchRepo,
+            QBImportItemRepo importItemRepo,
+            QBAuditRepo auditRepo,
+            AkolaTextNormalizationFilter akolaTextNormalizationFilter,
+            DeterministicQuestionClassifier deterministicQuestionClassifier) {
         this.props = props;
         this.driveService = driveService;
-        this.s3Service = s3Service;
+        this.pairingService = pairingService;
+        this.documentExtractionRouter = documentExtractionRouter;
+        this.questionParserService = questionParserService;
+        this.answerParserService = answerParserService;
+        this.questionMatchingService = questionMatchingService;
         this.geminiParserService = geminiParserService;
         this.testGeneratorService = testGeneratorService;
+        this.s3Service = s3Service;
         this.questionRepo = questionRepo;
+        this.batchRepo = batchRepo;
+        this.importItemRepo = importItemRepo;
         this.auditRepo = auditRepo;
+        this.akolaTextNormalizationFilter = akolaTextNormalizationFilter;
+        this.deterministicQuestionClassifier = deterministicQuestionClassifier;
+    }
+
+    public QuestionBankPipelineTask(QuestionBankProperties props,
+            QuestionBankDriveService driveService,
+            QuestionPdfPairingService pairingService,
+            DocumentExtractionRouter documentExtractionRouter,
+            QuestionParserService questionParserService,
+            AnswerParserService answerParserService,
+            QuestionMatchingService questionMatchingService,
+            GeminiQuestionParserService geminiParserService,
+            TestGeneratorService testGeneratorService,
+            S3Service s3Service,
+            QBQuestionRepo questionRepo,
+            QBImportBatchRepo batchRepo,
+            QBImportItemRepo importItemRepo,
+            QBAuditRepo auditRepo) {
+        this(props, driveService, pairingService, documentExtractionRouter, questionParserService,
+                answerParserService, questionMatchingService, geminiParserService, testGeneratorService,
+                s3Service, questionRepo, batchRepo, importItemRepo, auditRepo,
+                new AkolaTextNormalizationFilter(), new DeterministicQuestionClassifier());
     }
 
     @Scheduled(fixedDelayString = "${google.drive.qb.sync-interval-ms:${QB_SYNC_INTERVAL_MS:600000}}")
@@ -60,220 +114,587 @@ public class QuestionBankPipelineTask {
         return props.isPipelineEnabled();
     }
 
-    public void syncQuestionBank(boolean force) {
-        if (!driveService.isConfigured()) {
-            String msg = "[QB PIPELINE] QB Drive client is not configured — check QB credentials.";
-            log.error(msg);
-            if (force) throw new IllegalStateException(msg);
-            return;
+    public static class PipelineRunResult {
+        private final String status; // NO_ELIGIBLE_FILES, COMPLETED, PARTIAL_SUCCESS, FAILED
+        private final String message;
+        private final int totalBatches;
+        private final int successfulBatches;
+        private final int totalQuestionsIngested;
+
+        public PipelineRunResult(String status, String message, int totalBatches, int successfulBatches,
+                int totalQuestionsIngested) {
+            this.status = status;
+            this.message = message;
+            this.totalBatches = totalBatches;
+            this.successfulBatches = successfulBatches;
+            this.totalQuestionsIngested = totalQuestionsIngested;
         }
 
-        String sourceFolderId = props.getSourceFolderId();
-        if (sourceFolderId == null || sourceFolderId.isBlank()
-                || sourceFolderId.equalsIgnoreCase("REPLACE_WITH_SOURCE_FOLDER_ID")) {
-            String msg = "[QB PIPELINE] google.drive.qb.source-folder-id is not set.";
-            log.error(msg);
-            if (force) throw new IllegalStateException(msg);
-            return;
+        public String getStatus() {
+            return status;
         }
 
-        String archiveFolderId = props.getArchiveFolderId();
-        if (archiveFolderId == null || archiveFolderId.isBlank()
-                || archiveFolderId.equalsIgnoreCase("REPLACE_WITH_ARCHIVE_FOLDER_ID")) {
-            log.warn("[QB PIPELINE] google.drive.qb.archive-folder-id is not set. Processed PDFs will not be archived.");
-            archiveFolderId = null;
+        public String getMessage() {
+            return message;
         }
 
+        public int getTotalBatches() {
+            return totalBatches;
+        }
+
+        public int getSuccessfulBatches() {
+            return successfulBatches;
+        }
+
+        public int getTotalQuestionsIngested() {
+            return totalQuestionsIngested;
+        }
+    }
+
+    public PipelineRunResult syncQuestionBank(boolean force) {
         if (!isRunning.compareAndSet(false, true)) {
             String msg = "[QB PIPELINE] Pipeline is already running — skipping concurrent trigger.";
             log.warn(msg);
-            if (force) throw new IllegalStateException(msg);
-            return;
+            if (force)
+                throw new IllegalStateException(msg);
+            return new PipelineRunResult("SKIPPED", msg, 0, 0, 0);
         }
 
-        long startTime = System.currentTimeMillis();
-        log.info("========== QB SYNC START ==========");
-        log.info("Checking Drive... Source Folder: {}", sourceFolderId);
-
         try {
-            traverseAndIngest(sourceFolderId, new ArrayList<>(), archiveFolderId);
+            // Stage 0: Stale Batch Recovery (Run ALWAYS, even if Drive credentials fail, so
+            // stale MongoDB batches are recovered)
+            recoverStaleBatches();
+
+            if (!driveService.isConfigured()) {
+                String msg = "[QB PIPELINE] QB Drive client is not configured — check QB credentials.";
+                log.error(msg);
+                if (force)
+                    throw new IllegalStateException(msg);
+                return new PipelineRunResult("FAILED", msg, 0, 0, 0);
+            }
+
+            String sourceFolderId = props.getSourceFolderId();
+            if (sourceFolderId == null || sourceFolderId.isBlank()
+                    || sourceFolderId.equalsIgnoreCase("REPLACE_WITH_SOURCE_FOLDER_ID")) {
+                String msg = "[QB PIPELINE] google.drive.qb.source-folder-id is not set.";
+                log.error(msg);
+                if (force)
+                    throw new IllegalStateException(msg);
+                return new PipelineRunResult("FAILED", msg, 0, 0, 0);
+            }
+
+            long startTime = System.currentTimeMillis();
+            log.info("========== QB SYNC START ==========");
+            log.info("[QB PIPELINE] Checking Drive... Source Folder: {}", sourceFolderId);
+
+            // Stage 1: Traverse Drive
+            List<Map.Entry<File, List<String>>> allDiscoveredItems = new ArrayList<>();
+            traverseDriveFolder(sourceFolderId, new ArrayList<>(), allDiscoveredItems);
+
+            // Stage 2: Pair PDFs & Log Discovery Metrics
+            QuestionPdfPairingService.PairingResult pairingResult = pairingService.pairDiscoveredFiles(sourceFolderId,
+                    allDiscoveredItems);
+
+            if (pairingResult.getPairs().isEmpty() || pairingResult.getTotalPdfsDiscovered() == 0) {
+                log.info("[QB PIPELINE] Scan complete. Status: NO_ELIGIBLE_FILES (0 eligible PDF pairs found).");
+                log.info("========== QB SYNC END (NO_ELIGIBLE_FILES) ==========");
+                return new PipelineRunResult("NO_ELIGIBLE_FILES", "Scan complete: 0 eligible PDF pairs found", 0, 0, 0);
+            }
+
+            // Stage 3: Process Paired PDF Batches
+            String archiveFolderId = props.getArchiveFolderId();
+            if (archiveFolderId != null && archiveFolderId.equalsIgnoreCase("REPLACE_WITH_ARCHIVE_FOLDER_ID")) {
+                archiveFolderId = null;
+            }
+
+            int processedBatches = 0;
+            int successfulBatches = 0;
+            int totalIngested = 0;
+
+            for (QuestionPdfPairingService.PdfPair pair : pairingResult.getPairs()) {
+                processedBatches++;
+                try {
+                    QBImportBatch batch = processPdfPair(pair, archiveFolderId);
+                    if ("COMPLETED".equalsIgnoreCase(batch.getStatus())
+                            || "PARTIAL_SUCCESS".equalsIgnoreCase(batch.getStatus())) {
+                        successfulBatches++;
+                        totalIngested += (batch.getSuccessfullyMatched() != null ? batch.getSuccessfullyMatched() : 0);
+                    }
+                } catch (Exception e) {
+                    log.error("[QB PIPELINE] Failed processing PDF pair for {}/{}: {}", pair.getState(),
+                            pair.getDistrict(), e.getMessage(), e);
+                }
+            }
+
             long duration = System.currentTimeMillis() - startTime;
-            log.info("SUCCESS (Execution time: {} ms)", duration);
+            String finalStatus = successfulBatches == processedBatches ? "COMPLETED" : "PARTIAL_SUCCESS";
+            log.info("[QB PIPELINE] Sync finished in {} ms. Status: {}, Batches: {}/{}, Questions Ingested: {}",
+                    duration, finalStatus, successfulBatches, processedBatches, totalIngested);
             log.info("========== QB SYNC END ==========");
+
+            return new PipelineRunResult(finalStatus, "Pipeline sync completed successfully", processedBatches,
+                    successfulBatches, totalIngested);
+
         } catch (Exception e) {
-            log.error("[QB PIPELINE] Stage FAILED during traversal/ingest: {}", e.getMessage(), e);
+            log.error("[QB PIPELINE] Critical pipeline failure: {}", e.getMessage(), e);
             log.info("========== QB SYNC END (FAILED) ==========");
+            return new PipelineRunResult("FAILED", "Pipeline failure: " + e.getMessage(), 0, 0, 0);
         } finally {
             isRunning.set(false);
         }
     }
 
-    private void traverseAndIngest(String folderId, List<String> path, String archiveFolderId) throws Exception {
-        List<File> items;
-        try {
-            items = driveService.listFilesInFolder(folderId);
-        } catch (Exception e) {
-            log.error("[QB PIPELINE] FAILED AT STAGE: Drive Folder Traversal (Folder ID: {}) - {}", folderId, e.getMessage());
-            throw e;
-        }
+    public void recoverStaleBatches() {
+        List<String> nonTerminalStatuses = List.of(
+                "DISCOVERED", "DOWNLOADING", "PARSING", "MATCHING", "VALIDATING", "PERSISTING", "GENERATING_TESTS");
 
-        if (items == null || items.isEmpty()) return;
+        long staleTimeoutMs = props.getSyncIntervalMs() > 0 ? (props.getSyncIntervalMs() * 2) : 900000L; // 15 mins
+                                                                                                         // default
+        Date cutoffTime = new Date(System.currentTimeMillis() - staleTimeoutMs);
 
-        int folderCount = 0;
-        int pdfCount = 0;
-        for (File item : items) {
-            if ("application/vnd.google-apps.folder".equals(item.getMimeType())) {
-                folderCount++;
-            } else if (item.getName() != null && item.getName().toLowerCase().endsWith(".pdf")) {
-                pdfCount++;
+        List<QBImportBatch> staleBatches = batchRepo.findByStatusIn(nonTerminalStatuses);
+
+        for (QBImportBatch batch : staleBatches) {
+            if (batch.getUpdatedAt() != null && batch.getUpdatedAt().before(cutoffTime)) {
+                String stuckStage = batch.getStatus();
+                log.warn(
+                        "[QB STALE RECOVERY] Recovering stale batch {} (state: {}, district: {}) stuck in status '{}' since {}",
+                        batch.getImportBatchId(), batch.getState(), batch.getDistrict(), stuckStage,
+                        batch.getUpdatedAt());
+
+                batch.setStatus("FAILED");
+                batch.setErrorMessage("Stale batch recovered: timed out during stage " + stuckStage);
+                batch.setUpdatedAt(new Date());
+                batchRepo.save(batch);
+
+                QBAudit audit = new QBAudit();
+                audit.setFileName(batch.getQuestionFileName() != null ? batch.getQuestionFileName() : "Unknown");
+                audit.setGoogleDriveFileId(
+                        batch.getQuestionDriveFileId() != null ? batch.getQuestionDriveFileId() : "Unknown");
+                audit.setStatus("FAILED");
+                audit.setErrorMessage(batch.getErrorMessage());
+                auditRepo.save(audit);
             }
         }
-        log.info("Found {} folders, Found {} PDFs in folder path: {}", folderCount, pdfCount, path);
+    }
+
+    private void traverseDriveFolder(String folderId, List<String> path,
+            List<Map.Entry<File, List<String>>> accumulator) throws Exception {
+        List<File> items = driveService.listFilesInFolder(folderId);
+        if (items == null || items.isEmpty())
+            return;
 
         for (File item : items) {
+            accumulator.add(Map.entry(item, new ArrayList<>(path)));
             if ("application/vnd.google-apps.folder".equals(item.getMimeType())) {
                 List<String> nextPath = new ArrayList<>(path);
                 nextPath.add(item.getName());
-                traverseAndIngest(item.getId(), nextPath, archiveFolderId);
-            } else if (item.getName() != null && item.getName().toLowerCase().endsWith(".pdf")) {
-                processPdfFile(item, path, archiveFolderId);
+                traverseDriveFolder(item.getId(), nextPath, accumulator);
             }
         }
     }
 
-    private void processPdfFile(File file, List<String> path, String archiveFolderId) {
-        String state   = path.size() > 0 ? path.get(0) : "General";
-        String exam    = path.size() > 1 ? path.get(1) : "State Exams";
-        String subject = path.size() > 2 ? path.get(2) : "General Knowledge";
+    private TextNormalizationFilter resolveNormalizationFilter(String districtSlug) {
+        if ("akola".equalsIgnoreCase(districtSlug) && akolaTextNormalizationFilter != null) {
+            return akolaTextNormalizationFilter;
+        }
+        return null;
+    }
 
-        String stateSlug   = GeminiQuestionParserService.generateSlug(state);
-        String examSlug    = GeminiQuestionParserService.generateSlug(exam);
-        String subjectSlug = GeminiQuestionParserService.generateSlug(subject);
-        String fileName    = file.getName();
+    public QBImportBatch processPdfPair(QuestionPdfPairingService.PdfPair pair, String archiveFolderId)
+            throws Exception {
+        File qFile = pair.getQuestionFile();
+        File sFile = pair.getSolutionFile();
 
-        log.info("Processing PDF: {}", fileName);
+        String qDriveId = qFile != null ? qFile.getId() : "MISSING";
+        String sDriveId = sFile != null ? sFile.getId() : (qFile != null ? qFile.getId() : "MISSING");
+
+        // Idempotency check: find existing batch
+        Optional<QBImportBatch> existingBatchOpt = batchRepo.findByQuestionDriveFileIdAndSolutionDriveFileId(qDriveId,
+                sDriveId);
+
+        QBImportBatch batch;
+        if (existingBatchOpt.isPresent()) {
+            batch = existingBatchOpt.get();
+            if ("COMPLETED".equalsIgnoreCase(batch.getStatus())
+                    || "PARTIAL_SUCCESS".equalsIgnoreCase(batch.getStatus())) {
+                log.info("[QB PIPELINE] Batch {} already completed for file pair ({}, {}). Skipping.",
+                        batch.getImportBatchId(), qDriveId, sDriveId);
+                return batch;
+            }
+        } else {
+            batch = new QBImportBatch();
+            batch.setImportBatchId("BATCH-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
+            batch.setQuestionDriveFileId(qDriveId);
+            batch.setQuestionFileName(qFile != null ? qFile.getName() : "MISSING");
+            batch.setSolutionDriveFileId(sDriveId);
+            batch.setSolutionFileName(sFile != null ? sFile.getName() : "MISSING");
+            batch.setCreatedAt(new Date());
+        }
+
+        batch.setState(pair.getState());
+        batch.setStateSlug(pair.getStateSlug());
+        batch.setDistrict(pair.getDistrict());
+        batch.setDistrictSlug(pair.getDistrictSlug());
+        batch.setExam(pair.getDistrict());
+        batch.setExamSlug(pair.getDistrictSlug());
+        batch.setSubject("General Knowledge");
+        batch.setSubjectSlug("general-knowledge");
+        batch.setStartedAt(new Date());
+        batch.setUpdatedAt(new Date());
+        if (batch.getStatus() == null) {
+            batch.setStatus("DISCOVERED");
+        }
+        batch = batchRepo.save(batch);
+
+        if ("AMBIGUOUS".equalsIgnoreCase(pair.getStatus()) || qFile == null) {
+            batch.setStatus("AMBIGUOUS");
+            batch.setErrorMessage(
+                    "Ambiguous PDF pairing in drive folder: " + pair.getState() + "/" + pair.getDistrict());
+            batch.setAmbiguousQuestions(1);
+            batch.setUpdatedAt(new Date());
+            return batchRepo.save(batch);
+        }
 
         QBAudit audit = new QBAudit();
-        audit.setFileName(fileName);
-        audit.setGoogleDriveFileId(file.getId());
+        audit.setFileName(qFile.getName());
+        audit.setGoogleDriveFileId(qFile.getId());
 
         try {
-            // Stage 1: Download
-            byte[] bytes;
-            try (InputStream stream = driveService.downloadFile(file.getId(), file.getMimeType())) {
-                if (stream == null) {
-                    log.warn("[QB PIPELINE] FAILED AT STAGE: Drive PDF Download - Null stream returned for {}", fileName);
-                    return;
-                }
-                bytes = stream.readAllBytes();
-            } catch (Exception e) {
-                log.error("[QB PIPELINE] FAILED AT STAGE: Drive PDF Download for '{}' - {}", fileName, e.getMessage());
-                throw e;
-            }
+            // Stage 1: Downloader (DOWNLOADING)
+            log.info("[QB PIPELINE] Batch {} [{}/{}] -> Stage: DOWNLOADING", batch.getImportBatchId(), pair.getState(),
+                    pair.getDistrict());
+            batch.setStatus("DOWNLOADING");
+            batch.setUpdatedAt(new Date());
+            batchRepo.save(batch);
 
-            if (bytes.length == 0) {
-                log.warn("[QB PIPELINE] FAILED AT STAGE: Drive PDF Download - Zero-byte file: {}", fileName);
-                return;
-            }
+            byte[] qBytes = downloadBytes(qFile);
+            byte[] aBytes = (sFile != null && !sFile.getId().equals(qFile.getId())) ? downloadBytes(sFile) : qBytes;
 
-            // Stage 2: S3 Upload
-            String s3Key = String.format("question-bank/%s/%s/%s/%s", stateSlug, examSlug, subjectSlug, fileName);
-            log.info("Uploading S3 ... Target Key: {}", s3Key);
-            try (InputStream is = new java.io.ByteArrayInputStream(bytes)) {
-                s3Key = s3Service.uploadFileWithKey(is, (long) bytes.length, s3Key, "application/pdf");
-            } catch (Exception e) {
-                log.error("[QB PIPELINE] FAILED AT STAGE: S3 Upload for '{}' - {}", fileName, e.getMessage());
-                throw e;
+            // Upload Question PDF to S3
+            String s3Key = String.format("question-bank/%s/%s/%s", pair.getStateSlug(), pair.getDistrictSlug(),
+                    qFile.getName());
+            try (InputStream is = new java.io.ByteArrayInputStream(qBytes)) {
+                s3Key = s3Service.uploadFileWithKey(is, (long) qBytes.length, s3Key, "application/pdf");
+            } catch (Exception s3Ex) {
+                log.warn("[QB PIPELINE] S3 upload warning for {}: {}", qFile.getName(), s3Ex.getMessage());
             }
             audit.setS3Key(s3Key);
 
-            // Stage 3: PDF Text Extraction & Gemini Metadata Parsing
-            String text = extractTextFromPdfBytes(bytes);
-            if (text == null || text.isBlank()) {
-                text = "PDF content could not be extracted from: " + fileName;
-            }
+            // Stage 2: Extraction & Parsing (PARSING)
+            log.info("[QB PIPELINE] Batch {} [{}/{}] -> Stage: PARSING", batch.getImportBatchId(), pair.getState(),
+                    pair.getDistrict());
+            batch.setStatus("PARSING");
+            batch.setUpdatedAt(new Date());
+            batchRepo.save(batch);
 
-            List<QBQuestion> extracted;
-            try {
-                log.info("Extracting metadata via Gemini ...");
-                extracted = geminiParserService.parseQuestionsFromText(
-                        text, state, stateSlug, exam, examSlug, subject, subjectSlug,
-                        file.getId(), s3Key);
-            } catch (Exception e) {
-                log.error("[QB PIPELINE] FAILED AT STAGE: Gemini Metadata Extraction for '{}' - {}", fileName, e.getMessage());
-                throw e;
-            }
+            DocumentExtractionRouter.ExtractionResult qExtract = documentExtractionRouter.routeAndExtract(qBytes);
+            DocumentExtractionRouter.ExtractionResult aExtract = documentExtractionRouter.routeAndExtract(aBytes);
 
-            audit.setGeminiCallsCount(1);
-            audit.setTotalQuestionsExtracted(extracted.size());
+            List<String> qPages = qExtract.getPageTexts();
+            List<String> aPages = aExtract.getPageTexts();
 
-            // Stage 4: Mongo Save & Dedup
-            int passed  = 0;
-            int flagged = 0;
-            List<QBQuestion> savedQuestions = new ArrayList<>();
+            TextNormalizationFilter normFilter = resolveNormalizationFilter(pair.getDistrictSlug());
 
-            try {
-                for (QBQuestion q : extracted) {
-                    Optional<QBQuestion> existing = questionRepo.findByGoogleDriveFileIdAndQuestionHash(
-                            q.getGoogleDriveFileId(), q.getQuestionHash());
+            List<QuestionParserService.ParsedQuestion> parsedQs = questionParserService.parseQuestionsFromPages(qPages,
+                    normFilter);
 
-                    if (existing.isPresent()) {
-                        savedQuestions.add(existing.get());
-                        passed++;
-                    } else {
-                        QBQuestion saved = questionRepo.save(q);
-                        savedQuestions.add(saved);
-                        if (Boolean.TRUE.equals(saved.getNeedsReview())) flagged++;
-                        else passed++;
+            // Deterministic structural classification (Foundation vs Statement-based /
+            // UPSC-level)
+            if (deterministicQuestionClassifier != null) {
+                for (QuestionParserService.ParsedQuestion pq : parsedQs) {
+                    DeterministicQuestionClassifier.QuestionClassification cls = deterministicQuestionClassifier
+                            .classifyQuestion(pq.getQuestionText(), pq.getOptions(), pq.getLevel());
+                    if (cls.getClassification() == DeterministicQuestionClassifier.ClassificationResult.STATEMENT_BASED) {
+                        pq.setLevel("upsc-level");
+                    } else if (cls
+                            .getClassification() == DeterministicQuestionClassifier.ClassificationResult.FOUNDATION) {
+                        pq.setLevel("foundation");
+                    } else if (cls
+                            .getClassification() == DeterministicQuestionClassifier.ClassificationResult.REVIEW_REQUIRED) {
+                        pq.setSuspicious(true);
+                        pq.setWarningReason(pq.getWarningReason() != null
+                                ? pq.getWarningReason() + "; " + cls.getReason()
+                                : cls.getReason());
                     }
                 }
-                log.info("Mongo Updated ... Saved {} questions (Passed: {}, Flagged: {})", savedQuestions.size(), passed, flagged);
-            } catch (Exception e) {
-                log.error("[QB PIPELINE] FAILED AT STAGE: Mongo Database Save for '{}' - {}", fileName, e.getMessage());
-                throw e;
             }
 
-            audit.setQuestionsPassed(passed);
-            audit.setQuestionsFlaggedReview(flagged);
+            Map<Integer, AnswerParserService.ParsedAnswer> parsedAs = answerParserService.parseAnswersFromPages(aPages,
+                    normFilter);
 
-            // Stage 5: Test & Bundle Generation
-            try {
-                testGeneratorService.generateTestsAndBundles(savedQuestions, file.getId(), s3Key);
-            } catch (Exception e) {
-                log.error("[QB PIPELINE] FAILED AT STAGE: Test & Bundle Generation for '{}' - {}", fileName, e.getMessage());
-                throw e;
-            }
+            // Fallback to Gemini if deterministic parser extracted 0 questions
+            if (parsedQs.isEmpty() && qPages != null && qPages.stream().mapToInt(String::length).sum() > 50) {
+                log.info(
+                        "[QB PIPELINE] Deterministic parser yielded 0 questions for {}. Retrying with Gemini LLM parser...",
+                        qFile.getName());
+                String combinedText = String.join("\n", qPages);
+                List<QBQuestion> geminiQuestions = geminiParserService.parseQuestionsFromText(
+                        combinedText, pair.getState(), pair.getStateSlug(), pair.getDistrict(), pair.getDistrictSlug(),
+                        "General Knowledge", "general-knowledge", qFile.getId(), s3Key);
 
-            // Stage 6: Archive
-            if (archiveFolderId != null && !archiveFolderId.isBlank()) {
-                try {
-                    driveService.moveToArchive(file.getId(), archiveFolderId);
-                    log.info("Archived ... File {} moved to folder {}", fileName, archiveFolderId);
-                } catch (Exception archiveEx) {
-                    log.error("[QB PIPELINE] FAILED AT STAGE: Google Drive Archival for '{}' - {}", fileName, archiveEx.getMessage());
+                for (int i = 0; i < geminiQuestions.size(); i++) {
+                    QBQuestion gq = geminiQuestions.get(i);
+                    QuestionParserService.ParsedQuestion pq = new QuestionParserService.ParsedQuestion();
+                    pq.setQuestionNumber(i + 1);
+                    pq.setQuestionText(gq.getQuestionText());
+
+                    List<String> options = new ArrayList<>();
+                    if (gq.getOptions() != null) {
+                        for (QBQuestion.QBOption opt : gq.getOptions()) {
+                            options.add(opt.getText());
+                        }
+                    }
+                    pq.setOptions(options);
+                    parsedQs.add(pq);
                 }
             }
 
-            audit.setStatus("SUCCESS");
-            auditRepo.save(audit);
-            log.info("SUCCESS Processing {}", fileName);
+            // Zero questions parsed validation failure
+            if (parsedQs.isEmpty()) {
+                String msg = "Parsing failed: 0 valid questions were extracted from document " + qFile.getName();
+                log.error("[QB PIPELINE] Batch {} [{}/{}] FAILED in stage PARSING: {}", batch.getImportBatchId(),
+                        pair.getState(), pair.getDistrict(), msg);
+                batch.setStatus("FAILED");
+                batch.setErrorMessage(msg);
+                batch.setUpdatedAt(new Date());
+                batchRepo.save(batch);
 
-        } catch (Exception e) {
+                audit.setStatus("FAILED");
+                audit.setErrorMessage(msg);
+                auditRepo.save(audit);
+                return batch;
+            }
+
+            batch.setSuccessfullyParsed(parsedQs.size());
+            audit.setTotalQuestionsExtracted(parsedQs.size());
+
+            // Stage 3: Matching (MATCHING)
+            log.info("[QB PIPELINE] Batch {} [{}/{}] -> Stage: MATCHING", batch.getImportBatchId(), pair.getState(),
+                    pair.getDistrict());
+            batch.setStatus("MATCHING");
+            batch.setUpdatedAt(new Date());
+            batchRepo.save(batch);
+
+            QuestionMatchingService.MatchReport matchReport = questionMatchingService.matchAndBuildReport(
+                    parsedQs, parsedAs, pair.getStateSlug(), pair.getDistrictSlug(), "easy",
+                    qFile.getName(), s3Key, s3Key, GeminiQuestionParserService.calculateSHA256(qFile.getName()));
+
+            int totalQs = parsedQs.size();
+            int matchedCount = matchReport.getExactMatchCount() + matchReport.getFuzzyMatchCount();
+            int unmatchedCount = matchReport.getUnmatchedCount();
+
+            batch.setTotalQuestions(totalQs);
+            batch.setSuccessfullyMatched(matchedCount);
+            batch.setUnmatchedQuestions(unmatchedCount);
+
+            // Stage 4 & 5: Validation & Deduplication & Persistence (VALIDATING &
+            // PERSISTING)
+            log.info("[QB PIPELINE] Batch {} [{}/{}] -> Stage: VALIDATING", batch.getImportBatchId(), pair.getState(),
+                    pair.getDistrict());
+            batch.setStatus("VALIDATING");
+            batch.setUpdatedAt(new Date());
+            batchRepo.save(batch);
+
+            // Clean previous import items for this batch
+            importItemRepo.deleteByImportBatchId(batch.getImportBatchId());
+
+            int invalidCount = 0;
+            int duplicateCount = 0;
+            List<QBQuestion> qbQuestionsToSave = new ArrayList<>();
+            List<QBImportItem> importItemsToSave = new ArrayList<>();
+
+            for (com.bodhganga.bodhganga.entity.Question mq : matchReport.getQuestions()) {
+                QBImportItem item = new QBImportItem();
+                item.setImportBatchId(batch.getImportBatchId());
+                item.setQuestionNumber(mq.getQuestionNumber());
+                item.setRawQuestionText(mq.getQuestion());
+                item.setRawExplanationText(mq.getExplanation());
+
+                if (mq.getQuestion() == null || mq.getQuestion().isBlank() || mq.getOptions() == null
+                        || mq.getOptions().size() < 2) {
+                    invalidCount++;
+                    item.setStatus("INVALID");
+                    item.setErrorMessage("Question text empty or insufficient options (< 2)");
+                    importItemsToSave.add(item);
+                    continue;
+                }
+
+                StringBuilder optsSb = new StringBuilder();
+                List<QBQuestion.QBOption> opts = new ArrayList<>();
+                String correctOptId = "A";
+
+                String[] optLetters = { "A", "B", "C", "D", "E" };
+                int correctIdx = mq.getCorrectAnswer() != null ? mq.getCorrectAnswer() : 0;
+
+                for (int i = 0; i < mq.getOptions().size(); i++) {
+                    String optId = i < optLetters.length ? optLetters[i] : String.valueOf((char) ('A' + i));
+                    String optText = mq.getOptions().get(i);
+                    boolean isCorr = (i == correctIdx);
+                    opts.add(new QBQuestion.QBOption(optId, optText, isCorr));
+                    optsSb.append(optId).append(":").append(optText).append(";");
+                    if (isCorr) {
+                        correctOptId = optId;
+                    }
+                }
+
+                String qHash = GeminiQuestionParserService.calculateSHA256(mq.getQuestion() + "|" + optsSb.toString());
+
+                Optional<QBQuestion> existingHashOpt = questionRepo.findByQuestionHash(qHash);
+                if (existingHashOpt.isPresent()) {
+                    duplicateCount++;
+                    item.setStatus("DUPLICATE");
+                    item.setErrorMessage("Duplicate question hash already exists in mongo: " + qHash);
+                    importItemsToSave.add(item);
+                    continue;
+                }
+
+                item.setStatus("REVIEW_REQUIRED".equalsIgnoreCase(mq.getStatus()) ? "UNMATCHED" : "MATCHED");
+                importItemsToSave.add(item);
+
+                QBQuestion q = new QBQuestion();
+                q.setImportBatchId(batch.getImportBatchId());
+                q.setQuestionNumber(mq.getQuestionNumber());
+                q.setQuestionHash(qHash);
+                q.setGoogleDriveFileId(qFile.getId());
+                q.setS3Key(s3Key);
+                q.setState(pair.getState());
+                q.setStateSlug(pair.getStateSlug());
+                q.setExam(pair.getDistrict());
+                q.setExamSlug(pair.getDistrictSlug());
+                q.setSubject("General Knowledge");
+                q.setSubjectSlug("general-knowledge");
+                q.setChapter("General Knowledge");
+                q.setChapterSlug("general-knowledge");
+                q.setTopic(mq.getTopic() != null ? mq.getTopic() : "General");
+                q.setTopicSlug(GeminiQuestionParserService.generateSlug(q.getTopic()));
+                q.setQuestionText(mq.getQuestion());
+                q.setOptions(opts);
+                q.setCorrectAnswer(correctOptId);
+                q.setExplanation(mq.getExplanation() != null ? mq.getExplanation() : "");
+                q.setDifficulty("MEDIUM");
+                q.setConfidenceScore(0.9);
+                q.setNeedsReview("REVIEW_REQUIRED".equalsIgnoreCase(mq.getStatus()));
+                q.setPublished(true);
+
+                qbQuestionsToSave.add(q);
+            }
+
+            batch.setInvalidQuestions(invalidCount);
+            batch.setDuplicateQuestions(duplicateCount);
+
+            // Zero valid questions persisted validation failure
+            if (qbQuestionsToSave.isEmpty()) {
+                String msg = "Persistence failed: 0 valid questions survived validation/deduplication for document "
+                        + qFile.getName();
+                log.error("[QB PIPELINE] Batch {} [{}/{}] FAILED in stage PERSISTING: {}", batch.getImportBatchId(),
+                        pair.getState(), pair.getDistrict(), msg);
+                batch.setStatus("FAILED");
+                batch.setErrorMessage(msg);
+                batch.setUpdatedAt(new Date());
+                batchRepo.save(batch);
+
+                audit.setStatus("FAILED");
+                audit.setErrorMessage(msg);
+                auditRepo.save(audit);
+                return batch;
+            }
+
+            // Stage 5: Save Questions to Mongo (PERSISTING)
+            log.info("[QB PIPELINE] Batch {} [{}/{}] -> Stage: PERSISTING", batch.getImportBatchId(), pair.getState(),
+                    pair.getDistrict());
+            batch.setStatus("PERSISTING");
+            batch.setUpdatedAt(new Date());
+            batchRepo.save(batch);
+
+            List<QBQuestion> savedQbQuestions = questionRepo.saveAll(qbQuestionsToSave);
+            importItemRepo.saveAll(importItemsToSave);
+
+            log.info("[QB PIPELINE] Saved {} QBQuestions and {} QBImportItems for batch {}", savedQbQuestions.size(),
+                    importItemsToSave.size(), batch.getImportBatchId());
+
+            // Stage 6: Test & Bundle Generation (GENERATING_TESTS)
+            if (!savedQbQuestions.isEmpty()) {
+                log.info("[QB PIPELINE] Batch {} [{}/{}] -> Stage: GENERATING_TESTS", batch.getImportBatchId(),
+                        pair.getState(), pair.getDistrict());
+                batch.setStatus("GENERATING_TESTS");
+                batch.setUpdatedAt(new Date());
+                batchRepo.save(batch);
+
+                try {
+                    testGeneratorService.generateTestsAndBundles(savedQbQuestions, qFile.getId(), s3Key);
+                } catch (Exception testEx) {
+                    log.error("[QB PIPELINE] Test generation failed for batch {}: {}", batch.getImportBatchId(),
+                            testEx.getMessage(), testEx);
+                }
+            }
+
+            // Stage 7: Archive & Completion (COMPLETED / PARTIAL_SUCCESS)
+            if (archiveFolderId != null && !archiveFolderId.isBlank()) {
+                try {
+                    driveService.moveToArchive(qFile.getId(), archiveFolderId);
+                    if (sFile != null && !sFile.getId().equals(qFile.getId())) {
+                        driveService.moveToArchive(sFile.getId(), archiveFolderId);
+                    }
+                } catch (Exception archiveEx) {
+                    log.warn("[QB PIPELINE] Archival failed for file pair ({}, {}): {}", qDriveId, sDriveId,
+                            archiveEx.getMessage());
+                }
+            }
+
+            String finalStatus = (invalidCount > 0 || unmatchedCount > 0) ? "PARTIAL_SUCCESS"
+                    : "COMPLETED";
+            batch.setStatus(finalStatus);
+            batch.setCompletedAt(new Date());
+            batch.setUpdatedAt(new Date());
+            batchRepo.save(batch);
+
+            audit.setGeminiCallsCount(1);
+            audit.setQuestionsPassed(savedQbQuestions.size());
+            audit.setQuestionsFlaggedReview(
+                    (int) savedQbQuestions.stream().filter(q -> Boolean.TRUE.equals(q.getNeedsReview())).count());
+            audit.setStatus(finalStatus);
+            auditRepo.save(audit);
+
+            log.info(
+                    "[QB PIPELINE] Batch {} finished with status {}. Questions: Total={}, Parsed={}, Matched={}, Unmatched={}, Invalid={}, Duplicate={}",
+                    batch.getImportBatchId(), finalStatus, totalQs, batch.getSuccessfullyParsed(), matchedCount,
+                    unmatchedCount, invalidCount, duplicateCount);
+
+            return batch;
+
+        } catch (Throwable e) {
+            String currentStage = batch.getStatus() != null ? batch.getStatus() : "PROCESSING";
+            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getName();
+            log.error("[QB PIPELINE] Batch {} FAILED during stage {}: {}", batch.getImportBatchId(), currentStage,
+                    errorMsg, e);
+
+            batch.setStatus("FAILED");
+            batch.setErrorMessage("Failed during stage " + currentStage + ": " + errorMsg);
+            batch.setUpdatedAt(new Date());
+            batchRepo.save(batch);
+
             audit.setStatus("FAILED");
-            audit.setErrorMessage(e.getMessage());
+            audit.setErrorMessage("Failed during stage " + currentStage + ": " + errorMsg);
             auditRepo.save(audit);
+
+            if (e instanceof Exception) {
+                throw (Exception) e;
+            } else {
+                throw new RuntimeException("Pipeline failed during stage " + currentStage + ": " + errorMsg, e);
+            }
         }
     }
 
-    private String extractTextFromPdfBytes(byte[] bytes) {
-        try (org.apache.pdfbox.pdmodel.PDDocument doc = org.apache.pdfbox.Loader.loadPDF(bytes)) {
-            org.apache.pdfbox.text.PDFTextStripper stripper = new org.apache.pdfbox.text.PDFTextStripper();
-            return stripper.getText(doc);
-        } catch (Exception e) {
-            log.warn("[QB PIPELINE] PDFBox extraction failed: {}", e.getMessage());
-            return null;
+    private byte[] downloadBytes(File file) throws Exception {
+        try (InputStream is = driveService.downloadFile(file.getId(), file.getMimeType())) {
+            if (is == null)
+                throw new IllegalStateException("Null download stream for file: " + file.getName());
+            return is.readAllBytes();
         }
     }
 
-    public boolean isRunning() { return isRunning.get(); }
+    public boolean isRunning() {
+        return isRunning.get();
+    }
 }
