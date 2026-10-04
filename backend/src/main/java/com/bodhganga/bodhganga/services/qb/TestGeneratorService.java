@@ -26,12 +26,15 @@ public class TestGeneratorService {
 
     /**
      * Partitions questions from a source PDF into Free Mock Test & Premium Bundle.
+     *
+     * @return Total count of QBTest records generated and saved.
      */
-    public void generateTestsAndBundles(List<QBQuestion> questions, String sourcePdfDriveId, String s3Key) {
+    public int generateTestsAndBundles(List<QBQuestion> questions, String sourcePdfDriveId, String s3Key) {
         if (questions == null || questions.isEmpty()) {
-            return;
+            return 0;
         }
 
+        int generatedTestsCount = 0;
         QBQuestion sample = questions.get(0);
         String state = sample.getState();
         String stateSlug = sample.getStateSlug();
@@ -66,7 +69,8 @@ public class TestGeneratorService {
         // 1. Create Free Mock Test
         QBTest freeTest = new QBTest();
         freeTest.setTitle(String.format("%s - %s Free Practice Test", state, subject));
-        freeTest.setDescription(String.format("Free practice test containing %d questions for %s.", freeQuestions.size(), subject));
+        freeTest.setDescription(
+                String.format("Free practice test containing %d questions for %s.", freeQuestions.size(), subject));
         freeTest.setTestType("FREE_POOL");
         freeTest.setState(state);
         freeTest.setStateSlug(stateSlug);
@@ -81,12 +85,14 @@ public class TestGeneratorService {
         freeTest.setPrice(0.0);
         freeTest.setSourcePdfDriveId(sourcePdfDriveId);
         testRepo.save(freeTest);
+        generatedTestsCount++;
 
         // 2. Create Premium Bundle & Test
         if (!premiumIds.isEmpty()) {
             QBTest premiumTest = new QBTest();
             premiumTest.setTitle(String.format("%s - %s Complete Question Bank", state, subject));
-            premiumTest.setDescription(String.format("Premium Question Bank bundle containing %d questions for %s.", premiumIds.size(), subject));
+            premiumTest.setDescription(String.format("Premium Question Bank bundle containing %d questions for %s.",
+                    premiumIds.size(), subject));
             premiumTest.setTestType("PREMIUM_BUNDLE");
             premiumTest.setState(state);
             premiumTest.setStateSlug(stateSlug);
@@ -101,6 +107,7 @@ public class TestGeneratorService {
             premiumTest.setPrice(199.0);
             premiumTest.setSourcePdfDriveId(sourcePdfDriveId);
             testRepo.save(premiumTest);
+            generatedTestsCount++;
 
             QBBundle bundle = new QBBundle();
             bundle.setTitle(String.format("%s - %s Master Package", state, subject));
@@ -117,5 +124,6 @@ public class TestGeneratorService {
 
         log.info("[TEST GENERATOR] Created Free Test ({} questions) and Premium Bundle ({} questions) for {}",
                 freeIds.size(), premiumIds.size(), subject);
+        return generatedTestsCount;
     }
 }

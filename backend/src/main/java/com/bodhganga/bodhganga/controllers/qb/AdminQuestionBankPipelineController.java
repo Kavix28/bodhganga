@@ -65,6 +65,34 @@ public class AdminQuestionBankPipelineController {
     }
 
     /**
+     * POST /api/admin/qb-pipeline/run/{importBatchId}
+     * Executes single specified import batch manually. Requires ROLE_ADMIN.
+     */
+    @PostMapping({ "/run/{importBatchId}", "/run-batch/{importBatchId}" })
+    public ResponseEntity<ApiResponseDTO> runSingleBatch(
+            @PathVariable String importBatchId,
+            @RequestParam(defaultValue = "false") boolean force) {
+        try {
+            QBImportBatch batch = pipelineTask.processSingleBatch(importBatchId, force);
+            return ResponseEntity.ok(ApiResponseDTO.builder()
+                    .success(!"FAILED".equalsIgnoreCase(batch.getStatus()))
+                    .message("Single batch execution completed with status: " + batch.getStatus())
+                    .data(batch)
+                    .build());
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().body(ApiResponseDTO.builder()
+                    .success(false)
+                    .message(e.getMessage())
+                    .build());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("Single batch execution failed: " + e.getMessage())
+                    .build());
+        }
+    }
+
+    /**
      * GET /api/admin/qb-pipeline/status
      * Returns current pipeline status, batch counts, and question counts. Requires
      * ROLE_ADMIN.

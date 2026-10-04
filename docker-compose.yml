@@ -76,6 +76,11 @@ services:
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:80,http://localhost:5173}
       GROQ_API_KEY: ${GROQ_API_KEY:-}
       GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      QB_PIPELINE_ENABLED: ${QB_PIPELINE_ENABLED:-true}
+      QB_SOURCE_FOLDER_ID: ${QB_SOURCE_FOLDER_ID:-1jaRFORCmIJVqxDqznDIEVXYtKm6pmFJ4}
+      QB_ARCHIVE_FOLDER_ID: ${QB_ARCHIVE_FOLDER_ID:-1-fydNZxMMAzMBGUh1nvQzYy9ixCd6b6W}
+      QB_CREDENTIALS_PATH: ${QB_CREDENTIALS_PATH:-classpath:google-credentials.json}
     ports:
       - "9090:9090"
     networks:

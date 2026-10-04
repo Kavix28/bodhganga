@@ -63,6 +63,14 @@ public class QuestionBankDriveService {
         this.drive = drive;
     }
 
+    public File getFile(String fileId) throws IOException {
+        requireConfigured("getFile");
+        return drive.files().get(fileId)
+                .setFields("id, name, mimeType, size, parents")
+                .setSupportsAllDrives(true)
+                .execute();
+    }
+
     public List<File> listFilesInFolder(String folderId) throws IOException {
         requireConfigured("listFilesInFolder");
 

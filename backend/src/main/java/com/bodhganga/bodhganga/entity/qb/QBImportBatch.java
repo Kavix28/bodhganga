@@ -51,6 +51,11 @@ public class QBImportBatch {
                            // GENERATING_TESTS, COMPLETED, PARTIAL_SUCCESS, FAILED, NO_ELIGIBLE_FILES,
                            // AMBIGUOUS
 
+    private String currentStage;
+
+    private Integer totalSourceFiles = 0;
+    private Integer totalPairs = 0;
+
     private Integer totalQuestions = 0;
     private Integer successfullyParsed = 0;
     private Integer successfullyMatched = 0;
@@ -58,6 +63,9 @@ public class QBImportBatch {
     private Integer ambiguousQuestions = 0;
     private Integer invalidQuestions = 0;
     private Integer duplicateQuestions = 0;
+
+    private Integer persistedQuestions = 0;
+    private Integer generatedTests = 0;
 
     private String errorMessage;
 
@@ -243,6 +251,46 @@ public class QBImportBatch {
 
     public void setDuplicateQuestions(Integer duplicateQuestions) {
         this.duplicateQuestions = duplicateQuestions;
+    }
+
+    public String getCurrentStage() {
+        return currentStage;
+    }
+
+    public void setCurrentStage(String currentStage) {
+        this.currentStage = currentStage;
+    }
+
+    public Integer getTotalSourceFiles() {
+        return totalSourceFiles;
+    }
+
+    public void setTotalSourceFiles(Integer totalSourceFiles) {
+        this.totalSourceFiles = totalSourceFiles;
+    }
+
+    public Integer getTotalPairs() {
+        return totalPairs;
+    }
+
+    public void setTotalPairs(Integer totalPairs) {
+        this.totalPairs = totalPairs;
+    }
+
+    public Integer getPersistedQuestions() {
+        return persistedQuestions;
+    }
+
+    public void setPersistedQuestions(Integer persistedQuestions) {
+        this.persistedQuestions = persistedQuestions;
+    }
+
+    public Integer getGeneratedTests() {
+        return generatedTests;
+    }
+
+    public void setGeneratedTests(Integer generatedTests) {
+        this.generatedTests = generatedTests;
     }
 
     public String getErrorMessage() {
