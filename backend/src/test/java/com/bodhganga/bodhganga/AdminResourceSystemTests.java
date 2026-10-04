@@ -167,15 +167,15 @@ public class AdminResourceSystemTests {
         void testImageUploadSuccess() throws Exception {
                 byte[] pngBytes = new byte[] { (byte) 0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n', 0, 0, 0, 13, 'I',
                                 'H', 'D', 'R' };
-                MockMultipartFile file = new MockMultipartFile("file", "akola_map.png", "image/png", pngBytes);
+                MockMultipartFile file = new MockMultipartFile("file", "mh_art.png", "image/png", pngBytes);
 
                 mockMvc.perform(multipart("/api/admin/resources/upload")
                                 .file(file)
                                 .param("stateSlug", "maharashtra")
-                                .param("districtSlug", "akola")
+                                .param("districtSlug", "general")
                                 .param("isFree", "true")
-                                .param("title", "Akola Map Image")
-                                .param("category", "Geography"))
+                                .param("title", "State Art Image")
+                                .param("category", "Art & Culture"))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.success").value(true))
                                 .andExpect(jsonPath("$.data.type").value("IMAGE"))
@@ -196,10 +196,10 @@ public class AdminResourceSystemTests {
                 mockMvc.perform(multipart("/api/admin/resources/upload")
                                 .file(file)
                                 .param("stateSlug", "maharashtra")
-                                .param("districtSlug", "akola")
+                                .param("districtSlug", "general")
                                 .param("isFree", "true")
-                                .param("title", "Akola History Lecture Audio")
-                                .param("category", "History"))
+                                .param("title", "State History Lecture Audio")
+                                .param("category", "History, Heritage & Sites"))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.success").value(true))
                                 .andExpect(jsonPath("$.data.type").value("AUDIO"));
@@ -222,7 +222,7 @@ public class AdminResourceSystemTests {
                                 .param("districtSlug", "akola")
                                 .param("isFree", "true")
                                 .param("title", "Akola Fort Video Tour")
-                                .param("category", "Heritage Sites & Monuments"))
+                                .param("category", "Free"))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.success").value(true))
                                 .andExpect(jsonPath("$.data.type").value("VIDEO"));
@@ -626,5 +626,77 @@ public class AdminResourceSystemTests {
 
                 // Verify uploadFileWithKey was NOT called again for existing S3 object
                 verify(s3Service, never()).uploadFileWithKey(any(), anyLong(), eq(original.getS3Key()), anyString());
+        }
+
+        @Test
+        @WithMockUser(authorities = "ROLE_ADMIN")
+        void testStateLevelUploadCategoryValidationSuccess() throws Exception {
+                MockMultipartFile file = new MockMultipartFile("file", "state_history.pdf", "application/pdf", VALID_PDF_BYTES);
+
+                mockMvc.perform(multipart("/api/admin/resources/upload")
+                                .file(file)
+                                .param("stateSlug", "maharashtra")
+                                .param("districtSlug", "general")
+                                .param("isFree", "true")
+                                .param("title", "State History & Sites")
+                                .param("category", "History, Heritage & Sites"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.category").value("History, Heritage & Sites"))
+                                .andExpect(jsonPath("$.data.districtSlug").value("general"));
+        }
+
+        @Test
+        @WithMockUser(authorities = "ROLE_ADMIN")
+        void testStateLevelUploadInvalidCategoryRejected() throws Exception {
+                MockMultipartFile file = new MockMultipartFile("file", "state_invalid.pdf", "application/pdf", VALID_PDF_BYTES);
+
+                mockMvc.perform(multipart("/api/admin/resources/upload")
+                                .file(file)
+                                .param("stateSlug", "maharashtra")
+                                .param("districtSlug", "general")
+                                .param("isFree", "true")
+                                .param("title", "State Invalid Category")
+                                .param("category", "Geography"))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.success").value(false))
+                                .andExpect(jsonPath("$.error")
+                                                .value(org.hamcrest.Matchers.containsString("INVALID_STATE_CATEGORY")));
+        }
+
+        @Test
+        @WithMockUser(authorities = "ROLE_ADMIN")
+        void testDistrictLevelUploadStateCategoryRejected() throws Exception {
+                MockMultipartFile file = new MockMultipartFile("file", "district_history.pdf", "application/pdf", VALID_PDF_BYTES);
+
+                mockMvc.perform(multipart("/api/admin/resources/upload")
+                                .file(file)
+                                .param("stateSlug", "maharashtra")
+                                .param("districtSlug", "akola")
+                                .param("isFree", "true")
+                                .param("title", "Akola District History Notes")
+                                .param("category", "History"))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.success").value(false))
+                                .andExpect(jsonPath("$.error")
+                                                .value(org.hamcrest.Matchers.containsString("INVALID_DISTRICT_CATEGORY")));
+        }
+
+        @Test
+        @WithMockUser(authorities = "ROLE_ADMIN")
+        void testDistrictLevelUploadFreeOrPaidSuccess() throws Exception {
+                MockMultipartFile file = new MockMultipartFile("file", "akola_free.pdf", "application/pdf", VALID_PDF_BYTES);
+
+                mockMvc.perform(multipart("/api/admin/resources/upload")
+                                .file(file)
+                                .param("stateSlug", "maharashtra")
+                                .param("districtSlug", "akola")
+                                .param("isFree", "true")
+                                .param("title", "Akola District Free Study Material")
+                                .param("category", "Free"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.success").value(true))
+                                .andExpect(jsonPath("$.data.category").value("Free"))
+                                .andExpect(jsonPath("$.data.districtSlug").value("akola"));
         }
 }

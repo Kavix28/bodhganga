@@ -327,31 +327,54 @@ const AdminStateResources = () => {
                             <div className="space-y-1 max-h-[460px] overflow-y-auto pr-1">
                                 {loadingDistricts ? (
                                     <div className="py-8 text-center text-xs text-gray-400">Loading districts...</div>
-                                ) : filteredDistricts.length === 0 ? (
-                                    <div className="py-8 text-center text-xs text-gray-500">No districts match search</div>
                                 ) : (
-                                    filteredDistricts.map((district) => {
-                                        const isSelected = selectedDistrict?.districtSlug === district.districtSlug;
-                                        return (
-                                            <button
-                                                key={district.districtSlug}
-                                                onClick={() => handleSelectDistrict(selectedState, district)}
-                                                className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-left transition-all ${
-                                                    isSelected
-                                                        ? 'bg-amber-500/15 border-amber-500/60 text-amber-300 shadow-md'
-                                                        : 'bg-gray-900/40 border-gray-800 text-gray-300 hover:bg-gray-700/50 hover:border-gray-700'
-                                                }`}
-                                            >
-                                                <div className="min-w-0 pr-2">
-                                                    <div className="font-semibold text-xs truncate">{district.district}</div>
-                                                    <div className="text-[10px] text-gray-500 font-mono">
-                                                        {district.pdfCount || 0} files
-                                                    </div>
+                                    <>
+                                        {/* Top Option: State-Level Scope */}
+                                        <button
+                                            key="state-level-general"
+                                            onClick={() => handleSelectDistrict(selectedState, { district: 'State-Level Content', districtSlug: 'general', isStateLevel: true })}
+                                            className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-left transition-all mb-2 ${
+                                                selectedDistrict?.districtSlug === 'general'
+                                                    ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-bold shadow-md'
+                                                    : 'bg-amber-500/5 border-amber-500/30 text-amber-400 hover:bg-amber-500/10'
+                                            }`}
+                                        >
+                                            <div className="min-w-0 pr-2">
+                                                <div className="font-bold text-xs truncate">🌟 State-Level Content</div>
+                                                <div className="text-[10px] text-amber-400/70 font-mono">
+                                                    History, Heritage & Art/Culture
                                                 </div>
-                                                <ChevronRight className={`w-4 h-4 shrink-0 ${isSelected ? 'text-amber-400' : 'text-gray-600'}`} />
-                                            </button>
-                                        );
-                                    })
+                                            </div>
+                                            <ChevronRight className={`w-4 h-4 shrink-0 ${selectedDistrict?.districtSlug === 'general' ? 'text-amber-400' : 'text-gray-600'}`} />
+                                        </button>
+
+                                        {filteredDistricts.length === 0 ? (
+                                            <div className="py-4 text-center text-xs text-gray-500">No districts match search</div>
+                                        ) : (
+                                            filteredDistricts.map((district) => {
+                                                const isSelected = selectedDistrict?.districtSlug === district.districtSlug;
+                                                return (
+                                                    <button
+                                                        key={district.districtSlug}
+                                                        onClick={() => handleSelectDistrict(selectedState, district)}
+                                                        className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-left transition-all ${
+                                                            isSelected
+                                                                ? 'bg-amber-500/15 border-amber-500/60 text-amber-300 shadow-md'
+                                                                : 'bg-gray-900/40 border-gray-800 text-gray-300 hover:bg-gray-700/50 hover:border-gray-700'
+                                                        }`}
+                                                    >
+                                                        <div className="min-w-0 pr-2">
+                                                            <div className="font-semibold text-xs truncate">{district.district}</div>
+                                                            <div className="text-[10px] text-gray-500 font-mono">
+                                                                {district.pdfCount || 0} files
+                                                            </div>
+                                                        </div>
+                                                        <ChevronRight className={`w-4 h-4 shrink-0 ${isSelected ? 'text-amber-400' : 'text-gray-600'}`} />
+                                                    </button>
+                                                );
+                                            })
+                                        )}
+                                    </>
                                 )}
                             </div>
                         </>
@@ -645,7 +668,8 @@ const formatBytes = (bytes) => {
 };
 
 const AdminResourceUploadModal = ({ state, district, onClose, onSuccess }) => {
-    const [category, setCategory] = useState('Notes');
+    const isStateLevel = district?.districtSlug === 'general' || district?.districtSlug === 'state-level' || district?.isStateLevel;
+    const [category, setCategory] = useState(isStateLevel ? 'History, Heritage & Sites' : 'Free');
     const [description, setDescription] = useState('');
     const [isFree, setIsFree] = useState(true);
     const [publish, setPublish] = useState(true);
@@ -745,9 +769,9 @@ const AdminResourceUploadModal = ({ state, district, onClose, onSuccess }) => {
         const formData = new FormData();
         formData.append('file', item.file);
         formData.append('stateSlug', state.stateSlug);
-        formData.append('districtSlug', district.districtSlug);
+        formData.append('districtSlug', isStateLevel ? 'general' : district.districtSlug);
         formData.append('isFree', isFree ? 'true' : 'false');
-        formData.append('category', category.trim());
+        formData.append('category', isStateLevel ? category : (isFree ? 'Free' : 'Paid'));
         formData.append('title', fileTitle);
         formData.append('description', description.trim());
         formData.append('publish', publish ? 'true' : 'false');
@@ -867,9 +891,11 @@ const AdminResourceUploadModal = ({ state, district, onClose, onSuccess }) => {
                             <Upload className="w-5 h-5" />
                         </div>
                         <div>
-                            <h3 className="font-bold text-white text-base">Upload Admin Resource</h3>
+                            <h3 className="font-bold text-white text-base">
+                                Upload Admin Resource ({isStateLevel ? 'State Scope' : 'District Scope'})
+                            </h3>
                             <p className="text-xs text-gray-400">
-                                {state.name} &bull; {district.district}
+                                {state.name} &bull; {isStateLevel ? 'State-Level Content' : district.district}
                             </p>
                         </div>
                     </div>
@@ -920,21 +946,23 @@ const AdminResourceUploadModal = ({ state, district, onClose, onSuccess }) => {
 
                         {/* Category Dropdown */}
                         <div>
-                            <label className="block text-xs text-gray-300 font-semibold mb-1.5">Category</label>
-                            <select
-                                value={category}
-                                onChange={(e) => setCategory(e.target.value)}
-                                className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
-                            >
-                                <option value="History">History</option>
-                                <option value="Heritage Sites & Monuments">Heritage Sites & Monuments</option>
-                                <option value="Geography">Geography</option>
-                                <option value="Art & Culture">Art & Culture</option>
-                                <option value="Notes">Notes (History)</option>
-                                <option value="Question Bank">Question Bank</option>
-                                <option value="Syllabus">Syllabus</option>
-                                <option value="Official Gazette">Official Gazette</option>
-                            </select>
+                            <label className="block text-xs text-gray-300 font-semibold mb-1.5">
+                                {isStateLevel ? 'State Section' : 'District Category'}
+                            </label>
+                            {isStateLevel ? (
+                                <select
+                                    value={category}
+                                    onChange={(e) => setCategory(e.target.value)}
+                                    className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 font-semibold text-amber-300"
+                                >
+                                    <option value="History, Heritage & Sites">History, Heritage & Sites</option>
+                                    <option value="Art & Culture">Art & Culture</option>
+                                </select>
+                            ) : (
+                                <div className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-amber-400 font-bold">
+                                    {isFree ? 'Free Resource Section' : 'Paid Resource Section'}
+                                </div>
+                            )}
                         </div>
 
                         {/* Description */}

@@ -67,12 +67,58 @@ public class AdminResourceService {
             throw new IllegalArgumentException("INVALID_STATE: State does not exist for slug '" + stateSlugInput + "'");
         }
 
-        // 3. District Validation
+        // 3. Scope & District Validation
         String cleanDistrictSlug = Product.generateSlug(districtSlugInput);
-        String canonicalDistrictName = findCanonicalDistrict(canonicalState, cleanDistrictSlug);
-        if (canonicalDistrictName == null) {
-            throw new IllegalArgumentException("INVALID_DISTRICT: District '" + districtSlugInput
-                    + "' does not belong to state '" + canonicalState.getName() + "'");
+        boolean isStateScope = cleanDistrictSlug == null || cleanDistrictSlug.isBlank() || "general".equalsIgnoreCase(cleanDistrictSlug) || "state".equalsIgnoreCase(cleanDistrictSlug);
+        String canonicalDistrictName;
+        
+        if (isStateScope) {
+            cleanDistrictSlug = "general";
+            canonicalDistrictName = "general";
+        } else {
+            canonicalDistrictName = findCanonicalDistrict(canonicalState, cleanDistrictSlug);
+            if (canonicalDistrictName == null) {
+                throw new IllegalArgumentException("INVALID_DISTRICT: District '" + districtSlugInput
+                        + "' does not belong to state '" + canonicalState.getName() + "'");
+            }
+        }
+
+        // 3.5 Validation of Category based on Scope
+        String rawCat = categoryInput != null ? categoryInput.trim() : "";
+        String finalCategory;
+        String finalCategorySlug;
+        String finalSectionSlug;
+
+        if (isStateScope) {
+            String lowerCat = rawCat.toLowerCase();
+            if (lowerCat.contains("history") || lowerCat.contains("heritage") || lowerCat.contains("site") || lowerCat.contains("monument")) {
+                finalCategory = "History, Heritage & Sites";
+                finalCategorySlug = "history-heritage-sites";
+                finalSectionSlug = "history-heritage-sites";
+            } else if (lowerCat.contains("art") || lowerCat.contains("culture")) {
+                finalCategory = "Art & Culture";
+                finalCategorySlug = "art-culture";
+                finalSectionSlug = "art-culture";
+            } else {
+                throw new IllegalArgumentException("INVALID_STATE_CATEGORY: State-level resources must belong ONLY to 'History, Heritage & Sites' or 'Art & Culture'. Received: '" + categoryInput + "'");
+            }
+        } else {
+            // District Scope: Only Free or Paid allowed
+            String lowerCat = rawCat.toLowerCase();
+            if (lowerCat.contains("history") || lowerCat.contains("heritage") || lowerCat.contains("geography") || lowerCat.contains("art") || lowerCat.contains("culture") || lowerCat.contains("monument")) {
+                throw new IllegalArgumentException("INVALID_DISTRICT_CATEGORY: District-level resources cannot use state categories ('" + categoryInput + "'). Content at district level must belong ONLY to 'Free' or 'Paid' sections.");
+            }
+            if (isFree || lowerCat.equals("free")) {
+                finalCategory = "Free";
+                finalCategorySlug = "free";
+                finalSectionSlug = "free";
+                isFree = true;
+            } else {
+                finalCategory = "Paid";
+                finalCategorySlug = "paid";
+                finalSectionSlug = "paid";
+                isFree = false;
+            }
         }
 
         // 4. Multi-format File & MIME Validation
@@ -118,9 +164,10 @@ public class AdminResourceService {
                     existing.setTitle(effectiveTitle);
                     existing.setDisplayTitle(Product.stripExtension(effectiveTitle));
                 }
-                if (categoryInput != null && !categoryInput.isBlank()) {
-                    existing.setCategory(categoryInput.trim());
-                }
+                existing.setCategory(finalCategory);
+                existing.setCategorySlug(finalCategorySlug);
+                existing.setSectionSlug(finalSectionSlug);
+
                 if (descriptionInput != null && !descriptionInput.isBlank()) {
                     existing.setDescription(descriptionInput.trim());
                 }
@@ -180,22 +227,10 @@ public class AdminResourceService {
         product.setDistrictSlug(cleanDistrictSlug);
         product.setFree(isFree);
         product.setPrice(price);
-        String categoryName = categoryInput != null && !categoryInput.isBlank() ? categoryInput.trim() : "Notes";
-        product.setCategory(categoryName);
-
-        product.setContentArea(isFree ? "FREE_DISTRICT_CONTENT" : "PAID_DISTRICT_RESOURCES");
-        String catLower = categoryName.toLowerCase();
-        if (catLower.contains("heritage") || catLower.contains("monument")) {
-            product.setSectionSlug("heritage-monuments");
-        } else if (catLower.contains("geography") || catLower.contains("map")) {
-            product.setSectionSlug("geography");
-        } else if (catLower.contains("art") || catLower.contains("culture")) {
-            product.setSectionSlug("art-culture");
-        } else if (catLower.contains("history")) {
-            product.setSectionSlug("history");
-        } else {
-            product.setSectionSlug("history");
-        }
+        product.setCategory(finalCategory);
+        product.setCategorySlug(finalCategorySlug);
+        product.setSectionSlug(finalSectionSlug);
+        product.setContentArea(isStateScope ? "STATE_CONTENT" : (isFree ? "FREE_DISTRICT_CONTENT" : "PAID_DISTRICT_RESOURCES"));
         product.setS3Key(s3Key);
         product.setStorageKey(s3Key);
         product.setS3Url(s3Url);

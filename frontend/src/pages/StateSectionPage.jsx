@@ -11,20 +11,19 @@ export default function StateSectionPage() {
 
   const sectionRaw = location.pathname.split("/").pop();
   const sectionMap = {
-    history: "history",
-    "heritage-monuments": "heritage-monuments",
-    "heritage-sites-monuments": "heritage-monuments",
-    monuments: "heritage-monuments",
-    geography: "geography",
+    history: "history-heritage-sites",
+    "heritage-monuments": "history-heritage-sites",
+    "heritage-sites-monuments": "history-heritage-sites",
+    "history-heritage-sites": "history-heritage-sites",
+    monuments: "history-heritage-sites",
+    geography: "history-heritage-sites",
     "art-culture": "art-culture",
     "art-and-culture": "art-culture",
   };
-  const section = sectionMap[sectionRaw] || "history";
+  const section = sectionMap[sectionRaw] || "history-heritage-sites";
 
   const titles = {
-    history: "History",
-    "heritage-monuments": "Heritage Sites & Monuments",
-    geography: "Geography",
+    "history-heritage-sites": "History, Heritage & Sites",
     "art-culture": "Art & Culture",
   };
 

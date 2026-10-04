@@ -6,10 +6,8 @@ export default function StateSectionTabs({ stateSlug, districtSlug, activeSectio
   const navigate = useNavigate();
 
   const TABS = [
-    { id: 'history', label: 'History', icon: History, path: districtSlug ? `/state/${stateSlug}/district/${districtSlug}/products?section=history` : `/state/${stateSlug}/history` },
-    { id: 'heritage-monuments', label: 'Heritage Sites & Monuments', icon: Landmark, path: districtSlug ? `/state/${stateSlug}/district/${districtSlug}/products?section=heritage-monuments` : `/state/${stateSlug}/heritage-monuments` },
-    { id: 'geography', label: 'Geography', icon: Map, path: districtSlug ? `/state/${stateSlug}/district/${districtSlug}/products?section=geography` : `/state/${stateSlug}/geography` },
-    { id: 'art-culture', label: 'Art & Culture', icon: Music, path: districtSlug ? `/state/${stateSlug}/district/${districtSlug}/products?section=art-culture` : `/state/${stateSlug}/art-culture` },
+    { id: 'history-heritage-sites', label: 'History, Heritage & Sites', icon: History, path: `/state/${stateSlug}/history-heritage-sites` },
+    { id: 'art-culture', label: 'Art & Culture', icon: Music, path: `/state/${stateSlug}/art-culture` },
   ];
 
   const handleTabClick = (tab) => {
@@ -24,7 +22,7 @@ export default function StateSectionTabs({ stateSlug, districtSlug, activeSectio
     <div className="w-full space-y-4">
       {/* Tab Container */}
       <div className="bg-emerald-950/40 rounded-2xl p-1.5 border border-emerald-900/60 shadow-lg backdrop-blur-sm overflow-x-auto scrollbar-none">
-        <div className="flex gap-2 min-w-max md:min-w-0 md:grid md:grid-cols-4">
+        <div className="flex gap-2 min-w-max md:min-w-0 md:grid md:grid-cols-2">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeSection === tab.id;

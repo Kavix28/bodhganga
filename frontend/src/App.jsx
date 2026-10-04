@@ -158,6 +158,7 @@ function App() {
                                             <Route path="/explore" element={<ExplorePage />} />
                                             <Route path="/state" element={<AllStatesPage />} />
 
+                                            <Route path="/state/:stateSlug/history-heritage-sites" element={<StateSectionPage />} />
                                             <Route path="/state/:stateSlug/history" element={<StateSectionPage />} />
                                             <Route path="/state/:stateSlug/geography" element={<StateSectionPage />} />
                                             <Route path="/state/:stateSlug/heritage-monuments" element={<StateSectionPage />} />
