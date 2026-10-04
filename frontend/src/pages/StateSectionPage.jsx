@@ -11,20 +11,24 @@ export default function StateSectionPage() {
 
   const sectionRaw = location.pathname.split("/").pop();
   const sectionMap = {
-    history: "history-heritage-sites",
-    "heritage-monuments": "history-heritage-sites",
-    "heritage-sites-monuments": "history-heritage-sites",
-    "history-heritage-sites": "history-heritage-sites",
-    monuments: "history-heritage-sites",
-    geography: "history-heritage-sites",
+    history: "history",
+    geography: "geography",
     "art-culture": "art-culture",
     "art-and-culture": "art-culture",
+    "heritage-sites": "heritage-sites",
+    "heritage-monuments": "heritage-sites",
+    "heritage-sites-monuments": "heritage-sites",
+    "history-heritage-sites": "history-heritage-sites",
+    monuments: "heritage-sites",
   };
-  const section = sectionMap[sectionRaw] || "history-heritage-sites";
+  const section = sectionMap[sectionRaw] || "history";
 
   const titles = {
-    "history-heritage-sites": "History, Heritage & Sites",
+    history: "History",
+    geography: "Geography",
     "art-culture": "Art & Culture",
+    "heritage-sites": "Heritage & Sites",
+    "history-heritage-sites": "History, Heritage & Sites",
   };
 
   const [districts, setDistricts] = useState([]);

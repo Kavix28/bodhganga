@@ -630,19 +630,19 @@ public class AdminResourceSystemTests {
 
         @Test
         @WithMockUser(authorities = "ROLE_ADMIN")
-        void testStateLevelUploadCategoryValidationSuccess() throws Exception {
-                MockMultipartFile file = new MockMultipartFile("file", "state_history.pdf", "application/pdf", VALID_PDF_BYTES);
+        void testStateLevelUploadFourCategoriesSuccess() throws Exception {
+                MockMultipartFile file = new MockMultipartFile("file", "state_geography.pdf", "application/pdf", VALID_PDF_BYTES);
 
                 mockMvc.perform(multipart("/api/admin/resources/upload")
                                 .file(file)
                                 .param("stateSlug", "maharashtra")
                                 .param("districtSlug", "general")
                                 .param("isFree", "true")
-                                .param("title", "State History & Sites")
-                                .param("category", "History, Heritage & Sites"))
+                                .param("title", "State Geography & Maps")
+                                .param("category", "Geography"))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.success").value(true))
-                                .andExpect(jsonPath("$.data.category").value("History, Heritage & Sites"))
+                                .andExpect(jsonPath("$.data.category").value("Geography"))
                                 .andExpect(jsonPath("$.data.districtSlug").value("general"));
         }
 
@@ -657,7 +657,7 @@ public class AdminResourceSystemTests {
                                 .param("districtSlug", "general")
                                 .param("isFree", "true")
                                 .param("title", "State Invalid Category")
-                                .param("category", "Geography"))
+                                .param("category", "UnapprovedCategory"))
                                 .andExpect(status().isBadRequest())
                                 .andExpect(jsonPath("$.success").value(false))
                                 .andExpect(jsonPath("$.error")

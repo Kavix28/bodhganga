@@ -91,16 +91,24 @@ public class AdminResourceService {
 
         if (isStateScope) {
             String lowerCat = rawCat.toLowerCase();
-            if (lowerCat.contains("history") || lowerCat.contains("heritage") || lowerCat.contains("site") || lowerCat.contains("monument")) {
-                finalCategory = "History, Heritage & Sites";
-                finalCategorySlug = "history-heritage-sites";
-                finalSectionSlug = "history-heritage-sites";
+            if (lowerCat.contains("geography")) {
+                finalCategory = "Geography";
+                finalCategorySlug = "geography";
+                finalSectionSlug = "geography";
             } else if (lowerCat.contains("art") || lowerCat.contains("culture")) {
                 finalCategory = "Art & Culture";
                 finalCategorySlug = "art-culture";
                 finalSectionSlug = "art-culture";
+            } else if (lowerCat.contains("heritage") || lowerCat.contains("site") || lowerCat.contains("monument")) {
+                finalCategory = "Heritage & Sites";
+                finalCategorySlug = "heritage-sites";
+                finalSectionSlug = "heritage-sites";
+            } else if (lowerCat.contains("history")) {
+                finalCategory = "History";
+                finalCategorySlug = "history";
+                finalSectionSlug = "history";
             } else {
-                throw new IllegalArgumentException("INVALID_STATE_CATEGORY: State-level resources must belong ONLY to 'History, Heritage & Sites' or 'Art & Culture'. Received: '" + categoryInput + "'");
+                throw new IllegalArgumentException("INVALID_STATE_CATEGORY: State-level resources must belong ONLY to 'History', 'Geography', 'Art & Culture', or 'Heritage & Sites'. Received: '" + categoryInput + "'");
             }
         } else {
             // District Scope: Only Free or Paid allowed

@@ -6,8 +6,10 @@ export default function StateSectionTabs({ stateSlug, districtSlug, activeSectio
   const navigate = useNavigate();
 
   const TABS = [
-    { id: 'history-heritage-sites', label: 'History, Heritage & Sites', icon: History, path: `/state/${stateSlug}/history-heritage-sites` },
+    { id: 'history', label: 'History', icon: History, path: `/state/${stateSlug}/history` },
+    { id: 'geography', label: 'Geography', icon: Map, path: `/state/${stateSlug}/geography` },
     { id: 'art-culture', label: 'Art & Culture', icon: Music, path: `/state/${stateSlug}/art-culture` },
+    { id: 'heritage-sites', label: 'Heritage & Sites', icon: Landmark, path: `/state/${stateSlug}/heritage-sites` },
   ];
 
   const handleTabClick = (tab) => {
@@ -22,7 +24,7 @@ export default function StateSectionTabs({ stateSlug, districtSlug, activeSectio
     <div className="w-full space-y-4">
       {/* Tab Container */}
       <div className="bg-emerald-950/40 rounded-2xl p-1.5 border border-emerald-900/60 shadow-lg backdrop-blur-sm overflow-x-auto scrollbar-none">
-        <div className="flex gap-2 min-w-max md:min-w-0 md:grid md:grid-cols-2">
+        <div className="flex gap-2 min-w-max md:min-w-0 md:grid md:grid-cols-4">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeSection === tab.id;

@@ -669,7 +669,7 @@ const formatBytes = (bytes) => {
 
 const AdminResourceUploadModal = ({ state, district, onClose, onSuccess }) => {
     const isStateLevel = district?.districtSlug === 'general' || district?.districtSlug === 'state-level' || district?.isStateLevel;
-    const [category, setCategory] = useState(isStateLevel ? 'History, Heritage & Sites' : 'Free');
+    const [category, setCategory] = useState(isStateLevel ? 'History' : 'Free');
     const [description, setDescription] = useState('');
     const [isFree, setIsFree] = useState(true);
     const [publish, setPublish] = useState(true);
@@ -955,8 +955,10 @@ const AdminResourceUploadModal = ({ state, district, onClose, onSuccess }) => {
                                     onChange={(e) => setCategory(e.target.value)}
                                     className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 font-semibold text-amber-300"
                                 >
-                                    <option value="History, Heritage & Sites">History, Heritage & Sites</option>
+                                    <option value="History">History</option>
+                                    <option value="Geography">Geography</option>
                                     <option value="Art & Culture">Art & Culture</option>
+                                    <option value="Heritage & Sites">Heritage & Sites</option>
                                 </select>
                             ) : (
                                 <div className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-amber-400 font-bold">

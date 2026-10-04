@@ -36,14 +36,19 @@ export default function StateDistrictsPage() {
 
         const countMap = {};
         products.forEach((p) => {
-          const dSlug = p.districtSlug;
-          if (!dSlug) return;
-          if (!countMap[dSlug]) {
-            countMap[dSlug] = { free: 0, paid: 0, total: 0 };
-          }
-          countMap[dSlug].total++;
-          if (p.free || p.isFree || p.price === 0) countMap[dSlug].free++;
-          else countMap[dSlug].paid++;
+          const dSlug = p.districtSlug ? String(p.districtSlug).toLowerCase().trim() : "";
+          const dName = p.district ? String(p.district).toLowerCase().trim() : "";
+          if (!dSlug || dSlug === "general") return;
+
+          [dSlug, dName].forEach(k => {
+            if (!k) return;
+            if (!countMap[k]) {
+              countMap[k] = { free: 0, paid: 0, total: 0 };
+            }
+            countMap[k].total++;
+            if (p.free || p.isFree || p.price === 0) countMap[k].free++;
+            else countMap[k].paid++;
+          });
         });
 
         const NON_DISTRICT_KEYS = ["general", "state-images", "stateimages", "images", "state images"];
@@ -53,13 +58,18 @@ export default function StateDistrictsPage() {
             const normName = String(d.district || "").toLowerCase().trim();
             return !NON_DISTRICT_KEYS.includes(normSlug) && !NON_DISTRICT_KEYS.includes(normName);
           })
-          .map((d) => ({
-            districtSlug: d.districtSlug,
-            districtName: d.district,
-            free: countMap[d.districtSlug]?.free ?? 0,
-            paid: countMap[d.districtSlug]?.paid ?? 0,
-            total: d.count ?? (countMap[d.districtSlug]?.total ?? 0),
-          }));
+          .map((d) => {
+            const normSlug = String(d.districtSlug || "").toLowerCase().trim();
+            const normName = String(d.district || "").toLowerCase().trim();
+            const counts = countMap[normSlug] || countMap[normName] || { free: 0, paid: 0, total: 0 };
+            return {
+              districtSlug: d.districtSlug,
+              districtName: d.district,
+              free: counts.free,
+              paid: counts.paid,
+              total: counts.total || d.count || 0,
+            };
+          });
 
         setDistricts(merged.sort((a, b) => a.districtName.localeCompare(b.districtName)));
         setIsActiveState(true);
@@ -205,7 +215,7 @@ function DistrictCard({ district, onClick }) {
             {district.paid} Paid
           </span>
         )}
-        {district.free === 0 && (
+        {district.free === 0 && district.paid === 0 && district.total === 0 && (
           <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-300/80 border border-amber-500/20 px-2 py-0.5 rounded-full">
             Coming Soon
           </span>
