@@ -469,7 +469,7 @@ export default function DistrictResourcesPage() {
         </div>
 
         {/* PAID DISTRICT PACKAGE UNLOCK BANNER */}
-        {paidResTotal.length > 0 && !purchased && (
+        {paidResources.length > 0 && !purchased && (
           <div className="space-y-4 pt-4 border-t border-gray-800">
             <div className="bg-gradient-to-r from-gray-900 to-amber-950/40 border border-amber-500/30 rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row justify-between items-center gap-6">
               <div className="space-y-2">

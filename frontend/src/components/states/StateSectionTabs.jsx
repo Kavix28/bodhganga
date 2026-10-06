@@ -2,14 +2,14 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { History, Landmark, Map, Music } from 'lucide-react';
 
-export default function StateSectionTabs({ stateSlug, districtSlug, activeSection, sectionAvailability, onSectionChange }) {
+export default function StateSectionTabs({ stateSlug, activeSection, sectionAvailability, onSectionChange }) {
   const navigate = useNavigate();
 
   const TABS = [
-    { id: 'art-culture', label: 'Art & Culture', icon: Music, path: districtSlug ? `/state/${stateSlug}/district/${districtSlug}/products?section=art-culture` : `/state/${stateSlug}/art-culture` },
-    { id: 'history', label: 'History', icon: History, path: districtSlug ? `/state/${stateSlug}/district/${districtSlug}/products?section=history` : `/state/${stateSlug}/history` },
-    { id: 'heritage-sites', label: 'Heritage & Sites', icon: Landmark, path: districtSlug ? `/state/${stateSlug}/district/${districtSlug}/products?section=heritage-sites` : `/state/${stateSlug}/heritage-sites` },
-    { id: 'geography', label: 'Geography', icon: Map, path: districtSlug ? `/state/${stateSlug}/district/${districtSlug}/products?section=geography` : `/state/${stateSlug}/geography` },
+    { id: 'art-culture', label: 'Art & Culture', icon: Music, path: `/state/${stateSlug}/art-culture` },
+    { id: 'history', label: 'History', icon: History, path: `/state/${stateSlug}/history` },
+    { id: 'heritage-sites', label: 'Heritage & Sites', icon: Landmark, path: `/state/${stateSlug}/heritage-sites` },
+    { id: 'geography', label: 'Geography', icon: Map, path: `/state/${stateSlug}/geography` },
   ];
 
   const handleTabClick = (tab) => {
