@@ -116,3 +116,22 @@ export const formatFileSize = (bytes) => {
 
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
+
+/**
+ * Safely decodes UTF-8 strings that were misinterpreted as ISO-8859-1/Latin-1 (mojibake).
+ * Preserves valid Unicode, ASCII, and Indian-language text without hardcoded replacements.
+ * @param {string} str
+ * @returns {string}
+ */
+export const decodeMojibake = (str) => {
+    if (!str || typeof str !== 'string') return str || '';
+    if (!/[\xC2-\xF4][\x80-\xBF]/.test(str)) {
+        return str;
+    }
+    try {
+        const bytes = new Uint8Array([...str].map(c => c.charCodeAt(0)));
+        return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    } catch {
+        return str;
+    }
+};

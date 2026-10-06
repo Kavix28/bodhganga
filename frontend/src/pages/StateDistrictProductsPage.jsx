@@ -3,7 +3,8 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 import toast from "react-hot-toast";
-import ChambaMCQFeature from "../components/states/ChambaMCQFeature";
+import { decodeMojibake } from "../utils/formatters";
+import StateSectionTabs from "../components/states/StateSectionTabs";
 
 const FILE_ICONS = {
   pdf:  { icon: "📄", color: "text-red-400",    label: "PDF" },
@@ -21,6 +22,50 @@ const FILE_ICONS = {
   aac:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
   ogg:  { icon: "🎵", color: "text-pink-400",   label: "Audio" },
   mp4:  { icon: "🎬", color: "text-cyan-400",   label: "Video" },
+};
+
+const SECTION_LABELS = {
+  "art-culture": "Art & Culture",
+  history: "History",
+  "heritage-sites": "Heritage & Sites",
+  geography: "Geography"
+};
+
+const normSection = (sec) => {
+  if (!sec) return "art-culture";
+  const s = String(sec).toLowerCase().trim();
+  if (s === "art-and-culture" || s === "art_culture" || s === "art_and_culture" || s === "art") return "art-culture";
+  if (s === "heritage-monuments" || s === "heritage_sites" || s === "heritage_monuments" || s === "heritage" || s === "monuments") return "heritage-sites";
+  if (s === "geography" || s === "geo") return "geography";
+  if (s === "history" || s === "hist") return "history";
+  return s;
+};
+
+const filterResourcesByCategory = (resources, targetSec) => {
+  const normTarget = normSection(targetSec);
+  return resources.filter((p) => {
+    const cat = String(p.category || "").toLowerCase();
+    const title = String(p.title || p.displayTitle || "").toLowerCase();
+    const desc = String(p.description || "").toLowerCase();
+    const combined = `${cat} ${title} ${desc}`;
+
+    if (normTarget === "art-culture") {
+      return cat.includes("art") || cat.includes("culture") || combined.includes("art") || combined.includes("culture") || combined.includes("tradition") || combined.includes("festival");
+    }
+    if (normTarget === "heritage-sites") {
+      return cat.includes("heritage") || cat.includes("monument") || cat.includes("landmark") || combined.includes("heritage") || combined.includes("monument") || combined.includes("landmark") || combined.includes("site");
+    }
+    if (normTarget === "geography") {
+      return cat.includes("geograph") || cat.includes("map") || combined.includes("geography") || combined.includes("geographic") || combined.includes("demography") || combined.includes("map");
+    }
+    if (normTarget === "history") {
+      const isOther = (cat.includes("art") || cat.includes("culture") || combined.includes("art") || combined.includes("culture") || combined.includes("festival")) ||
+                      (cat.includes("heritage") || cat.includes("monument") || combined.includes("heritage") || combined.includes("monument")) ||
+                      (cat.includes("geograph") || combined.includes("geography") || combined.includes("map"));
+      return !isOther || cat.includes("histor") || combined.includes("history") || combined.includes("historical") || combined.includes("notes");
+    }
+    return true;
+  });
 };
 
 function formatSize(bytes) {
@@ -119,7 +164,8 @@ export default function StateDistrictProductsPage() {
   const { stateSlug, districtSlug } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeSection = searchParams.get("section") || searchParams.get("tab") || "history";
+  const rawSec = searchParams.get("section") || searchParams.get("tab") || "art-culture";
+  const activeSection = normSection(rawSec);
 
   const [allResources, setAllResources] = useState([]);
   const [sectionAvailability, setSectionAvailability] = useState(null);
@@ -128,12 +174,7 @@ export default function StateDistrictProductsPage() {
   const [loading, setLoading]       = useState(true);
   const [purchased, setPurchased]   = useState(false);
   const [selected, setSelected]     = useState(null);
-  const { isAuthenticated, openAuthModal } = useAuth();
-  const [mcqFlowState, setMcqFlowState] = useState(null);
-
-  useEffect(() => {
-    setMcqFlowState(null);
-  }, [activeSection]);
+  const { openAuthModal } = useAuth();
 
   useEffect(() => {
     const load = async () => {
@@ -142,13 +183,15 @@ export default function StateDistrictProductsPage() {
         const products = Array.isArray(res) ? res : (res?.data || []);
         setAllResources(products);
         if (products.length > 0) {
-          setDistrictName(products[0].district || products[0].districtName || districtSlug);
-          setStateName(products[0].state   || products[0].stateName   || stateSlug);
+          const rawD = products[0].district || products[0].districtName || districtSlug;
+          const rawS = products[0].state || products[0].stateName || stateSlug;
+          setDistrictName(decodeMojibake(rawD));
+          setStateName(decodeMojibake(rawS));
         } else {
           const dFormatted = districtSlug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
           const sFormatted = stateSlug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-          setDistrictName(dFormatted);
-          setStateName(sFormatted);
+          setDistrictName(decodeMojibake(dFormatted));
+          setStateName(decodeMojibake(sFormatted));
         }
 
         try {
@@ -202,45 +245,8 @@ export default function StateDistrictProductsPage() {
     }
   };
 
-  const freeRes = allResources.filter((r) => r.free || r.isFree || r.price === 0);
-  const paidRes = allResources.filter((r) => !r.free && !r.isFree && r.price > 0);
-
-  const getFilteredSectionResources = (sectionId) => {
-    if (sectionId === "paid") return paidRes;
-    return freeRes.filter((p) => {
-      const cat = String(p.category || "").toLowerCase();
-      const title = String(p.title || p.displayTitle || "").toLowerCase();
-      const desc = String(p.description || "").toLowerCase();
-      const combined = `${cat} ${title} ${desc}`;
-
-      if (sectionId === "heritage-monuments") {
-        return combined.includes("heritage") || combined.includes("monument") || combined.includes("landmark");
-      }
-      if (sectionId === "geography") {
-        return combined.includes("geography") || combined.includes("geographic") || combined.includes("demography") || combined.includes("map");
-      }
-      if (sectionId === "art-culture") {
-        return combined.includes("art") || combined.includes("culture") || combined.includes("tradition") || combined.includes("festival");
-      }
-      if (sectionId === "history") {
-        const isOther = (combined.includes("heritage") || combined.includes("monument") || combined.includes("landmark")) ||
-                        (combined.includes("geography") || combined.includes("geographic") || combined.includes("demography") || combined.includes("map")) ||
-                        (combined.includes("art") || combined.includes("culture") || combined.includes("tradition") || combined.includes("festival"));
-        return !isOther || combined.includes("history") || combined.includes("historical") || combined.includes("notes");
-      }
-      return true;
-    });
-  };
-
-  const shown = getFilteredSectionResources(activeSection);
-  const isPaidTab = activeSection === "paid";
-  const sectionLabels = {
-    history: "History",
-    "heritage-monuments": "Heritage Sites & Monuments",
-    geography: "Geography",
-    "art-culture": "Art & Culture",
-    paid: "Paid District Package (₹99)"
-  };
+  const categoryResources = filterResourcesByCategory(allResources, activeSection);
+  const paidResTotal = allResources.filter((r) => !r.free && !r.isFree && r.price > 0);
 
   if (loading) {
     return (
@@ -341,29 +347,45 @@ export default function StateDistrictProductsPage() {
           </div>
         </div>
 
-        {/* FREE DISTRICT RESOURCES SECTION */}
-        <div className="space-y-4">
+        {/* 4 MANDATORY DISTRICT RESOURCE TABS */}
+        <StateSectionTabs
+          stateSlug={stateSlug}
+          districtSlug={districtSlug}
+          activeSection={activeSection}
+          sectionAvailability={sectionAvailability}
+          onSectionChange={(tabId) => setSearchParams({ section: tabId })}
+        />
+
+        {/* CATEGORY RESOURCE SECTION */}
+        <div className="space-y-6 pt-2">
           <div className="flex items-center justify-between border-b border-gray-800 pb-3">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <span>📄 Free District Resources</span>
-              <span className="text-xs font-semibold text-gray-500">({freeRes.length})</span>
+            <h2 className="text-xl font-serif font-bold text-amber-400 flex items-center gap-2">
+              <span>📚 {SECTION_LABELS[activeSection] || "Category"} Resources</span>
+              <span className="text-xs font-sans font-semibold text-gray-400">
+                ({categoryResources.length} file{categoryResources.length !== 1 ? "s" : ""})
+              </span>
             </h2>
           </div>
 
-          {freeRes.length === 0 ? (
-            <div className="bg-gray-900/40 border border-gray-800 rounded-2xl p-8 text-center space-y-2">
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Free Resources</span>
-              <p className="text-sm text-gray-400">Free study notes and resources for {districtName} are currently being prepared.</p>
+          {categoryResources.length === 0 ? (
+            <div className="bg-gray-900/40 border border-gray-800 rounded-2xl p-10 text-center space-y-3">
+              <span className="text-3xl">📖</span>
+              <h3 className="text-base font-bold text-white">No {SECTION_LABELS[activeSection]} Resources Available Yet</h3>
+              <p className="text-xs text-gray-400 max-w-md mx-auto">
+                Study materials for {SECTION_LABELS[activeSection]} in {districtName} are currently being curated and will be uploaded shortly.
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {freeRes.map((r) => {
+              {categoryResources.map((r) => {
                 const ext  = (r.fileExtension || "").toLowerCase();
                 const meta = FILE_ICONS[ext] || { icon: "📄", color: "text-gray-400", label: ext.toUpperCase() || "FILE" };
                 const title = r.displayTitle || r.title || r.fileName;
+                const isFree = Boolean(r.free || r.isFree || r.price === 0);
+
                 return (
                   <div
-                    key={r.id}
+                    key={r.id || r._id || title}
                     className="bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-amber-500 transition-all flex flex-col justify-between"
                   >
                     <div>
@@ -372,9 +394,15 @@ export default function StateDistrictProductsPage() {
                         <span className={`text-[10px] font-bold uppercase ${meta.color} bg-gray-800 px-2 py-0.5 rounded`}>
                           {meta.label}
                         </span>
-                        <span className="text-[10px] font-bold uppercase text-green-400 bg-green-900/40 border border-green-800 px-2 py-0.5 rounded ml-auto">
-                          Free
-                        </span>
+                        {isFree ? (
+                          <span className="text-[10px] font-bold uppercase text-green-400 bg-green-900/40 border border-green-800 px-2 py-0.5 rounded ml-auto">
+                            Free
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold uppercase text-amber-400 bg-amber-950/60 border border-amber-800 px-2 py-0.5 rounded ml-auto">
+                            Paid
+                          </span>
+                        )}
                       </div>
                       <h3 className="text-sm font-semibold text-white mb-1 line-clamp-2">{title}</h3>
                     </div>
@@ -382,7 +410,7 @@ export default function StateDistrictProductsPage() {
                       onClick={() => handleOpenResource(r)}
                       className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold py-2 px-4 rounded-lg text-xs uppercase tracking-wider transition-colors mt-4"
                     >
-                      View Resource
+                      {isFree || purchased ? "View Resource" : "Unlock to Access"}
                     </button>
                   </div>
                 );
@@ -391,26 +419,14 @@ export default function StateDistrictProductsPage() {
           )}
         </div>
 
-        {/* PAID DISTRICT PACKAGE SECTION */}
-        <div className="space-y-4 pt-4 border-t border-gray-800">
-          <div className="flex items-center justify-between border-b border-gray-800 pb-3">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <span>🔒 Paid District Package & Question Bank</span>
-              <span className="text-xs font-semibold text-gray-500">({paidRes.length})</span>
-            </h2>
-            {purchased && (
-              <span className="text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-0.5 rounded-full font-bold">
-                Unlocked
-              </span>
-            )}
-          </div>
-
-          {!purchased && (
+        {/* PAID DISTRICT PACKAGE UNLOCK BANNER */}
+        {paidResTotal.length > 0 && !purchased && (
+          <div className="space-y-4 pt-4 border-t border-gray-800">
             <div className="bg-gradient-to-r from-gray-900 to-amber-950/40 border border-amber-500/30 rounded-2xl p-6 sm:p-8 flex flex-col sm:flex-row justify-between items-center gap-6">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">🏆</span>
-                  <h3 className="text-xl font-bold text-white">Complete {districtName} Question Bank</h3>
+                  <h3 className="text-xl font-bold text-white">Complete {districtName} Question Bank & Resources</h3>
                 </div>
                 <p className="text-xs text-gray-300 max-w-xl">
                   Unlock lifetime access to all parsed district MCQs, solution keys, foundation tests, and statement-based practice sets.
@@ -423,43 +439,8 @@ export default function StateDistrictProductsPage() {
                 Unlock District (₹49) →
               </button>
             </div>
-          )}
-
-          {paidRes.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {paidRes.map((r) => {
-                const ext  = (r.fileExtension || "").toLowerCase();
-                const meta = FILE_ICONS[ext] || { icon: "📄", color: "text-gray-400", label: ext.toUpperCase() || "FILE" };
-                const title = r.displayTitle || r.title || r.fileName;
-                return (
-                  <div
-                    key={r.id}
-                    className="bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-amber-500 transition-all flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-xl">{meta.icon}</span>
-                        <span className={`text-[10px] font-bold uppercase ${meta.color} bg-gray-800 px-2 py-0.5 rounded`}>
-                          {meta.label}
-                        </span>
-                        <span className="text-[10px] font-bold uppercase text-amber-400 bg-amber-950/60 border border-amber-800 px-2 py-0.5 rounded ml-auto">
-                          Paid
-                        </span>
-                      </div>
-                      <h3 className="text-sm font-semibold text-white mb-1 line-clamp-2">{title}</h3>
-                    </div>
-                    <button
-                      onClick={() => handleOpenResource(r)}
-                      className="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold py-2 px-4 rounded-lg text-xs uppercase tracking-wider transition-colors mt-4"
-                    >
-                      {purchased ? "View Resource" : "Unlock to Access"}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

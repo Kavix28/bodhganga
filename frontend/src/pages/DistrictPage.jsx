@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import toast from "react-hot-toast";
-
 import { getAuthToken } from "../utils/storage";
+import { decodeMojibake } from "../utils/formatters";
 
 export default function DistrictPage() {
   const { stateSlug } = useParams();
@@ -17,26 +17,29 @@ export default function DistrictPage() {
     const fetchData = async () => {
       try {
         const res = await api.get(`/products/state/${stateSlug}`);
-        const products = res?.data || [];
+        const products = Array.isArray(res) ? res : (res?.data || []);
 
         const map = {};
         products.forEach(p => {
-          const slug = p.districtSlug;
-          if (!slug) return;
-          if (!map[slug]) {
-            map[slug] = {
-              districtSlug: slug,
-              districtName: p.district || p.districtName || slug,
-              stateName: p.state || p.stateName || stateSlug,
+          const rawSlug = p.districtSlug || p.slug || p.districtId || p.id || "";
+          const rawDName = p.district || p.districtName || p.name || p.title || "";
+          const rawSName = p.state || p.stateName || stateSlug;
+          if (!rawSlug) return;
+          if (!map[rawSlug]) {
+            map[rawSlug] = {
+              districtSlug: rawSlug,
+              districtName: decodeMojibake(rawDName || rawSlug),
+              stateName: decodeMojibake(rawSName),
               resources: []
             };
           }
-          map[slug].resources.push(p);
+          map[rawSlug].resources.push(p);
         });
 
         const grouped = Object.values(map);
         setDistricts(grouped);
         if (grouped.length > 0) setStateName(grouped[0].stateName);
+
 
         try {
           const pRes = await api.get("/payment/district/purchased");

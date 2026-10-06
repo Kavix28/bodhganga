@@ -12,6 +12,8 @@ import { unionTerritories } from '../data/unionTerritories';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 import { getResourceBadge } from './Marketplace';
+import { decodeMojibake } from '../utils/formatters';
+
 
 const StateDetail = () => {
     const { id } = useParams();
@@ -71,7 +73,12 @@ const StateDetail = () => {
             // 3.5 Fetch districts dynamically
             try {
                 const distRes = await api.get(`/states/${id}/districts`);
-                setDistricts(distRes || []);
+                const rawList = Array.isArray(distRes) ? distRes : (distRes?.data || []);
+                const mapped = rawList.map(d => ({
+                    ...d,
+                    district: decodeMojibake(d.district || d.districtName || d.name || "")
+                }));
+                setDistricts(mapped);
             } catch (err) {
                 console.warn("Failed to fetch districts", err);
             }

@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
-import StateSectionTabs from "../components/states/StateSectionTabs";
-
+import { decodeMojibake } from "../utils/formatters";
 import StateNavbar from "../components/states/StateNavbar";
 
 export default function StateDistrictsPage() {
@@ -20,33 +19,54 @@ export default function StateDistrictsPage() {
       try {
         // Fetch canonical districts from backend
         const distRes = await api.get(`/states/${stateSlug}/districts`);
-        const distList = Array.isArray(distRes) ? distRes : (distRes?.data || []);
+        const distList = Array.isArray(distRes)
+          ? distRes
+          : (Array.isArray(distRes?.data)
+              ? distRes.data
+              : (Array.isArray(distRes?.districts)
+                  ? distRes.districts
+                  : (Array.isArray(distRes?.data?.districts)
+                      ? distRes.data.districts
+                      : [])));
 
         // Also fetch published products to enrich district counts
         const prodRes = await api.get(`/products/state/${stateSlug}`);
-        const products = Array.isArray(prodRes) ? prodRes : (prodRes?.data || []);
+        const products = Array.isArray(prodRes)
+          ? prodRes
+          : (Array.isArray(prodRes?.data)
+              ? prodRes.data
+              : (Array.isArray(prodRes?.products)
+                  ? prodRes.products
+                  : (Array.isArray(prodRes?.data?.products)
+                      ? prodRes.data.products
+                      : [])));
 
         if (products.length > 0) {
-          setStateName(products[0].state || products[0].stateName || stateSlug);
+          const rawSName = products[0].state || products[0].stateName || stateSlug;
+          setStateName(decodeMojibake(rawSName));
         } else {
-          // Capitalize slug if stateName not found in products
           const formatted = stateSlug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-          setStateName(formatted);
+          setStateName(decodeMojibake(formatted));
         }
 
         const countMap = {};
         products.forEach((p) => {
-          const dSlug = p.districtSlug ? String(p.districtSlug).toLowerCase().trim() : "";
-          const dName = p.district ? String(p.district).toLowerCase().trim() : "";
+          const rawDSlug = p.districtSlug || p.slug || p.districtId || p.id || "";
+          const rawDName = p.district || p.districtName || p.name || p.title || "";
+          const dSlug = String(rawDSlug).toLowerCase().trim();
+          const dName = String(rawDName).toLowerCase().trim();
+          const dDecoded = String(decodeMojibake(rawDName)).toLowerCase().trim();
           if (!dSlug || dSlug === "general") return;
 
-          [dSlug, dName].forEach(k => {
+          const isFree = Boolean(p.free || p.isFree || p.price === 0 || p.isPaid === false || p.type === "FREE");
+
+          [dSlug, dName, dDecoded].forEach((k) => {
             if (!k) return;
             if (!countMap[k]) {
               countMap[k] = { free: 0, paid: 0, total: 0 };
             }
             countMap[k].total++;
-            if (p.free || p.isFree || p.price === 0) countMap[k].free++;
+            if (isFree) countMap[k].free++;
             else countMap[k].paid++;
           });
         });
@@ -54,20 +74,38 @@ export default function StateDistrictsPage() {
         const NON_DISTRICT_KEYS = ["general", "state-images", "stateimages", "images", "state images"];
         const merged = distList
           .filter((d) => {
-            const normSlug = String(d.districtSlug || "").toLowerCase().trim();
-            const normName = String(d.district || "").toLowerCase().trim();
+            const rawSlug = d.districtSlug || d.slug || d.id || "";
+            const rawName = d.district || d.districtName || d.name || d.title || "";
+            const normSlug = String(rawSlug).toLowerCase().trim();
+            const normName = String(rawName).toLowerCase().trim();
             return !NON_DISTRICT_KEYS.includes(normSlug) && !NON_DISTRICT_KEYS.includes(normName);
           })
           .map((d) => {
-            const normSlug = String(d.districtSlug || "").toLowerCase().trim();
-            const normName = String(d.district || "").toLowerCase().trim();
-            const counts = countMap[normSlug] || countMap[normName] || { free: 0, paid: 0, total: 0 };
+            const rawSlug = d.districtSlug || d.slug || d.id || "";
+            const rawName = d.district || d.districtName || d.name || d.title || "";
+            const decodedName = decodeMojibake(rawName || rawSlug);
+            const normSlug = String(rawSlug).toLowerCase().trim();
+            const normName = String(rawName).toLowerCase().trim();
+            const decodedNameLower = String(decodedName).toLowerCase().trim();
+
+            const counts = countMap[normSlug] || countMap[normName] || countMap[decodedNameLower] || { free: 0, paid: 0, total: 0 };
+
+            const freeCount = d.free ?? d.freeCount ?? d.freeResources ?? counts.free ?? 0;
+            const paidCount = d.paid ?? d.paidCount ?? d.paidResources ?? counts.paid ?? 0;
+            const totalCount = d.total ?? d.totalCount ?? d.count ?? d.resourceCount ?? counts.total ?? (freeCount + paidCount);
+
+            let finalFree = freeCount;
+            let finalPaid = paidCount;
+            if (totalCount > 0 && finalFree === 0 && finalPaid === 0) {
+              finalFree = totalCount;
+            }
+
             return {
-              districtSlug: d.districtSlug,
-              districtName: d.district,
-              free: counts.free,
-              paid: counts.paid,
-              total: counts.total || d.count || 0,
+              districtSlug: rawSlug || normName.replace(/\s+/g, "-"),
+              districtName: decodedName,
+              free: finalFree,
+              paid: finalPaid,
+              total: totalCount,
             };
           });
 
@@ -121,7 +159,7 @@ export default function StateDistrictsPage() {
         </div>
       </div>
 
-        <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 py-8">
 
         {error ? (
           <div className="text-red-400 text-center py-20 space-y-3">
@@ -152,11 +190,6 @@ export default function StateDistrictsPage() {
           </div>
         ) : (
           <>
-            {/* Tabs Bar */}
-            <div className="mb-8">
-              <StateSectionTabs stateSlug={stateSlug} activeSection="" />
-            </div>
-
             {/* Search */}
             <input
               type="text"

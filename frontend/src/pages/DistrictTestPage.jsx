@@ -9,6 +9,7 @@ import {
 import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
+import { decodeMojibake } from '../utils/formatters';
 
 const DistrictTestPage = () => {
     const { stateId, districtId } = useParams();
@@ -37,11 +38,16 @@ const DistrictTestPage = () => {
     const [bankData, setBankData] = useState({ content: [], totalElements: 0, totalPages: 0 });
 
     const stateData = statesAndUtTestData.find(s => s.id === stateId) || statesAndUtTestData[0];
-    const districtData = (stateData.districts || []).find(d => d.id === districtId) || {
+    const rawDistrictData = (stateData.districts || []).find(d => d.id === districtId) || {
         id: districtId || 'akola',
         name: (districtId ? districtId.charAt(0).toUpperCase() + districtId.slice(1) : 'Akola'),
         price: 49
     };
+    const districtData = {
+        ...rawDistrictData,
+        name: decodeMojibake(rawDistrictData.name)
+    };
+
 
     // 1. Fetch District Access Entitlement
     const checkAccess = useCallback(async () => {

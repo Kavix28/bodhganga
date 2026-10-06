@@ -4,8 +4,9 @@ import api from "../services/api";
 import toast from "react-hot-toast";
 import { useCart } from '../context/CartContext';
 import { GraduationCap, Mail, MessageCircle, Printer, ArrowLeft, ArrowRight } from 'lucide-react';
-
 import { useAuth } from "../hooks/useAuth";
+import { decodeMojibake } from "../utils/formatters";
+
 
 function ReceiptModal({ receipt, onClose }) {
   const handlePrint = () => window.print();
@@ -143,43 +144,98 @@ export default function DistrictsPage() {
       try {
         // Use the authoritative district aggregation endpoint - never miss a district
         const distRes = await api.get("/states/" + stateSlug + "/districts");
-        const distList = Array.isArray(distRes) ? distRes : (distRes?.data || []);
+        const distList = Array.isArray(distRes)
+          ? distRes
+          : (Array.isArray(distRes?.data)
+              ? distRes.data
+              : (Array.isArray(distRes?.districts)
+                  ? distRes.districts
+                  : (Array.isArray(distRes?.data?.districts)
+                      ? distRes.data.districts
+                      : [])));
 
         // Also fetch products to compute free/paid counts per district
         const prodRes = await api.get("/products/state/" + stateSlug);
-        const products = Array.isArray(prodRes) ? prodRes : (prodRes?.data || []);
+        const products = Array.isArray(prodRes)
+          ? prodRes
+          : (Array.isArray(prodRes?.data)
+              ? prodRes.data
+              : (Array.isArray(prodRes?.products)
+                  ? prodRes.products
+                  : (Array.isArray(prodRes?.data?.products)
+                      ? prodRes.data.products
+                      : [])));
 
-        // Build free/paid count map keyed by districtSlug
+        // Build free/paid count map keyed by districtSlug, districtName, and decoded districtName
         const countMap = {};
         products.forEach(p => {
-          const slug = p.districtSlug;
-          if (!slug) return;
-          if (!countMap[slug]) countMap[slug] = { freeCount: 0, paidCount: 0 };
-          if (p.free || p.isFree || p.price === 0) countMap[slug].freeCount++;
-          else countMap[slug].paidCount++;
+          const rawDSlug = p.districtSlug || p.slug || p.districtId || p.id || "";
+          const rawDName = p.district || p.districtName || p.name || p.title || "";
+          const dSlug = String(rawDSlug).toLowerCase().trim();
+          const dName = String(rawDName).toLowerCase().trim();
+          const dDecoded = String(decodeMojibake(rawDName)).toLowerCase().trim();
+          if (!dSlug || dSlug === "general") return;
+
+          const isFree = Boolean(p.free || p.isFree || p.price === 0 || p.isPaid === false || p.type === "FREE");
+
+          [dSlug, dName, dDecoded].forEach((k) => {
+            if (!k) return;
+            if (!countMap[k]) countMap[k] = { freeCount: 0, paidCount: 0, totalCount: 0 };
+            countMap[k].totalCount++;
+            if (isFree) countMap[k].freeCount++;
+            else countMap[k].paidCount++;
+          });
         });
 
         // Merge: district list drives structure, products drive counts
         const NON_DISTRICT_KEYS = ["general", "state-images", "stateimages", "images", "state images"];
         const merged = distList
           .filter(d => {
-            const normSlug = String(d.districtSlug || "").toLowerCase().trim();
-            const normName = String(d.district || "").toLowerCase().trim();
+            const rawSlug = d.districtSlug || d.slug || d.id || "";
+            const rawName = d.district || d.districtName || d.name || d.title || "";
+            const normSlug = String(rawSlug).toLowerCase().trim();
+            const normName = String(rawName).toLowerCase().trim();
             return !NON_DISTRICT_KEYS.includes(normSlug) && !NON_DISTRICT_KEYS.includes(normName);
           })
-          .map(d => ({
-            districtSlug: d.districtSlug,
-            districtName: d.district,
-            stateName: stateSlug,
-            freeCount: countMap[d.districtSlug]?.freeCount ?? 0,
-            paidCount: countMap[d.districtSlug]?.paidCount ?? 0,
-          }));
+          .map(d => {
+            const rawSlug = d.districtSlug || d.slug || d.id || "";
+            const rawName = d.district || d.districtName || d.name || d.title || "";
+            const decodedName = decodeMojibake(rawName || rawSlug);
+            const normSlug = String(rawSlug).toLowerCase().trim();
+            const normName = String(rawName).toLowerCase().trim();
+            const decodedNameLower = String(decodedName).toLowerCase().trim();
+
+            const counts = countMap[normSlug] || countMap[normName] || countMap[decodedNameLower] || { freeCount: 0, paidCount: 0, totalCount: 0 };
+
+            const freeCount = d.free ?? d.freeCount ?? d.freeResources ?? counts.freeCount ?? 0;
+            const paidCount = d.paid ?? d.paidCount ?? d.paidResources ?? counts.paidCount ?? 0;
+            const totalCount = d.total ?? d.totalCount ?? d.count ?? d.resourceCount ?? counts.totalCount ?? (freeCount + paidCount);
+
+            let finalFree = freeCount;
+            let finalPaid = paidCount;
+            if (totalCount > 0 && finalFree === 0 && finalPaid === 0) {
+              finalFree = totalCount;
+            }
+
+            return {
+              districtSlug: rawSlug || normName.replace(/\s+/g, "-"),
+              districtName: decodedName,
+              stateName: stateSlug,
+              freeCount: finalFree,
+              paidCount: finalPaid,
+              total: totalCount,
+            };
+          });
 
         setDistricts(merged);
 
         // Derive readable state name from first product
         if (products.length > 0) {
-          setStateName(products[0].state || products[0].stateName || stateSlug);
+          const rawSName = products[0].state || products[0].stateName || stateSlug;
+          setStateName(decodeMojibake(rawSName));
+        } else {
+          const formatted = stateSlug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+          setStateName(decodeMojibake(formatted));
         }
 
         // Fetch purchased slugs (requires auth, check user first)
@@ -198,6 +254,7 @@ export default function DistrictsPage() {
         setLoading(false);
       }
     };
+
     fetchData();
   }, [stateSlug]);
 
