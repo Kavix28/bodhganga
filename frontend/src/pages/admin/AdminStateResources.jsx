@@ -33,6 +33,9 @@ import {
     updateAdminResourceStatus,
     archiveAdminResource
 } from '../../services/adminService';
+import { decodeMojibake } from '../../utils/formatters';
+
+export const DISTRICT_RESOURCE_CATEGORIES = ['Art & Culture', 'History', 'Heritage & Sites', 'Geography'];
 
 export const deriveResourceTitle = (filename) => {
     if (!filename || typeof filename !== 'string') return '';
@@ -364,7 +367,7 @@ const AdminStateResources = () => {
                                                         }`}
                                                     >
                                                         <div className="min-w-0 pr-2">
-                                                            <div className="font-semibold text-xs truncate">{district.district}</div>
+                                                            <div className="font-semibold text-xs truncate">{decodeMojibake(district.district)}</div>
                                                             <div className="text-[10px] text-gray-500 font-mono">
                                                                 {district.pdfCount || 0} files
                                                             </div>
@@ -410,7 +413,7 @@ const AdminStateResources = () => {
                             <div className="flex items-center justify-between bg-gray-900/80 p-3 rounded-xl border border-gray-700/80">
                                 <div>
                                     <div className="font-bold text-white text-sm">
-                                        {selectedDistrict.district}, {selectedState?.name}
+                                        {decodeMojibake(selectedDistrict.district)}, {decodeMojibake(selectedState?.name)}
                                     </div>
                                     <div className="text-[11px] text-gray-400">
                                         Total Cataloged: <span className="text-amber-400 font-bold">{resources.length}</span> resources
@@ -458,7 +461,7 @@ const AdminStateResources = () => {
                                         No resources uploaded yet
                                     </h3>
                                     <p className="text-xs text-gray-400 max-w-sm mb-4 mx-auto">
-                                        There are currently no active resources cataloged for {selectedDistrict.district}, {selectedState?.name}.
+                                        There are currently no active resources cataloged for {decodeMojibake(selectedDistrict.district)}, {decodeMojibake(selectedState?.name)}.
                                     </p>
                                     <button
                                         onClick={() => setIsUploadModalOpen(true)}
@@ -669,7 +672,7 @@ const formatBytes = (bytes) => {
 
 const AdminResourceUploadModal = ({ state, district, onClose, onSuccess }) => {
     const isStateLevel = district?.districtSlug === 'general' || district?.districtSlug === 'state-level' || district?.isStateLevel;
-    const [category, setCategory] = useState(isStateLevel ? 'History' : 'Free');
+    const [category, setCategory] = useState(isStateLevel ? 'History' : 'Art & Culture');
     const [description, setDescription] = useState('');
     const [isFree, setIsFree] = useState(true);
     const [publish, setPublish] = useState(true);
@@ -771,7 +774,7 @@ const AdminResourceUploadModal = ({ state, district, onClose, onSuccess }) => {
         formData.append('stateSlug', state.stateSlug);
         formData.append('districtSlug', isStateLevel ? 'general' : district.districtSlug);
         formData.append('isFree', isFree ? 'true' : 'false');
-        formData.append('category', isStateLevel ? category : (isFree ? 'Free' : 'Paid'));
+        formData.append('category', category);
         formData.append('title', fileTitle);
         formData.append('description', description.trim());
         formData.append('publish', publish ? 'true' : 'false');
@@ -849,6 +852,11 @@ const AdminResourceUploadModal = ({ state, district, onClose, onSuccess }) => {
             toast.error('Please select at least one file to upload.');
             return;
         }
+        const validDistrictCats = ['Art & Culture', 'History', 'Heritage & Sites', 'Geography'];
+        if (!isStateLevel && !validDistrictCats.includes(category)) {
+            toast.error('Please select a valid district category (Art & Culture, History, Heritage & Sites, Geography).');
+            return;
+        }
         setIsUploading(true);
     };
 
@@ -895,7 +903,7 @@ const AdminResourceUploadModal = ({ state, district, onClose, onSuccess }) => {
                                 Upload Admin Resource ({isStateLevel ? 'State Scope' : 'District Scope'})
                             </h3>
                             <p className="text-xs text-gray-400">
-                                {state.name} &bull; {isStateLevel ? 'State-Level Content' : district.district}
+                                {decodeMojibake(state.name)} &bull; {isStateLevel ? 'State-Level Content' : decodeMojibake(district.district)}
                             </p>
                         </div>
                     </div>
@@ -961,9 +969,16 @@ const AdminResourceUploadModal = ({ state, district, onClose, onSuccess }) => {
                                     <option value="Heritage & Sites">Heritage & Sites</option>
                                 </select>
                             ) : (
-                                <div className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-amber-400 font-bold">
-                                    {isFree ? 'Free Resource Section' : 'Paid Resource Section'}
-                                </div>
+                                <select
+                                    value={category}
+                                    onChange={(e) => setCategory(e.target.value)}
+                                    className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 font-semibold text-amber-300"
+                                >
+                                    <option value="Art & Culture">Art & Culture</option>
+                                    <option value="History">History</option>
+                                    <option value="Heritage & Sites">Heritage & Sites</option>
+                                    <option value="Geography">Geography</option>
+                                </select>
                             )}
                         </div>
 
