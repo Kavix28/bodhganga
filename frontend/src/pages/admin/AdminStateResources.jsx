@@ -35,7 +35,8 @@ import {
 } from '../../services/adminService';
 import { decodeMojibake } from '../../utils/formatters';
 
-export const DISTRICT_RESOURCE_CATEGORIES = ['Art & Culture', 'History', 'Heritage & Sites', 'Geography'];
+export const STATE_RESOURCE_CATEGORIES = ['Art & Culture', 'History', 'Heritage & Sites', 'Geography'];
+export const DISTRICT_RESOURCE_ACCESS_TIERS = ['Free', 'Paid'];
 
 export const deriveResourceTitle = (filename) => {
     if (!filename || typeof filename !== 'string') return '';
@@ -672,7 +673,7 @@ const formatBytes = (bytes) => {
 
 const AdminResourceUploadModal = ({ state, district, onClose, onSuccess }) => {
     const isStateLevel = district?.districtSlug === 'general' || district?.districtSlug === 'state-level' || district?.isStateLevel;
-    const [category, setCategory] = useState(isStateLevel ? 'History' : 'Art & Culture');
+    const [category, setCategory] = useState(isStateLevel ? 'Art & Culture' : 'Free');
     const [description, setDescription] = useState('');
     const [isFree, setIsFree] = useState(true);
     const [publish, setPublish] = useState(true);
@@ -852,9 +853,12 @@ const AdminResourceUploadModal = ({ state, district, onClose, onSuccess }) => {
             toast.error('Please select at least one file to upload.');
             return;
         }
-        const validDistrictCats = ['Art & Culture', 'History', 'Heritage & Sites', 'Geography'];
-        if (!isStateLevel && !validDistrictCats.includes(category)) {
-            toast.error('Please select a valid district category (Art & Culture, History, Heritage & Sites, Geography).');
+        if (isStateLevel && !STATE_RESOURCE_CATEGORIES.includes(category)) {
+            toast.error('Please select a valid State content category (Art & Culture, History, Heritage & Sites, Geography).');
+            return;
+        }
+        if (!isStateLevel && !DISTRICT_RESOURCE_ACCESS_TIERS.includes(category)) {
+            toast.error('Please select a valid District access tier (Free or Paid).');
             return;
         }
         setIsUploading(true);
@@ -955,7 +959,7 @@ const AdminResourceUploadModal = ({ state, district, onClose, onSuccess }) => {
                         {/* Category Dropdown */}
                         <div>
                             <label className="block text-xs text-gray-300 font-semibold mb-1.5">
-                                {isStateLevel ? 'State Section' : 'District Category'}
+                                {isStateLevel ? 'State Content Category' : 'District Access Tier'}
                             </label>
                             {isStateLevel ? (
                                 <select
@@ -963,21 +967,22 @@ const AdminResourceUploadModal = ({ state, district, onClose, onSuccess }) => {
                                     onChange={(e) => setCategory(e.target.value)}
                                     className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 font-semibold text-amber-300"
                                 >
-                                    <option value="History">History</option>
-                                    <option value="Geography">Geography</option>
                                     <option value="Art & Culture">Art & Culture</option>
+                                    <option value="History">History</option>
                                     <option value="Heritage & Sites">Heritage & Sites</option>
+                                    <option value="Geography">Geography</option>
                                 </select>
                             ) : (
                                 <select
                                     value={category}
-                                    onChange={(e) => setCategory(e.target.value)}
+                                    onChange={(e) => {
+                                        setCategory(e.target.value);
+                                        setIsFree(e.target.value === 'Free');
+                                    }}
                                     className="w-full bg-gray-900 border border-gray-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500 font-semibold text-amber-300"
                                 >
-                                    <option value="Art & Culture">Art & Culture</option>
-                                    <option value="History">History</option>
-                                    <option value="Heritage & Sites">Heritage & Sites</option>
-                                    <option value="Geography">Geography</option>
+                                    <option value="Free">Free</option>
+                                    <option value="Paid">Paid</option>
                                 </select>
                             )}
                         </div>

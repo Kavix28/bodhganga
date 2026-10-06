@@ -4,7 +4,6 @@ import api from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 import toast from "react-hot-toast";
 import { decodeMojibake } from "../utils/formatters";
-import StateSectionTabs from "../components/states/StateSectionTabs";
 
 const FILE_ICONS = {
   pdf:  { icon: "📄", color: "text-red-400",    label: "PDF" },
@@ -245,8 +244,11 @@ export default function StateDistrictProductsPage() {
     }
   };
 
-  const categoryResources = filterResourcesByCategory(allResources, activeSection);
-  const paidResTotal = allResources.filter((r) => !r.free && !r.isFree && r.price > 0);
+  const [accessTab, setAccessTab] = useState("free");
+
+  const freeResources = allResources.filter(r => Boolean(r.free || r.isFree || r.price === 0 || String(r.category || '').toLowerCase() === 'free'));
+  const paidResources = allResources.filter(r => !r.free && !r.isFree && r.price > 0 && String(r.category || '').toLowerCase() !== 'free');
+  const activeDistrictResources = accessTab === "free" ? freeResources : accessTab === "paid" ? paidResources : allResources;
 
   if (loading) {
     return (
@@ -347,41 +349,68 @@ export default function StateDistrictProductsPage() {
           </div>
         </div>
 
-        {/* 4 MANDATORY DISTRICT RESOURCE TABS */}
-        <StateSectionTabs
-          stateSlug={stateSlug}
-          districtSlug={districtSlug}
-          activeSection={activeSection}
-          sectionAvailability={sectionAvailability}
-          onSectionChange={(tabId) => setSearchParams({ section: tabId })}
-        />
+        {/* DISTRICT RESOURCE ACCESS TABS: FREE & PAID */}
+        <div className="flex flex-wrap items-center gap-3 border-b border-gray-800 pb-4">
+          <button
+            onClick={() => setAccessTab("free")}
+            className={`px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+              accessTab === "free"
+                ? "bg-emerald-500 text-gray-950 shadow-md font-extrabold"
+                : "bg-gray-900 border border-gray-800 text-gray-400 hover:text-white"
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+            Free Resources ({freeResources.length})
+          </button>
+          <button
+            onClick={() => setAccessTab("paid")}
+            className={`px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+              accessTab === "paid"
+                ? "bg-amber-500 text-gray-950 shadow-md font-extrabold"
+                : "bg-gray-900 border border-gray-800 text-gray-400 hover:text-white"
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-amber-400" />
+            Paid Resources ({paidResources.length})
+          </button>
+          <button
+            onClick={() => setAccessTab("all")}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+              accessTab === "all"
+                ? "bg-gray-700 text-white font-extrabold"
+                : "bg-gray-900 border border-gray-800 text-gray-400 hover:text-white"
+            }`}
+          >
+            All ({allResources.length})
+          </button>
+        </div>
 
-        {/* CATEGORY RESOURCE SECTION */}
+        {/* DISTRICT RESOURCE LISTING */}
         <div className="space-y-6 pt-2">
           <div className="flex items-center justify-between border-b border-gray-800 pb-3">
             <h2 className="text-xl font-serif font-bold text-amber-400 flex items-center gap-2">
-              <span>📚 {SECTION_LABELS[activeSection] || "Category"} Resources</span>
+              <span>📚 {accessTab === "free" ? "Free District" : accessTab === "paid" ? "Paid District" : "All District"} Resources</span>
               <span className="text-xs font-sans font-semibold text-gray-400">
-                ({categoryResources.length} file{categoryResources.length !== 1 ? "s" : ""})
+                ({activeDistrictResources.length} file{activeDistrictResources.length !== 1 ? "s" : ""})
               </span>
             </h2>
           </div>
 
-          {categoryResources.length === 0 ? (
+          {activeDistrictResources.length === 0 ? (
             <div className="bg-gray-900/40 border border-gray-800 rounded-2xl p-10 text-center space-y-3">
               <span className="text-3xl">📖</span>
-              <h3 className="text-base font-bold text-white">No {SECTION_LABELS[activeSection]} Resources Available Yet</h3>
+              <h3 className="text-base font-bold text-white">No {accessTab === "free" ? "Free" : accessTab === "paid" ? "Paid" : ""} Resources Available Yet</h3>
               <p className="text-xs text-gray-400 max-w-md mx-auto">
-                Study materials for {SECTION_LABELS[activeSection]} in {districtName} are currently being curated and will be uploaded shortly.
+                Study materials for {districtName} are currently being curated and will be uploaded shortly.
               </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {categoryResources.map((r) => {
+              {activeDistrictResources.map((r) => {
                 const ext  = (r.fileExtension || "").toLowerCase();
                 const meta = FILE_ICONS[ext] || { icon: "📄", color: "text-gray-400", label: ext.toUpperCase() || "FILE" };
                 const title = r.displayTitle || r.title || r.fileName;
-                const isFree = Boolean(r.free || r.isFree || r.price === 0);
+                const isFree = Boolean(r.free || r.isFree || r.price === 0 || String(r.category || '').toLowerCase() === 'free');
 
                 return (
                   <div
