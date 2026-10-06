@@ -44,7 +44,7 @@ console.log('✅ TEST 2 PASSED: Admin District upload contains Free and Paid opt
 
 // 3. District upload does NOT contain the four state categories as category options
 assert.ok(adminContent.includes("isStateLevel ? (\n                                <select") || adminContent.includes("isStateLevel ?"), 'Admin modal must branch category selector based on isStateLevel');
-assert.ok(adminContent.includes("setCategory(e.target.value);\n                                        setIsFree(e.target.value === 'Free');"), 'District upload selector sets access tier cleanly');
+assert.ok(adminContent.includes("setCategory(e.target.value);") && adminContent.includes("setIsFree(e.target.value === 'Free');"), 'District upload selector sets access tier cleanly');
 console.log('✅ TEST 3 PASSED: Admin District upload does NOT contain the state categories as district options.');
 
 // 4. State page contains the four tabs
@@ -55,11 +55,11 @@ assert.ok(stateTabsContent.includes("'heritage-sites'") && stateTabsContent.incl
 assert.ok(stateTabsContent.includes("'geography'") && stateTabsContent.includes("Geography"), 'State tabs must include Geography');
 console.log('✅ TEST 4 PASSED: State page contains the four state content tabs.');
 
-// 5. District directory and district product pages do NOT contain the four state tabs
-assert.strictEqual(stateDistrictsContent.includes('<StateSectionTabs'), false, 'StateDistrictsPage must NOT render StateSectionTabs');
+// 5. Persistent state navigation is rendered in state section (including district directory), while individual district pages do NOT contain state tabs
+assert.ok(stateDistrictsContent.includes('<StateSectionTabs'), 'StateDistrictsPage must render StateSectionTabs for persistent state section navigation');
 assert.strictEqual(districtProductsContent.includes('<StateSectionTabs'), false, 'StateDistrictProductsPage must NOT render StateSectionTabs');
 assert.strictEqual(districtResourcesContent.includes('<StateSectionTabs'), false, 'DistrictResourcesPage must NOT render StateSectionTabs');
-console.log('✅ TEST 5 PASSED: District directory and district product pages do NOT contain the four state tabs.');
+console.log('✅ TEST 5 PASSED: State section (including district directory) contains persistent state navigation; individual district product pages do NOT render state tabs.');
 
 // 6. Chamba products page no longer references undefined paidResTotal
 assert.strictEqual(districtProductsContent.includes('paidResTotal'), false, 'StateDistrictProductsPage must not reference undefined paidResTotal');

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { History, Landmark, Map, Music } from 'lucide-react';
+import { History, Landmark, Map, Music, FolderGit2 } from 'lucide-react';
 
 export default function StateSectionTabs({ stateSlug, activeSection, sectionAvailability, onSectionChange }) {
   const navigate = useNavigate();
@@ -10,6 +10,7 @@ export default function StateSectionTabs({ stateSlug, activeSection, sectionAvai
     { id: 'history', label: 'History', icon: History, path: `/state/${stateSlug}/history` },
     { id: 'heritage-sites', label: 'Heritage & Sites', icon: Landmark, path: `/state/${stateSlug}/heritage-sites` },
     { id: 'geography', label: 'Geography', icon: Map, path: `/state/${stateSlug}/geography` },
+    { id: 'districts', label: 'Districts', icon: FolderGit2, path: `/state/${stateSlug}/districts` },
   ];
 
   const handleTabClick = (tab) => {
@@ -24,7 +25,7 @@ export default function StateSectionTabs({ stateSlug, activeSection, sectionAvai
     <div className="w-full space-y-4">
       {/* Tab Container */}
       <div className="bg-emerald-950/40 rounded-2xl p-1.5 border border-emerald-900/60 shadow-lg backdrop-blur-sm overflow-x-auto scrollbar-none">
-        <div className="flex gap-2 min-w-max md:min-w-0 md:grid md:grid-cols-4">
+        <div className="flex gap-2 min-w-max md:min-w-0 md:grid md:grid-cols-5">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeSection === tab.id;

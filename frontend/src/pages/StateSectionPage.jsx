@@ -3,6 +3,7 @@ import { useParams, useLocation, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import StateSectionTabs from "../components/states/StateSectionTabs";
 import StateNavbar from "../components/states/StateNavbar";
+import { decodeMojibake } from "../utils/formatters";
 
 export default function StateSectionPage() {
   const { stateSlug } = useParams();
@@ -48,10 +49,10 @@ export default function StateSectionPage() {
         setProducts(prodList);
 
         if (prodList.length > 0) {
-          setStateName(prodList[0].state || prodList[0].stateName || stateSlug);
+          setStateName(decodeMojibake(prodList[0].state || prodList[0].stateName || stateSlug));
         } else {
           const formatted = stateSlug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-          setStateName(formatted);
+          setStateName(decodeMojibake(formatted));
         }
 
         const NON_DISTRICT_KEYS = ["general", "state-images", "stateimages", "images", "state images"];
@@ -148,7 +149,7 @@ export default function StateSectionPage() {
                     className="bg-gray-900 border border-gray-800 hover:border-amber-500 rounded-xl p-5 cursor-pointer transition-all duration-200 hover:shadow-lg hover:shadow-amber-500/10 flex flex-col justify-between group"
                   >
                     <div className="flex justify-between items-start mb-3">
-                      <h3 className="text-sm font-bold text-white leading-snug">{d.district}</h3>
+                      <h3 className="text-sm font-bold text-white leading-snug">{decodeMojibake(d.district)}</h3>
                       <span className="text-amber-400 text-base group-hover:translate-x-0.5 transition-transform">
                         →
                       </span>

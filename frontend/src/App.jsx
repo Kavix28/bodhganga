@@ -1,7 +1,7 @@
 import { Suspense, lazy } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import ScrollToTop from './components/common/ScrollToTop';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { SpaceThemeProvider } from './context/SpaceThemeContext';
@@ -96,6 +96,11 @@ const queryClient = new QueryClient({
     },
 });
 
+function StateRootRedirect() {
+    const { stateSlug } = useParams();
+    return <Navigate to={`/state/${stateSlug}/districts`} replace />;
+}
+
 function ChatWidgetWrapper() {
     const { isAuthenticated, token } = useAuth();
     return <ChatWidget isLoggedIn={isAuthenticated} token={token} />;
@@ -157,6 +162,7 @@ function App() {
                                             
                                             <Route path="/explore" element={<ExplorePage />} />
                                             <Route path="/state" element={<AllStatesPage />} />
+                                            <Route path="/state/:stateSlug" element={<StateRootRedirect />} />
 
                                             <Route path="/state/:stateSlug/history-heritage-sites" element={<StateSectionPage />} />
                                             <Route path="/state/:stateSlug/history" element={<StateSectionPage />} />
@@ -166,6 +172,7 @@ function App() {
                                             <Route path="/state/:stateSlug/heritage-sites-monuments" element={<StateSectionPage />} />
                                             <Route path="/state/:stateSlug/monuments" element={<StateSectionPage />} />
                                             <Route path="/state/:stateSlug/art-and-culture" element={<StateSectionPage />} />
+                                            <Route path="/state/:stateSlug/heritage-sites" element={<StateSectionPage />} />
                                             
                                             <Route path="/state/:stateSlug/districts" element={<StateDistrictsPage />} />
                                             <Route path="/state/:stateSlug/district/:districtSlug" element={<StateDistrictProductsPage />} />

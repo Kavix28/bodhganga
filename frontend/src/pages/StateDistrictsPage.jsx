@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { decodeMojibake } from "../utils/formatters";
-import StateNavbar from "../components/states/StateNavbar";
+import StateSectionTabs from "../components/states/StateSectionTabs";
 
 export default function StateDistrictsPage() {
   const { stateSlug } = useParams();
@@ -159,7 +159,9 @@ export default function StateDistrictsPage() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+        {/* PERSISTENT STATE RESOURCE NAVIGATION TABS */}
+        <StateSectionTabs stateSlug={stateSlug} activeSection="districts" />
 
         {error ? (
           <div className="text-red-400 text-center py-20 space-y-3">
