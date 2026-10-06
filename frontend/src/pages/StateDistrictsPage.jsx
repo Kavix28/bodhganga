@@ -60,8 +60,7 @@ export default function StateDistrictsPage() {
 
           const isFree = Boolean(p.free || p.isFree || p.price === 0 || p.isPaid === false || p.type === "FREE");
 
-          [dSlug, dName, dDecoded].forEach((k) => {
-            if (!k) return;
+          Array.from(new Set([dSlug, dName, dDecoded].filter(Boolean))).forEach((k) => {
             if (!countMap[k]) {
               countMap[k] = { free: 0, paid: 0, total: 0 };
             }
@@ -94,17 +93,11 @@ export default function StateDistrictsPage() {
             const paidCount = d.paid ?? d.paidCount ?? d.paidResources ?? counts.paid ?? 0;
             const totalCount = d.total ?? d.totalCount ?? d.count ?? d.resourceCount ?? counts.total ?? (freeCount + paidCount);
 
-            let finalFree = freeCount;
-            let finalPaid = paidCount;
-            if (totalCount > 0 && finalFree === 0 && finalPaid === 0) {
-              finalFree = totalCount;
-            }
-
             return {
               districtSlug: rawSlug || normName.replace(/\s+/g, "-"),
               districtName: decodedName,
-              free: finalFree,
-              paid: finalPaid,
+              free: freeCount,
+              paid: paidCount,
               total: totalCount,
             };
           });
