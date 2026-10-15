@@ -72,4 +72,16 @@ assert.strictEqual(decodeMojibake("TseminyÃ¼"), "Tseminyü", "Mojibake string 
 assert.strictEqual(decodeMojibake("ZÃ¼nheboto"), "Zünheboto", "Mojibake string for Zünheboto must decode accurately");
 console.log('✅ TEST 7 PASSED: Unicode district names (Chümoukedima, Tseminyü, Zünheboto) decode accurately.');
 
+// 8. Description state is declared and wired properly in AdminResourceUploadModal
+assert.ok(adminContent.includes("const [description, setDescription] = useState('');"), 'AdminResourceUploadModal must explicitly declare description state');
+assert.ok(adminContent.includes("value={description}") && adminContent.includes("onChange={(e) => setDescription(e.target.value)}"), 'Description input must be bound to description state');
+assert.ok(adminContent.includes("formData.append('description', description.trim());"), 'Upload formData must append trimmed description');
+console.log('✅ TEST 8 PASSED: Admin description input state is declared, controlled, and submitted.');
+
+// 9. State upload payload uses districtSlug = general and resourceScope = STATE
+assert.ok(adminContent.includes("formData.append('districtSlug', isStateScope ? 'general' : modalDistrict.districtSlug);"), 'State upload payload must set districtSlug to general');
+assert.ok(adminContent.includes("formData.append('resourceScope', isStateScope ? 'STATE' : 'DISTRICT');"), 'State upload payload must set resourceScope to STATE');
+assert.ok(adminContent.includes("formData.append('contentArea', isStateScope ? 'STATE_CONTENT' :"), 'State upload payload must set contentArea to STATE_CONTENT');
+console.log('✅ TEST 9 PASSED: Admin upload payload correctly enforces districtSlug=general and resourceScope=STATE for state scope.');
+
 console.log('\n🎉 ALL ARCHITECTURAL REGRESSION TESTS PASSED SUCCESSFULLY!');

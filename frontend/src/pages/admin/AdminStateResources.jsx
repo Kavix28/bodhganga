@@ -976,6 +976,7 @@ const AdminResourceUploadModal = ({
     const isStateScope = scope === 'STATE';
     const isStateLevel = isStateScope;
     const [publish, setPublish] = useState(true);
+    const [description, setDescription] = useState('');
 
     const [queue, setQueue] = useState([]);
     const [isDragging, setIsDragging] = useState(false);
