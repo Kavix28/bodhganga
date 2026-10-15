@@ -25,7 +25,9 @@ public class ProductController {
      */
     @GetMapping
     public ResponseEntity<ApiResponseDTO> getAllPublishedProducts() {
-        List<Product> products = productRepo.findByIsPublishedTrue();
+        List<Product> products = productRepo.findByIsPublishedTrue().stream()
+                .filter(p -> p != null && !Boolean.TRUE.equals(p.isArchived()) && !Boolean.TRUE.equals(p.getIsDeleted()))
+                .collect(java.util.stream.Collectors.toList());
         return ResponseEntity.ok(ApiResponseDTO.builder()
                 .success(true)
                 .data(products)
@@ -33,17 +35,54 @@ public class ProductController {
     }
 
     /**
-     * Public API to get products by state slug
+     * Public API to get products by state slug.
+     * Supports optional `scope` and `category` query parameters for state-scoped filtering.
+     * When scope=state, returns ONLY state-scoped resources matching category (if provided).
+     * When scope is omitted, returns published products belonging to this state for general state/district metrics.
      */
     @GetMapping("/state/{slug}")
-    public ResponseEntity<ApiResponseDTO> getProductsByState(@PathVariable String slug) {
+    public ResponseEntity<ApiResponseDTO> getProductsByState(
+            @PathVariable String slug,
+            @RequestParam(required = false) String scope,
+            @RequestParam(required = false) String category) {
         String cleanSlug = Product.generateSlug(slug);
-        List<Product> products = productRepo.findByStateSlugAndDistrictSlugAndArchivedFalse(cleanSlug, "general");
-        if (products.isEmpty()) {
-            products = productRepo.findByStateSlug(cleanSlug).stream()
-                    .filter(p -> Boolean.TRUE.equals(p.isPublished()) && !Boolean.TRUE.equals(p.isArchived()))
-                    .collect(java.util.stream.Collectors.toList());
+        if (cleanSlug == null || cleanSlug.isBlank()) {
+            return ResponseEntity.ok(ApiResponseDTO.builder()
+                    .success(true)
+                    .data(java.util.Collections.emptyList())
+                    .build());
         }
+
+        if ("state".equalsIgnoreCase(scope) || "general".equalsIgnoreCase(scope)) {
+            String canonicalCategory = category != null && !category.isBlank()
+                    ? Product.resolveCanonicalCategory(category)
+                    : null;
+
+            List<Product> products = productRepo.findByStateSlugAndDistrictSlugAndArchivedFalse(cleanSlug, "general")
+                    .stream()
+                    .filter(p -> p != null
+                            && cleanSlug.equalsIgnoreCase(p.getStateSlug())
+                            && p.isStateScope()
+                            && Boolean.TRUE.equals(p.isPublished())
+                            && !Boolean.TRUE.equals(p.isArchived())
+                            && !Boolean.TRUE.equals(p.getIsDeleted()))
+                    .filter(p -> canonicalCategory == null || p.matchesCategory(canonicalCategory))
+                    .collect(java.util.stream.Collectors.toList());
+
+            return ResponseEntity.ok(ApiResponseDTO.builder()
+                    .success(true)
+                    .data(products)
+                    .build());
+        }
+
+        List<Product> products = productRepo.findByStateSlug(cleanSlug).stream()
+                .filter(p -> p != null
+                        && cleanSlug.equalsIgnoreCase(p.getStateSlug())
+                        && Boolean.TRUE.equals(p.isPublished())
+                        && !Boolean.TRUE.equals(p.isArchived())
+                        && !Boolean.TRUE.equals(p.getIsDeleted()))
+                .collect(java.util.stream.Collectors.toList());
+
         return ResponseEntity.ok(ApiResponseDTO.builder()
                 .success(true)
                 .data(products)
@@ -51,16 +90,39 @@ public class ProductController {
     }
 
     /**
-     * Public API to get products by state slug and category
+     * Public API to get strictly state-scoped products by state slug and category.
+     * Enforces strict state isolation:
+     * - Resource belongs to the requested state
+     * - Resource is strictly state-scoped (districtSlug = "general", state-level classification)
+     * - Resource category strictly matches the canonical requested category
+     * - Resource satisfies publication and access rules (published=true, archived=false)
+     * Never falls back to returning all resources or district resources.
      */
     @GetMapping("/state/{stateSlug}/category/{category}")
-    public ResponseEntity<ApiResponseDTO> getProductsByStateAndCategory(@PathVariable String stateSlug,
+    public ResponseEntity<ApiResponseDTO> getProductsByStateAndCategory(
+            @PathVariable String stateSlug,
             @PathVariable String category) {
         String cleanStateSlug = Product.generateSlug(stateSlug);
-        List<Product> products = productRepo.findByStateSlugAndCategoryAndIsPublishedTrue(cleanStateSlug, category)
+        String canonicalCategory = Product.resolveCanonicalCategory(category);
+
+        if (cleanStateSlug == null || cleanStateSlug.isBlank() || canonicalCategory == null) {
+            return ResponseEntity.ok(ApiResponseDTO.builder()
+                    .success(true)
+                    .data(java.util.Collections.emptyList())
+                    .build());
+        }
+
+        List<Product> products = productRepo.findByStateSlugAndDistrictSlugAndArchivedFalse(cleanStateSlug, "general")
                 .stream()
-                .filter(p -> !Boolean.TRUE.equals(p.isArchived()))
+                .filter(p -> p != null
+                        && cleanStateSlug.equalsIgnoreCase(p.getStateSlug())
+                        && p.isStateScope()
+                        && p.matchesCategory(canonicalCategory)
+                        && Boolean.TRUE.equals(p.isPublished())
+                        && !Boolean.TRUE.equals(p.isArchived())
+                        && !Boolean.TRUE.equals(p.getIsDeleted()))
                 .collect(java.util.stream.Collectors.toList());
+
         return ResponseEntity.ok(ApiResponseDTO.builder()
                 .success(true)
                 .data(products)
@@ -78,15 +140,25 @@ public class ProductController {
         String cleanStateSlug = Product.generateSlug(stateSlug);
         String cleanDistrictSlug = Product.generateSlug(districtSlug);
 
+        if (cleanDistrictSlug == null || "general".equalsIgnoreCase(cleanDistrictSlug) || "state".equalsIgnoreCase(cleanDistrictSlug)) {
+            return ResponseEntity.ok(ApiResponseDTO.builder()
+                .success(true)
+                .data(java.util.Collections.emptyList())
+                .build());
+        }
+
         List<Product> products = productRepo
             .findByStateSlugAndDistrictSlugAndIsPublishedTrueAndArchivedFalse(
-                    cleanStateSlug, cleanDistrictSlug);
+                    cleanStateSlug, cleanDistrictSlug)
+            .stream()
+            .filter(p -> p != null && !Boolean.TRUE.equals(p.getIsDeleted()))
+            .collect(java.util.stream.Collectors.toList());
 
         return ResponseEntity.ok(ApiResponseDTO.builder()
             .success(true)
             .data(products)
             .build());
-        }
+    }
 
     /**
      * Public API to get district section availability breakdown
@@ -185,8 +257,14 @@ public class ProductController {
     @GetMapping("/district/{districtSlug}")
     public ResponseEntity<ApiResponseDTO> getProductsByDistrict(@PathVariable String districtSlug) {
         String cleanDistrictSlug = Product.generateSlug(districtSlug);
+        if (cleanDistrictSlug == null || "general".equalsIgnoreCase(cleanDistrictSlug) || "state".equalsIgnoreCase(cleanDistrictSlug)) {
+            return ResponseEntity.ok(ApiResponseDTO.builder()
+                    .success(true)
+                    .data(java.util.Collections.emptyList())
+                    .build());
+        }
         List<Product> products = productRepo.findByDistrictSlugAndIsPublishedTrue(cleanDistrictSlug).stream()
-                .filter(p -> !Boolean.TRUE.equals(p.isArchived()))
+                .filter(p -> p != null && !Boolean.TRUE.equals(p.isArchived()) && !Boolean.TRUE.equals(p.getIsDeleted()))
                 .collect(java.util.stream.Collectors.toList());
         return ResponseEntity.ok(ApiResponseDTO.builder()
                 .success(true)

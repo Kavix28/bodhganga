@@ -59,7 +59,8 @@ public class AdminResourceController {
             @RequestParam("file") MultipartFile file,
             @RequestParam("stateSlug") String stateSlug,
             @RequestParam("districtSlug") String districtSlug,
-            @RequestParam("isFree") boolean isFree,
+            @RequestParam(value = "resourceScope", required = false) String resourceScope,
+            @RequestParam(value = "isFree", defaultValue = "true") boolean isFree,
             @RequestParam(value = "category", required = false) String category,
             @RequestParam(value = "title", required = false) String title,
             @RequestParam(value = "description", required = false) String description,
@@ -67,7 +68,7 @@ public class AdminResourceController {
         Map<String, Object> response = new HashMap<>();
         try {
             ResourceUploadResult result = adminResourceService.uploadResource(
-                    file, stateSlug, districtSlug, isFree, category, title, description, publish);
+                    file, stateSlug, districtSlug, resourceScope, isFree, category, title, description, publish);
 
             Product p = result.getProduct();
             Map<String, Object> data = new HashMap<>();
@@ -81,6 +82,10 @@ public class AdminResourceController {
             data.put("isFree", p.isFree());
             data.put("price", p.getPrice());
             data.put("category", p.getCategory());
+            data.put("categorySlug", p.getCategorySlug());
+            data.put("sectionSlug", p.getSectionSlug());
+            data.put("resourceScope", p.getResourceScope());
+            data.put("contentArea", p.getContentArea());
             data.put("s3Key", p.getS3Key());
             data.put("s3Url", p.getS3Url());
             data.put("published", p.isPublished());

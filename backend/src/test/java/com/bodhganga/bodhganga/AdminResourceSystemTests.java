@@ -199,7 +199,7 @@ public class AdminResourceSystemTests {
                                 .param("districtSlug", "general")
                                 .param("isFree", "true")
                                 .param("title", "State History Lecture Audio")
-                                .param("category", "History, Heritage & Sites"))
+                                .param("category", "History"))
                                 .andExpect(status().isOk())
                                 .andExpect(jsonPath("$.success").value(true))
                                 .andExpect(jsonPath("$.data.type").value("AUDIO"));

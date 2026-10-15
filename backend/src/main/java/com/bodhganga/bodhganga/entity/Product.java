@@ -41,6 +41,7 @@ public class Product {
     private Long fileSize;
     private String sectionSlug;
     private String contentArea;
+    private String resourceScope;
     private String contentHash;
     @Indexed(unique = true, sparse = true)
     private String s3Key;
@@ -140,7 +141,9 @@ public class Product {
     public void setPreviewUrl(String previewUrl) { this.previewUrl = previewUrl; }
     public String getStorageKey() { return storageKey; }
     public void setStorageKey(String storageKey) { this.storageKey = storageKey; }
-    public boolean isPublished() { return isPublished; }
+    public boolean isPublished() {
+        return this.isPublished || this.published;
+    }
     public void setPublished(boolean published) {
         this.isPublished = published;
         this.published = published;
@@ -234,7 +237,9 @@ public class Product {
 
     public static String generateSlug(String name) {
         if (name == null || name.isBlank()) return "general";
-        return name.toLowerCase()
+        String normalized = java.text.Normalizer.normalize(name, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "");
+        return normalized.toLowerCase()
                 .trim()
                 .replaceAll("[^a-z0-9\\s-]", "")
                 .replaceAll("\\s+", "-")
@@ -415,4 +420,114 @@ public String getContentHash() {
 public void setContentHash(String contentHash) {
     this.contentHash = contentHash;
 }
+
+    public static final String SCOPE_STATE = "STATE";
+    public static final String SCOPE_DISTRICT = "DISTRICT";
+
+    public static final String CATEGORY_HISTORY = "History";
+    public static final String CATEGORY_GEOGRAPHY = "Geography";
+    public static final String CATEGORY_ART_CULTURE = "Art & Culture";
+    public static final String CATEGORY_HERITAGE_SITES = "Heritage & Sites";
+
+    public static final String SLUG_HISTORY = "history";
+    public static final String SLUG_GEOGRAPHY = "geography";
+    public static final String SLUG_ART_CULTURE = "art-culture";
+    public static final String SLUG_HERITAGE_SITES = "heritage-sites";
+
+    public static String resolveCanonicalCategory(String input) {
+        if (input == null || input.isBlank()) return null;
+        String clean = input.trim().toLowerCase();
+        if (clean.equals("history")) {
+            return CATEGORY_HISTORY;
+        }
+        if (clean.equals("geography")) {
+            return CATEGORY_GEOGRAPHY;
+        }
+        if (clean.equals("art-culture") || clean.equals("art-and-culture")
+                || clean.equals("art & culture") || clean.equals("art and culture")) {
+            return CATEGORY_ART_CULTURE;
+        }
+        if (clean.equals("heritage-sites") || clean.equals("heritage-monuments")
+                || clean.equals("heritage-sites-monuments") || clean.equals("monuments")
+                || clean.equals("heritage & sites") || clean.equals("heritage and sites")) {
+            return CATEGORY_HERITAGE_SITES;
+        }
+        return null;
+    }
+
+    public static String resolveCanonicalCategorySlug(String input) {
+        if (input == null || input.isBlank()) return null;
+        String clean = input.trim().toLowerCase();
+        if (clean.equals("history")) {
+            return SLUG_HISTORY;
+        }
+        if (clean.equals("geography")) {
+            return SLUG_GEOGRAPHY;
+        }
+        if (clean.equals("art-culture") || clean.equals("art-and-culture")
+                || clean.equals("art & culture") || clean.equals("art and culture")) {
+            return SLUG_ART_CULTURE;
+        }
+        if (clean.equals("heritage-sites") || clean.equals("heritage-monuments")
+                || clean.equals("heritage-sites-monuments") || clean.equals("monuments")
+                || clean.equals("heritage & sites") || clean.equals("heritage and sites")) {
+            return SLUG_HERITAGE_SITES;
+        }
+        return null;
+    }
+
+    public static boolean isCanonicalStateCategory(String input) {
+        return resolveCanonicalCategory(input) != null;
+    }
+
+    public String getResourceScope() {
+        if (resourceScope != null && !resourceScope.isBlank()) {
+            return resourceScope.trim().toUpperCase();
+        }
+        if ("STATE_CONTENT".equalsIgnoreCase(contentArea)) {
+            return SCOPE_STATE;
+        }
+        if ("general".equalsIgnoreCase(districtSlug) && (isCanonicalStateCategory(category) || isCanonicalStateCategory(categorySlug))) {
+            return SCOPE_STATE;
+        }
+        if (districtSlug != null && !districtSlug.isBlank() && !"general".equalsIgnoreCase(districtSlug)) {
+            return SCOPE_DISTRICT;
+        }
+        return null;
+    }
+
+    public void setResourceScope(String resourceScope) {
+        this.resourceScope = resourceScope;
+    }
+
+    public boolean isStateScope() {
+        if (stateSlug == null || stateSlug.isBlank()) {
+            return false;
+        }
+        if (districtSlug == null || districtSlug.isBlank()) {
+            return false;
+        }
+        String cleanDSlug = districtSlug.trim().toLowerCase();
+        if (!cleanDSlug.equals("general") && !cleanDSlug.equals("state")) {
+            return false;
+        }
+        // State resources must strictly belong to one of the canonical state categories
+        return isCanonicalStateCategory(category)
+                || isCanonicalStateCategory(categorySlug)
+                || isCanonicalStateCategory(sectionSlug);
+    }
+
+    public boolean matchesCategory(String requestedCategoryOrSlug) {
+        String canonicalTarget = resolveCanonicalCategory(requestedCategoryOrSlug);
+        if (canonicalTarget == null) {
+            return false;
+        }
+        String prodCat = resolveCanonicalCategory(this.category);
+        String prodCatSlug = resolveCanonicalCategory(this.categorySlug);
+        String prodSecSlug = resolveCanonicalCategory(this.sectionSlug);
+
+        return canonicalTarget.equals(prodCat)
+                || canonicalTarget.equals(prodCatSlug)
+                || canonicalTarget.equals(prodSecSlug);
+    }
 }

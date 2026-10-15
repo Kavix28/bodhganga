@@ -18,7 +18,7 @@ public class QBImportBatch {
     @Id
     private String id;
 
-    @Indexed(unique = true)
+    @Indexed(unique = true, sparse = true)
     private String importBatchId;
 
     @Indexed

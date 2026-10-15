@@ -26,7 +26,7 @@ public class AdminResourceService {
     private static final Logger log = LoggerFactory.getLogger(AdminResourceService.class);
     private static final long MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024L; // 50 MB
     private static final java.util.Set<String> ALLOWED_EXTENSIONS = java.util.Set.of(
-            "pdf", "png", "jpg", "jpeg", "webp", "mp3", "wav", "m4a", "aac", "ogg", "mp4");
+            "pdf", "doc", "docx", "png", "jpg", "jpeg", "webp", "mp3", "wav", "m4a", "aac", "ogg", "mp4");
 
     private final ProductRepo productRepo;
     private final StateRepo stateRepo;
@@ -42,6 +42,19 @@ public class AdminResourceService {
             MultipartFile file,
             String stateSlugInput,
             String districtSlugInput,
+            boolean isFree,
+            String categoryInput,
+            String titleInput,
+            String descriptionInput,
+            boolean publish) throws IOException {
+        return uploadResource(file, stateSlugInput, districtSlugInput, null, isFree, categoryInput, titleInput, descriptionInput, publish);
+    }
+
+    public ResourceUploadResult uploadResource(
+            MultipartFile file,
+            String stateSlugInput,
+            String districtSlugInput,
+            String resourceScopeInput,
             boolean isFree,
             String categoryInput,
             String titleInput,
@@ -69,9 +82,28 @@ public class AdminResourceService {
 
         // 3. Scope & District Validation
         String cleanDistrictSlug = Product.generateSlug(districtSlugInput);
-        boolean isStateScope = cleanDistrictSlug == null || cleanDistrictSlug.isBlank() || "general".equalsIgnoreCase(cleanDistrictSlug) || "state".equalsIgnoreCase(cleanDistrictSlug);
+        boolean isStateScope;
+        if (resourceScopeInput != null && !resourceScopeInput.isBlank()) {
+            String trimmedScope = resourceScopeInput.trim().toUpperCase();
+            if ("STATE".equals(trimmedScope)) {
+                isStateScope = true;
+                cleanDistrictSlug = "general";
+            } else if ("DISTRICT".equals(trimmedScope)) {
+                if (cleanDistrictSlug == null || cleanDistrictSlug.isBlank() || "general".equalsIgnoreCase(cleanDistrictSlug) || "state".equalsIgnoreCase(cleanDistrictSlug)) {
+                    throw new IllegalArgumentException("INVALID_DISTRICT_SCOPE: District content requires a valid district slug, not 'general'.");
+                }
+                isStateScope = false;
+            } else {
+                throw new IllegalArgumentException("INVALID_RESOURCE_SCOPE: Resource scope must be either 'STATE' or 'DISTRICT'. Received: '" + resourceScopeInput + "'");
+            }
+        } else {
+            isStateScope = cleanDistrictSlug == null || cleanDistrictSlug.isBlank() || "general".equalsIgnoreCase(cleanDistrictSlug) || "state".equalsIgnoreCase(cleanDistrictSlug);
+            if (isStateScope) {
+                cleanDistrictSlug = "general";
+            }
+        }
+
         String canonicalDistrictName;
-        
         if (isStateScope) {
             cleanDistrictSlug = "general";
             canonicalDistrictName = "general";
@@ -91,41 +123,41 @@ public class AdminResourceService {
 
         if (isStateScope) {
             String lowerCat = rawCat.toLowerCase();
-            if (lowerCat.contains("geography")) {
-                finalCategory = "Geography";
-                finalCategorySlug = "geography";
-                finalSectionSlug = "geography";
-            } else if (lowerCat.contains("art") || lowerCat.contains("culture")) {
-                finalCategory = "Art & Culture";
-                finalCategorySlug = "art-culture";
-                finalSectionSlug = "art-culture";
-            } else if (lowerCat.contains("heritage") || lowerCat.contains("site") || lowerCat.contains("monument")) {
-                finalCategory = "Heritage & Sites";
-                finalCategorySlug = "heritage-sites";
-                finalSectionSlug = "heritage-sites";
-            } else if (lowerCat.contains("history")) {
-                finalCategory = "History";
-                finalCategorySlug = "history";
-                finalSectionSlug = "history";
-            } else {
-                throw new IllegalArgumentException("INVALID_STATE_CATEGORY: State-level resources must belong ONLY to 'History', 'Geography', 'Art & Culture', or 'Heritage & Sites'. Received: '" + categoryInput + "'");
+            if (lowerCat.equals("free") || lowerCat.equals("paid") || lowerCat.contains("free") || lowerCat.contains("paid")) {
+                throw new IllegalArgumentException("INVALID_STATE_CATEGORY: State-level resources cannot be catalogued as Free or Paid. Allowed categories ONLY: Art & Culture, History, Heritage & Sites, Geography.");
             }
+            String canonical = Product.resolveCanonicalCategory(rawCat);
+            if (canonical == null) {
+                throw new IllegalArgumentException("INVALID_STATE_CATEGORY: State-level resources must belong ONLY to 'Art & Culture', 'History', 'Heritage & Sites', or 'Geography'. Received: '" + categoryInput + "'");
+            }
+            finalCategory = canonical;
+            finalCategorySlug = Product.resolveCanonicalCategorySlug(rawCat);
+            finalSectionSlug = finalCategorySlug;
+            isFree = true;
         } else {
             // District Scope: Only Free or Paid allowed
             String lowerCat = rawCat.toLowerCase();
-            if (lowerCat.contains("history") || lowerCat.contains("heritage") || lowerCat.contains("geography") || lowerCat.contains("art") || lowerCat.contains("culture") || lowerCat.contains("monument")) {
+            if (lowerCat.contains("history") || lowerCat.contains("heritage") || lowerCat.contains("geography") || lowerCat.contains("art") || lowerCat.contains("culture") || lowerCat.contains("monument") || lowerCat.contains("site")) {
                 throw new IllegalArgumentException("INVALID_DISTRICT_CATEGORY: District-level resources cannot use state categories ('" + categoryInput + "'). Content at district level must belong ONLY to 'Free' or 'Paid' sections.");
             }
-            if (isFree || lowerCat.equals("free")) {
+            if (lowerCat.equals("free")) {
                 finalCategory = "Free";
                 finalCategorySlug = "free";
                 finalSectionSlug = "free";
                 isFree = true;
-            } else {
+            } else if (lowerCat.equals("paid")) {
                 finalCategory = "Paid";
                 finalCategorySlug = "paid";
                 finalSectionSlug = "paid";
                 isFree = false;
+            } else if (isFree) {
+                finalCategory = "Free";
+                finalCategorySlug = "free";
+                finalSectionSlug = "free";
+            } else {
+                finalCategory = "Paid";
+                finalCategorySlug = "paid";
+                finalSectionSlug = "paid";
             }
         }
 
@@ -175,6 +207,14 @@ public class AdminResourceService {
                 existing.setCategory(finalCategory);
                 existing.setCategorySlug(finalCategorySlug);
                 existing.setSectionSlug(finalSectionSlug);
+                existing.setContentArea(isStateScope ? "STATE_CONTENT" : (isFree ? "FREE_DISTRICT_CONTENT" : "PAID_DISTRICT_RESOURCES"));
+                existing.setResourceScope(isStateScope ? Product.SCOPE_STATE : Product.SCOPE_DISTRICT);
+                existing.setState(canonicalState.getName());
+                existing.setStateSlug(cleanStateSlug);
+                existing.setDistrict(canonicalDistrictName);
+                existing.setDistrictSlug(cleanDistrictSlug);
+                existing.setFree(isFree);
+                existing.setPrice(price);
 
                 if (descriptionInput != null && !descriptionInput.isBlank()) {
                     existing.setDescription(descriptionInput.trim());
@@ -239,6 +279,7 @@ public class AdminResourceService {
         product.setCategorySlug(finalCategorySlug);
         product.setSectionSlug(finalSectionSlug);
         product.setContentArea(isStateScope ? "STATE_CONTENT" : (isFree ? "FREE_DISTRICT_CONTENT" : "PAID_DISTRICT_RESOURCES"));
+        product.setResourceScope(isStateScope ? Product.SCOPE_STATE : Product.SCOPE_DISTRICT);
         product.setS3Key(s3Key);
         product.setStorageKey(s3Key);
         product.setS3Url(s3Url);
@@ -349,7 +390,7 @@ public class AdminResourceService {
         String ext = Product.getFileExtension(originalFilename);
         if (ext.isBlank() || !ALLOWED_EXTENSIONS.contains(ext)) {
             throw new IllegalArgumentException("UNSUPPORTED_FORMAT: Extension '." + ext
-                    + "' is not supported. Allowed formats: PDF, PNG, JPG, JPEG, WEBP, MP3, WAV, M4A, AAC, OGG, MP4.");
+                    + "' is not supported. Allowed formats: PDF, DOC, DOCX, PNG, JPG, JPEG, WEBP, MP3, WAV, M4A, AAC, OGG, MP4.");
         }
 
         String mimeType = file.getContentType();
@@ -359,6 +400,8 @@ public class AdminResourceService {
                     lowerMime.startsWith("audio/") ||
                     lowerMime.startsWith("video/") ||
                     lowerMime.equals("application/pdf") ||
+                    lowerMime.equals("application/msword") ||
+                    lowerMime.equals("application/vnd.openxmlformats-officedocument.wordprocessingml.document") ||
                     lowerMime.equals("application/ogg") ||
                     lowerMime.equals("application/x-zip-compressed") ||
                     lowerMime.equals("application/octet-stream");

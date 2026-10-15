@@ -89,6 +89,7 @@ public class DataLoader implements CommandLineRunner {
 
         // Run idempotent product migration
         migrateImportedProducts();
+        migrateStateResourceMetadata();
 
         // Ensure admin user exists with ADMIN role
         ensureAdminUser();
@@ -957,6 +958,94 @@ public class DataLoader implements CommandLineRunner {
         ensureUniqueSparseIndex("googleDriveFileId");
         ensureUniqueSparseIndex("s3Key");
         ensureUniqueSparseIndex("sourceFileId");
+    }
+
+    private void migrateStateResourceMetadata() {
+        log.info("Running state resource isolation & legacy category migration...");
+        List<Product> allProducts = productRepo.findAll();
+        int migratedCount = 0;
+
+        for (Product p : allProducts) {
+            boolean changed = false;
+
+            // 1. Synchronize boolean publication flags
+            boolean pub = p.isPublished() || Boolean.TRUE.equals(p.getPublished());
+            if (pub && (!p.getPublished() || !p.isPublished())) {
+                p.setPublished(true);
+                changed = true;
+            }
+
+            String stateSlug = Product.generateSlug(p.getStateSlug());
+            String distSlug = Product.generateSlug(p.getDistrictSlug());
+            String cat = p.getCategory() != null ? p.getCategory().trim() : "";
+            String title = p.getTitle() != null ? p.getTitle().trim() : "";
+
+            // 2. Specific Nagaland legacy retagging per Mission Requirement
+            if ("nagaland".equalsIgnoreCase(stateSlug) && ("general".equalsIgnoreCase(distSlug) || "state".equalsIgnoreCase(distSlug) || distSlug == null || distSlug.isBlank())) {
+                p.setDistrictSlug("general");
+                p.setDistrict("general");
+                p.setResourceScope(Product.SCOPE_STATE);
+                p.setContentArea("STATE_CONTENT");
+                p.setFree(true);
+                p.setPrice(0.0);
+                p.setPublished(true);
+                p.setArchived(false);
+                p.setIsDeleted(false);
+
+                if (title.contains("Battle of Kohima") || title.contains("Naga Hills District") || title.contains("Dimasa Kachari Kingdom")) {
+                    p.setCategory(Product.CATEGORY_HISTORY);
+                    p.setCategorySlug(Product.SLUG_HISTORY);
+                    p.setSectionSlug(Product.SLUG_HISTORY);
+                    changed = true;
+                } else if (title.contains("Ruins of Kachari Rajbari")) {
+                    p.setCategory(Product.CATEGORY_HERITAGE_SITES);
+                    p.setCategorySlug(Product.SLUG_HERITAGE_SITES);
+                    p.setSectionSlug(Product.SLUG_HERITAGE_SITES);
+                    changed = true;
+                } else if (cat.toLowerCase().contains("art") || cat.toLowerCase().contains("culture") || title.contains("Sumi Naga") || title.contains("Busu Dima")) {
+                    p.setCategory(Product.CATEGORY_ART_CULTURE);
+                    p.setCategorySlug(Product.SLUG_ART_CULTURE);
+                    p.setSectionSlug(Product.SLUG_ART_CULTURE);
+                    changed = true;
+                } else if (cat.toLowerCase().contains("geography") || title.toLowerCase().contains("geography")) {
+                    p.setCategory(Product.CATEGORY_GEOGRAPHY);
+                    p.setCategorySlug(Product.SLUG_GEOGRAPHY);
+                    p.setSectionSlug(Product.SLUG_GEOGRAPHY);
+                    changed = true;
+                }
+            }
+
+            // 3. For any other state-level product, ensure resourceScope and contentArea are explicitly set
+            if ("general".equalsIgnoreCase(distSlug) && Product.isCanonicalStateCategory(cat)) {
+                if (p.getResourceScope() == null || !Product.SCOPE_STATE.equals(p.getResourceScope())) {
+                    p.setResourceScope(Product.SCOPE_STATE);
+                    changed = true;
+                }
+                if (p.getContentArea() == null || !"STATE_CONTENT".equals(p.getContentArea())) {
+                    p.setContentArea("STATE_CONTENT");
+                    changed = true;
+                }
+                String canonical = Product.resolveCanonicalCategory(cat);
+                String canonicalSlug = Product.resolveCanonicalCategorySlug(cat);
+                if (canonical != null && !canonical.equals(p.getCategory())) {
+                    p.setCategory(canonical);
+                    changed = true;
+                }
+                if (canonicalSlug != null && !canonicalSlug.equals(p.getCategorySlug())) {
+                    p.setCategorySlug(canonicalSlug);
+                    p.setSectionSlug(canonicalSlug);
+                    changed = true;
+                }
+            }
+
+            if (changed) {
+                p.setUpdatedAt(new Date());
+                productRepo.save(p);
+                migratedCount++;
+            }
+        }
+
+        log.info("State resource migration complete. Verified/migrated: {} products.", migratedCount);
     }
 
     /**
