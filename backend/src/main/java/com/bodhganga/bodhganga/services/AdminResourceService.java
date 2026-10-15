@@ -226,8 +226,7 @@ public class AdminResourceService {
             String finalResourceScope = isStateScope ? Product.SCOPE_STATE : Product.SCOPE_DISTRICT;
 
             boolean isArchived = existing.isArchived();
-            boolean scopeMatches = finalResourceScope.equalsIgnoreCase(existing.getResourceScope())
-                    || (isStateScope && "STATE_CONTENT".equalsIgnoreCase(existing.getContentArea()));
+            boolean scopeMatches = finalResourceScope.equalsIgnoreCase(existing.getResourceScope());
             boolean categoryMatches = finalCategory != null && finalCategory.equalsIgnoreCase(existing.getCategory());
             boolean categorySlugMatches = finalCategorySlug != null && finalCategorySlug.equalsIgnoreCase(existing.getCategorySlug());
             boolean sectionSlugMatches = finalSectionSlug != null && finalSectionSlug.equalsIgnoreCase(existing.getSectionSlug());
@@ -285,12 +284,55 @@ public class AdminResourceService {
                 existing.setDescription(descriptionInput.trim());
             }
 
+            if (existing.getContentHash() == null || existing.getContentHash().isBlank()) {
+                existing.setContentHash(contentHash);
+            }
+            if (existing.getFileSize() == null || existing.getFileSize() == 0) {
+                existing.setFileSize((long) fileBytes.length);
+            }
+            if (existing.getFileExtension() == null || existing.getFileExtension().isBlank()) {
+                existing.setFileExtension(ext);
+            }
+            if (existing.getMimeType() == null || existing.getMimeType().isBlank()) {
+                existing.setMimeType(mimeType);
+            }
+            if (existing.getContentType() == null || existing.getContentType().isBlank()) {
+                existing.setContentType(contentType);
+                existing.setType(contentType);
+            }
+            if (existing.getIngestionStatus() == null) {
+                existing.setIngestionStatus(IngestionStatus.COMPLETED);
+            }
+
             String targetS3Key = existing.getS3Key();
-            if (targetS3Key != null && !targetS3Key.isBlank()) {
-                if (!s3Service.objectExists(targetS3Key)) {
+            if (targetS3Key == null || targetS3Key.isBlank()) {
+                String sanitizedFilename = sanitizeFilename(originalFilename);
+                String tier = isFree ? "free" : "paid";
+                targetS3Key = "states/" + cleanStateSlug + "/" + cleanDistrictSlug + "/" + tier + "/" + sanitizedFilename;
+                try {
+                    if (s3Service.objectExists(targetS3Key) || productRepo.existsByS3Key(targetS3Key)) {
+                        String nameWithoutExt = Product.stripExtension(sanitizedFilename);
+                        targetS3Key = "states/" + cleanStateSlug + "/" + cleanDistrictSlug + "/" + tier + "/" + nameWithoutExt + "_"
+                                + System.currentTimeMillis() + "." + ext;
+                    }
                     try (InputStream inputStream = new ByteArrayInputStream(fileBytes)) {
                         s3Service.uploadFileWithKey(inputStream, fileBytes.length, targetS3Key, mimeType);
                     }
+                } catch (Exception e) {
+                    log.warn("S3 upload for missing key on healed resource encountered warning: {}", e.getMessage());
+                }
+                existing.setS3Key(targetS3Key);
+                existing.setStorageKey(targetS3Key);
+                try {
+                    existing.setS3Url(s3Service.getS3Url(targetS3Key));
+                } catch (Exception e) {
+                    // fallback URL
+                }
+            } else if (existing.getS3Url() == null || existing.getS3Url().isBlank()) {
+                try {
+                    existing.setS3Url(s3Service.getS3Url(targetS3Key));
+                } catch (Exception e) {
+                    // fallback URL
                 }
             }
 

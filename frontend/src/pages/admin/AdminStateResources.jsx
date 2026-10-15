@@ -1580,10 +1580,23 @@ const AdminResourceUploadModal = ({
                                 {queue.map((item) => {
                                     const typeMeta = getResourceTypeMeta({ type: item.resourceType, fileExtension: item.extension });
 
+                                    let cardStyle = "bg-gray-900/80 border-gray-700/80";
+                                    if (item.status === 'uploaded' || (item.status === 'success' && !item.isDuplicate && !item.isReclassified)) {
+                                        cardStyle = "bg-emerald-950/20 border-emerald-500/30";
+                                    } else if (item.status === 'reclassified') {
+                                        cardStyle = "bg-sky-950/20 border-sky-500/30";
+                                    } else if (item.status === 'duplicate' || (item.status === 'success' && item.isDuplicate && !item.isReclassified)) {
+                                        cardStyle = "bg-amber-950/20 border-amber-500/30";
+                                    } else if (item.status === 'failed') {
+                                        cardStyle = "bg-red-950/20 border-red-500/30";
+                                    } else if (item.status === 'uploading') {
+                                        cardStyle = "bg-gray-900/90 border-amber-500/50";
+                                    }
+
                                     return (
                                         <div
                                             key={item.id}
-                                            className="bg-gray-900/80 border border-gray-700/80 rounded-xl p-3 space-y-2 text-xs"
+                                            className={`${cardStyle} border rounded-xl p-3 space-y-2 text-xs transition-colors`}
                                         >
                                             <div className="flex items-center justify-between gap-3">
                                                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -1710,24 +1723,44 @@ const AdminResourceUploadModal = ({
                             Close
                         </button>
 
-                        <button
-                            type="button"
-                            onClick={handleStartUpload}
-                            disabled={isUploading || queue.length === 0 || pendingCount === 0}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-gray-950 font-bold text-xs rounded-xl shadow-lg shadow-amber-500/20 transition-all"
-                        >
-                            {isUploading ? (
-                                <>
-                                    <RefreshCw className="w-4 h-4 animate-spin text-gray-950" />
-                                    <span>Uploading Queue...</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Upload className="w-4 h-4 text-gray-950" />
-                                    <span>Start Upload ({pendingCount})</span>
-                                </>
-                            )}
-                        </button>
+                        {pendingCount > 0 ? (
+                            <button
+                                type="button"
+                                onClick={handleStartUpload}
+                                disabled={isUploading}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-gray-950 font-bold text-xs rounded-xl shadow-lg shadow-amber-500/20 transition-all"
+                            >
+                                {isUploading ? (
+                                    <>
+                                        <RefreshCw className="w-4 h-4 animate-spin text-gray-950" />
+                                        <span>Uploading Queue...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Upload className="w-4 h-4 text-gray-950" />
+                                        <span>Start Upload ({pendingCount})</span>
+                                    </>
+                                )}
+                            </button>
+                        ) : completedCount > 0 ? (
+                            <button
+                                type="button"
+                                onClick={handleClearCompleted}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-gray-700 hover:bg-gray-600 text-white font-bold text-xs rounded-xl shadow transition-all"
+                            >
+                                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                                <span>Clear Completed ({completedCount})</span>
+                            </button>
+                        ) : (
+                            <button
+                                type="button"
+                                disabled={true}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-gray-800 text-gray-500 font-bold text-xs rounded-xl transition-all cursor-not-allowed"
+                            >
+                                <Upload className="w-4 h-4" />
+                                <span>Start Upload</span>
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

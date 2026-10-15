@@ -356,6 +356,8 @@ public class StateResourceIsolationTests {
     void testAdminHistoryUpload() throws Exception {
         MockMultipartFile file = new MockMultipartFile("file", "nagaland_history_chronicles.pdf", "application/pdf", VALID_PDF_BYTES);
 
+        long countBefore = productRepo.count();
+
         mockMvc.perform(multipart("/api/admin/resources/upload")
                 .file(file)
                 .param("stateSlug", "nagaland")
@@ -373,6 +375,8 @@ public class StateResourceIsolationTests {
                 .andExpect(jsonPath("$.data.sectionSlug").value("history"))
                 .andExpect(jsonPath("$.data.resourceScope").value("STATE"))
                 .andExpect(jsonPath("$.data.contentArea").value("STATE_CONTENT"));
+
+        assertEquals(countBefore + 1, productRepo.count(), "New STATE History upload creates exactly one record");
     }
 
     /**
@@ -601,6 +605,8 @@ public class StateResourceIsolationTests {
     void testDuplicateUploadHandledIdempotently() throws Exception {
         MockMultipartFile file = new MockMultipartFile("file", "unique_doc.pdf", "application/pdf", VALID_PDF_BYTES);
 
+        long countBefore = productRepo.count();
+
         // Upload 1
         mockMvc.perform(multipart("/api/admin/resources/upload")
                 .file(file)
@@ -611,6 +617,8 @@ public class StateResourceIsolationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isDuplicate").value(false));
 
+        assertEquals(countBefore + 1, productRepo.count(), "First upload creates exactly one record");
+
         // Upload 2 with identical bytes
         mockMvc.perform(multipart("/api/admin/resources/upload")
                 .file(file)
@@ -620,6 +628,8 @@ public class StateResourceIsolationTests {
                 .param("title", "Duplicate Upload Attempt"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isDuplicate").value(true));
+
+        assertEquals(countBefore + 1, productRepo.count(), "Duplicate upload must not create a second record");
     }
 
     /**
