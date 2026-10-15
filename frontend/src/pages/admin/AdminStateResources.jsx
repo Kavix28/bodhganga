@@ -1215,7 +1215,6 @@ const AdminResourceUploadModal = ({
     const successCount = queue.filter(f => f.status === 'success').length;
     const failedCount = queue.filter(f => f.status === 'failed').length;
 
-    const isStateScope = scope === 'STATE';
     const canonicalStateCategorySlug = normalizeStateCategorySlug(stateCategory);
 
     return (
