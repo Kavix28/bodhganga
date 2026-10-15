@@ -101,11 +101,17 @@ public class AdminResourceController {
             data.put("isDuplicate", result.isDuplicate());
             data.put("isReclassified", result.isReclassified());
             data.put("created", !result.isDuplicate() && !result.isReclassified());
+            data.put("previousDestination", result.getPreviousDestination());
+            data.put("newDestination", result.getNewDestination());
+            data.put("currentDestination", result.getCurrentDestination());
 
             response.put("success", true);
             response.put("isDuplicate", result.isDuplicate());
             response.put("isReclassified", result.isReclassified());
             response.put("created", !result.isDuplicate() && !result.isReclassified());
+            response.put("previousDestination", result.getPreviousDestination());
+            response.put("newDestination", result.getNewDestination());
+            response.put("currentDestination", result.getCurrentDestination());
             response.put("message", result.getMessage());
             response.put("data", data);
             response.put("resource", data);

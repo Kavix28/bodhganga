@@ -188,76 +188,88 @@ public class AdminResourceService {
         // 6. Free / Paid Semantics
         double price = isFree ? 0.0 : 99.0;
 
-        // 7. Duplicate / Idempotency Check & Metadata Healing
-        Optional<Product> existingOpt = productRepo.findByStateSlugAndDistrictSlugAndIsFreeAndContentHash(
-                cleanStateSlug, cleanDistrictSlug, isFree, contentHash);
-        if (existingOpt.isEmpty() && isStateScope) {
-            existingOpt = productRepo.findByStateSlugAndDistrictSlugAndIsFreeAndContentHash(
-                    cleanStateSlug, cleanDistrictSlug, false, contentHash);
+        // 7. Authoritative Duplicate / Idempotency Check & Metadata Healing
+        // Reclassification Safety 1: Cross-State Reclassification is STRICTLY FORBIDDEN
+        List<Product> allMatches = productRepo.findAllByContentHash(contentHash);
+        for (Product match : allMatches) {
+            if (match.getStateSlug() != null && !match.getStateSlug().isBlank()
+                    && !cleanStateSlug.equalsIgnoreCase(match.getStateSlug())) {
+                String existingStateName = match.getState() != null && !match.getState().isBlank()
+                        ? match.getState()
+                        : match.getStateSlug();
+                log.warn("HASH_EXISTS_DIFFERENT_STATE: Hash {} already belongs to state '{}' ({}), refusing cross-state upload to '{}'",
+                        contentHash, existingStateName, match.getStateSlug(), cleanStateSlug);
+                throw new IllegalArgumentException(
+                        "HASH_EXISTS_DIFFERENT_STATE: This file is already cataloged under state '"
+                                + existingStateName + "' (" + match.getStateSlug()
+                                + "). Cross-state reclassification is not permitted.");
+            }
+        }
+
+        // For state-scope uploads, search existing by hash across the state for reclassification/healing.
+        // For district-scope uploads, enforce strict Free/Paid tier isolation within the district.
+        Optional<Product> existingOpt = isStateScope
+                ? findExistingByContentHash(contentHash, cleanStateSlug)
+                : productRepo.findByStateSlugAndDistrictSlugAndIsFreeAndContentHash(
+                        cleanStateSlug, cleanDistrictSlug, isFree, contentHash);
+
+        if (!isStateScope && existingOpt.isEmpty()) {
+            Optional<Product> stateMatch = findExistingByContentHash(contentHash, cleanStateSlug);
+            if (stateMatch.isPresent()) {
+                Product sm = stateMatch.get();
+                if (sm.isStateScope() || "general".equalsIgnoreCase(sm.getDistrictSlug())
+                        || Product.SCOPE_STATE.equalsIgnoreCase(sm.getResourceScope())) {
+                    log.warn("ADMIN_RESOURCE_SCOPE_CONFLICT: Refusing to reclassify state resource ID={} into district {} scope",
+                            sm.getId(), cleanDistrictSlug);
+                    return new ResourceUploadResult(sm, true, false,
+                            "Resource already exists under state scope and cannot be mutated to district scope.");
+                }
+            }
         }
 
         if (existingOpt.isPresent()) {
             Product existing = existingOpt.get();
 
-            // Scope safety check: reject unsafe cross-scope mutations
-            if (isStateScope) {
-                String existingDSlug = existing.getDistrictSlug();
-                if (existingDSlug != null && !existingDSlug.isBlank()
-                        && !"general".equalsIgnoreCase(existingDSlug)
-                        && !"state".equalsIgnoreCase(existingDSlug)) {
-                    log.warn("ADMIN_RESOURCE_SCOPE_CONFLICT: Refusing to reclassify district resource ID={} (district={}) into state-level scope",
-                            existing.getId(), existingDSlug);
-                    return new ResourceUploadResult(existing, true, false,
-                            "Resource already exists under district " + existingDSlug + " and cannot be mutated to state scope.");
-                }
-            } else {
-                String existingDSlug = existing.getDistrictSlug();
-                if ("general".equalsIgnoreCase(existingDSlug)
-                        || "state".equalsIgnoreCase(existingDSlug)
-                        || Product.SCOPE_STATE.equalsIgnoreCase(existing.getResourceScope())) {
-                    log.warn("ADMIN_RESOURCE_SCOPE_CONFLICT: Refusing to reclassify state resource ID={} into district {} scope",
-                            existing.getId(), cleanDistrictSlug);
-                    return new ResourceUploadResult(existing, true, false,
-                            "Resource already exists under state scope and cannot be mutated to district scope.");
-                }
-            }
-
             String finalContentArea = isStateScope ? "STATE_CONTENT" : (isFree ? "FREE_DISTRICT_CONTENT" : "PAID_DISTRICT_RESOURCES");
             String finalResourceScope = isStateScope ? Product.SCOPE_STATE : Product.SCOPE_DISTRICT;
 
-            boolean isArchived = existing.isArchived();
-            boolean scopeMatches = finalResourceScope.equalsIgnoreCase(existing.getResourceScope());
-            boolean categoryMatches = finalCategory != null && finalCategory.equalsIgnoreCase(existing.getCategory());
-            boolean categorySlugMatches = finalCategorySlug != null && finalCategorySlug.equalsIgnoreCase(existing.getCategorySlug());
-            boolean sectionSlugMatches = finalSectionSlug != null && finalSectionSlug.equalsIgnoreCase(existing.getSectionSlug());
-            boolean contentAreaMatches = finalContentArea.equalsIgnoreCase(existing.getContentArea());
-            boolean isFreeMatches = existing.isFree() == isFree;
-
-            // CASE A: Exact same target destination & already active
-            boolean isExactMatch = !isArchived
-                    && scopeMatches
-                    && categoryMatches
-                    && categorySlugMatches
-                    && sectionSlugMatches
-                    && contentAreaMatches
-                    && isFreeMatches;
+            // Authoritative canonical destination comparison
+            boolean isExactMatch = isExactDestinationMatch(
+                    existing,
+                    cleanStateSlug,
+                    cleanDistrictSlug,
+                    finalResourceScope,
+                    finalCategorySlug,
+                    finalSectionSlug,
+                    finalContentArea,
+                    isFree);
 
             if (isExactMatch) {
+                String currentLoc = formatDestination(existing);
                 log.info(
                         "ADMIN_RESOURCE_DUPLICATE: Identical active content hash {} already exists in destination for state={}, district={}, categorySlug={}. Idempotent return ID={}",
                         contentHash, cleanStateSlug, cleanDistrictSlug, finalCategorySlug, existing.getId());
-                return new ResourceUploadResult(existing, true, false, "Resource already exists in the selected destination.");
+                return new ResourceUploadResult(
+                        existing,
+                        true,
+                        false,
+                        "Resource already exists in the selected destination.",
+                        null,
+                        null,
+                        currentLoc);
             }
 
-            // CASE B: Reclassification / Metadata Healing
-            String healMessage = isArchived
+            // Case B: Reclassification / Metadata Healing
+            String prevLocation = formatDestination(existing);
+            String newLocation = formatDestination(canonicalState.getName(), cleanDistrictSlug, finalResourceScope, finalCategory);
+
+            String healMessage = existing.isArchived()
                     ? "Archived resource reactivated and cataloged successfully."
                     : "Existing resource reclassified into the selected state category.";
 
             log.info(
-                    "ADMIN_RESOURCE_HEAL: Healing/reclassifying resource ID={} from category='{}', scope='{}', archived={} to category='{}', scope='{}', state={}, district={}",
-                    existing.getId(), existing.getCategory(), existing.getResourceScope(), isArchived,
-                    finalCategory, finalResourceScope, cleanStateSlug, cleanDistrictSlug);
+                    "ADMIN_RESOURCE_HEAL: Healing/reclassifying resource ID={} from '{}' to '{}'",
+                    existing.getId(), prevLocation, newLocation);
 
             existing.setResourceScope(finalResourceScope);
             existing.setDistrictSlug(cleanDistrictSlug);
@@ -337,7 +349,7 @@ public class AdminResourceService {
             }
 
             existing = productRepo.save(existing);
-            return new ResourceUploadResult(existing, false, true, healMessage);
+            return new ResourceUploadResult(existing, false, true, healMessage, prevLocation, newLocation, null);
         }
 
         // 8. Generate Safe S3 Key
@@ -624,21 +636,162 @@ public class AdminResourceService {
         return cleanBase + "." + ext;
     }
 
+    private Optional<Product> findExistingByContentHash(String contentHash, String cleanStateSlug) {
+        if (contentHash == null || contentHash.isBlank()) {
+            return Optional.empty();
+        }
+        List<Product> matches = productRepo.findAllByContentHash(contentHash);
+        if (matches != null && !matches.isEmpty()) {
+            Optional<Product> sameStateMatch = matches.stream()
+                    .filter(p -> p != null && cleanStateSlug.equalsIgnoreCase(p.getStateSlug()))
+                    .findFirst();
+            if (sameStateMatch.isPresent()) {
+                return sameStateMatch;
+            }
+            return Optional.of(matches.get(0));
+        }
+
+        Product byChecksum = productRepo.findByChecksum(contentHash);
+        if (byChecksum != null) {
+            return Optional.of(byChecksum);
+        }
+
+        return productRepo.findByStateSlugAndDistrictSlugAndIsFreeAndContentHash(
+                cleanStateSlug, "general", true, contentHash);
+    }
+
+    public static boolean isExactDestinationMatch(
+            Product existing,
+            String targetStateSlug,
+            String targetDistrictSlug,
+            String targetResourceScope,
+            String targetCategorySlug,
+            String targetSectionSlug,
+            String targetContentArea,
+            boolean targetIsFree) {
+        if (existing == null) {
+            return false;
+        }
+
+        if (existing.isArchived() || Boolean.TRUE.equals(existing.getIsDeleted()) || !Boolean.TRUE.equals(existing.isPublished())) {
+            return false;
+        }
+
+        // 1. State Slug Normalization & Match
+        String normExistingState = Product.generateSlug(existing.getStateSlug());
+        String normTargetState = Product.generateSlug(targetStateSlug);
+        if (normExistingState == null || !normExistingState.equalsIgnoreCase(normTargetState)) {
+            return false;
+        }
+
+        // 2. Resource Scope Normalization & Match
+        String existingScope = existing.getResourceScope();
+        if (existingScope == null || existingScope.isBlank()) {
+            return false; // Legacy/missing scope must be healed
+        }
+        String normExistingScope = existingScope.trim().toUpperCase();
+        String normTargetScope = targetResourceScope != null ? targetResourceScope.trim().toUpperCase() : "";
+        if (!normExistingScope.equalsIgnoreCase(normTargetScope)) {
+            return false;
+        }
+
+        // 3. District Slug Normalization & Match
+        boolean isStateScope = Product.SCOPE_STATE.equalsIgnoreCase(normTargetScope);
+        String normTargetDistrict = isStateScope ? "general" : Product.generateSlug(targetDistrictSlug);
+        String existingDistSlug = Product.generateSlug(existing.getDistrictSlug());
+        String normExistingDistrict = isStateScope ? (existingDistSlug == null || existingDistSlug.isBlank() ? "general" : existingDistSlug) : existingDistSlug;
+        if (normExistingDistrict == null || !normExistingDistrict.equalsIgnoreCase(normTargetDistrict)) {
+            return false;
+        }
+
+        // 4. Category Slug Normalization & Match
+        String normTargetCategorySlug = isStateScope
+                ? Product.resolveCanonicalCategorySlug(targetCategorySlug)
+                : (targetIsFree ? "free" : "paid");
+        String normExistingCategorySlug = isStateScope
+                ? Product.resolveCanonicalCategorySlug(existing.getCategorySlug() != null ? existing.getCategorySlug() : existing.getCategory())
+                : (existing.isFree() ? "free" : "paid");
+        if (normTargetCategorySlug == null || !normTargetCategorySlug.equalsIgnoreCase(normExistingCategorySlug)) {
+            return false;
+        }
+
+        // 5. Section Slug Match (for state-level content)
+        if (isStateScope) {
+            String normTargetSectionSlug = Product.resolveCanonicalCategorySlug(targetSectionSlug);
+            String normExistingSectionSlug = Product.resolveCanonicalCategorySlug(existing.getSectionSlug());
+            if (normTargetSectionSlug == null || !normTargetSectionSlug.equalsIgnoreCase(normExistingSectionSlug)) {
+                return false;
+            }
+        }
+
+        // 6. Content Area Match
+        String normTargetContentArea = targetContentArea != null ? targetContentArea.trim() : "";
+        String normExistingContentArea = existing.getContentArea() != null ? existing.getContentArea().trim() : "";
+        if (!normTargetContentArea.equalsIgnoreCase(normExistingContentArea)) {
+            return false;
+        }
+
+        // 7. Free / Paid Access Tier Match
+        if (existing.isFree() != targetIsFree) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public static String formatDestination(String state, String districtSlug, String scope, String category) {
+        String stateDisplay = (state != null && !state.isBlank()) ? state : "State";
+        boolean isState = Product.SCOPE_STATE.equalsIgnoreCase(scope) || "general".equalsIgnoreCase(districtSlug);
+        if (isState) {
+            String catDisplay = (category != null && !category.isBlank()) ? category : "State Materials";
+            return stateDisplay + " → " + catDisplay;
+        } else {
+            String distDisplay = (districtSlug != null && !districtSlug.isBlank()) ? districtSlug : "District";
+            String tierDisplay = (category != null && !category.isBlank()) ? category : "Materials";
+            return stateDisplay + " → " + distDisplay + " (" + tierDisplay + ")";
+        }
+    }
+
+    public static String formatDestination(Product p) {
+        if (p == null) return "Unknown";
+        String stateDisplay = p.getState() != null && !p.getState().isBlank() ? p.getState() : p.getStateSlug();
+        boolean isState = p.isStateScope() || "general".equalsIgnoreCase(p.getDistrictSlug()) || Product.SCOPE_STATE.equalsIgnoreCase(p.getResourceScope());
+        if (isState) {
+            String cat = p.getCategory() != null && !p.getCategory().isBlank() ? p.getCategory() : p.getCategorySlug();
+            return (stateDisplay != null ? stateDisplay : "") + " → " + (cat != null ? cat : "State Materials");
+        } else {
+            String dist = p.getDistrict() != null && !p.getDistrict().isBlank() ? p.getDistrict() : p.getDistrictSlug();
+            String tier = p.getCategory() != null && !p.getCategory().isBlank() ? p.getCategory() : (p.isFree() ? "Free" : "Paid");
+            return (stateDisplay != null ? stateDisplay : "") + " → " + (dist != null ? dist : "District") + " (" + tier + ")";
+        }
+    }
+
     public static class ResourceUploadResult {
         private final Product product;
         private final boolean isDuplicate;
         private final boolean isReclassified;
         private final String message;
+        private final String previousDestination;
+        private final String newDestination;
+        private final String currentDestination;
 
         public ResourceUploadResult(Product product, boolean isDuplicate, String message) {
-            this(product, isDuplicate, false, message);
+            this(product, isDuplicate, false, message, null, null, null);
         }
 
         public ResourceUploadResult(Product product, boolean isDuplicate, boolean isReclassified, String message) {
+            this(product, isDuplicate, isReclassified, message, null, null, null);
+        }
+
+        public ResourceUploadResult(Product product, boolean isDuplicate, boolean isReclassified, String message,
+                                    String previousDestination, String newDestination, String currentDestination) {
             this.product = product;
             this.isDuplicate = isDuplicate;
             this.isReclassified = isReclassified;
             this.message = message;
+            this.previousDestination = previousDestination;
+            this.newDestination = newDestination;
+            this.currentDestination = currentDestination;
         }
 
         public Product getProduct() {
@@ -655,6 +808,18 @@ public class AdminResourceService {
 
         public String getMessage() {
             return message;
+        }
+
+        public String getPreviousDestination() {
+            return previousDestination;
+        }
+
+        public String getNewDestination() {
+            return newDestination;
+        }
+
+        public String getCurrentDestination() {
+            return currentDestination;
         }
     }
 }

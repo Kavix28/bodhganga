@@ -1117,6 +1117,9 @@ const AdminResourceUploadModal = ({
             activeUploadsRef.current.delete(item.id);
             const isDuplicate = !!(res?.isDuplicate ?? res?.data?.isDuplicate);
             const isReclassified = !!(res?.isReclassified ?? res?.data?.isReclassified);
+            const previousDestination = res?.previousDestination ?? res?.data?.previousDestination;
+            const newDestination = res?.newDestination ?? res?.data?.newDestination;
+            const currentDestination = res?.currentDestination ?? res?.data?.currentDestination;
 
             let itemStatus = 'uploaded';
             let itemMessage = null;
@@ -1138,6 +1141,9 @@ const AdminResourceUploadModal = ({
                 progress: 100,
                 isDuplicate,
                 isReclassified,
+                previousDestination,
+                newDestination,
+                currentDestination,
                 statusMessage: itemMessage,
                 errorMessage: null
             } : f));
@@ -1688,9 +1694,40 @@ const AdminResourceUploadModal = ({
                                                 </div>
                                             )}
 
+                                            {/* Reclassified Destination Details */}
+                                            {item.status === 'reclassified' && (
+                                                <div className="bg-sky-950/40 border border-sky-500/20 rounded-lg p-2 text-[11px] space-y-1">
+                                                    {item.previousDestination && (
+                                                        <div className="flex items-center gap-1.5 text-gray-400">
+                                                            <span className="text-gray-500 font-semibold uppercase text-[10px]">Previous Destination:</span>
+                                                            <span className="font-mono text-gray-300">{item.previousDestination}</span>
+                                                        </div>
+                                                    )}
+                                                    <div className="flex items-center gap-1.5 text-sky-300">
+                                                        <span className="text-gray-500 font-semibold uppercase text-[10px]">New Destination:</span>
+                                                        <span className="font-semibold text-sky-200">
+                                                            {item.newDestination || `${decodeMojibake(modalState?.name || modalState?.stateSlug)} → ${stateCategory}`}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Already Cataloged Destination Details */}
+                                            {(item.status === 'duplicate' || (item.status === 'success' && item.isDuplicate && !item.isReclassified)) && (
+                                                <div className="bg-amber-950/40 border border-amber-500/20 rounded-lg p-2 text-[11px] space-y-1">
+                                                    <div className="flex items-center gap-1.5 text-amber-300">
+                                                        <span className="text-gray-500 font-semibold uppercase text-[10px]">Already cataloged at:</span>
+                                                        <span className="font-semibold text-amber-200">
+                                                            {item.currentDestination || `${decodeMojibake(modalState?.name || modalState?.stateSlug)} → ${stateCategory}`}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             {/* Error Notification */}
                                             {item.errorMessage && item.status !== 'success' && (
-                                                <div className="text-[11px] text-red-400 bg-red-500/10 p-1.5 rounded border border-red-500/20">
+                                                <div className="text-[11px] text-red-400 bg-red-500/10 p-2 rounded-lg border border-red-500/20">
+                                                    <span className="text-red-500 font-semibold uppercase text-[10px] block">Error:</span>
                                                     {item.errorMessage}
                                                 </div>
                                             )}

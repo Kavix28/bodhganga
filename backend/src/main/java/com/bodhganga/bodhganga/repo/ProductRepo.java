@@ -64,6 +64,10 @@ public interface ProductRepo extends MongoRepository<Product, String> {
         long countByStateSlugAndIsPublishedTrue(String stateSlug);
 
         // New query methods for Admin State Resources system
+        Optional<Product> findByContentHash(String contentHash);
+
+        List<Product> findAllByContentHash(String contentHash);
+
         Optional<Product> findByStateSlugAndDistrictSlugAndIsFreeAndContentHash(String stateSlug, String districtSlug,
                         boolean isFree, String contentHash);
 
