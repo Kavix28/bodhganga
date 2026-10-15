@@ -188,56 +188,114 @@ public class AdminResourceService {
         // 6. Free / Paid Semantics
         double price = isFree ? 0.0 : 99.0;
 
-        // 7. Duplicate / Idempotency Check
+        // 7. Duplicate / Idempotency Check & Metadata Healing
         Optional<Product> existingOpt = productRepo.findByStateSlugAndDistrictSlugAndIsFreeAndContentHash(
                 cleanStateSlug, cleanDistrictSlug, isFree, contentHash);
+        if (existingOpt.isEmpty() && isStateScope) {
+            existingOpt = productRepo.findByStateSlugAndDistrictSlugAndIsFreeAndContentHash(
+                    cleanStateSlug, cleanDistrictSlug, false, contentHash);
+        }
+
         if (existingOpt.isPresent()) {
             Product existing = existingOpt.get();
-            if (existing.isArchived()) {
-                log.info("ADMIN_RESOURCE_REACTIVATE: Reactivating archived {} resource ID={}, state={}, district={}",
-                        isFree ? "FREE" : "PAID", existing.getId(), cleanStateSlug, cleanDistrictSlug);
-                existing.setArchived(false);
-                existing.setPublished(publish);
-                existing.setUpdatedAt(new Date());
 
-                if (effectiveTitle != null && !effectiveTitle.isBlank()) {
-                    existing.setTitle(effectiveTitle);
-                    existing.setDisplayTitle(Product.stripExtension(effectiveTitle));
+            // Scope safety check: reject unsafe cross-scope mutations
+            if (isStateScope) {
+                String existingDSlug = existing.getDistrictSlug();
+                if (existingDSlug != null && !existingDSlug.isBlank()
+                        && !"general".equalsIgnoreCase(existingDSlug)
+                        && !"state".equalsIgnoreCase(existingDSlug)) {
+                    log.warn("ADMIN_RESOURCE_SCOPE_CONFLICT: Refusing to reclassify district resource ID={} (district={}) into state-level scope",
+                            existing.getId(), existingDSlug);
+                    return new ResourceUploadResult(existing, true, false,
+                            "Resource already exists under district " + existingDSlug + " and cannot be mutated to state scope.");
                 }
-                existing.setCategory(finalCategory);
-                existing.setCategorySlug(finalCategorySlug);
-                existing.setSectionSlug(finalSectionSlug);
-                existing.setContentArea(isStateScope ? "STATE_CONTENT" : (isFree ? "FREE_DISTRICT_CONTENT" : "PAID_DISTRICT_RESOURCES"));
-                existing.setResourceScope(isStateScope ? Product.SCOPE_STATE : Product.SCOPE_DISTRICT);
-                existing.setState(canonicalState.getName());
-                existing.setStateSlug(cleanStateSlug);
-                existing.setDistrict(canonicalDistrictName);
-                existing.setDistrictSlug(cleanDistrictSlug);
-                existing.setFree(isFree);
-                existing.setPrice(price);
-
-                if (descriptionInput != null && !descriptionInput.isBlank()) {
-                    existing.setDescription(descriptionInput.trim());
+            } else {
+                String existingDSlug = existing.getDistrictSlug();
+                if ("general".equalsIgnoreCase(existingDSlug)
+                        || "state".equalsIgnoreCase(existingDSlug)
+                        || Product.SCOPE_STATE.equalsIgnoreCase(existing.getResourceScope())) {
+                    log.warn("ADMIN_RESOURCE_SCOPE_CONFLICT: Refusing to reclassify state resource ID={} into district {} scope",
+                            existing.getId(), cleanDistrictSlug);
+                    return new ResourceUploadResult(existing, true, false,
+                            "Resource already exists under state scope and cannot be mutated to district scope.");
                 }
-
-                String targetS3Key = existing.getS3Key();
-                if (targetS3Key != null && !targetS3Key.isBlank()) {
-                    if (!s3Service.objectExists(targetS3Key)) {
-                        try (InputStream inputStream = new ByteArrayInputStream(fileBytes)) {
-                            s3Service.uploadFileWithKey(inputStream, fileBytes.length, targetS3Key, mimeType);
-                        }
-                    }
-                }
-
-                existing = productRepo.save(existing);
-                return new ResourceUploadResult(existing, false,
-                        "Archived resource reactivated and cataloged successfully.");
             }
 
+            String finalContentArea = isStateScope ? "STATE_CONTENT" : (isFree ? "FREE_DISTRICT_CONTENT" : "PAID_DISTRICT_RESOURCES");
+            String finalResourceScope = isStateScope ? Product.SCOPE_STATE : Product.SCOPE_DISTRICT;
+
+            boolean isArchived = existing.isArchived();
+            boolean scopeMatches = finalResourceScope.equalsIgnoreCase(existing.getResourceScope())
+                    || (isStateScope && "STATE_CONTENT".equalsIgnoreCase(existing.getContentArea()));
+            boolean categoryMatches = finalCategory != null && finalCategory.equalsIgnoreCase(existing.getCategory());
+            boolean categorySlugMatches = finalCategorySlug != null && finalCategorySlug.equalsIgnoreCase(existing.getCategorySlug());
+            boolean sectionSlugMatches = finalSectionSlug != null && finalSectionSlug.equalsIgnoreCase(existing.getSectionSlug());
+            boolean contentAreaMatches = finalContentArea.equalsIgnoreCase(existing.getContentArea());
+            boolean isFreeMatches = existing.isFree() == isFree;
+
+            // CASE A: Exact same target destination & already active
+            boolean isExactMatch = !isArchived
+                    && scopeMatches
+                    && categoryMatches
+                    && categorySlugMatches
+                    && sectionSlugMatches
+                    && contentAreaMatches
+                    && isFreeMatches;
+
+            if (isExactMatch) {
+                log.info(
+                        "ADMIN_RESOURCE_DUPLICATE: Identical active content hash {} already exists in destination for state={}, district={}, categorySlug={}. Idempotent return ID={}",
+                        contentHash, cleanStateSlug, cleanDistrictSlug, finalCategorySlug, existing.getId());
+                return new ResourceUploadResult(existing, true, false, "Resource already exists in the selected destination.");
+            }
+
+            // CASE B: Reclassification / Metadata Healing
+            String healMessage = isArchived
+                    ? "Archived resource reactivated and cataloged successfully."
+                    : "Existing resource reclassified into the selected state category.";
+
             log.info(
-                    "ADMIN_RESOURCE_DUPLICATE: Identical active content hash {} already exists for state={}, district={}, isFree={}. Idempotent return ID={}",
-                    contentHash, cleanStateSlug, cleanDistrictSlug, isFree, existing.getId());
-            return new ResourceUploadResult(existing, true, "Resource with exact identical content already exists.");
+                    "ADMIN_RESOURCE_HEAL: Healing/reclassifying resource ID={} from category='{}', scope='{}', archived={} to category='{}', scope='{}', state={}, district={}",
+                    existing.getId(), existing.getCategory(), existing.getResourceScope(), isArchived,
+                    finalCategory, finalResourceScope, cleanStateSlug, cleanDistrictSlug);
+
+            existing.setResourceScope(finalResourceScope);
+            existing.setDistrictSlug(cleanDistrictSlug);
+            existing.setDistrict(canonicalDistrictName);
+            existing.setState(canonicalState.getName());
+            existing.setStateSlug(cleanStateSlug);
+            existing.setContentArea(finalContentArea);
+            existing.setCategory(finalCategory);
+            existing.setCategorySlug(finalCategorySlug);
+            existing.setSectionSlug(finalSectionSlug);
+            existing.setFree(isFree);
+            existing.setPrice(price);
+            existing.setPublished(publish);
+            existing.setArchived(false);
+            existing.setIsDeleted(false);
+            existing.setUpdatedAt(new Date());
+
+            if (effectiveTitle != null && !effectiveTitle.isBlank()) {
+                existing.setTitle(effectiveTitle);
+                existing.setDisplayTitle(Product.stripExtension(effectiveTitle));
+            }
+
+            if (descriptionInput != null && !descriptionInput.isBlank()) {
+                existing.setDescription(descriptionInput.trim());
+            }
+
+            String targetS3Key = existing.getS3Key();
+            if (targetS3Key != null && !targetS3Key.isBlank()) {
+                if (!s3Service.objectExists(targetS3Key)) {
+                    try (InputStream inputStream = new ByteArrayInputStream(fileBytes)) {
+                        s3Service.uploadFileWithKey(inputStream, fileBytes.length, targetS3Key, mimeType);
+                    }
+                }
+            }
+
+            existing = productRepo.save(existing);
+            return new ResourceUploadResult(existing, false, true, healMessage);
         }
 
         // 8. Generate Safe S3 Key
@@ -527,11 +585,17 @@ public class AdminResourceService {
     public static class ResourceUploadResult {
         private final Product product;
         private final boolean isDuplicate;
+        private final boolean isReclassified;
         private final String message;
 
         public ResourceUploadResult(Product product, boolean isDuplicate, String message) {
+            this(product, isDuplicate, false, message);
+        }
+
+        public ResourceUploadResult(Product product, boolean isDuplicate, boolean isReclassified, String message) {
             this.product = product;
             this.isDuplicate = isDuplicate;
+            this.isReclassified = isReclassified;
             this.message = message;
         }
 
@@ -541,6 +605,10 @@ public class AdminResourceService {
 
         public boolean isDuplicate() {
             return isDuplicate;
+        }
+
+        public boolean isReclassified() {
+            return isReclassified;
         }
 
         public String getMessage() {

@@ -1115,13 +1115,31 @@ const AdminResourceUploadModal = ({
             });
 
             activeUploadsRef.current.delete(item.id);
-            const isDuplicate = res?.isDuplicate;
+            const isDuplicate = !!(res?.isDuplicate ?? res?.data?.isDuplicate);
+            const isReclassified = !!(res?.isReclassified ?? res?.data?.isReclassified);
+
+            let itemStatus = 'uploaded';
+            let itemMessage = null;
+
+            if (isReclassified) {
+                itemStatus = 'reclassified';
+                itemMessage = res?.message || 'Existing resource reclassified into selected state category';
+            } else if (isDuplicate) {
+                itemStatus = 'duplicate';
+                itemMessage = res?.message || 'Resource already exists in selected destination';
+            } else {
+                itemStatus = 'uploaded';
+                itemMessage = 'Uploaded successfully';
+            }
+
             setQueue(prev => prev.map(f => f.id === item.id ? {
                 ...f,
-                status: 'success',
+                status: itemStatus,
                 progress: 100,
-                isDuplicate: !!isDuplicate,
-                errorMessage: isDuplicate ? 'Identical content cataloged' : null
+                isDuplicate,
+                isReclassified,
+                statusMessage: itemMessage,
+                errorMessage: null
             } : f));
         } catch (err) {
             activeUploadsRef.current.delete(item.id);
@@ -1143,15 +1161,33 @@ const AdminResourceUploadModal = ({
 
         if (pendingFiles.length === 0 && uploadingCount === 0) {
             setIsUploading(false);
-            const successCount = currentQueue.filter(item => item.status === 'success').length;
+            const newUploadsCount = currentQueue.filter(item => item.status === 'uploaded').length;
+            const reclassifiedCount = currentQueue.filter(item => item.status === 'reclassified').length;
+            const duplicateCount = currentQueue.filter(item => item.status === 'duplicate').length;
             const failedCount = currentQueue.filter(item => item.status === 'failed').length;
-            if (successCount > 0) {
-                setUploadSummary({ successCount, failedCount });
-                toast.success(`${successCount} resource file(s) processed successfully!`);
+
+            const totalFinished = newUploadsCount + reclassifiedCount + duplicateCount;
+            if (totalFinished > 0 || failedCount > 0) {
+                setUploadSummary({
+                    newUploadsCount,
+                    reclassifiedCount,
+                    duplicateCount,
+                    failedCount,
+                    totalFinished
+                });
+
+                if (reclassifiedCount > 0 && newUploadsCount === 0 && duplicateCount === 0 && failedCount === 0) {
+                    toast.success(`${reclassifiedCount} existing resource(s) reclassified successfully!`);
+                } else if (newUploadsCount > 0 && reclassifiedCount === 0 && duplicateCount === 0 && failedCount === 0) {
+                    toast.success(`${newUploadsCount} new resource file(s) uploaded successfully!`);
+                } else if (duplicateCount > 0 && newUploadsCount === 0 && reclassifiedCount === 0 && failedCount === 0) {
+                    toast(`${duplicateCount} resource(s) already cataloged.`, { icon: 'ℹ️' });
+                } else if (failedCount > 0) {
+                    toast.error(`Batch finished with ${failedCount} failure(s).`);
+                } else {
+                    toast.success(`Batch complete: ${newUploadsCount} uploaded, ${reclassifiedCount} reclassified, ${duplicateCount} cataloged.`);
+                }
                 onSuccess();
-            } else if (failedCount > 0) {
-                setUploadSummary({ successCount, failedCount });
-                toast.error(`Failed to upload ${failedCount} file(s). See error details below.`);
             }
             return;
         }
@@ -1208,13 +1244,16 @@ const AdminResourceUploadModal = ({
     };
 
     const handleClearCompleted = () => {
-        setQueue(prev => prev.filter(f => f.status !== 'success'));
+        setQueue(prev => prev.filter(f => !['uploaded', 'reclassified', 'duplicate', 'success'].includes(f.status)));
     };
 
     const pendingCount = queue.filter(f => f.status === 'pending').length;
     const uploadingCount = queue.filter(f => f.status === 'uploading').length;
-    const successCount = queue.filter(f => f.status === 'success').length;
+    const newUploadsCount = queue.filter(f => f.status === 'uploaded').length;
+    const reclassifiedCount = queue.filter(f => f.status === 'reclassified').length;
+    const duplicateCount = queue.filter(f => f.status === 'duplicate').length;
     const failedCount = queue.filter(f => f.status === 'failed').length;
+    const completedCount = queue.filter(f => ['uploaded', 'reclassified', 'duplicate', 'success'].includes(f.status)).length;
 
     const canonicalStateCategorySlug = normalizeStateCategorySlug(stateCategory);
 
@@ -1479,20 +1518,43 @@ const AdminResourceUploadModal = ({
 
                     {/* Upload Summary Alert */}
                     {uploadSummary && (
-                        <div className="p-3 bg-emerald-500/15 border border-emerald-500/30 rounded-xl text-xs text-emerald-300 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                                <span>
-                                    Batch complete: <strong className="font-bold text-white">{uploadSummary.successCount}</strong> uploaded successfully.
-                                    {uploadSummary.failedCount > 0 && <span className="text-red-300 ml-1">({uploadSummary.failedCount} failed)</span>}
-                                </span>
+                        <div className={`p-4 rounded-xl border text-xs space-y-2.5 ${
+                            uploadSummary.failedCount > 0
+                                ? 'bg-amber-500/10 border-amber-500/30 text-amber-200'
+                                : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+                        }`}>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                                    <span className="font-bold text-white text-sm">Batch Complete</span>
+                                </div>
+                                <button
+                                    onClick={handleClearCompleted}
+                                    className="text-[11px] font-bold text-amber-400 hover:underline"
+                                >
+                                    Clear Completed
+                                </button>
                             </div>
-                            <button
-                                onClick={handleClearCompleted}
-                                className="text-[11px] font-bold text-amber-400 hover:underline"
-                            >
-                                Clear Completed
-                            </button>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 font-mono text-[11px]">
+                                <div className="bg-gray-900/60 p-2 rounded-lg border border-gray-700/60">
+                                    <span className="text-gray-400 block text-[10px] uppercase font-sans">Newly Uploaded</span>
+                                    <strong className="text-emerald-400 text-sm">{uploadSummary.newUploadsCount}</strong>
+                                </div>
+                                <div className="bg-gray-900/60 p-2 rounded-lg border border-gray-700/60">
+                                    <span className="text-gray-400 block text-[10px] uppercase font-sans">Reclassified</span>
+                                    <strong className="text-sky-400 text-sm">{uploadSummary.reclassifiedCount}</strong>
+                                </div>
+                                <div className="bg-gray-900/60 p-2 rounded-lg border border-gray-700/60">
+                                    <span className="text-gray-400 block text-[10px] uppercase font-sans">Already Cataloged</span>
+                                    <strong className="text-amber-400 text-sm">{uploadSummary.duplicateCount}</strong>
+                                </div>
+                                <div className="bg-gray-900/60 p-2 rounded-lg border border-gray-700/60">
+                                    <span className="text-gray-400 block text-[10px] uppercase font-sans">Failed</span>
+                                    <strong className={`text-sm ${uploadSummary.failedCount > 0 ? 'text-rose-400' : 'text-gray-400'}`}>
+                                        {uploadSummary.failedCount}
+                                    </strong>
+                                </div>
+                            </div>
                         </div>
                     )}
 
@@ -1504,12 +1566,12 @@ const AdminResourceUploadModal = ({
                                     Queue ({queue.length} file{queue.length !== 1 ? 's' : ''})
                                     {uploadingCount > 0 && <span className="text-amber-400 ml-2 animate-pulse">&bull; Uploading {uploadingCount} (max {CONCURRENCY_LIMIT} concurrent)...</span>}
                                 </span>
-                                {successCount > 0 && (
+                                {completedCount > 0 && (
                                     <button
                                         onClick={handleClearCompleted}
                                         className="text-[11px] text-gray-400 hover:text-amber-400"
                                     >
-                                        Clear Uploaded ({successCount})
+                                        Clear Completed ({completedCount})
                                     </button>
                                 )}
                             </div>
@@ -1551,10 +1613,22 @@ const AdminResourceUploadModal = ({
                                                             Uploading {item.progress}%
                                                         </span>
                                                     )}
-                                                    {item.status === 'success' && (
+                                                    {(item.status === 'uploaded' || (item.status === 'success' && !item.isDuplicate && !item.isReclassified)) && (
                                                         <span className="px-2 py-0.5 text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 rounded border border-emerald-500/30 flex items-center gap-1">
                                                             <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                                                            {item.isDuplicate ? 'Cataloged (Duplicate)' : 'Uploaded'}
+                                                            Newly Uploaded
+                                                        </span>
+                                                    )}
+                                                    {item.status === 'reclassified' && (
+                                                        <span className="px-2 py-0.5 text-[10px] font-semibold bg-sky-500/20 text-sky-300 rounded border border-sky-500/30 flex items-center gap-1" title="Legacy metadata healed and reclassified">
+                                                            <RefreshCw className="w-3 h-3 text-sky-400" />
+                                                            Reclassified
+                                                        </span>
+                                                    )}
+                                                    {(item.status === 'duplicate' || (item.status === 'success' && item.isDuplicate && !item.isReclassified)) && (
+                                                        <span className="px-2 py-0.5 text-[10px] font-semibold bg-amber-500/20 text-amber-300 rounded border border-amber-500/30 flex items-center gap-1" title="Identical file already cataloged in destination">
+                                                            <CheckCircle2 className="w-3 h-3 text-amber-400" />
+                                                            Already Cataloged
                                                         </span>
                                                     )}
                                                     {item.status === 'failed' && (
@@ -1584,7 +1658,7 @@ const AdminResourceUploadModal = ({
                                                     <button
                                                         onClick={() => handleRemoveFromQueue(item.id)}
                                                         className="p-1 text-gray-400 hover:text-red-400 hover:bg-gray-800 rounded transition-all"
-                                                        title={item.status === 'success' ? 'Clear from queue' : 'Remove file'}
+                                                        title={['uploaded', 'reclassified', 'duplicate', 'success'].includes(item.status) ? 'Clear from queue' : 'Remove file'}
                                                     >
                                                         <Trash2 className="w-3.5 h-3.5" />
                                                     </button>
@@ -1620,7 +1694,9 @@ const AdminResourceUploadModal = ({
                     <div className="text-xs text-gray-400 font-mono">
                         {pendingCount > 0 && <span>{pendingCount} pending</span>}
                         {uploadingCount > 0 && <span className="ml-2 text-amber-400">{uploadingCount} uploading</span>}
-                        {successCount > 0 && <span className="ml-2 text-emerald-400">{successCount} done</span>}
+                        {newUploadsCount > 0 && <span className="ml-2 text-emerald-400">{newUploadsCount} uploaded</span>}
+                        {reclassifiedCount > 0 && <span className="ml-2 text-sky-400">{reclassifiedCount} reclassified</span>}
+                        {duplicateCount > 0 && <span className="ml-2 text-amber-400">{duplicateCount} cataloged</span>}
                         {failedCount > 0 && <span className="ml-2 text-red-400">{failedCount} failed</span>}
                     </div>
 

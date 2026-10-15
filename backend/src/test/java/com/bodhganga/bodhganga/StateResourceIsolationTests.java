@@ -641,4 +641,211 @@ public class StateResourceIsolationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[*].title", not(hasItem("Legacy Nagaland Combined Study Notes"))));
     }
+
+    /**
+     * Test 23: Healing legacy STATE resource ("History, Heritage & Sites" / resourceScope=null) to "History"
+     */
+    @Test
+    @WithMockUser(authorities = "ROLE_ADMIN")
+    void testLegacyStateResourceHealedOnUpload() throws Exception {
+        byte[] legacyFileBytes = "%PDF-1.4\n1 0 obj\n<< /Legacy Kohima Battle >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF".getBytes();
+        String contentHash = com.bodhganga.bodhganga.services.AdminResourceService.calculateSha256(legacyFileBytes);
+
+        // Seed legacy product
+        Product legacyProduct = createProduct(
+                "Battle of Kohima (1944)",
+                "nagaland", "Nagaland",
+                "general", "general",
+                "History, Heritage & Sites", "history-heritage-sites", "history-heritage-sites",
+                "STATE_CONTENT", null,
+                true, true, false, false);
+        legacyProduct.setContentHash(contentHash);
+        productRepo.save(legacyProduct);
+
+        String legacyId = legacyProduct.getId();
+        long countBefore = productRepo.count();
+
+        MockMultipartFile file = new MockMultipartFile("file", "Battle of Kohima (1944).pdf", "application/pdf", legacyFileBytes);
+
+        // Upload to Nagaland -> STATE -> History
+        mockMvc.perform(multipart("/api/admin/resources/upload")
+                .file(file)
+                .param("stateSlug", "nagaland")
+                .param("districtSlug", "general")
+                .param("resourceScope", "STATE")
+                .param("category", "History")
+                .param("title", "Battle of Kohima (1944)")
+                .param("description", "Complete state history"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.isDuplicate").value(false))
+                .andExpect(jsonPath("$.isReclassified").value(true))
+                .andExpect(jsonPath("$.data.id").value(legacyId))
+                .andExpect(jsonPath("$.data.category").value("History"))
+                .andExpect(jsonPath("$.data.categorySlug").value("history"))
+                .andExpect(jsonPath("$.data.sectionSlug").value("history"))
+                .andExpect(jsonPath("$.data.resourceScope").value("STATE"))
+                .andExpect(jsonPath("$.data.districtSlug").value("general"))
+                .andExpect(jsonPath("$.data.contentArea").value("STATE_CONTENT"))
+                .andExpect(jsonPath("$.data.isFree").value(true))
+                .andExpect(jsonPath("$.data.price").value(0.0));
+
+        // Exactly one record remains with this hash in DB
+        long countAfter = productRepo.count();
+        assertEquals(countBefore, countAfter, "No new product should be created during reclassification/healing");
+
+        Product healed = productRepo.findById(legacyId).orElseThrow();
+        assertEquals("History", healed.getCategory());
+        assertEquals("history", healed.getCategorySlug());
+        assertEquals("history", healed.getSectionSlug());
+        assertEquals("STATE", healed.getResourceScope());
+        assertEquals("general", healed.getDistrictSlug());
+        assertEquals("STATE_CONTENT", healed.getContentArea());
+        assertTrue(healed.isFree());
+        assertEquals(0.0, healed.getPrice());
+        assertTrue(healed.isPublished());
+        assertFalse(healed.isArchived());
+    }
+
+    /**
+     * Test 24: Reclassified record appears in /api/products/state/nagaland/category/history
+     * and NOT in /api/products/state/nagaland/category/geography or /api/products/state/assam/category/history
+     */
+    @Test
+    @WithMockUser(authorities = "ROLE_ADMIN")
+    void testReclassifiedRecordEndpointVisibility() throws Exception {
+        byte[] docBytes = "%PDF-1.4\n1 0 obj\n<< /Dimasa Kachari Kingdom >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF".getBytes();
+        String contentHash = com.bodhganga.bodhganga.services.AdminResourceService.calculateSha256(docBytes);
+
+        Product legacyProduct = createProduct(
+                "Dimasa Kachari Kingdom",
+                "nagaland", "Nagaland",
+                "general", "general",
+                "History, Heritage & Sites", "history-heritage-sites", "history-heritage-sites",
+                "STATE_CONTENT", null,
+                true, true, false, false);
+        legacyProduct.setContentHash(contentHash);
+        productRepo.save(legacyProduct);
+
+        // Before healing: NOT on /history
+        mockMvc.perform(get("/api/products/state/nagaland/category/history"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[*].title", not(hasItem("Dimasa Kachari Kingdom"))));
+
+        // Reclassify via upload
+        MockMultipartFile file = new MockMultipartFile("file", "Dimasa Kachari Kingdom.pdf", "application/pdf", docBytes);
+        mockMvc.perform(multipart("/api/admin/resources/upload")
+                .file(file)
+                .param("stateSlug", "nagaland")
+                .param("districtSlug", "general")
+                .param("resourceScope", "STATE")
+                .param("category", "History")
+                .param("title", "Dimasa Kachari Kingdom"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isReclassified").value(true));
+
+        // After healing: VISIBLE on /state/nagaland/category/history
+        mockMvc.perform(get("/api/products/state/nagaland/category/history"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[*].title", hasItem("Dimasa Kachari Kingdom")));
+
+        // NOT visible on /state/nagaland/category/geography
+        mockMvc.perform(get("/api/products/state/nagaland/category/geography"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[*].title", not(hasItem("Dimasa Kachari Kingdom"))));
+
+        // NOT visible on /state/assam/category/history
+        mockMvc.perform(get("/api/products/state/assam/category/history"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[*].title", not(hasItem("Dimasa Kachari Kingdom"))));
+    }
+
+    /**
+     * Test 25: Repeated upload after healing returns isDuplicate=true and isReclassified=false
+     */
+    @Test
+    @WithMockUser(authorities = "ROLE_ADMIN")
+    void testRepeatedUploadAfterHealingReturnsDuplicate() throws Exception {
+        byte[] docBytes = "%PDF-1.4\n1 0 obj\n<< /Naga Hills District >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF".getBytes();
+        String contentHash = com.bodhganga.bodhganga.services.AdminResourceService.calculateSha256(docBytes);
+
+        Product legacyProduct = createProduct(
+                "Naga Hills District (1866)",
+                "nagaland", "Nagaland",
+                "general", "general",
+                "History, Heritage & Sites", "history-heritage-sites", "history-heritage-sites",
+                "STATE_CONTENT", null,
+                true, true, false, false);
+        legacyProduct.setContentHash(contentHash);
+        productRepo.save(legacyProduct);
+
+        MockMultipartFile file = new MockMultipartFile("file", "Naga Hills District (1866).pdf", "application/pdf", docBytes);
+
+        // Upload 1: Heals legacy record
+        mockMvc.perform(multipart("/api/admin/resources/upload")
+                .file(file)
+                .param("stateSlug", "nagaland")
+                .param("districtSlug", "general")
+                .param("resourceScope", "STATE")
+                .param("category", "History")
+                .param("title", "Naga Hills District (1866)"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isDuplicate").value(false))
+                .andExpect(jsonPath("$.isReclassified").value(true));
+
+        long countAfterFirst = productRepo.count();
+
+        // Upload 2: Exact same target -> DUPLICATE
+        mockMvc.perform(multipart("/api/admin/resources/upload")
+                .file(file)
+                .param("stateSlug", "nagaland")
+                .param("districtSlug", "general")
+                .param("resourceScope", "STATE")
+                .param("category", "History")
+                .param("title", "Naga Hills District (1866)"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isDuplicate").value(true))
+                .andExpect(jsonPath("$.isReclassified").value(false))
+                .andExpect(jsonPath("$.message").value("Resource already exists in the selected destination."));
+
+        long countAfterSecond = productRepo.count();
+        assertEquals(countAfterFirst, countAfterSecond, "Second upload must NOT create another product");
+    }
+
+    /**
+     * Test 26: District resource cannot be mutated into state scope
+     */
+    @Test
+    @WithMockUser(authorities = "ROLE_ADMIN")
+    void testDistrictResourceCannotMutateToStateScope() throws Exception {
+        byte[] docBytes = "%PDF-1.4\n1 0 obj\n<< /District Free Guide >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF".getBytes();
+        String contentHash = com.bodhganga.bodhganga.services.AdminResourceService.calculateSha256(docBytes);
+
+        Product districtDoc = createProduct(
+                "Kohima Local Guide",
+                "nagaland", "Nagaland",
+                "kohima", "Kohima",
+                "Free", "free", "free",
+                "FREE_DISTRICT_CONTENT", Product.SCOPE_DISTRICT,
+                true, true, false, false);
+        districtDoc.setContentHash(contentHash);
+        productRepo.save(districtDoc);
+
+        MockMultipartFile file = new MockMultipartFile("file", "Kohima Local Guide.pdf", "application/pdf", docBytes);
+
+        // Uploading to state scope creates a state resource, never mutates the district resource
+        mockMvc.perform(multipart("/api/admin/resources/upload")
+                .file(file)
+                .param("stateSlug", "nagaland")
+                .param("districtSlug", "general")
+                .param("resourceScope", "STATE")
+                .param("category", "History")
+                .param("title", "Kohima Historical Context"))
+                .andExpect(status().isOk());
+
+        Product districtProductAfter = productRepo.findById(districtDoc.getId()).orElseThrow();
+        assertEquals("kohima", districtProductAfter.getDistrictSlug());
+        assertEquals(Product.SCOPE_DISTRICT, districtProductAfter.getResourceScope());
+        assertEquals("Free", districtProductAfter.getCategory());
+    }
 }

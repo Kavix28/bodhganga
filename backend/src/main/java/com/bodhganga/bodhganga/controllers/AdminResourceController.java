@@ -98,8 +98,14 @@ public class AdminResourceController {
             data.put("mimeType", p.getMimeType());
             data.put("fileExtension", p.getFileExtension());
 
+            data.put("isDuplicate", result.isDuplicate());
+            data.put("isReclassified", result.isReclassified());
+            data.put("created", !result.isDuplicate() && !result.isReclassified());
+
             response.put("success", true);
             response.put("isDuplicate", result.isDuplicate());
+            response.put("isReclassified", result.isReclassified());
+            response.put("created", !result.isDuplicate() && !result.isReclassified());
             response.put("message", result.getMessage());
             response.put("data", data);
             response.put("resource", data);

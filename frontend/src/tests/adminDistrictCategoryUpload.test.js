@@ -84,4 +84,18 @@ assert.ok(adminContent.includes("formData.append('resourceScope', isStateScope ?
 assert.ok(adminContent.includes("formData.append('contentArea', isStateScope ? 'STATE_CONTENT' :"), 'State upload payload must set contentArea to STATE_CONTENT');
 console.log('✅ TEST 9 PASSED: Admin upload payload correctly enforces districtSlug=general and resourceScope=STATE for state scope.');
 
+// 10. Duplicate reclassification & metadata healing response handling
+assert.ok(adminContent.includes("const isReclassified = !!(res?.isReclassified ?? res?.data?.isReclassified);"), 'Upload handler must parse isReclassified flag');
+assert.ok(adminContent.includes("itemStatus = 'reclassified';"), 'Upload handler must transition item to reclassified status');
+assert.ok(adminContent.includes("itemStatus = 'duplicate';"), 'Upload handler must transition item to duplicate status');
+console.log('✅ TEST 10 PASSED: Admin upload handler accurately handles duplicate reclassification and duplicate status.');
+
+// 11. Queue summary accounts separately for newly uploaded, reclassified, already cataloged, and failed
+assert.ok(adminContent.includes("reclassifiedCount"), 'Queue runner must calculate reclassifiedCount');
+assert.ok(adminContent.includes("newUploadsCount"), 'Queue runner must calculate newUploadsCount');
+assert.ok(adminContent.includes("duplicateCount"), 'Queue runner must calculate duplicateCount');
+assert.ok(adminContent.includes("failedCount"), 'Queue runner must calculate failedCount');
+assert.ok(adminContent.includes("Newly Uploaded") && adminContent.includes("Reclassified") && adminContent.includes("Already Cataloged"), 'Summary alert must render distinct metrics for uploaded, reclassified, and cataloged');
+console.log('✅ TEST 11 PASSED: Queue summary correctly isolates newly uploaded, reclassified, already cataloged, and failed items.');
+
 console.log('\n🎉 ALL ARCHITECTURAL REGRESSION TESTS PASSED SUCCESSFULLY!');
