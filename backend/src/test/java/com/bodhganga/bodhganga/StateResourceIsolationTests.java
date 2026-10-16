@@ -20,6 +20,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.hamcrest.Matchers.containsString;
@@ -823,82 +824,69 @@ public class StateResourceIsolationTests {
     }
 
     /**
-     * Test 26 (Prompt TEST 3 & 4): Same hash + DISTRICT -> STATE reclassification
+     * MANDATORY TEST 1: Same file + same STATE destination -> duplicate
      */
     @Test
     @WithMockUser(authorities = "ROLE_ADMIN")
-    void testDistrictToStateReclassification() throws Exception {
-        byte[] docBytes = "%PDF-1.4\n1 0 obj\n<< /District Free Guide >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF".getBytes();
-        String contentHash = com.bodhganga.bodhganga.services.AdminResourceService.calculateSha256(docBytes);
+    void test1_SameFileSameStateDestinationIsDuplicate() throws Exception {
+        byte[] docBytes = "%PDF-1.4\nMandatory Test 1 Content\n%%EOF".getBytes();
+        MockMultipartFile file = new MockMultipartFile("file", "test1.pdf", "application/pdf", docBytes);
 
-        Product districtDoc = createProduct(
-                "Kohima Local Guide",
-                "nagaland", "Nagaland",
-                "kohima", "Kohima",
-                "Free", "free", "free",
-                "FREE_DISTRICT_CONTENT", Product.SCOPE_DISTRICT,
-                true, true, false, false);
-        districtDoc.setContentHash(contentHash);
-        productRepo.save(districtDoc);
-
-        String existingId = districtDoc.getId();
-        long countBefore = productRepo.count();
-
-        MockMultipartFile file = new MockMultipartFile("file", "Kohima Local Guide.pdf", "application/pdf", docBytes);
-
-        // Uploading to state scope reclassifies existing document into STATE History
+        // Upload 1
         mockMvc.perform(multipart("/api/admin/resources/upload")
                 .file(file)
                 .param("stateSlug", "nagaland")
                 .param("districtSlug", "general")
                 .param("resourceScope", "STATE")
                 .param("category", "History")
-                .param("title", "Battle of Kohima History"))
+                .param("title", "Nagaland History Vol 1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.isDuplicate").value(false))
-                .andExpect(jsonPath("$.isReclassified").value(true))
-                .andExpect(jsonPath("$.data.id").value(existingId))
+                .andExpect(jsonPath("$.created").value(true))
                 .andExpect(jsonPath("$.data.resourceScope").value("STATE"))
-                .andExpect(jsonPath("$.data.districtSlug").value("general"))
-                .andExpect(jsonPath("$.data.category").value("History"))
                 .andExpect(jsonPath("$.data.categorySlug").value("history"));
 
-        assertEquals(countBefore, productRepo.count(), "Single document must be maintained during DISTRICT -> STATE reclassification");
+        long countAfterFirst = productRepo.count();
 
-        Product healedProduct = productRepo.findById(existingId).orElseThrow();
-        assertEquals("general", healedProduct.getDistrictSlug());
-        assertEquals(Product.SCOPE_STATE, healedProduct.getResourceScope());
-        assertEquals("History", healedProduct.getCategory());
-        assertEquals("history", healedProduct.getCategorySlug());
-        assertEquals("STATE_CONTENT", healedProduct.getContentArea());
+        // Upload 2 with identical file and identical destination -> duplicate!
+        mockMvc.perform(multipart("/api/admin/resources/upload")
+                .file(file)
+                .param("stateSlug", "nagaland")
+                .param("districtSlug", "general")
+                .param("resourceScope", "STATE")
+                .param("category", "History")
+                .param("title", "Nagaland History Vol 1 Duplicate"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isDuplicate").value(true))
+                .andExpect(jsonPath("$.created").value(false))
+                .andExpect(jsonPath("$.message").value("Resource already exists in the selected destination."));
+
+        assertEquals(countAfterFirst, productRepo.count(), "Duplicate upload must not create additional product");
     }
 
     /**
-     * Test 27 (Prompt TEST 5): Same hash + STATE History -> STATE Geography reclassification
+     * MANDATORY TEST 2: Same file + different STATE category -> not duplicate
      */
     @Test
     @WithMockUser(authorities = "ROLE_ADMIN")
-    void testStateHistoryToGeographyReclassification() throws Exception {
-        byte[] docBytes = "%PDF-1.4\n1 0 obj\n<< /Nagaland Map and History >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF".getBytes();
-        String contentHash = com.bodhganga.bodhganga.services.AdminResourceService.calculateSha256(docBytes);
+    void test2_SameFileDifferentStateCategoryIsNotDuplicate() throws Exception {
+        byte[] docBytes = "%PDF-1.4\nMandatory Test 2 Content\n%%EOF".getBytes();
+        MockMultipartFile file = new MockMultipartFile("file", "test2.pdf", "application/pdf", docBytes);
 
-        Product historyDoc = createProduct(
-                "Nagaland Overview",
-                "nagaland", "Nagaland",
-                "general", "general",
-                "History", "history", "history",
-                "STATE_CONTENT", Product.SCOPE_STATE,
-                true, true, false, false);
-        historyDoc.setContentHash(contentHash);
-        productRepo.save(historyDoc);
+        // Upload 1: History
+        mockMvc.perform(multipart("/api/admin/resources/upload")
+                .file(file)
+                .param("stateSlug", "nagaland")
+                .param("districtSlug", "general")
+                .param("resourceScope", "STATE")
+                .param("category", "History")
+                .param("title", "Nagaland History"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isDuplicate").value(false));
 
-        String existingId = historyDoc.getId();
-        long countBefore = productRepo.count();
+        long countAfterFirst = productRepo.count();
 
-        MockMultipartFile file = new MockMultipartFile("file", "Nagaland Overview.pdf", "application/pdf", docBytes);
-
-        // Upload to Geography -> RECLASSIFIED
+        // Upload 2: Same file to Geography -> NOT duplicate, creates brand new product
         mockMvc.perform(multipart("/api/admin/resources/upload")
                 .file(file)
                 .param("stateSlug", "nagaland")
@@ -908,127 +896,350 @@ public class StateResourceIsolationTests {
                 .param("title", "Nagaland Geography"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isDuplicate").value(false))
-                .andExpect(jsonPath("$.isReclassified").value(true))
-                .andExpect(jsonPath("$.data.id").value(existingId))
-                .andExpect(jsonPath("$.data.category").value("Geography"))
+                .andExpect(jsonPath("$.created").value(true))
                 .andExpect(jsonPath("$.data.categorySlug").value("geography"));
 
-        assertEquals(countBefore, productRepo.count());
-        Product updated = productRepo.findById(existingId).orElseThrow();
-        assertEquals("Geography", updated.getCategory());
-        assertEquals("geography", updated.getCategorySlug());
+        assertEquals(countAfterFirst + 1, productRepo.count(), "Different category must create a distinct catalog product");
     }
 
     /**
-     * Test 28 (Prompt TEST 6): Same hash + different state throws HASH_EXISTS_DIFFERENT_STATE
+     * MANDATORY TEST 3: Same file + STATE vs DISTRICT -> not duplicate
      */
     @Test
     @WithMockUser(authorities = "ROLE_ADMIN")
-    void testCrossStateDuplicateThrowsConflict() throws Exception {
-        byte[] docBytes = "%PDF-1.4\n1 0 obj\n<< /Unique Maharashtra Content >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF".getBytes();
-        String contentHash = com.bodhganga.bodhganga.services.AdminResourceService.calculateSha256(docBytes);
+    void test3_SameFileStateVsDistrictIsNotDuplicate() throws Exception {
+        byte[] docBytes = "%PDF-1.4\nMandatory Test 3 Battle of Kohima\n%%EOF".getBytes();
+        MockMultipartFile file = new MockMultipartFile("file", "Battle of Kohima (1944).pdf", "application/pdf", docBytes);
 
-        Product maharashtraDoc = createProduct(
-                "Maharashtra History Guide",
-                "maharashtra", "Maharashtra",
-                "general", "general",
-                "History", "history", "history",
-                "STATE_CONTENT", Product.SCOPE_STATE,
-                true, true, false, false);
-        maharashtraDoc.setContentHash(contentHash);
-        productRepo.save(maharashtraDoc);
+        // 1. Upload to Kohima District Free
+        mockMvc.perform(multipart("/api/admin/resources/upload")
+                .file(file)
+                .param("stateSlug", "nagaland")
+                .param("districtSlug", "kohima")
+                .param("resourceScope", "DISTRICT")
+                .param("isFree", "true")
+                .param("category", "Free")
+                .param("title", "Battle of Kohima (Kohima District)"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isDuplicate").value(false))
+                .andExpect(jsonPath("$.data.resourceScope").value("DISTRICT"))
+                .andExpect(jsonPath("$.data.districtSlug").value("kohima"));
 
-        MockMultipartFile file = new MockMultipartFile("file", "Maharashtra History Guide.pdf", "application/pdf", docBytes);
+        long countAfterFirst = productRepo.count();
 
-        // Attempt upload same file to Nagaland -> must reject with 400 and HASH_EXISTS_DIFFERENT_STATE
+        // 2. Upload same file to Nagaland State History -> NOT duplicate, creates distinct STATE product!
         mockMvc.perform(multipart("/api/admin/resources/upload")
                 .file(file)
                 .param("stateSlug", "nagaland")
                 .param("districtSlug", "general")
                 .param("resourceScope", "STATE")
                 .param("category", "History")
-                .param("title", "Attempted Nagaland Steal"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error", containsString("HASH_EXISTS_DIFFERENT_STATE")));
+                .param("title", "Battle of Kohima (State History)"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isDuplicate").value(false))
+                .andExpect(jsonPath("$.created").value(true))
+                .andExpect(jsonPath("$.data.resourceScope").value("STATE"))
+                .andExpect(jsonPath("$.data.districtSlug").value("general"))
+                .andExpect(jsonPath("$.data.categorySlug").value("history"));
 
-        // Ensure Maharashtra document was not modified
-        Product mhAfter = productRepo.findById(maharashtraDoc.getId()).orElseThrow();
-        assertEquals("maharashtra", mhAfter.getStateSlug());
+        assertEquals(countAfterFirst + 1, productRepo.count(), "STATE vs DISTRICT must coexist as distinct catalog products");
     }
 
     /**
-     * Test 29 (Prompt TEST 8 & 9): Three wrong-destination files batch upload to Nagaland History
-     * -> 1st pass: 3 Reclassified, 0 Duplicates, 0 Created
-     * -> 2nd pass: 3 Duplicates (Already Cataloged), 0 Reclassified, 0 Created
+     * MANDATORY TEST 4: Same file + different district -> not duplicate
      */
     @Test
     @WithMockUser(authorities = "ROLE_ADMIN")
-    void testThreeFilesReclassificationAndSubsequentDuplicateIdempotency() throws Exception {
-        String[] titles = {
-            "Battle of Kohima (1944)",
-            "Dimasa Kachari Kingdom",
-            "Naga Hills District (1866)"
-        };
+    void test4_SameFileDifferentDistrictIsNotDuplicate() throws Exception {
+        byte[] docBytes = "%PDF-1.4\nMandatory Test 4 Content\n%%EOF".getBytes();
+        MockMultipartFile file = new MockMultipartFile("file", "district_test.pdf", "application/pdf", docBytes);
 
-        String[] ids = new String[3];
+        // Upload to Kohima
+        mockMvc.perform(multipart("/api/admin/resources/upload")
+                .file(file)
+                .param("stateSlug", "nagaland")
+                .param("districtSlug", "kohima")
+                .param("resourceScope", "DISTRICT")
+                .param("isFree", "true")
+                .param("category", "Free")
+                .param("title", "Kohima Material"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isDuplicate").value(false));
 
-        for (int i = 0; i < 3; i++) {
-            byte[] bytes = ("%PDF-1.4\n1 0 obj\n<< /Legacy Doc " + i + " >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF").getBytes();
-            String hash = com.bodhganga.bodhganga.services.AdminResourceService.calculateSha256(bytes);
-            Product legacy = createProduct(
-                    titles[i],
-                    "nagaland", "Nagaland",
-                    "kohima", "Kohima", // Wrong destination: district kohima
+        long countAfterFirst = productRepo.count();
+
+        // Upload same file to Dimapur
+        mockMvc.perform(multipart("/api/admin/resources/upload")
+                .file(file)
+                .param("stateSlug", "nagaland")
+                .param("districtSlug", "dimapur")
+                .param("resourceScope", "DISTRICT")
+                .param("isFree", "true")
+                .param("category", "Free")
+                .param("title", "Dimapur Material"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isDuplicate").value(false))
+                .andExpect(jsonPath("$.created").value(true))
+                .andExpect(jsonPath("$.data.districtSlug").value("dimapur"));
+
+        assertEquals(countAfterFirst + 1, productRepo.count(), "Different districts must coexist as distinct catalog products");
+    }
+
+    /**
+     * MANDATORY TEST 5: Same file + different state -> not duplicate
+     */
+    @Test
+    @WithMockUser(authorities = "ROLE_ADMIN")
+    void test5_SameFileDifferentStateIsNotDuplicate() throws Exception {
+        byte[] docBytes = "%PDF-1.4\nMandatory Test 5 Common Reference Book\n%%EOF".getBytes();
+        MockMultipartFile file = new MockMultipartFile("file", "reference_book.pdf", "application/pdf", docBytes);
+
+        // Upload to Nagaland State History
+        mockMvc.perform(multipart("/api/admin/resources/upload")
+                .file(file)
+                .param("stateSlug", "nagaland")
+                .param("districtSlug", "general")
+                .param("resourceScope", "STATE")
+                .param("category", "History")
+                .param("title", "Nagaland History Reference"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isDuplicate").value(false))
+                .andExpect(jsonPath("$.data.stateSlug").value("nagaland"));
+
+        long countAfterFirst = productRepo.count();
+
+        // Upload same file to Assam State History -> NOT duplicate, creates distinct Assam product!
+        mockMvc.perform(multipart("/api/admin/resources/upload")
+                .file(file)
+                .param("stateSlug", "assam")
+                .param("districtSlug", "general")
+                .param("resourceScope", "STATE")
+                .param("category", "History")
+                .param("title", "Assam History Reference"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isDuplicate").value(false))
+                .andExpect(jsonPath("$.created").value(true))
+                .andExpect(jsonPath("$.data.stateSlug").value("assam"));
+
+        assertEquals(countAfterFirst + 1, productRepo.count(), "Cross-state uploads of same physical content must create distinct catalog entries");
+    }
+
+    /**
+     * MANDATORY TEST 6: Same file + same DISTRICT destination -> duplicate
+     */
+    @Test
+    @WithMockUser(authorities = "ROLE_ADMIN")
+    void test6_SameFileSameDistrictDestinationIsDuplicate() throws Exception {
+        byte[] docBytes = "%PDF-1.4\nMandatory Test 6 Content\n%%EOF".getBytes();
+        MockMultipartFile file = new MockMultipartFile("file", "test6.pdf", "application/pdf", docBytes);
+
+        // Upload 1
+        mockMvc.perform(multipart("/api/admin/resources/upload")
+                .file(file)
+                .param("stateSlug", "nagaland")
+                .param("districtSlug", "kohima")
+                .param("resourceScope", "DISTRICT")
+                .param("isFree", "true")
+                .param("category", "Free")
+                .param("title", "Kohima Free Guide"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isDuplicate").value(false));
+
+        long countAfterFirst = productRepo.count();
+
+        // Upload 2: same destination -> duplicate
+        mockMvc.perform(multipart("/api/admin/resources/upload")
+                .file(file)
+                .param("stateSlug", "nagaland")
+                .param("districtSlug", "kohima")
+                .param("resourceScope", "DISTRICT")
+                .param("isFree", "true")
+                .param("category", "Free")
+                .param("title", "Kohima Free Guide Again"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isDuplicate").value(true))
+                .andExpect(jsonPath("$.created").value(false))
+                .andExpect(jsonPath("$.message").value("Resource already exists in the selected destination."));
+
+        assertEquals(countAfterFirst, productRepo.count(), "Duplicate upload in district destination must not create new product");
+    }
+
+    /**
+     * MANDATORY TEST 7: Unicode district slug normalization
+     * Chümoukedima → chumoukedima, Tseminyü → tseminyu, Zünheboto → zunheboto
+     */
+    @Test
+    @WithMockUser(authorities = "ROLE_ADMIN")
+    void test7_UnicodeDistrictSlugNormalization() throws Exception {
+        assertEquals("chumoukedima", Product.generateSlug("Chümoukedima"));
+        assertEquals("tseminyu", Product.generateSlug("Tseminyü"));
+        assertEquals("zunheboto", Product.generateSlug("Zünheboto"));
+
+        MockMultipartFile file = new MockMultipartFile("file", "chumoukedima.pdf", "application/pdf", VALID_PDF_BYTES);
+        mockMvc.perform(multipart("/api/admin/resources/upload")
+                .file(file)
+                .param("stateSlug", "nagaland")
+                .param("districtSlug", "chumoukedima")
+                .param("resourceScope", "DISTRICT")
+                .param("isFree", "true")
+                .param("category", "Free")
+                .param("title", "Chümoukedima Overview"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.districtSlug").value("chumoukedima"))
+                .andExpect(jsonPath("$.data.district").value("Chümoukedima"));
+    }
+
+    /**
+     * MANDATORY TEST 8: State History upload payload
+     * must contain: districtSlug=general, resourceScope=STATE, categorySlug=history, sectionSlug=history, contentArea=STATE_CONTENT
+     */
+    @Test
+    @WithMockUser(authorities = "ROLE_ADMIN")
+    void test8_StateHistoryUploadPayloadPersistedCorrectly() throws Exception {
+        MockMultipartFile file = new MockMultipartFile("file", "state_history_payload.pdf", "application/pdf", VALID_PDF_BYTES);
+
+        mockMvc.perform(multipart("/api/admin/resources/upload")
+                .file(file)
+                .param("stateSlug", "nagaland")
+                .param("districtSlug", "general")
+                .param("resourceScope", "STATE")
+                .param("contentArea", "STATE_CONTENT")
+                .param("category", "History")
+                .param("categorySlug", "history")
+                .param("sectionSlug", "history")
+                .param("isFree", "true")
+                .param("publish", "true")
+                .param("title", "Nagaland History Payload Test"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.stateSlug").value("nagaland"))
+                .andExpect(jsonPath("$.data.districtSlug").value("general"))
+                .andExpect(jsonPath("$.data.resourceScope").value("STATE"))
+                .andExpect(jsonPath("$.data.categorySlug").value("history"))
+                .andExpect(jsonPath("$.data.sectionSlug").value("history"))
+                .andExpect(jsonPath("$.data.contentArea").value("STATE_CONTENT"))
+                .andExpect(jsonPath("$.data.isFree").value(true))
+                .andExpect(jsonPath("$.data.published").value(true));
+    }
+
+    /**
+     * MANDATORY TEST 9: State History page isolation
+     * Only: nagaland, general, STATE, history
+     */
+    @Test
+    void test9_StateHistoryPageIsolation() throws Exception {
+        mockMvc.perform(get("/api/products/state/nagaland/category/history"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data[*].stateSlug", everyItem(is("nagaland"))))
+                .andExpect(jsonPath("$.data[*].districtSlug", everyItem(is("general"))))
+                .andExpect(jsonPath("$.data[*].resourceScope", everyItem(is("STATE"))))
+                .andExpect(jsonPath("$.data[*].category", everyItem(is("History"))));
+    }
+
+    /**
+     * MANDATORY TEST 10: District page isolation
+     * Only requested district + DISTRICT scope.
+     */
+    @Test
+    void test10_DistrictPageIsolation() throws Exception {
+        mockMvc.perform(get("/api/products/state/nagaland/district/kohima"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data[*].stateSlug", everyItem(is("nagaland"))))
+                .andExpect(jsonPath("$.data[*].districtSlug", everyItem(is("kohima"))))
+                .andExpect(jsonPath("$.data[*].resourceScope", everyItem(is("DISTRICT"))));
+    }
+
+    /**
+     * MANDATORY TEST 11: Existing Chamba regression: 18 Free, 46 Paid, 64 Total
+     */
+    @Test
+    void test11_ExistingChambaRegression() throws Exception {
+        // Seed Himachal Pradesh state
+        State hp = new State();
+        hp.setId("himachal-pradesh");
+        hp.setName("Himachal Pradesh");
+        hp.setCode("HP");
+        hp.setType("STATE");
+        hp.setDistricts(Arrays.asList("Bilaspur", "Chamba", "Hamirpur", "Kangra", "Kinnaur", "Kullu", "Mandi", "Shimla", "Sirmaur", "Solan", "Una"));
+        stateRepo.save(hp);
+
+        // Seed 18 Free Chamba products
+        for (int i = 1; i <= 18; i++) {
+            Product freeP = createProduct(
+                    "Chamba Free Resource " + i,
+                    "himachal-pradesh", "Himachal Pradesh",
+                    "chamba", "Chamba",
                     "Free", "free", "free",
                     "FREE_DISTRICT_CONTENT", Product.SCOPE_DISTRICT,
                     true, true, false, false);
-            legacy.setContentHash(hash);
-            productRepo.save(legacy);
-            ids[i] = legacy.getId();
+            productRepo.save(freeP);
         }
+
+        // Seed 46 Paid Chamba products
+        for (int i = 1; i <= 46; i++) {
+            Product paidP = createProduct(
+                    "Chamba Paid Resource " + i,
+                    "himachal-pradesh", "Himachal Pradesh",
+                    "chamba", "Chamba",
+                    "Paid", "paid", "paid",
+                    "PAID_DISTRICT_RESOURCES", Product.SCOPE_DISTRICT,
+                    false, true, false, false);
+            productRepo.save(paidP);
+        }
+
+        // Query Chamba endpoint
+        mockMvc.perform(get("/api/products/state/himachal-pradesh/district/chamba"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data", hasSize(64)));
+
+        List<Product> chambaProducts = productRepo.findByStateSlugAndDistrictSlugAndIsPublishedTrueAndArchivedFalse("himachal-pradesh", "chamba");
+        assertEquals(64, chambaProducts.size(), "Total Chamba resources must be 64");
+
+        long freeCount = chambaProducts.stream().filter(Product::isFree).count();
+        long paidCount = chambaProducts.stream().filter(p -> !p.isFree()).count();
+
+        assertEquals(18, freeCount, "Chamba Free resources must be 18");
+        assertEquals(46, paidCount, "Chamba Paid resources must be 46");
+        assertEquals(64, freeCount + paidCount, "Chamba Total must be 64 (18 Free + 46 Paid)");
+    }
+
+    /**
+     * MANDATORY TEST 12: Actual multipart upload
+     * Perform the complete upload flow in the test environment:
+     * file -> FormData -> controller -> service -> hash -> duplicate detection -> persistence
+     * and verify that a valid new destination creates a Product.
+     */
+    @Test
+    @WithMockUser(authorities = "ROLE_ADMIN")
+    void test12_ActualMultipartUploadFlow() throws Exception {
+        byte[] pdfBytes = "%PDF-1.4\n1 0 obj\n<< /Title (Actual Multipart Flow) >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF".getBytes();
+        MockMultipartFile file = new MockMultipartFile("file", "actual_flow_test.pdf", "application/pdf", pdfBytes);
 
         long countBefore = productRepo.count();
 
-        // Pass 1: Upload all 3 to Nagaland -> STATE -> History
-        for (int i = 0; i < 3; i++) {
-            byte[] bytes = ("%PDF-1.4\n1 0 obj\n<< /Legacy Doc " + i + " >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF").getBytes();
-            MockMultipartFile file = new MockMultipartFile("file", titles[i] + ".pdf", "application/pdf", bytes);
+        mockMvc.perform(multipart("/api/admin/resources/upload")
+                .file(file)
+                .param("stateSlug", "nagaland")
+                .param("districtSlug", "general")
+                .param("resourceScope", "STATE")
+                .param("category", "History")
+                .param("title", "Actual End-to-End Test")
+                .param("description", "Verifying complete persistence flow")
+                .param("publish", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.created").value(true))
+                .andExpect(jsonPath("$.isDuplicate").value(false))
+                .andExpect(jsonPath("$.isReclassified").value(false))
+                .andExpect(jsonPath("$.data.id").isNotEmpty())
+                .andExpect(jsonPath("$.data.s3Key").isNotEmpty())
+                .andExpect(jsonPath("$.data.contentHash").isNotEmpty())
+                .andExpect(jsonPath("$.data.resourceScope").value("STATE"))
+                .andExpect(jsonPath("$.data.districtSlug").value("general"))
+                .andExpect(jsonPath("$.data.categorySlug").value("history"));
 
-            mockMvc.perform(multipart("/api/admin/resources/upload")
-                    .file(file)
-                    .param("stateSlug", "nagaland")
-                    .param("districtSlug", "general")
-                    .param("resourceScope", "STATE")
-                    .param("category", "History")
-                    .param("title", titles[i]))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.isDuplicate").value(false))
-                    .andExpect(jsonPath("$.isReclassified").value(true));
-        }
-
-        // Assert 0 new products created
-        assertEquals(countBefore, productRepo.count());
-
-        // Pass 2: Re-upload all 3 files again with exact same destination -> Already Cataloged
-        for (int i = 0; i < 3; i++) {
-            byte[] bytes = ("%PDF-1.4\n1 0 obj\n<< /Legacy Doc " + i + " >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF").getBytes();
-            MockMultipartFile file = new MockMultipartFile("file", titles[i] + ".pdf", "application/pdf", bytes);
-
-            mockMvc.perform(multipart("/api/admin/resources/upload")
-                    .file(file)
-                    .param("stateSlug", "nagaland")
-                    .param("districtSlug", "general")
-                    .param("resourceScope", "STATE")
-                    .param("category", "History")
-                    .param("title", titles[i]))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.isDuplicate").value(true))
-                    .andExpect(jsonPath("$.isReclassified").value(false))
-                    .andExpect(jsonPath("$.message").value("Resource already exists in the selected destination."));
-        }
-
-        // Assert count remains exactly the same
-        assertEquals(countBefore, productRepo.count());
+        assertEquals(countBefore + 1, productRepo.count());
     }
 }
