@@ -126,28 +126,36 @@ console.log('✅ TEST 4 PASSED: DistrictCard badges display Free/Paid/Materials 
 // Test 5: Isolation & Filter Rule Verification
 const sampleProducts = [
   { id: '1', stateSlug: 'nagaland', districtSlug: 'general', resourceScope: 'STATE', isPublished: true, archived: false, price: 0 },
-  { id: '2', stateSlug: 'nagaland', districtSlug: 'dimapur', resourceScope: 'DISTRICT', isPublished: true, archived: false, price: 0 },
-  { id: '3', stateSlug: 'nagaland', districtSlug: 'dimapur', resourceScope: 'DISTRICT', isPublished: true, archived: false, price: 50 },
-  { id: '4', stateSlug: 'nagaland', districtSlug: 'dimapur', resourceScope: 'DISTRICT', isPublished: false, archived: false, price: 0 }, // unpublished
-  { id: '5', stateSlug: 'nagaland', districtSlug: 'dimapur', resourceScope: 'DISTRICT', isPublished: true, archived: true, price: 0 },  // archived
-  { id: '6', stateSlug: 'assam', districtSlug: 'dimapur', resourceScope: 'DISTRICT', isPublished: true, archived: false, price: 0 },    // wrong state
-  { id: '7', stateSlug: 'nagaland', districtSlug: 'kohima', resourceScope: 'DISTRICT', isPublished: true, archived: false, price: 0 },   // other district
+  { id: '2', stateSlug: 'nagaland', districtSlug: 'dimapur', resourceScope: 'DISTRICT', isPublished: true, archived: false, price: 0, category: 'Free' },
+  { id: '3', stateSlug: 'nagaland', districtSlug: 'dimapur', resourceScope: 'DISTRICT', isPublished: true, archived: false, price: 50, category: 'Paid' },
+  { id: '4', stateSlug: 'nagaland', districtSlug: 'dimapur', resourceScope: 'DISTRICT', isPublished: false, archived: false, price: 0, category: 'Free' }, // unpublished
+  { id: '5', stateSlug: 'nagaland', districtSlug: 'dimapur', resourceScope: 'DISTRICT', isPublished: true, archived: true, price: 0, category: 'Free' },  // archived
+  { id: '6', stateSlug: 'assam', districtSlug: 'dimapur', resourceScope: 'DISTRICT', isPublished: true, archived: false, price: 0, category: 'Free' },    // wrong state
+  { id: '7', stateSlug: 'nagaland', districtSlug: 'kohima', resourceScope: 'DISTRICT', isPublished: true, archived: false, price: 0, category: 'Free' },   // other district
+  { id: '8', stateSlug: 'nagaland', districtSlug: 'dimapur', resourceScope: 'STATE', isPublished: true, archived: false, price: 0 }, // explicit state scope
+  { id: '9', stateSlug: 'nagaland', districtSlug: 'dimapur', resourceScope: 'DISTRICT', category: 'History', isPublished: true, archived: false, price: 0 }, // state category
+  { id: '10', stateSlug: 'nagaland', districtSlug: 'dimapur', resourceScope: 'DISTRICT', category: 'Art & Culture', isPublished: true, archived: false, price: 0 }, // state category
 ];
 
+const CANONICAL_STATE_CATEGORIES = ['history', 'geography', 'art-culture', 'heritage-sites', 'art & culture', 'heritage & sites'];
+
 function calculateDistrictCounts(products, targetState, targetDistrict) {
-  const matching = products.filter(p =>
-    p.stateSlug === targetState &&
-    p.districtSlug === targetDistrict &&
-    p.resourceScope !== 'STATE' &&
-    p.districtSlug !== 'general' &&
-    p.isPublished === true &&
-    p.archived !== true
-  );
+  const matching = products.filter(p => {
+    if (p.stateSlug !== targetState) return false;
+    if (p.districtSlug !== targetDistrict) return false;
+    if (p.resourceScope === 'STATE') return false;
+    if (p.districtSlug === 'general' || p.districtSlug === 'state-images') return false;
+    if (p.isPublished !== true) return false;
+    if (p.archived === true) return false;
+    const cat = String(p.category || '').toLowerCase().trim();
+    if (CANONICAL_STATE_CATEGORIES.includes(cat)) return false;
+    return true;
+  });
 
   let free = 0;
   let paid = 0;
   for (const p of matching) {
-    if (p.isFree || p.price === 0 || p.price == null) {
+    if (p.isFree || p.price === 0 || p.price == null || String(p.category || '').toLowerCase() === 'free') {
       free++;
     } else {
       paid++;
@@ -159,12 +167,12 @@ function calculateDistrictCounts(products, targetState, targetDistrict) {
 const dimapurCounts = calculateDistrictCounts(sampleProducts, 'nagaland', 'dimapur');
 assert.strictEqual(dimapurCounts.free, 1, 'Dimapur must have 1 free resource');
 assert.strictEqual(dimapurCounts.paid, 1, 'Dimapur must have 1 paid resource');
-assert.strictEqual(dimapurCounts.total, 2, 'Dimapur must have 2 total resources');
+assert.strictEqual(dimapurCounts.total, 2, 'Dimapur must have 2 total resources (state categories, archived, unpublished, wrong-state excluded)');
 
 // Verify exclusion of state, archived, unpublished, wrong-state, other-district
 const chumoukedimaCounts = calculateDistrictCounts(sampleProducts, 'nagaland', 'chumoukedima');
 assert.strictEqual(chumoukedimaCounts.total, 0, 'Chümoukedima has 0 matching resources');
-console.log('✅ TEST 5 PASSED: Strict district resource isolation excludes state, archived, unpublished, and cross-state.');
+console.log('✅ TEST 5 PASSED: Strict district resource isolation excludes state, state categories, archived, unpublished, and cross-state.');
 
 // Test 6: Verify Chamba Regression
 const chambaRegressionCounts = { free: 18, paid: 46, total: 64 };

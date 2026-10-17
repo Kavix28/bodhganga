@@ -294,7 +294,13 @@ public class StateController {
         java.util.Map<String, String> productNamesMap = new java.util.LinkedHashMap<>(); // slug -> display name
 
         for (Product p : districtProducts) {
-            if (p == null || p.isStateScope()) continue;
+            if (p == null || p.isStateScope() || Product.SCOPE_STATE.equalsIgnoreCase(p.getResourceScope())) continue;
+            // District counts must strictly exclude state category materials (History, Geography, Art & Culture, Heritage & Sites)
+            if (Product.isCanonicalStateCategory(p.getCategory())
+                    || Product.isCanonicalStateCategory(p.getCategorySlug())
+                    || Product.isCanonicalStateCategory(p.getSectionSlug())) {
+                continue;
+            }
             String rawDSlug = p.getDistrictSlug();
             if (rawDSlug == null || rawDSlug.isBlank()) continue;
             String cSlug = canonicalDistrictSlug(rawDSlug);
@@ -304,7 +310,9 @@ public class StateController {
             String cName = canonicalDistrictName(rawDName, cSlug);
             productNamesMap.putIfAbsent(cSlug, cName);
 
-            boolean isFree = p.isFree() || p.getPrice() == null || p.getPrice() == 0.0;
+            boolean isFree = p.isFree() || p.getPrice() == null || p.getPrice() == 0.0
+                    || "free".equalsIgnoreCase(p.getCategory())
+                    || "free".equalsIgnoreCase(p.getCategorySlug());
             long[] counts = productCountsMap.computeIfAbsent(cSlug, k -> new long[3]); // [total, free, paid]
             counts[0]++; // total
             if (isFree) {
