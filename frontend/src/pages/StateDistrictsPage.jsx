@@ -231,9 +231,9 @@ export default function StateDistrictsPage() {
 }
 
 function DistrictCard({ district, onClick }) {
-  const hasFree = district.free > 0;
-  const hasPaid = district.paid > 0;
-  const hasResources = district.total > 0 || hasFree || hasPaid;
+  const total = Number(district.total ?? ((district.free ?? 0) + (district.paid ?? 0)));
+  const hasFree = Number(district.free ?? 0) > 0;
+  const hasPaid = Number(district.paid ?? 0) > 0;
 
   return (
     <div
@@ -249,6 +249,15 @@ function DistrictCard({ district, onClick }) {
 
       {/* Resource count badges */}
       <div className="flex gap-2 flex-wrap mt-3">
+        <span
+          className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+            total > 0
+              ? "bg-amber-900/60 text-amber-400 border-amber-800"
+              : "bg-gray-800/80 text-gray-400 border-gray-700"
+          }`}
+        >
+          {total} Materials
+        </span>
         {hasFree && (
           <span className="text-[10px] font-bold uppercase tracking-wider bg-green-900/60 text-green-400 border border-green-800 px-2 py-0.5 rounded-full">
             {district.free} Free
@@ -257,16 +266,6 @@ function DistrictCard({ district, onClick }) {
         {hasPaid && (
           <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-900/60 text-amber-400 border border-amber-800 px-2 py-0.5 rounded-full">
             {district.paid} Paid
-          </span>
-        )}
-        {hasResources && !hasFree && !hasPaid && (
-          <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-900/60 text-amber-400 border border-amber-800 px-2 py-0.5 rounded-full">
-            {district.total} Materials
-          </span>
-        )}
-        {!hasResources && (
-          <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-300/80 border border-amber-500/20 px-2 py-0.5 rounded-full">
-            Coming Soon
           </span>
         )}
       </div>

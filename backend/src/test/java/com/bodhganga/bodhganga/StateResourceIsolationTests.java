@@ -1426,4 +1426,17 @@ public class StateResourceIsolationTests {
                 .andExpect(jsonPath("$[?(@.districtSlug=='chumoukedima')].paid").value(hasItem(0)))
                 .andExpect(jsonPath("$[?(@.districtSlug=='chumoukedima')].total").value(hasItem(1)));
     }
+
+    /**
+     * MANDATORY TEST 15: Download endpoint must return 403 Forbidden
+     * BodhGanga policy disallows direct file downloads across public interfaces.
+     */
+    @Test
+    @WithMockUser
+    void test15_DownloadEndpointReturns403() throws Exception {
+        mockMvc.perform(get("/api/downloads/test-product-id"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value(containsString("Direct downloads are disabled")));
+    }
 }

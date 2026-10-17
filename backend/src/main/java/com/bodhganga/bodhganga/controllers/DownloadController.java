@@ -31,62 +31,18 @@ public class DownloadController {
     }
 
     /**
-     * Securely request a temporary download link for a product
-     * Requires JWT authentication (User must be logged in)
+     * PUBLIC DOWNLOAD REMOVAL:
+     * In accordance with BodhGanga resource security policy, direct file downloads
+     * are disabled across public interfaces. Users must access and view content online.
      */
     @GetMapping("/{productId}")
     public ResponseEntity<ApiResponseDTO> getSecureDownloadUrl(
             @PathVariable String productId,
             Authentication authentication) {
 
-        if (authentication == null) {
-            return ResponseEntity.status(401).body(ApiResponseDTO.builder()
-                    .success(false)
-                    .message("Authentication required.")
-                    .build());
-        }
-
-        String userEmail = authentication.getName();
-        Optional<User> userOpt = userRepo.findByEmail(userEmail);
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.status(404).body(ApiResponseDTO.builder()
-                    .success(false)
-                    .message("Authenticated user profile not found.")
-                    .build());
-        }
-
-        String userId = userOpt.get().getId();
-
-        // 1. Verify Purchase
-        Optional<Purchase> purchaseOpt = purchaseRepo.findByUserIdAndProductId(userId, productId);
-        if (purchaseOpt.isEmpty()) {
-            return ResponseEntity.status(403).body(ApiResponseDTO.builder()
-                    .success(false)
-                    .message("Access Denied. You have not purchased this content.")
-                    .build());
-        }
-
-        // 2. Fetch Product
-        Optional<Product> prodOpt = productRepo.findById(productId);
-        if (prodOpt.isEmpty() || prodOpt.get().getStorageKey() == null) {
-            return ResponseEntity.status(404).body(ApiResponseDTO.builder()
-                    .success(false)
-                    .message("Digital content file not found.")
-                    .build());
-        }
-
-        // 3. Increment download count
-        Purchase purchase = purchaseOpt.get();
-        purchase.setDownloadCount(purchase.getDownloadCount() + 1);
-        purchaseRepo.save(purchase);
-
-        // 4. Generate short-lived signed URL (valid for 15 minutes)
-        String signedUrl = s3Service.generatePresignedUrl(prodOpt.get().getStorageKey(), 15);
-
-        return ResponseEntity.ok(ApiResponseDTO.builder()
-                .success(true)
-                .message("Download URL generated successfully")
-                .data(signedUrl)
+        return ResponseEntity.status(403).body(ApiResponseDTO.builder()
+                .success(false)
+                .message("Direct downloads are disabled. Please access and view study materials online.")
                 .build());
     }
 }

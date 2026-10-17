@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Upload, FileText, Trash2, Check, X, Filter, Download, ExternalLink, RefreshCw, Plus, Loader2 } from 'lucide-react';
+import { Upload, FileText, Trash2, Check, X, Filter, ExternalLink, RefreshCw, Plus, Loader2 } from 'lucide-react';
 import api from '../../services/api';
 
 /**
@@ -56,13 +56,6 @@ const AdminPDFManager = () => {
         const sizes = ['Bytes', 'KB', 'MB', 'GB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
-    };
-
-    const getDownloadUrl = (storageKey) => {
-        if (!storageKey) return '#';
-        // Base API URL is relative or absolute. We append to redirect to signed URL
-        const base = api.defaults.baseURL || '';
-        return `${base}/api/pdf/${storageKey}?redirect=true`;
     };
 
     // Filter Products dynamically

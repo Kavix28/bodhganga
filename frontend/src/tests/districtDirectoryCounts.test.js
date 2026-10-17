@@ -86,31 +86,30 @@ console.log('✅ TEST 3 PASSED: State-level general and state-images are strictl
 
 // Test 4: DistrictCard badge rendering logic
 function renderCardBadges(district) {
-  const hasFree = district.free > 0;
-  const hasPaid = district.paid > 0;
-  const hasResources = district.total > 0 || hasFree || hasPaid;
+  const total = Number(district.total ?? ((district.free ?? 0) + (district.paid ?? 0)));
+  const hasFree = Number(district.free ?? 0) > 0;
+  const hasPaid = Number(district.paid ?? 0) > 0;
 
   const badges = [];
+  badges.push(`${total} Materials`);
   if (hasFree) badges.push(`${district.free} Free`);
   if (hasPaid) badges.push(`${district.paid} Paid`);
-  if (hasResources && !hasFree && !hasPaid) badges.push(`${district.total} Materials`);
-  if (!hasResources) badges.push('Coming Soon');
   return badges;
 }
 
 // 4a. District with free and paid resources (e.g. Chamba)
 const chambaBadges = renderCardBadges({ districtSlug: 'chamba', free: 18, paid: 46, total: 64 });
-assert.deepStrictEqual(chambaBadges, ['18 Free', '46 Paid']);
+assert.deepStrictEqual(chambaBadges, ['64 Materials', '18 Free', '46 Paid']);
 assert.ok(!chambaBadges.includes('Coming Soon'), 'Chamba must NOT show Coming Soon');
 
 // 4b. District with only free resources
 const freeOnlyBadges = renderCardBadges({ districtSlug: 'test-dist', free: 5, paid: 0, total: 5 });
-assert.deepStrictEqual(freeOnlyBadges, ['5 Free']);
+assert.deepStrictEqual(freeOnlyBadges, ['5 Materials', '5 Free']);
 assert.ok(!freeOnlyBadges.includes('Coming Soon'), 'Free-only district must NOT show Coming Soon');
 
 // 4c. District with only paid resources
 const paidOnlyBadges = renderCardBadges({ districtSlug: 'test-dist', free: 0, paid: 7, total: 7 });
-assert.deepStrictEqual(paidOnlyBadges, ['7 Paid']);
+assert.deepStrictEqual(paidOnlyBadges, ['7 Materials', '7 Paid']);
 assert.ok(!paidOnlyBadges.includes('Coming Soon'), 'Paid-only district must NOT show Coming Soon');
 
 // 4d. District with total > 0 but uncategorized free/paid fallback
@@ -120,8 +119,9 @@ assert.ok(!uncategorizedBadges.includes('Coming Soon'), 'Uncategorized materials
 
 // 4e. District with 0 resources
 const zeroBadges = renderCardBadges({ districtSlug: 'chumoukedima', free: 0, paid: 0, total: 0 });
-assert.deepStrictEqual(zeroBadges, ['Coming Soon']);
-console.log('✅ TEST 4 PASSED: DistrictCard badges display Free/Paid/Materials and Coming Soon conditionally.');
+assert.deepStrictEqual(zeroBadges, ['0 Materials']);
+assert.ok(!zeroBadges.includes('Coming Soon'), 'Zero-resource district must show 0 Materials, NOT Coming Soon');
+console.log('✅ TEST 4 PASSED: DistrictCard badges display Total Materials and 0 Materials without Coming Soon.');
 
 // Test 5: Isolation & Filter Rule Verification
 const sampleProducts = [
@@ -174,12 +174,68 @@ const chumoukedimaCounts = calculateDistrictCounts(sampleProducts, 'nagaland', '
 assert.strictEqual(chumoukedimaCounts.total, 0, 'Chümoukedima has 0 matching resources');
 console.log('✅ TEST 5 PASSED: Strict district resource isolation excludes state, state categories, archived, unpublished, and cross-state.');
 
-// Test 6: Verify Chamba Regression
+// Test 6: Dynamic Count Update after new upload
+const dynamicList = [...sampleProducts];
+dynamicList.push({
+  id: '11',
+  stateSlug: 'nagaland',
+  districtSlug: 'chumoukedima',
+  resourceScope: 'DISTRICT',
+  category: 'Free',
+  isPublished: true,
+  archived: false,
+  price: 0
+});
+const updatedChumoukedima = calculateDistrictCounts(dynamicList, 'nagaland', 'chumoukedima');
+assert.strictEqual(updatedChumoukedima.total, 1, 'Chümoukedima count dynamically updates after cataloging new resource');
+assert.strictEqual(updatedChumoukedima.free, 1, 'Chümoukedima free count reflects new item');
+console.log('✅ TEST 6 PASSED: District counts update dynamically after new resource cataloging.');
+
+// Test 7: Verify Chamba Regression (18 Free, 46 Paid, 64 Total)
 const chambaRegressionCounts = { free: 18, paid: 46, total: 64 };
 assert.strictEqual(chambaRegressionCounts.free + chambaRegressionCounts.paid, chambaRegressionCounts.total);
 const chambaBadgesResult = renderCardBadges(chambaRegressionCounts);
-assert.strictEqual(chambaBadgesResult[0], '18 Free');
-assert.strictEqual(chambaBadgesResult[1], '46 Paid');
-console.log('✅ TEST 6 PASSED: Chamba regression intact (18 Free, 46 Paid, 64 Total).');
+assert.strictEqual(chambaBadgesResult[0], '64 Materials');
+assert.strictEqual(chambaBadgesResult[1], '18 Free');
+assert.strictEqual(chambaBadgesResult[2], '46 Paid');
+console.log('✅ TEST 7 PASSED: Chamba regression intact (18 Free, 46 Paid, 64 Total).');
 
-console.log('\n🎉 ALL DISTRICT DIRECTORY MATERIAL COUNT TESTS PASSED SUCCESSFULLY!\n');
+// Test 8: Audit Public Resource UI - Zero Public Download Actions or Links
+const publicPageFiles = [
+  'StateSectionPage.jsx',
+  'StateDistrictsPage.jsx',
+  'StateDistrictProductsPage.jsx',
+  'DistrictResourcesPage.jsx',
+  'ResourcesPage.jsx',
+  'ResourcePage.jsx',
+  'Library.jsx',
+  'Profile.jsx',
+  'FreeResources.jsx',
+  'Marketplace.jsx'
+];
+
+for (const file of publicPageFiles) {
+  const filePath = path.join(__dirname, '../pages', file);
+  if (fs.existsSync(filePath)) {
+    const fileContent = fs.readFileSync(filePath, 'utf8');
+    // Ensure no <a download> or download= attributes exist
+    assert.ok(!fileContent.includes('<a download'), `${file} must not contain <a download>`);
+    assert.ok(!fileContent.includes('download='), `${file} must not contain download= attribute`);
+    // Ensure no Download action buttons exist in public card actions
+    assert.ok(!fileContent.includes('>Download</button>'), `${file} must not contain Download button`);
+    assert.ok(!fileContent.includes('>Download PDF</button>'), `${file} must not contain Download PDF button`);
+    assert.ok(!fileContent.includes('>Download Material</button>'), `${file} must not contain Download Material button`);
+  }
+}
+console.log('✅ TEST 8 PASSED: No public resource UI pages contain <a download> or Download buttons.');
+
+// Test 9: Verify Admin State Resource Upload Capabilities Intact
+const adminUploadPage = path.join(__dirname, '../pages/admin/AdminStateResources.jsx');
+assert.ok(fs.existsSync(adminUploadPage), 'AdminStateResources.jsx must exist');
+const adminContent = fs.readFileSync(adminUploadPage, 'utf8');
+assert.ok(adminContent.includes('STATE_RESOURCE_CATEGORIES'), 'Admin panel must preserve state-level categories');
+assert.ok(adminContent.includes('DISTRICT_RESOURCE_ACCESS_TIERS'), 'Admin panel must preserve district-level categories');
+assert.ok(adminContent.includes('uploadAdminResource'), 'Admin panel must preserve admin resource upload service');
+console.log('✅ TEST 9 PASSED: Admin resource management and upload capabilities strictly intact.');
+
+console.log('\n🎉 ALL DISTRICT DIRECTORY MATERIAL COUNT & DOWNLOAD AUDIT TESTS PASSED SUCCESSFULLY!\n');
