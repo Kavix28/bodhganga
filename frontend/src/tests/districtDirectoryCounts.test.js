@@ -89,11 +89,16 @@ function renderCardBadges(district) {
   const total = Number(district.total ?? ((district.free ?? 0) + (district.paid ?? 0)));
   const hasFree = Number(district.free ?? 0) > 0;
   const hasPaid = Number(district.paid ?? 0) > 0;
+  const hasResources = total > 0;
 
   const badges = [];
-  badges.push(`${total} Materials`);
-  if (hasFree) badges.push(`${district.free} Free`);
-  if (hasPaid) badges.push(`${district.paid} Paid`);
+  if (hasResources) {
+    badges.push(`${total} Material${total === 1 ? '' : 's'}`);
+    if (hasFree) badges.push(`${district.free} Free`);
+    if (hasPaid) badges.push(`${district.paid} Paid`);
+  } else {
+    badges.push('Coming Soon');
+  }
   return badges;
 }
 
@@ -119,9 +124,9 @@ assert.ok(!uncategorizedBadges.includes('Coming Soon'), 'Uncategorized materials
 
 // 4e. District with 0 resources
 const zeroBadges = renderCardBadges({ districtSlug: 'chumoukedima', free: 0, paid: 0, total: 0 });
-assert.deepStrictEqual(zeroBadges, ['0 Materials']);
-assert.ok(!zeroBadges.includes('Coming Soon'), 'Zero-resource district must show 0 Materials, NOT Coming Soon');
-console.log('✅ TEST 4 PASSED: DistrictCard badges display Total Materials and 0 Materials without Coming Soon.');
+assert.deepStrictEqual(zeroBadges, ['Coming Soon']);
+assert.ok(zeroBadges.includes('Coming Soon'), 'Zero-resource district must show Coming Soon state');
+console.log('✅ TEST 4 PASSED: DistrictCard badges display Total Materials/Free/Paid for available resources and Coming Soon for zero resources.');
 
 // Test 5: Isolation & Filter Rule Verification
 const sampleProducts = [

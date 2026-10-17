@@ -2,7 +2,10 @@ package com.bodhganga.bodhganga.controllers;
 
 import com.bodhganga.bodhganga.dto.ApiResponseDTO;
 import com.bodhganga.bodhganga.entity.Product;
+import com.bodhganga.bodhganga.entity.State;
 import com.bodhganga.bodhganga.repo.ProductRepo;
+import com.bodhganga.bodhganga.repo.StateRepo;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,9 +18,116 @@ import java.util.Map;
 public class ProductController {
 
     private final ProductRepo productRepo;
+    private final MongoTemplate mongoTemplate;
+    private final StateRepo stateRepo;
 
-    public ProductController(ProductRepo productRepo) {
+    public record DistrictCountDTO(
+            String districtSlug,
+            String districtName,
+            long freeCount,
+            long paidCount,
+            long totalCount
+    ) {}
+
+    public ProductController(ProductRepo productRepo, MongoTemplate mongoTemplate, StateRepo stateRepo) {
         this.productRepo = productRepo;
+        this.mongoTemplate = mongoTemplate;
+        this.stateRepo = stateRepo;
+    }
+
+    /**
+     * Dedicated District Counts Endpoint
+     * GET /api/products/state/{stateSlug}/districts/counts
+     * Returns canonical district identifiers and accurate material counts.
+     */
+    @GetMapping("/state/{stateSlug}/districts/counts")
+    public ResponseEntity<List<DistrictCountDTO>> getDistrictCounts(@PathVariable String stateSlug) {
+        String cleanStateSlug = Product.generateSlug(stateSlug);
+        if (cleanStateSlug == null || cleanStateSlug.isBlank()) {
+            return ResponseEntity.ok(java.util.Collections.emptyList());
+        }
+
+        org.springframework.data.mongodb.core.query.Query query = new org.springframework.data.mongodb.core.query.Query();
+        query.addCriteria(new org.springframework.data.mongodb.core.query.Criteria().andOperator(
+                org.springframework.data.mongodb.core.query.Criteria.where("stateSlug").is(cleanStateSlug),
+                org.springframework.data.mongodb.core.query.Criteria.where("districtSlug").nin("general", "state-images", "images", "stateimages", "state", null, ""),
+                org.springframework.data.mongodb.core.query.Criteria.where("archived").ne(true),
+                org.springframework.data.mongodb.core.query.Criteria.where("isDeleted").ne(true),
+                new org.springframework.data.mongodb.core.query.Criteria().orOperator(
+                        org.springframework.data.mongodb.core.query.Criteria.where("isPublished").is(true),
+                        org.springframework.data.mongodb.core.query.Criteria.where("published").is(true)
+                ),
+                org.springframework.data.mongodb.core.query.Criteria.where("resourceScope").ne("STATE")
+        ));
+
+        List<Product> districtProducts = mongoTemplate.find(query, Product.class);
+
+        java.util.Map<String, long[]> productCountsMap = new java.util.LinkedHashMap<>(); // slug -> [free, paid, total]
+        java.util.Map<String, String> productNamesMap = new java.util.LinkedHashMap<>(); // slug -> display name
+
+        for (Product p : districtProducts) {
+            if (p == null || p.isStateScope() || Product.SCOPE_STATE.equalsIgnoreCase(p.getResourceScope())) continue;
+            // Exclude state categories
+            if (Product.isCanonicalStateCategory(p.getCategory())
+                    || Product.isCanonicalStateCategory(p.getCategorySlug())
+                    || Product.isCanonicalStateCategory(p.getSectionSlug())) {
+                continue;
+            }
+            String rawDSlug = p.getDistrictSlug();
+            if (rawDSlug == null || rawDSlug.isBlank()) continue;
+            String cSlug = StateController.canonicalDistrictSlug(rawDSlug);
+            if ("general".equalsIgnoreCase(cSlug) || "state".equalsIgnoreCase(cSlug)) continue;
+
+            String rawDName = p.getDistrict();
+            String cName = StateController.canonicalDistrictName(rawDName, cSlug);
+            productNamesMap.putIfAbsent(cSlug, cName);
+
+            boolean isFree = p.isFree() || p.getPrice() == null || p.getPrice() == 0.0
+                    || "free".equalsIgnoreCase(p.getCategory())
+                    || "free".equalsIgnoreCase(p.getCategorySlug());
+            long[] counts = productCountsMap.computeIfAbsent(cSlug, k -> new long[3]);
+            if (isFree) {
+                counts[0]++; // free
+            } else {
+                counts[1]++; // paid
+            }
+            counts[2]++; // total
+        }
+
+        // Canonical state from stateRepo
+        State canonicalState = null;
+        java.util.Optional<State> byId = stateRepo.findById(cleanStateSlug);
+        if (byId.isPresent()) {
+            canonicalState = byId.get();
+        } else {
+            for (State s : stateRepo.findAll()) {
+                if (Product.generateSlug(s.getName()).equals(cleanStateSlug)) {
+                    canonicalState = s;
+                    break;
+                }
+            }
+        }
+
+        java.util.Map<String, DistrictCountDTO> resultMap = new java.util.LinkedHashMap<>();
+        if (canonicalState != null && canonicalState.getDistricts() != null) {
+            for (String rawDName : canonicalState.getDistricts()) {
+                String cSlug = StateController.canonicalDistrictSlug(rawDName);
+                String cName = StateController.canonicalDistrictName(rawDName, cSlug);
+                long[] counts = productCountsMap.getOrDefault(cSlug, new long[]{0L, 0L, 0L});
+                resultMap.put(cSlug, new DistrictCountDTO(cSlug, cName, counts[0], counts[1], counts[2]));
+            }
+        }
+
+        for (java.util.Map.Entry<String, long[]> entry : productCountsMap.entrySet()) {
+            String cSlug = entry.getKey();
+            if (!resultMap.containsKey(cSlug)) {
+                String cName = productNamesMap.getOrDefault(cSlug, cSlug);
+                long[] counts = entry.getValue();
+                resultMap.put(cSlug, new DistrictCountDTO(cSlug, cName, counts[0], counts[1], counts[2]));
+            }
+        }
+
+        return ResponseEntity.ok(new java.util.ArrayList<>(resultMap.values()));
     }
 
     /**

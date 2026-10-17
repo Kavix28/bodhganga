@@ -60,6 +60,25 @@ export default function StateDistrictsPage() {
                       ? distRes.data.districts
                       : [])));
 
+        // Optionally fetch dedicated count endpoint to enrich
+        let countMap = {};
+        try {
+          const countsRes = await api.get(`/products/state/${stateSlug}/districts/counts`);
+          const countsList = Array.isArray(countsRes)
+            ? countsRes
+            : (Array.isArray(countsRes?.data) ? countsRes.data : []);
+          countsList.forEach((c) => {
+            const slug = normalizeDistrictSlug(c.districtSlug, c.districtName);
+            countMap[slug] = {
+              free: Number(c.freeCount ?? c.free ?? 0),
+              paid: Number(c.paidCount ?? c.paid ?? 0),
+              total: Number(c.totalCount ?? c.total ?? 0),
+            };
+          });
+        } catch {
+          // Dedicated count endpoint is optional fallback
+        }
+
         const formattedState = stateSlug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
         setStateName(formattedState);
 
@@ -76,9 +95,14 @@ export default function StateDistrictsPage() {
             const canonicalSlug = normalizeDistrictSlug(d.districtSlug || d.slug || d.id, d.district || d.districtName);
             const canonicalName = normalizeDistrictName(d.district || d.districtName || d.name, canonicalSlug);
 
-            const freeCount = Number(d.free ?? d.freeCount ?? d.freeResources ?? 0);
-            const paidCount = Number(d.paid ?? d.paidCount ?? d.paidResources ?? 0);
-            const totalCount = Number(d.total ?? d.totalCount ?? d.count ?? d.resourceCount ?? (freeCount + paidCount));
+            const directFree = Number(d.free ?? d.freeCount ?? d.freeResources ?? 0);
+            const directPaid = Number(d.paid ?? d.paidCount ?? d.paidResources ?? 0);
+            const directTotal = Number(d.total ?? d.totalCount ?? d.count ?? d.resourceCount ?? (directFree + directPaid));
+
+            const extra = countMap[canonicalSlug] || {};
+            const freeCount = directFree || (extra.free ?? 0);
+            const paidCount = directPaid || (extra.paid ?? 0);
+            const totalCount = directTotal || (extra.total ?? (freeCount + paidCount));
 
             return {
               districtSlug: canonicalSlug,
@@ -234,6 +258,7 @@ function DistrictCard({ district, onClick }) {
   const total = Number(district.total ?? ((district.free ?? 0) + (district.paid ?? 0)));
   const hasFree = Number(district.free ?? 0) > 0;
   const hasPaid = Number(district.paid ?? 0) > 0;
+  const hasResources = total > 0;
 
   return (
     <div
@@ -249,23 +274,25 @@ function DistrictCard({ district, onClick }) {
 
       {/* Resource count badges */}
       <div className="flex gap-2 flex-wrap mt-3">
-        <span
-          className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
-            total > 0
-              ? "bg-amber-900/60 text-amber-400 border-amber-800"
-              : "bg-gray-800/80 text-gray-400 border-gray-700"
-          }`}
-        >
-          {total} Materials
-        </span>
-        {hasFree && (
-          <span className="text-[10px] font-bold uppercase tracking-wider bg-green-900/60 text-green-400 border border-green-800 px-2 py-0.5 rounded-full">
-            {district.free} Free
-          </span>
-        )}
-        {hasPaid && (
-          <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-900/60 text-amber-400 border border-amber-800 px-2 py-0.5 rounded-full">
-            {district.paid} Paid
+        {hasResources ? (
+          <>
+            <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-900/60 text-amber-400 border border-amber-800 px-2 py-0.5 rounded-full">
+              {total} Material{total === 1 ? "" : "s"}
+            </span>
+            {hasFree && (
+              <span className="text-[10px] font-bold uppercase tracking-wider bg-green-900/60 text-green-400 border border-green-800 px-2 py-0.5 rounded-full">
+                {district.free} Free
+              </span>
+            )}
+            {hasPaid && (
+              <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-900/60 text-amber-400 border border-amber-800 px-2 py-0.5 rounded-full">
+                {district.paid} Paid
+              </span>
+            )}
+          </>
+        ) : (
+          <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-300/80 border border-amber-500/20 px-2 py-0.5 rounded-full">
+            Coming Soon
           </span>
         )}
       </div>

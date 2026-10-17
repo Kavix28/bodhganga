@@ -1439,4 +1439,27 @@ public class StateResourceIsolationTests {
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.message").value(containsString("Direct downloads are disabled")));
     }
+
+    /**
+     * MANDATORY TEST 16: Dedicated District Counts Endpoint
+     * Verifies GET /api/products/state/{stateSlug}/districts/counts:
+     * - Returns list of canonical district counts (freeCount, paidCount, totalCount)
+     * - Preserves canonical Unicode district slugs (chumoukedima, tseminyu, zunheboto)
+     * - Excludes state-scoped resources (districtSlug = "general", resourceScope = "STATE")
+     * - Excludes archived and unpublished resources
+     */
+    @Test
+    void test16_DedicatedDistrictCountsEndpoint() throws Exception {
+        State nl = stateRepo.findById("nagaland").orElseThrow();
+        nl.setDistricts(Arrays.asList("Kohima", "Dimapur", "Mokokchung", "Wokha", "Chümoukedim", "Tseminyü", "Zunheboto"));
+        stateRepo.save(nl);
+
+        mockMvc.perform(get("/api/products/state/nagaland/districts/counts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.districtSlug=='chumoukedima')].districtName").value(hasItem("Chümoukedima")))
+                .andExpect(jsonPath("$[?(@.districtSlug=='chumoukedima')].totalCount").exists())
+                .andExpect(jsonPath("$[?(@.districtSlug=='tseminyu')].districtName").value(hasItem("Tseminyü")))
+                .andExpect(jsonPath("$[?(@.districtSlug=='zunheboto')].districtName").value(hasItem("Zünheboto")))
+                .andExpect(jsonPath("$[?(@.districtSlug=='general')]").doesNotExist());
+    }
 }
