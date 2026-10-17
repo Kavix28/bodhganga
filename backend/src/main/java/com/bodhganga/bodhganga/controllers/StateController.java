@@ -8,6 +8,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -41,9 +42,20 @@ public class StateController {
             String district,
             String districtSlug,
             long count,
+            long free,
+            long paid,
+            long total,
             Boolean quizAvailable) {
         public DistrictInfo(String district, String districtSlug, long count) {
-            this(district, districtSlug, count, false);
+            this(district, districtSlug, count, 0L, count, count, false);
+        }
+
+        public DistrictInfo(String district, String districtSlug, long count, Boolean quizAvailable) {
+            this(district, districtSlug, count, 0L, count, count, quizAvailable);
+        }
+
+        public DistrictInfo(String district, String districtSlug, long count, long free, long paid, Boolean quizAvailable) {
+            this(district, districtSlug, count, free, paid, count > 0 ? count : (free + paid), quizAvailable);
         }
 
         public boolean isQuizAvailable() {
@@ -217,32 +229,88 @@ public class StateController {
      * Get districts of a state from canonical master data, enriched with published
      * product counts.
      */
+    public static String canonicalDistrictSlug(String raw) {
+        if (raw == null || raw.isBlank()) return "general";
+        String s = Product.generateSlug(raw);
+        if ("chamoukedim".equals(s) || "chmoukedim".equals(s) || "chumoukedim".equals(s) || "chumoukedima".equals(s)
+                || s.contains("moukedim")) {
+            return "chumoukedima";
+        }
+        if ("tseminya".equals(s) || "tseminy".equals(s) || "tseminyu".equals(s)
+                || s.startsWith("tseminy")) {
+            return "tseminyu";
+        }
+        if ("zunheboto".equals(s)) {
+            return "zunheboto";
+        }
+        return s;
+    }
+
+    public static String canonicalDistrictName(String rawName, String slug) {
+        if (rawName == null || rawName.isBlank()) {
+            return slug != null ? slug : "";
+        }
+        String s = Product.generateSlug(rawName);
+        if ("chamoukedim".equals(s) || "chmoukedim".equals(s) || "chumoukedim".equals(s) || "chumoukedima".equals(s)
+                || s.contains("moukedim") || rawName.contains("ChÃ¼moukedim") || rawName.contains("Chümoukedim")) {
+            return "Chümoukedima";
+        }
+        if ("tseminya".equals(s) || "tseminy".equals(s) || "tseminyu".equals(s)
+                || s.startsWith("tseminy") || rawName.contains("TseminyÃ¼") || rawName.contains("Tseminyü")) {
+            return "Tseminyü";
+        }
+        if ("zunheboto".equals(s) || rawName.equalsIgnoreCase("Zunheboto") || rawName.equalsIgnoreCase("Zünheboto")) {
+            return "Zünheboto";
+        }
+        return rawName.trim();
+    }
+
+    /**
+     * GET /api/states/{stateSlug}/districts
+     * Get districts of a state from canonical master data, enriched with published
+     * product counts (free, paid, total).
+     */
     @GetMapping("/{stateSlug}/districts")
     public ResponseEntity<List<DistrictInfo>> getAvailableDistricts(@PathVariable String stateSlug) {
         String cleanStateSlug = Product.generateSlug(stateSlug);
 
-        // Aggregate published product counts per district
-        Aggregation agg = Aggregation.newAggregation(
-                Aggregation.match(Criteria.where("isPublished").is(true)
-                        .and("archived").ne(true)
-                        .and("stateSlug").is(cleanStateSlug)
-                        .and("district").exists(true).ne(null).ne("")
-                        .nin("general", "State images", "state images", "images")
-                        .and("districtSlug").nin("general", "state-images", "images", "stateimages")),
-                Aggregation.group("district", "districtSlug").count().as("count"),
-                Aggregation.project("count")
-                        .and("_id.district").as("district")
-                        .and("_id.districtSlug").as("districtSlug")
-                        .andExclude("_id"));
+        // Fetch published district-level products for this state only
+        Query query = new Query();
+        query.addCriteria(new Criteria().andOperator(
+                Criteria.where("stateSlug").is(cleanStateSlug),
+                Criteria.where("districtSlug").nin("general", "state-images", "images", "stateimages", "state", null, ""),
+                Criteria.where("archived").ne(true),
+                Criteria.where("isDeleted").ne(true),
+                new Criteria().orOperator(
+                        Criteria.where("isPublished").is(true),
+                        Criteria.where("published").is(true)
+                ),
+                Criteria.where("resourceScope").ne("STATE")
+        ));
 
-        AggregationResults<DistrictInfo> results = mongoTemplate.aggregate(agg, "products", DistrictInfo.class);
-        java.util.Map<String, DistrictInfo> productDistrictsMap = new java.util.LinkedHashMap<>();
+        List<Product> districtProducts = mongoTemplate.find(query, Product.class);
 
-        for (DistrictInfo info : results.getMappedResults()) {
-            if (info.districtSlug() != null && !info.districtSlug().isBlank()) {
-                boolean quizAvail = quizAvailabilityService.isDistrictAvailable(cleanStateSlug, info.districtSlug());
-                productDistrictsMap.put(info.districtSlug(),
-                        new DistrictInfo(info.district(), info.districtSlug(), info.count(), quizAvail));
+        java.util.Map<String, long[]> productCountsMap = new java.util.LinkedHashMap<>(); // slug -> [total, free, paid]
+        java.util.Map<String, String> productNamesMap = new java.util.LinkedHashMap<>(); // slug -> display name
+
+        for (Product p : districtProducts) {
+            if (p == null || p.isStateScope()) continue;
+            String rawDSlug = p.getDistrictSlug();
+            if (rawDSlug == null || rawDSlug.isBlank()) continue;
+            String cSlug = canonicalDistrictSlug(rawDSlug);
+            if ("general".equalsIgnoreCase(cSlug) || "state".equalsIgnoreCase(cSlug)) continue;
+
+            String rawDName = p.getDistrict();
+            String cName = canonicalDistrictName(rawDName, cSlug);
+            productNamesMap.putIfAbsent(cSlug, cName);
+
+            boolean isFree = p.isFree() || p.getPrice() == null || p.getPrice() == 0.0;
+            long[] counts = productCountsMap.computeIfAbsent(cSlug, k -> new long[3]); // [total, free, paid]
+            counts[0]++; // total
+            if (isFree) {
+                counts[1]++; // free
+            } else {
+                counts[2]++; // paid
             }
         }
 
@@ -263,20 +331,23 @@ public class StateController {
         java.util.Map<String, DistrictInfo> resultMap = new java.util.LinkedHashMap<>();
 
         if (canonicalState != null && canonicalState.getDistricts() != null) {
-            for (String dName : canonicalState.getDistricts()) {
-                String dSlug = Product.generateSlug(dName);
-                long count = productDistrictsMap.containsKey(dSlug) ? productDistrictsMap.get(dSlug).count() : 0L;
-                boolean quizAvail = quizAvailabilityService.isDistrictAvailable(cleanStateSlug, dSlug);
-                resultMap.put(dSlug, new DistrictInfo(dName, dSlug, count, quizAvail));
+            for (String rawDName : canonicalState.getDistricts()) {
+                String cSlug = canonicalDistrictSlug(rawDName);
+                String cName = canonicalDistrictName(rawDName, cSlug);
+                long[] counts = productCountsMap.getOrDefault(cSlug, new long[]{0L, 0L, 0L});
+                boolean quizAvail = quizAvailabilityService.isDistrictAvailable(cleanStateSlug, cSlug);
+                resultMap.put(cSlug, new DistrictInfo(cName, cSlug, counts[0], counts[1], counts[2], quizAvail));
             }
         }
 
         // Add any additional product-derived districts
-        for (java.util.Map.Entry<String, DistrictInfo> entry : productDistrictsMap.entrySet()) {
-            if (!resultMap.containsKey(entry.getKey())) {
-                boolean quizAvail = quizAvailabilityService.isDistrictAvailable(cleanStateSlug, entry.getKey());
-                resultMap.put(entry.getKey(), new DistrictInfo(entry.getValue().district(),
-                        entry.getValue().districtSlug(), entry.getValue().count(), quizAvail));
+        for (java.util.Map.Entry<String, long[]> entry : productCountsMap.entrySet()) {
+            String cSlug = entry.getKey();
+            if (!resultMap.containsKey(cSlug)) {
+                String cName = productNamesMap.getOrDefault(cSlug, cSlug);
+                long[] counts = entry.getValue();
+                boolean quizAvail = quizAvailabilityService.isDistrictAvailable(cleanStateSlug, cSlug);
+                resultMap.put(cSlug, new DistrictInfo(cName, cSlug, counts[0], counts[1], counts[2], quizAvail));
             }
         }
 

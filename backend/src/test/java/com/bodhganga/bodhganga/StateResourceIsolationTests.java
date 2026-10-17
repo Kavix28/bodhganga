@@ -5,6 +5,7 @@ import com.bodhganga.bodhganga.entity.State;
 import com.bodhganga.bodhganga.repo.ProductRepo;
 import com.bodhganga.bodhganga.repo.StateRepo;
 import com.bodhganga.bodhganga.services.S3Service;
+import com.bodhganga.bodhganga.controllers.StateController;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -1241,5 +1243,187 @@ public class StateResourceIsolationTests {
                 .andExpect(jsonPath("$.data.categorySlug").value("history"));
 
         assertEquals(countBefore + 1, productRepo.count());
+    }
+
+    /**
+     * MANDATORY TEST 13: District directory material counts & Free/Paid breakdown
+     * Verifies that GET /api/states/{stateSlug}/districts:
+     * - Returns exact Free, Paid, and Total material counts
+     * - Excludes state-level resources (districtSlug = "general", resourceScope = "STATE")
+     * - Excludes archived resources
+     * - Excludes unpublished resources
+     * - Excludes resources from other districts and states
+     * - Preserves Chamba 18 Free, 46 Paid, 64 Total
+     */
+    @Test
+    void test13_DistrictDirectoryMaterialCounts_NagalandAndChamba() throws Exception {
+        // Ensure Nagaland state exists with canonical districts
+        State nl = stateRepo.findById("nagaland").orElseGet(() -> {
+            State s = new State();
+            s.setId("nagaland");
+            s.setName("Nagaland");
+            s.setCode("NL");
+            s.setType("STATE");
+            return s;
+        });
+        nl.setDistricts(Arrays.asList("ChÃ¼moukedim", "Dimapur", "Kohima", "TseminyÃ¼", "Zunheboto", "Wokha"));
+        stateRepo.save(nl);
+
+        // Seed 1 active Free and 1 active Paid product for Kohima
+        Product kohimaFree = createProduct(
+                "Kohima Free Notes",
+                "nagaland", "Nagaland",
+                "kohima", "Kohima",
+                "Free", "free", "free",
+                "FREE_DISTRICT_CONTENT", Product.SCOPE_DISTRICT,
+                true, true, false, false);
+        productRepo.save(kohimaFree);
+
+        Product kohimaPaid = createProduct(
+                "Kohima Paid Study Pack",
+                "nagaland", "Nagaland",
+                "kohima", "Kohima",
+                "Paid", "paid", "paid",
+                "PAID_DISTRICT_RESOURCES", Product.SCOPE_DISTRICT,
+                false, true, false, false);
+        kohimaPaid.setPrice(99.0);
+        productRepo.save(kohimaPaid);
+
+        // Seed an UNPUBLISHED resource for Kohima (must NOT be counted)
+        Product kohimaUnpublished = createProduct(
+                "Kohima Draft",
+                "nagaland", "Nagaland",
+                "kohima", "Kohima",
+                "Free", "free", "free",
+                "FREE_DISTRICT_CONTENT", Product.SCOPE_DISTRICT,
+                true, false, false, false);
+        productRepo.save(kohimaUnpublished);
+
+        // Seed an ARCHIVED resource for Kohima (must NOT be counted)
+        Product kohimaArchived = createProduct(
+                "Kohima Archived",
+                "nagaland", "Nagaland",
+                "kohima", "Kohima",
+                "Free", "free", "free",
+                "FREE_DISTRICT_CONTENT", Product.SCOPE_DISTRICT,
+                true, true, true, false);
+        productRepo.save(kohimaArchived);
+
+        // Seed a STATE-level resource for Nagaland (must NEVER be in district counts)
+        Product stateHistory = createProduct(
+                "Nagaland History Comprehensive Book",
+                "nagaland", "Nagaland",
+                "general", "general",
+                "History", "history", "history",
+                "STATE_CONTENT", Product.SCOPE_STATE,
+                true, true, false, false);
+        productRepo.save(stateHistory);
+
+        // Seed an Assam district resource (must NEVER leak into Nagaland)
+        Product assamDistrict = createProduct(
+                "Kamrup District Guide",
+                "assam", "Assam",
+                "kamrup", "Kamrup",
+                "Free", "free", "free",
+                "FREE_DISTRICT_CONTENT", Product.SCOPE_DISTRICT,
+                true, true, false, false);
+        productRepo.save(assamDistrict);
+
+        // Call Nagaland districts endpoint
+        mockMvc.perform(get("/api/states/nagaland/districts"))
+                .andExpect(status().isOk())
+                // Chümoukedima canonical name and slug with 0 resources
+                .andExpect(jsonPath("$[?(@.districtSlug=='chumoukedima')].district").value(hasItem("Chümoukedima")))
+                .andExpect(jsonPath("$[?(@.districtSlug=='chumoukedima')].total").value(hasItem(0)))
+                .andExpect(jsonPath("$[?(@.districtSlug=='chumoukedima')].free").value(hasItem(0)))
+                .andExpect(jsonPath("$[?(@.districtSlug=='chumoukedima')].paid").value(hasItem(0)))
+                // Tseminyü canonical name and slug with 0 resources
+                .andExpect(jsonPath("$[?(@.districtSlug=='tseminyu')].district").value(hasItem("Tseminyü")))
+                .andExpect(jsonPath("$[?(@.districtSlug=='tseminyu')].total").value(hasItem(0)))
+                // Zünheboto canonical name and slug with 0 resources
+                .andExpect(jsonPath("$[?(@.districtSlug=='zunheboto')].district").value(hasItem("Zünheboto")))
+                .andExpect(jsonPath("$[?(@.districtSlug=='zunheboto')].total").value(hasItem(0)))
+                // Kohima with active resources (Free >= 1, Paid >= 1, Total >= 2)
+                .andExpect(jsonPath("$[?(@.districtSlug=='kohima')].free").value(hasItem(greaterThanOrEqualTo(1))))
+                .andExpect(jsonPath("$[?(@.districtSlug=='kohima')].paid").value(hasItem(greaterThanOrEqualTo(1))))
+                .andExpect(jsonPath("$[?(@.districtSlug=='kohima')].total").value(hasItem(greaterThanOrEqualTo(2))))
+                .andExpect(jsonPath("$[?(@.districtSlug=='kohima')].count").value(hasItem(greaterThanOrEqualTo(2))))
+                // State-level "general" must NEVER exist as a district entry
+                .andExpect(jsonPath("$[?(@.districtSlug=='general')]").doesNotExist());
+
+        // Seed Himachal Pradesh state and Chamba products for regression check
+        State hp = new State();
+        hp.setId("himachal-pradesh");
+        hp.setName("Himachal Pradesh");
+        hp.setCode("HP");
+        hp.setType("STATE");
+        hp.setDistricts(Arrays.asList("Bilaspur", "Chamba", "Hamirpur", "Kangra", "Kinnaur", "Kullu", "Mandi", "Shimla", "Sirmaur", "Solan", "Una"));
+        stateRepo.save(hp);
+
+        for (int i = 1; i <= 18; i++) {
+            Product freeP = createProduct(
+                    "Chamba Free Resource " + i,
+                    "himachal-pradesh", "Himachal Pradesh",
+                    "chamba", "Chamba",
+                    "Free", "free", "free",
+                    "FREE_DISTRICT_CONTENT", Product.SCOPE_DISTRICT,
+                    true, true, false, false);
+            productRepo.save(freeP);
+        }
+
+        for (int i = 1; i <= 46; i++) {
+            Product paidP = createProduct(
+                    "Chamba Paid Resource " + i,
+                    "himachal-pradesh", "Himachal Pradesh",
+                    "chamba", "Chamba",
+                    "Paid", "paid", "paid",
+                    "PAID_DISTRICT_RESOURCES", Product.SCOPE_DISTRICT,
+                    false, true, false, false);
+            paidP.setPrice(99.0);
+            productRepo.save(paidP);
+        }
+
+        // Verify Chamba regression via districts endpoint: 18 Free, 46 Paid, 64 Total
+        mockMvc.perform(get("/api/states/himachal-pradesh/districts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.districtSlug=='chamba')].free").value(hasItem(18)))
+                .andExpect(jsonPath("$[?(@.districtSlug=='chamba')].paid").value(hasItem(46)))
+                .andExpect(jsonPath("$[?(@.districtSlug=='chamba')].total").value(hasItem(64)))
+                .andExpect(jsonPath("$[?(@.districtSlug=='bilaspur')].total").value(hasItem(0)));
+    }
+
+    /**
+     * MANDATORY TEST 14: Unicode district canonicalization and dynamic count updates
+     * Verifies that uploading a resource to Chümoukedima immediately reflects in the district counts.
+     */
+    @Test
+    @WithMockUser(authorities = "ROLE_ADMIN")
+    void test14_UnicodeDistrictCountDynamicUpdate() throws Exception {
+        assertEquals("chumoukedima", StateController.canonicalDistrictSlug("ChÃ¼moukedim"));
+        assertEquals("Chümoukedima", StateController.canonicalDistrictName("ChÃ¼moukedim", "chumoukedima"));
+        assertEquals("tseminyu", StateController.canonicalDistrictSlug("TseminyÃ¼"));
+        assertEquals("Tseminyü", StateController.canonicalDistrictName("TseminyÃ¼", "tseminyu"));
+        assertEquals("zunheboto", StateController.canonicalDistrictSlug("Zunheboto"));
+        assertEquals("Zünheboto", StateController.canonicalDistrictName("Zunheboto", "zunheboto"));
+
+        // Upload a new Free resource for Chümoukedima
+        MockMultipartFile file = new MockMultipartFile("file", "chumoukedima_study_doc.pdf", "application/pdf", VALID_PDF_BYTES);
+        mockMvc.perform(multipart("/api/admin/resources/upload")
+                .file(file)
+                .param("stateSlug", "nagaland")
+                .param("districtSlug", "chumoukedima")
+                .param("resourceScope", "DISTRICT")
+                .param("isFree", "true")
+                .param("category", "Free")
+                .param("title", "Chümoukedima Study Document"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.districtSlug").value("chumoukedima"));
+
+        // Verify Chümoukedima now reports Free: 1, Paid: 0, Total: 1
+        mockMvc.perform(get("/api/states/nagaland/districts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.districtSlug=='chumoukedima')].free").value(hasItem(1)))
+                .andExpect(jsonPath("$[?(@.districtSlug=='chumoukedima')].paid").value(hasItem(0)))
+                .andExpect(jsonPath("$[?(@.districtSlug=='chumoukedima')].total").value(hasItem(1)));
     }
 }

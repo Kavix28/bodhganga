@@ -4,6 +4,37 @@ import api from "../services/api";
 import { decodeMojibake } from "../utils/formatters";
 import StateSectionTabs from "../components/states/StateSectionTabs";
 
+const normalizeDistrictSlug = (slug, name) => {
+  const s = String(slug || "").toLowerCase().trim();
+  const n = String(name || "").toLowerCase().trim();
+  if (s === "chamoukedim" || s === "chmoukedim" || s === "chumoukedim" || s === "chumoukedima" || s.includes("moukedim") || n.includes("chümoukedim") || n.includes("chã¼moukedim")) {
+    return "chumoukedima";
+  }
+  if (s === "tseminya" || s === "tseminy" || s === "tseminyu" || s.startsWith("tseminy") || n.includes("tseminyü") || n.includes("tseminyã¼")) {
+    return "tseminyu";
+  }
+  if (s === "zunheboto" || n.includes("zünheboto") || n.includes("zunheboto")) {
+    return "zunheboto";
+  }
+  return s || n.replace(/\s+/g, "-");
+};
+
+const normalizeDistrictName = (name, slug) => {
+  const decoded = decodeMojibake(name || slug);
+  const n = String(decoded).trim();
+  const s = String(slug || "").toLowerCase().trim();
+  if (s === "chumoukedima" || s === "chamoukedim" || s === "chmoukedim" || s.includes("moukedim") || n.includes("Chümoukedim") || n.includes("ChÃ¼moukedim")) {
+    return "Chümoukedima";
+  }
+  if (s === "tseminyu" || s === "tseminya" || s === "tseminy" || s.startsWith("tseminy") || n.includes("Tseminyü") || n.includes("TseminyÃ¼")) {
+    return "Tseminyü";
+  }
+  if (s === "zunheboto" || n.toLowerCase() === "zunheboto") {
+    return "Zünheboto";
+  }
+  return n;
+};
+
 export default function StateDistrictsPage() {
   const { stateSlug } = useParams();
   const navigate = useNavigate();
@@ -17,7 +48,7 @@ export default function StateDistrictsPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        // Fetch canonical districts from backend
+        // Fetch canonical districts from authoritative backend endpoint
         const distRes = await api.get(`/states/${stateSlug}/districts`);
         const distList = Array.isArray(distRes)
           ? distRes
@@ -29,49 +60,11 @@ export default function StateDistrictsPage() {
                       ? distRes.data.districts
                       : [])));
 
-        // Also fetch published products to enrich district counts
-        const prodRes = await api.get(`/products/state/${stateSlug}`);
-        const products = Array.isArray(prodRes)
-          ? prodRes
-          : (Array.isArray(prodRes?.data)
-              ? prodRes.data
-              : (Array.isArray(prodRes?.products)
-                  ? prodRes.products
-                  : (Array.isArray(prodRes?.data?.products)
-                      ? prodRes.data.products
-                      : [])));
+        const formattedState = stateSlug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+        setStateName(formattedState);
 
-        if (products.length > 0) {
-          const rawSName = products[0].state || products[0].stateName || stateSlug;
-          setStateName(decodeMojibake(rawSName));
-        } else {
-          const formatted = stateSlug.split("-").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-          setStateName(decodeMojibake(formatted));
-        }
-
-        const countMap = {};
-        products.forEach((p) => {
-          const rawDSlug = p.districtSlug || p.slug || p.districtId || p.id || "";
-          const rawDName = p.district || p.districtName || p.name || p.title || "";
-          const dSlug = String(rawDSlug).toLowerCase().trim();
-          const dName = String(rawDName).toLowerCase().trim();
-          const dDecoded = String(decodeMojibake(rawDName)).toLowerCase().trim();
-          if (!dSlug || dSlug === "general") return;
-
-          const isFree = Boolean(p.free || p.isFree || p.price === 0 || p.isPaid === false || p.type === "FREE");
-
-          Array.from(new Set([dSlug, dName, dDecoded].filter(Boolean))).forEach((k) => {
-            if (!countMap[k]) {
-              countMap[k] = { free: 0, paid: 0, total: 0 };
-            }
-            countMap[k].total++;
-            if (isFree) countMap[k].free++;
-            else countMap[k].paid++;
-          });
-        });
-
-        const NON_DISTRICT_KEYS = ["general", "state-images", "stateimages", "images", "state images"];
-        const merged = distList
+        const NON_DISTRICT_KEYS = ["general", "state-images", "stateimages", "images", "state images", "state"];
+        const parsedDistricts = distList
           .filter((d) => {
             const rawSlug = d.districtSlug || d.slug || d.id || "";
             const rawName = d.district || d.districtName || d.name || d.title || "";
@@ -80,29 +73,48 @@ export default function StateDistrictsPage() {
             return !NON_DISTRICT_KEYS.includes(normSlug) && !NON_DISTRICT_KEYS.includes(normName);
           })
           .map((d) => {
-            const rawSlug = d.districtSlug || d.slug || d.id || "";
-            const rawName = d.district || d.districtName || d.name || d.title || "";
-            const decodedName = decodeMojibake(rawName || rawSlug);
-            const normSlug = String(rawSlug).toLowerCase().trim();
-            const normName = String(rawName).toLowerCase().trim();
-            const decodedNameLower = String(decodedName).toLowerCase().trim();
+            const canonicalSlug = normalizeDistrictSlug(d.districtSlug || d.slug || d.id, d.district || d.districtName);
+            const canonicalName = normalizeDistrictName(d.district || d.districtName || d.name, canonicalSlug);
 
-            const counts = countMap[normSlug] || countMap[normName] || countMap[decodedNameLower] || { free: 0, paid: 0, total: 0 };
-
-            const freeCount = d.free ?? d.freeCount ?? d.freeResources ?? counts.free ?? 0;
-            const paidCount = d.paid ?? d.paidCount ?? d.paidResources ?? counts.paid ?? 0;
-            const totalCount = d.total ?? d.totalCount ?? d.count ?? d.resourceCount ?? counts.total ?? (freeCount + paidCount);
+            const freeCount = Number(d.free ?? d.freeCount ?? d.freeResources ?? 0);
+            const paidCount = Number(d.paid ?? d.paidCount ?? d.paidResources ?? 0);
+            const totalCount = Number(d.total ?? d.totalCount ?? d.count ?? d.resourceCount ?? (freeCount + paidCount));
 
             return {
-              districtSlug: rawSlug || normName.replace(/\s+/g, "-"),
-              districtName: decodedName,
+              districtSlug: canonicalSlug,
+              districtName: canonicalName,
               free: freeCount,
               paid: paidCount,
               total: totalCount,
             };
           });
 
-        setDistricts(merged.sort((a, b) => a.districtName.localeCompare(b.districtName)));
+        // Enrich any district that has total > 0 but missing free/paid (e.g. against older backend instances)
+        const enriched = await Promise.all(
+          parsedDistricts.map(async (d) => {
+            if (d.total > 0 && d.free === 0 && d.paid === 0) {
+              try {
+                const secRes = await api.get(`/products/state/${stateSlug}/district/${d.districtSlug}/sections`);
+                const secData = secRes?.data || secRes || {};
+                const f = Number(secData.freeTotal ?? 0);
+                const p = Number(secData.paidTotal ?? 0);
+                if (f > 0 || p > 0) {
+                  return {
+                    ...d,
+                    free: f,
+                    paid: p,
+                    total: f + p,
+                  };
+                }
+              } catch {
+                // Ignore fallback error and keep existing count
+              }
+            }
+            return d;
+          })
+        );
+
+        setDistricts(enriched.sort((a, b) => a.districtName.localeCompare(b.districtName)));
         setIsActiveState(true);
       } catch (err) {
         console.error("Failed to load districts:", err);
@@ -219,6 +231,10 @@ export default function StateDistrictsPage() {
 }
 
 function DistrictCard({ district, onClick }) {
+  const hasFree = district.free > 0;
+  const hasPaid = district.paid > 0;
+  const hasResources = district.total > 0 || hasFree || hasPaid;
+
   return (
     <div
       onClick={onClick}
@@ -233,17 +249,22 @@ function DistrictCard({ district, onClick }) {
 
       {/* Resource count badges */}
       <div className="flex gap-2 flex-wrap mt-3">
-        {district.free > 0 && (
+        {hasFree && (
           <span className="text-[10px] font-bold uppercase tracking-wider bg-green-900/60 text-green-400 border border-green-800 px-2 py-0.5 rounded-full">
             {district.free} Free
           </span>
         )}
-        {district.paid > 0 && (
+        {hasPaid && (
           <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-900/60 text-amber-400 border border-amber-800 px-2 py-0.5 rounded-full">
             {district.paid} Paid
           </span>
         )}
-        {district.free === 0 && district.paid === 0 && district.total === 0 && (
+        {hasResources && !hasFree && !hasPaid && (
+          <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-900/60 text-amber-400 border border-amber-800 px-2 py-0.5 rounded-full">
+            {district.total} Materials
+          </span>
+        )}
+        {!hasResources && (
           <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-300/80 border border-amber-500/20 px-2 py-0.5 rounded-full">
             Coming Soon
           </span>
