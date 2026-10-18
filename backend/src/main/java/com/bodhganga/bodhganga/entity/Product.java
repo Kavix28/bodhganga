@@ -440,16 +440,22 @@ public void setContentHash(String contentHash) {
         if (clean.equals("history")) {
             return CATEGORY_HISTORY;
         }
-        if (clean.equals("geography")) {
+        if (clean.equals("geography") || clean.equals("geo")) {
             return CATEGORY_GEOGRAPHY;
         }
         if (clean.equals("art-culture") || clean.equals("art-and-culture")
-                || clean.equals("art & culture") || clean.equals("art and culture")) {
+                || clean.equals("art & culture") || clean.equals("art and culture")
+                || clean.equals("art_culture") || clean.equals("art_and_culture")
+                || clean.equals("art") || clean.equals("culture")
+                || clean.equals("arts-culture") || clean.equals("arts & culture")
+                || clean.equals("arts and culture")) {
             return CATEGORY_ART_CULTURE;
         }
         if (clean.equals("heritage-sites") || clean.equals("heritage-monuments")
                 || clean.equals("heritage-sites-monuments") || clean.equals("monuments")
-                || clean.equals("heritage & sites") || clean.equals("heritage and sites")) {
+                || clean.equals("heritage & sites") || clean.equals("heritage and sites")
+                || clean.equals("heritage_sites") || clean.equals("heritage_monuments")
+                || clean.equals("heritage")) {
             return CATEGORY_HERITAGE_SITES;
         }
         return null;
@@ -461,16 +467,22 @@ public void setContentHash(String contentHash) {
         if (clean.equals("history")) {
             return SLUG_HISTORY;
         }
-        if (clean.equals("geography")) {
+        if (clean.equals("geography") || clean.equals("geo")) {
             return SLUG_GEOGRAPHY;
         }
         if (clean.equals("art-culture") || clean.equals("art-and-culture")
-                || clean.equals("art & culture") || clean.equals("art and culture")) {
+                || clean.equals("art & culture") || clean.equals("art and culture")
+                || clean.equals("art_culture") || clean.equals("art_and_culture")
+                || clean.equals("art") || clean.equals("culture")
+                || clean.equals("arts-culture") || clean.equals("arts & culture")
+                || clean.equals("arts and culture")) {
             return SLUG_ART_CULTURE;
         }
         if (clean.equals("heritage-sites") || clean.equals("heritage-monuments")
                 || clean.equals("heritage-sites-monuments") || clean.equals("monuments")
-                || clean.equals("heritage & sites") || clean.equals("heritage and sites")) {
+                || clean.equals("heritage & sites") || clean.equals("heritage and sites")
+                || clean.equals("heritage_sites") || clean.equals("heritage_monuments")
+                || clean.equals("heritage")) {
             return SLUG_HERITAGE_SITES;
         }
         return null;

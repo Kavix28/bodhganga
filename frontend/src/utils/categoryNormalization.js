@@ -35,6 +35,13 @@ export const CANONICAL_STATE_CATEGORY_MAP = {
   'art-and-culture': 'Art & Culture',
   'art & culture': 'Art & Culture',
   'art and culture': 'Art & Culture',
+  'art_culture': 'Art & Culture',
+  'art_and_culture': 'Art & Culture',
+  'art': 'Art & Culture',
+  'culture': 'Art & Culture',
+  'arts-culture': 'Art & Culture',
+  'arts & culture': 'Art & Culture',
+  'arts and culture': 'Art & Culture',
 
   // History
   history: 'History',
@@ -46,9 +53,13 @@ export const CANONICAL_STATE_CATEGORY_MAP = {
   monuments: 'Heritage & Sites',
   'heritage & sites': 'Heritage & Sites',
   'heritage and sites': 'Heritage & Sites',
+  'heritage_sites': 'Heritage & Sites',
+  'heritage_monuments': 'Heritage & Sites',
+  'heritage': 'Heritage & Sites',
 
   // Geography
   geography: 'Geography',
+  geo: 'Geography',
 };
 
 export const CANONICAL_STATE_SLUG_MAP = {
@@ -56,6 +67,13 @@ export const CANONICAL_STATE_SLUG_MAP = {
   'art-and-culture': 'art-culture',
   'art & culture': 'art-culture',
   'art and culture': 'art-culture',
+  'art_culture': 'art-culture',
+  'art_and_culture': 'art-culture',
+  'art': 'art-culture',
+  'culture': 'art-culture',
+  'arts-culture': 'art-culture',
+  'arts & culture': 'art-culture',
+  'arts and culture': 'art-culture',
 
   history: 'history',
 
@@ -65,8 +83,12 @@ export const CANONICAL_STATE_SLUG_MAP = {
   monuments: 'heritage-sites',
   'heritage & sites': 'heritage-sites',
   'heritage and sites': 'heritage-sites',
+  'heritage_sites': 'heritage-sites',
+  'heritage_monuments': 'heritage-sites',
+  'heritage': 'heritage-sites',
 
   geography: 'geography',
+  geo: 'geography',
 };
 
 /**

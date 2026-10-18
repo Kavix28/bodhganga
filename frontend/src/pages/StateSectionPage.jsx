@@ -157,10 +157,47 @@ export default function StateSectionPage() {
 
     const loadData = async () => {
       try {
-        const prodRes = await api.get(`/products/state/${stateSlug}/category/${section}`);
+        let prodList = [];
+
+        // 1. Primary: Query canonical state category endpoint using category slug
+        try {
+          const prodRes = await api.get(`/products/state/${stateSlug}/category/${section}`);
+          const list = Array.isArray(prodRes) ? prodRes : (prodRes?.data || []);
+          if (list && list.length > 0) {
+            prodList = list;
+          }
+        } catch {
+          // Allow fallback resolution
+        }
+
+        // 2. Compatible resolution: If slug endpoint returned empty, query with canonical category display name (e.g. "Art & Culture")
+        if (prodList.length === 0 && titles[section]) {
+          try {
+            const nameRes = await api.get(`/products/state/${stateSlug}/category/${encodeURIComponent(titles[section])}`);
+            const list = Array.isArray(nameRes) ? nameRes : (nameRes?.data || []);
+            if (list && list.length > 0) {
+              prodList = list;
+            }
+          } catch {
+            // Allow fallback resolution
+          }
+        }
+
+        // 3. Resilient state-scope query: Query state-level resources directly
+        if (prodList.length === 0) {
+          try {
+            const stateRes = await api.get(`/products/state/${stateSlug}?scope=state`);
+            const list = Array.isArray(stateRes) ? stateRes : (stateRes?.data || []);
+            if (list && list.length > 0) {
+              prodList = list;
+            }
+          } catch {
+            // Fall through
+          }
+        }
+
         if (!isSubscribed) return;
 
-        const prodList = Array.isArray(prodRes) ? prodRes : (prodRes?.data || []);
         setProducts(prodList);
 
         if (prodList.length > 0 && (prodList[0].state || prodList[0].stateName)) {
@@ -189,20 +226,68 @@ export default function StateSectionPage() {
   useEffect(() => {
     let isSubscribed = true;
     const fetchCategoryCounts = async () => {
+      // 1. Try dedicated category counts endpoint
       try {
         const res = await api.get(`/products/state/${stateSlug}/categories/counts`);
-        if (!isSubscribed) return;
         const countsList = Array.isArray(res) ? res : (res?.data || []);
+        if (countsList && countsList.length > 0) {
+          const map = {};
+          countsList.forEach((item) => {
+            map[item.categorySlug] = {
+              count: Number(item.count || 0),
+              isAvailable: Boolean(item.isAvailable || item.count > 0),
+            };
+          });
+          if (isSubscribed) {
+            setSectionAvailability(map);
+          }
+          return;
+        }
+      } catch {
+        // Fall back to deriving counts from authoritative state resources
+      }
+
+      // 2. Authoritative derivation from state-scoped products
+      try {
+        const stateRes = await api.get(`/products/state/${stateSlug}?scope=state`);
+        if (!isSubscribed) return;
+        const allProds = Array.isArray(stateRes) ? stateRes : (stateRes?.data || []);
+        const counts = {
+          'art-culture': 0,
+          'history': 0,
+          'heritage-sites': 0,
+          'geography': 0,
+        };
+
+        allProds.forEach((p) => {
+          if (!p) return;
+          const pState = String(p.stateSlug || '').toLowerCase().trim();
+          if (pState !== stateSlug.toLowerCase().trim()) return;
+          const dSlug = String(p.districtSlug || '').toLowerCase().trim();
+          if (!dSlug || (dSlug !== 'general' && dSlug !== 'state')) return;
+          const isPub = p.isPublished ?? p.published ?? true;
+          const isArch = p.isArchived ?? p.archived ?? false;
+          const isDel = p.isDeleted ?? false;
+          if (!isPub || isArch || isDel) return;
+          const catSlug = normalizeStateCategorySlug(p.categorySlug || p.sectionSlug || p.category);
+          if (catSlug && counts[catSlug] !== undefined) {
+            counts[catSlug]++;
+          }
+        });
+
         const map = {};
-        countsList.forEach((item) => {
-          map[item.categorySlug] = {
-            count: Number(item.count || 0),
-            isAvailable: Boolean(item.isAvailable || item.count > 0),
+        Object.keys(counts).forEach((slug) => {
+          map[slug] = {
+            count: counts[slug],
+            isAvailable: counts[slug] > 0,
           };
         });
-        setSectionAvailability(map);
+
+        if (isSubscribed) {
+          setSectionAvailability(map);
+        }
       } catch (e) {
-        console.warn("Could not fetch category counts:", e);
+        console.warn("Could not fetch or derive category counts:", e);
       }
     };
 

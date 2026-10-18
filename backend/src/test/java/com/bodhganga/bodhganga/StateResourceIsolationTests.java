@@ -1489,4 +1489,181 @@ public class StateResourceIsolationTests {
                 .andExpect(jsonPath("$[?(@.categorySlug=='geography')].count").value(hasItem(0)))
                 .andExpect(jsonPath("$[?(@.categorySlug=='heritage-sites')].count").value(hasItem(0)));
     }
+
+    /**
+     * MANDATORY TEST 18: State Category Admin/Public Sync & Art & Culture Visibility Matrix
+     * Verifies all 15 core requirements:
+     * 1. Nagaland Art & Culture returns 3 resources.
+     * 2. Nagaland Art & Culture count = 3.
+     * 3. Nagaland History returns 3.
+     * 4. Nagaland Geography returns 0.
+     * 5. Nagaland Heritage & Sites returns 0.
+     * 6. Art & Culture resources require resourceScope = STATE.
+     * 7. Art & Culture resources require districtSlug = general.
+     * 8. Art & Culture does not return History.
+     * 9. Art & Culture does not return district resources.
+     * 10. Cross-state resources are excluded.
+     * 11. Published=false excluded.
+     * 12. Archived=true excluded.
+     * 13. isDeleted=true excluded.
+     * 14. Same hash/different category remains allowed.
+     * 15. Same hash/same destination remains duplicate.
+     */
+    @Test
+    @WithMockUser(authorities = "ROLE_ADMIN")
+    void test18_NagalandStateCategorySyncAndRegressionSuite() throws Exception {
+        productRepo.deleteAll();
+
+        // 1-3: Seed 3 exact Nagaland Art & Culture resources
+        Product art1 = createProduct("Dances of Sumi Naga Tribe", "nagaland", "Nagaland",
+                "general", "general", "Art & Culture", "art-culture", "art-culture",
+                "STATE_CONTENT", Product.SCOPE_STATE, true, true, false, false);
+        art1.setContentHash("hash-art-1");
+        productRepo.save(art1);
+
+        Product art2 = createProduct("Tulini and Ahuna Festival- Sumi Naga tribe", "nagaland", "Nagaland",
+                "general", "general", "Art & Culture", "art-culture", "art-culture",
+                "STATE_CONTENT", Product.SCOPE_STATE, true, true, false, false);
+        art2.setContentHash("hash-art-2");
+        productRepo.save(art2);
+
+        Product art3 = createProduct("Busu Dima Festival & Baidima Folk Dance", "nagaland", "Nagaland",
+                "general", "general", "Art & Culture", "art-culture", "art-culture",
+                "STATE_CONTENT", Product.SCOPE_STATE, true, true, false, false);
+        art3.setContentHash("hash-art-3");
+        productRepo.save(art3);
+
+        // 4-6: Seed 3 exact Nagaland History resources
+        Product hist1 = createProduct("Battle of Kohima (1944)", "nagaland", "Nagaland",
+                "general", "general", "history", "history", "history",
+                "STATE_CONTENT", Product.SCOPE_STATE, true, true, false, false);
+        productRepo.save(hist1);
+
+        Product hist2 = createProduct("Naga Hills District (1866)", "nagaland", "Nagaland",
+                "general", "general", "history", "history", "history",
+                "STATE_CONTENT", Product.SCOPE_STATE, true, true, false, false);
+        productRepo.save(hist2);
+
+        Product hist3 = createProduct("Dimasa Kachari Kingdom", "nagaland", "Nagaland",
+                "general", "general", "history", "history", "history",
+                "STATE_CONTENT", Product.SCOPE_STATE, true, true, false, false);
+        productRepo.save(hist3);
+
+        // Negative fixtures to verify strict filtering:
+        // District resource with Art & Culture category (must be excluded from state Art & Culture)
+        Product distArt = createProduct("Kohima Cultural Festival", "nagaland", "Nagaland",
+                "kohima", "Kohima", "Art & Culture", "art-culture", "art-culture",
+                "FREE_DISTRICT_CONTENT", Product.SCOPE_DISTRICT, true, true, false, false);
+        productRepo.save(distArt);
+
+        // Cross-state Art & Culture resource (Assam)
+        Product assamArt = createProduct("Bihu Dance of Assam", "assam", "Assam",
+                "general", "general", "Art & Culture", "art-culture", "art-culture",
+                "STATE_CONTENT", Product.SCOPE_STATE, true, true, false, false);
+        productRepo.save(assamArt);
+
+        // Unpublished Art & Culture
+        Product unpubArt = createProduct("Draft Hornbill Guide", "nagaland", "Nagaland",
+                "general", "general", "Art & Culture", "art-culture", "art-culture",
+                "STATE_CONTENT", Product.SCOPE_STATE, true, false, false, false);
+        productRepo.save(unpubArt);
+
+        // Archived Art & Culture
+        Product archArt = createProduct("Archived Naga Shawls", "nagaland", "Nagaland",
+                "general", "general", "Art & Culture", "art-culture", "art-culture",
+                "STATE_CONTENT", Product.SCOPE_STATE, true, true, true, false);
+        productRepo.save(archArt);
+
+        // Deleted Art & Culture
+        Product delArt = createProduct("Deleted Festival Guide", "nagaland", "Nagaland",
+                "general", "general", "Art & Culture", "art-culture", "art-culture",
+                "STATE_CONTENT", Product.SCOPE_STATE, true, true, false, true);
+        productRepo.save(delArt);
+
+        // Requirement 1: Nagaland Art & Culture returns 3 resources
+        mockMvc.perform(get("/api/products/state/nagaland/category/art-culture"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data", hasSize(3)))
+                .andExpect(jsonPath("$.data[*].title", hasItem("Dances of Sumi Naga Tribe")))
+                .andExpect(jsonPath("$.data[*].title", hasItem("Tulini and Ahuna Festival- Sumi Naga tribe")))
+                .andExpect(jsonPath("$.data[*].title", hasItem("Busu Dima Festival & Baidima Folk Dance")))
+                // Requirement 6: Art & Culture resources require resourceScope = STATE
+                .andExpect(jsonPath("$.data[*].resourceScope", everyItem(is("STATE"))))
+                // Requirement 7: Art & Culture resources require districtSlug = general
+                .andExpect(jsonPath("$.data[*].districtSlug", everyItem(is("general"))))
+                // Requirement 8: Art & Culture does not return History
+                .andExpect(jsonPath("$.data[*].title", not(hasItem("Battle of Kohima (1944)"))))
+                // Requirement 9: Art & Culture does not return district resources
+                .andExpect(jsonPath("$.data[*].title", not(hasItem("Kohima Cultural Festival"))))
+                // Requirement 10: Cross-state resources are excluded
+                .andExpect(jsonPath("$.data[*].title", not(hasItem("Bihu Dance of Assam"))))
+                // Requirement 11: Published=false excluded
+                .andExpect(jsonPath("$.data[*].title", not(hasItem("Draft Hornbill Guide"))))
+                // Requirement 12: Archived=true excluded
+                .andExpect(jsonPath("$.data[*].title", not(hasItem("Archived Naga Shawls"))))
+                // Requirement 13: isDeleted=true excluded
+                .andExpect(jsonPath("$.data[*].title", not(hasItem("Deleted Festival Guide"))));
+
+        // Requirement 2: Nagaland Art & Culture count = 3
+        // Requirement 3: Nagaland History returns 3
+        // Requirement 4: Nagaland Geography returns 0
+        // Requirement 5: Nagaland Heritage & Sites returns 0
+        mockMvc.perform(get("/api/products/state/nagaland/categories/counts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.categorySlug=='art-culture')].count").value(hasItem(3)))
+                .andExpect(jsonPath("$[?(@.categorySlug=='art-culture')].isAvailable").value(hasItem(true)))
+                .andExpect(jsonPath("$[?(@.categorySlug=='history')].count").value(hasItem(3)))
+                .andExpect(jsonPath("$[?(@.categorySlug=='history')].isAvailable").value(hasItem(true)))
+                .andExpect(jsonPath("$[?(@.categorySlug=='geography')].count").value(hasItem(0)))
+                .andExpect(jsonPath("$[?(@.categorySlug=='geography')].isAvailable").value(hasItem(false)))
+                .andExpect(jsonPath("$[?(@.categorySlug=='heritage-sites')].count").value(hasItem(0)))
+                .andExpect(jsonPath("$[?(@.categorySlug=='heritage-sites')].isAvailable").value(hasItem(false)));
+
+        // Verify History endpoint also returns exact 3 resources
+        mockMvc.perform(get("/api/products/state/nagaland/category/history"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data", hasSize(3)))
+                .andExpect(jsonPath("$.data[*].title", hasItem("Battle of Kohima (1944)")))
+                .andExpect(jsonPath("$.data[*].title", hasItem("Naga Hills District (1866)")))
+                .andExpect(jsonPath("$.data[*].title", hasItem("Dimasa Kachari Kingdom")))
+                .andExpect(jsonPath("$.data[*].title", not(hasItem("Dances of Sumi Naga Tribe"))));
+
+        // Verify Geography endpoint returns 0
+        mockMvc.perform(get("/api/products/state/nagaland/category/geography"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data", hasSize(0)));
+
+        // Verify Heritage & Sites endpoint returns 0
+        mockMvc.perform(get("/api/products/state/nagaland/category/heritage-sites"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data", hasSize(0)));
+
+        // Requirement 14: Same hash/different category remains allowed
+        byte[] uniqueFileBytes = "%PDF-1.4\n1 0 obj\n<< /Test18 Unique Hash >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF".getBytes();
+        MockMultipartFile file1 = new MockMultipartFile("file", "doc_history.pdf", "application/pdf", uniqueFileBytes);
+
+        mockMvc.perform(multipart("/api/admin/resources/upload")
+                .file(file1)
+                .param("stateSlug", "nagaland")
+                .param("districtSlug", "general")
+                .param("resourceScope", "STATE")
+                .param("category", "Geography")
+                .param("title", "Nagaland River Geography"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isDuplicate").value(false));
+
+        // Requirement 15: Same hash/same destination remains duplicate
+        MockMultipartFile file2 = new MockMultipartFile("file", "doc_duplicate.pdf", "application/pdf", uniqueFileBytes);
+
+        mockMvc.perform(multipart("/api/admin/resources/upload")
+                .file(file2)
+                .param("stateSlug", "nagaland")
+                .param("districtSlug", "general")
+                .param("resourceScope", "STATE")
+                .param("category", "Geography")
+                .param("title", "Nagaland River Geography Duplicate"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isDuplicate").value(true));
+    }
 }
