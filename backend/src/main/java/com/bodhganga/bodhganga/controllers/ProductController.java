@@ -130,6 +130,55 @@ public class ProductController {
         return ResponseEntity.ok(new java.util.ArrayList<>(resultMap.values()));
     }
 
+    public record StateCategoryCountDTO(
+            String categorySlug,
+            String categoryName,
+            long count,
+            boolean isAvailable
+    ) {}
+
+    /**
+     * Dedicated State Category Counts Endpoint
+     * GET /api/products/state/{stateSlug}/categories/counts
+     * Returns canonical counts for all 4 state categories:
+     * Art & Culture, History, Heritage & Sites, Geography.
+     * Enforces:
+     * - stateSlug = requested state
+     * - districtSlug = "general" (resourceScope = STATE)
+     * - published = true, archived != true, isDeleted != true
+     */
+    @GetMapping("/state/{stateSlug}/categories/counts")
+    public ResponseEntity<List<StateCategoryCountDTO>> getStateCategoryCounts(@PathVariable String stateSlug) {
+        String cleanStateSlug = Product.generateSlug(stateSlug);
+        if (cleanStateSlug == null || cleanStateSlug.isBlank()) {
+            return ResponseEntity.ok(java.util.Collections.emptyList());
+        }
+
+        List<Product> stateProducts = productRepo.findByStateSlugAndDistrictSlugAndArchivedFalse(cleanStateSlug, "general")
+                .stream()
+                .filter(p -> p != null
+                        && cleanStateSlug.equalsIgnoreCase(p.getStateSlug())
+                        && p.isStateScope()
+                        && Boolean.TRUE.equals(p.isPublished())
+                        && !Boolean.TRUE.equals(p.isArchived())
+                        && !Boolean.TRUE.equals(p.getIsDeleted()))
+                .collect(java.util.stream.Collectors.toList());
+
+        long artCultureCount = stateProducts.stream().filter(p -> p.matchesCategory(Product.CATEGORY_ART_CULTURE)).count();
+        long historyCount = stateProducts.stream().filter(p -> p.matchesCategory(Product.CATEGORY_HISTORY)).count();
+        long heritageSitesCount = stateProducts.stream().filter(p -> p.matchesCategory(Product.CATEGORY_HERITAGE_SITES)).count();
+        long geographyCount = stateProducts.stream().filter(p -> p.matchesCategory(Product.CATEGORY_GEOGRAPHY)).count();
+
+        List<StateCategoryCountDTO> list = java.util.List.of(
+                new StateCategoryCountDTO(Product.SLUG_ART_CULTURE, Product.CATEGORY_ART_CULTURE, artCultureCount, artCultureCount > 0),
+                new StateCategoryCountDTO(Product.SLUG_HISTORY, Product.CATEGORY_HISTORY, historyCount, historyCount > 0),
+                new StateCategoryCountDTO(Product.SLUG_HERITAGE_SITES, Product.CATEGORY_HERITAGE_SITES, heritageSitesCount, heritageSitesCount > 0),
+                new StateCategoryCountDTO(Product.SLUG_GEOGRAPHY, Product.CATEGORY_GEOGRAPHY, geographyCount, geographyCount > 0)
+        );
+
+        return ResponseEntity.ok(list);
+    }
+
     /**
      * Public API to get all published products
      */

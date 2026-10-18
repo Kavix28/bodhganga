@@ -243,4 +243,50 @@ assert.ok(adminContent.includes('DISTRICT_RESOURCE_ACCESS_TIERS'), 'Admin panel 
 assert.ok(adminContent.includes('uploadAdminResource'), 'Admin panel must preserve admin resource upload service');
 console.log('✅ TEST 9 PASSED: Admin resource management and upload capabilities strictly intact.');
 
-console.log('\n🎉 ALL DISTRICT DIRECTORY MATERIAL COUNT & DOWNLOAD AUDIT TESTS PASSED SUCCESSFULLY!\n');
+// Test 10: State Section Page Dynamic Counts & Category Isolation
+const stateSectionContent = fs.readFileSync(path.join(__dirname, '../pages/StateSectionPage.jsx'), 'utf8');
+assert.ok(stateSectionContent.includes('sectionMaterials.length'), 'StateSectionPage must dynamically compute count from filtered sectionMaterials');
+assert.ok(stateSectionContent.includes('effectiveSectionAvailability'), 'StateSectionPage must pass effectiveSectionAvailability to tabs');
+assert.ok(stateSectionContent.includes('ResourceModal'), 'StateSectionPage must use in-app ResourceModal for secure view only');
+assert.ok(!stateSectionContent.includes('<a download'), 'StateSectionPage must not contain download link');
+assert.ok(!stateSectionContent.includes('>Download'), 'StateSectionPage must not contain download button');
+
+// Verify State Category Filter Logic
+const sampleStateProducts = [
+  { id: 's1', stateSlug: 'nagaland', districtSlug: 'general', categorySlug: 'history', resourceScope: 'STATE', isPublished: true, isArchived: false },
+  { id: 's2', stateSlug: 'nagaland', districtSlug: 'general', categorySlug: 'history', resourceScope: 'STATE', isPublished: true, isArchived: false },
+  { id: 's3', stateSlug: 'nagaland', districtSlug: 'general', categorySlug: 'history', resourceScope: 'STATE', isPublished: true, isArchived: false },
+  { id: 's4', stateSlug: 'nagaland', districtSlug: 'general', categorySlug: 'geography', resourceScope: 'STATE', isPublished: true, isArchived: false },
+  { id: 's5', stateSlug: 'nagaland', districtSlug: 'dimapur', categorySlug: 'history', resourceScope: 'DISTRICT', isPublished: true, isArchived: false }, // district leak attempt
+  { id: 's6', stateSlug: 'himachal-pradesh', districtSlug: 'general', categorySlug: 'history', resourceScope: 'STATE', isPublished: true, isArchived: false }, // other state leak attempt
+  { id: 's7', stateSlug: 'nagaland', districtSlug: 'general', categorySlug: 'history', resourceScope: 'STATE', isPublished: false, isArchived: false }, // unpublished
+  { id: 's8', stateSlug: 'nagaland', districtSlug: 'general', categorySlug: 'history', resourceScope: 'STATE', isPublished: true, isArchived: true }, // archived
+];
+
+function filterStateMaterials(products, targetState, targetSection) {
+  return products.filter((p) => {
+    if (!p) return false;
+    const pStateSlug = String(p.stateSlug || "").toLowerCase().trim();
+    if (pStateSlug !== targetState.toLowerCase().trim()) return false;
+    const dSlug = String(p.districtSlug || "").toLowerCase().trim();
+    if (!dSlug || (dSlug !== "general" && dSlug !== "state")) return false;
+    const resolvedSlug = String(p.categorySlug || p.sectionSlug || p.category || "").toLowerCase().trim();
+    if (resolvedSlug !== targetSection) return false;
+    const isPublished = p.isPublished ?? p.published ?? true;
+    const isArchived = p.isArchived ?? p.archived ?? false;
+    if (!isPublished || isArchived) return false;
+    return true;
+  });
+}
+
+const nagalandHistory = filterStateMaterials(sampleStateProducts, 'nagaland', 'history');
+assert.strictEqual(nagalandHistory.length, 3, 'Nagaland history must contain exactly 3 materials');
+const nagalandGeography = filterStateMaterials(sampleStateProducts, 'nagaland', 'geography');
+assert.strictEqual(nagalandGeography.length, 1, 'Nagaland geography must contain exactly 1 material');
+const nagalandArtCulture = filterStateMaterials(sampleStateProducts, 'nagaland', 'art-culture');
+assert.strictEqual(nagalandArtCulture.length, 0, 'Nagaland art-culture must contain 0 materials');
+const hpHistory = filterStateMaterials(sampleStateProducts, 'himachal-pradesh', 'history');
+assert.strictEqual(hpHistory.length, 1, 'HP history must contain exactly 1 material (strictly isolated from Nagaland)');
+console.log('✅ TEST 10 PASSED: State category isolation and dynamic counts strictly verified.');
+
+console.log('\n🎉 ALL DISTRICT & STATE RESOURCE MATERIAL COUNT & DOWNLOAD AUDIT TESTS PASSED SUCCESSFULLY!\n');

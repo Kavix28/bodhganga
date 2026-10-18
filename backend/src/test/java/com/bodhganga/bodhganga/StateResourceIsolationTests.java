@@ -1462,4 +1462,31 @@ public class StateResourceIsolationTests {
                 .andExpect(jsonPath("$[?(@.districtSlug=='zunheboto')].districtName").value(hasItem("Zünheboto")))
                 .andExpect(jsonPath("$[?(@.districtSlug=='general')]").doesNotExist());
     }
+
+    /**
+     * MANDATORY TEST 17: Dedicated State Category Counts Endpoint
+     * Verifies GET /api/products/state/{stateSlug}/categories/counts:
+     * - Returns exact category counts for Art & Culture, History, Heritage & Sites, Geography
+     * - Strictly isolates state-scoped resources (districtSlug = "general")
+     * - Excludes district resources, archived, and unpublished resources
+     */
+    @Test
+    void test17_DedicatedStateCategoryCountsEndpoint() throws Exception {
+        // Nagaland has seeded: 1 History, 1 Art & Culture, 1 Geography, 0 Heritage & Sites.
+        // It also has 1 Kohima district history which must be excluded.
+        mockMvc.perform(get("/api/products/state/nagaland/categories/counts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.categorySlug=='history')].count").value(hasItem(1)))
+                .andExpect(jsonPath("$[?(@.categorySlug=='art-culture')].count").value(hasItem(1)))
+                .andExpect(jsonPath("$[?(@.categorySlug=='geography')].count").value(hasItem(1)))
+                .andExpect(jsonPath("$[?(@.categorySlug=='heritage-sites')].count").value(hasItem(0)));
+
+        // Cross-State Isolation: Assam only has 1 History, 0 for all other categories
+        mockMvc.perform(get("/api/products/state/assam/categories/counts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.categorySlug=='history')].count").value(hasItem(1)))
+                .andExpect(jsonPath("$[?(@.categorySlug=='art-culture')].count").value(hasItem(0)))
+                .andExpect(jsonPath("$[?(@.categorySlug=='geography')].count").value(hasItem(0)))
+                .andExpect(jsonPath("$[?(@.categorySlug=='heritage-sites')].count").value(hasItem(0)));
+    }
 }

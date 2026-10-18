@@ -61,7 +61,9 @@ export default function StateSectionTabs({ stateSlug, activeSection, sectionAvai
                     {isAvailable ? (
                       <>
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        Available
+                        {availInfo.count !== undefined && availInfo.count !== null && availInfo.count > 0
+                          ? `${availInfo.count} ${availInfo.count === 1 ? 'Material' : 'Materials'}`
+                          : 'Available'}
                       </>
                     ) : (
                       'Coming Soon'
