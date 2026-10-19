@@ -877,13 +877,35 @@ const AdminStateResources = () => {
                     states={safeStates}
                     districts={safeDistricts}
                     defaultCategory={selectedStateCategory}
-                    onClose={() => setIsUploadModalOpen(false)}
-                    onSuccess={async () => {
-                        await fetchStateResources(selectedState.stateSlug);
-                        if (selectedDistrict) {
-                            await fetchDistrictResources(selectedState.stateSlug, selectedDistrict.districtSlug);
+                    onClose={(targetCategory, targetScope, mState, mDistrict) => {
+                        setIsUploadModalOpen(false);
+                        if (targetScope) setContentScope(targetScope);
+                        if (targetCategory && STATE_RESOURCE_CATEGORIES.includes(targetCategory)) {
+                            setSelectedStateCategory(targetCategory);
                         }
-                        fetchStates();
+                        const tStateSlug = mState?.stateSlug || selectedState?.stateSlug;
+                        if (tStateSlug) {
+                            fetchStateResources(tStateSlug);
+                            const tDistSlug = mDistrict?.districtSlug || selectedDistrict?.districtSlug;
+                            if (tDistSlug && tDistSlug !== 'general') {
+                                fetchDistrictResources(tStateSlug, tDistSlug);
+                            }
+                        }
+                    }}
+                    onSuccess={async (targetCategory, targetScope, mState, mDistrict) => {
+                        if (targetScope) setContentScope(targetScope);
+                        if (targetCategory && STATE_RESOURCE_CATEGORIES.includes(targetCategory)) {
+                            setSelectedStateCategory(targetCategory);
+                        }
+                        const tStateSlug = mState?.stateSlug || selectedState?.stateSlug;
+                        if (tStateSlug) {
+                            await fetchStateResources(tStateSlug);
+                            const tDistSlug = mDistrict?.districtSlug || selectedDistrict?.districtSlug;
+                            if (tDistSlug && tDistSlug !== 'general') {
+                                await fetchDistrictResources(tStateSlug, tDistSlug);
+                            }
+                            fetchStates();
+                        }
                     }}
                 />
             )}
@@ -1147,6 +1169,10 @@ const AdminResourceUploadModal = ({
                 statusMessage: itemMessage,
                 errorMessage: null
             } : f));
+
+            if (onSuccess) {
+                onSuccess(stateCategory, scope, modalState, modalDistrict);
+            }
         } catch (err) {
             activeUploadsRef.current.delete(item.id);
             if (err.name === 'CanceledError' || err.name === 'AbortError' || err.code === 'ERR_CANCELED') {
@@ -1193,7 +1219,9 @@ const AdminResourceUploadModal = ({
                 } else {
                     toast.success(`Batch complete: ${newUploadsCount} uploaded, ${reclassifiedCount} reclassified, ${duplicateCount} cataloged.`);
                 }
-                onSuccess();
+                if (onSuccess) {
+                    onSuccess(stateCategory, scope, modalState, modalDistrict);
+                }
             }
             return;
         }
@@ -1282,7 +1310,7 @@ const AdminResourceUploadModal = ({
                         </div>
                     </div>
                     <button
-                        onClick={onClose}
+                        onClick={() => onClose && onClose(stateCategory, scope, modalState, modalDistrict)}
                         disabled={isUploading}
                         className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-gray-700 transition-all"
                     >
@@ -1753,7 +1781,7 @@ const AdminResourceUploadModal = ({
                     <div className="flex items-center gap-3">
                         <button
                             type="button"
-                            onClick={onClose}
+                            onClick={() => onClose && onClose(stateCategory, scope, modalState, modalDistrict)}
                             disabled={isUploading}
                             className="px-4 py-2 text-xs font-semibold text-gray-400 hover:text-white transition-all"
                         >

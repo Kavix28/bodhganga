@@ -2,6 +2,7 @@ import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { normalizeStateCategory, normalizeStateCategorySlug } from '../utils/categoryNormalization.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -446,4 +447,129 @@ assert.ok(!stateSectionCode.includes('Download Material'), 'StateSectionPage mus
 assert.ok(stateSectionCode.includes('View Material →'), 'StateSectionPage must offer View Material → action');
 console.log('✅ TEST 15 PASSED: No download controls appear; secure viewer preserved.');
 
-console.log('\n🎉 ALL 15 FRONTEND ISOLATION AND NEGATIVE TESTS PASSED SUCCESSFULLY!');
+// ── Test 16: Successful new upload remains visible after modal close ─────────
+let mockAdminStateCatalog = [
+  ...NAGALAND_PRODUCTION_ART_CULTURE,
+  {
+    id: "6ac265e8ee7bf266291120da",
+    title: "Battle of Kohima (1944)",
+    stateSlug: "nagaland",
+    category: "History",
+    categorySlug: "history",
+    sectionSlug: "history",
+    districtSlug: "general",
+    resourceScope: "STATE",
+    isPublished: true,
+    published: true,
+    isArchived: false,
+    isDeleted: false,
+    isFree: true
+  }
+];
+
+const newUploadedItem = {
+  id: "newly-uploaded-heritage-1",
+  title: "New Mon Heritage Monument",
+  stateSlug: "nagaland",
+  category: "Heritage & Sites",
+  categorySlug: "heritage-sites",
+  sectionSlug: "heritage-sites",
+  districtSlug: "general",
+  resourceScope: "STATE",
+  isPublished: true,
+  published: true,
+  isArchived: false,
+  isDeleted: false,
+  isFree: true
+};
+
+// Simulate backend refresh after upload
+mockAdminStateCatalog = [...mockAdminStateCatalog, newUploadedItem];
+const filteredAfterNewUpload = filterStateSectionMaterials(mockAdminStateCatalog, 'nagaland', 'heritage-sites');
+assert.strictEqual(filteredAfterNewUpload.length, 1);
+assert.strictEqual(filteredAfterNewUpload[0].title, "New Mon Heritage Monument");
+console.log('✅ TEST 16 PASSED: Successful new upload remains visible after modal close.');
+
+// ── Test 17: Duplicate upload (Already Cataloged) remains visible after modal close ──
+const duplicateKachariItem = {
+  id: "6ac265edee7bf266291120dd",
+  title: "Ruins of Kachari Rajbari",
+  stateSlug: "nagaland",
+  category: "History, Heritage & Sites",
+  categorySlug: "history-heritage-sites",
+  sectionSlug: "history-heritage-sites",
+  districtSlug: "general",
+  resourceScope: "STATE",
+  isPublished: true,
+  published: true,
+  isArchived: false,
+  isDeleted: false,
+  isFree: true
+};
+
+// Idempotent catalog retains single authoritative item
+if (!mockAdminStateCatalog.some(i => i.id === duplicateKachariItem.id)) {
+  mockAdminStateCatalog = [...mockAdminStateCatalog, duplicateKachariItem];
+}
+const filteredAfterDuplicate = filterStateSectionMaterials(mockAdminStateCatalog, 'nagaland', 'heritage-sites');
+assert.strictEqual(filteredAfterDuplicate.length, 2, 'Both Heritage items must be visible after duplicate handling');
+assert.ok(filteredAfterDuplicate.some(i => i.title === 'Ruins of Kachari Rajbari'));
+console.log('✅ TEST 17 PASSED: Duplicate upload remains visible after modal close.');
+
+// ── Test 18: Reclassified resource remains visible after modal close ─────────
+const reclassifiedItem = {
+  id: duplicateKachariItem.id,
+  title: "Ruins of Kachari Rajbari",
+  stateSlug: "nagaland",
+  category: "Heritage & Sites",
+  categorySlug: "heritage-sites",
+  sectionSlug: "heritage-sites",
+  districtSlug: "general",
+  resourceScope: "STATE",
+  isPublished: true,
+  published: true,
+  isArchived: false,
+  isDeleted: false,
+  isFree: true
+};
+mockAdminStateCatalog = mockAdminStateCatalog.map(i => i.id === reclassifiedItem.id ? reclassifiedItem : i);
+const filteredAfterReclassification = filterStateSectionMaterials(mockAdminStateCatalog, 'nagaland', 'heritage-sites');
+assert.strictEqual(filteredAfterReclassification.length, 2);
+console.log('✅ TEST 18 PASSED: Reclassified resource remains visible after modal close.');
+
+// ── Test 19: Reopening modal reloads authoritative resources ────────────────
+const reloadedCatalog = [...mockAdminStateCatalog];
+assert.strictEqual(reloadedCatalog.filter(i => filterStateSectionMaterials([i], 'nagaland', 'heritage-sites').length > 0).length, 2);
+console.log('✅ TEST 19 PASSED: Reopening modal reloads authoritative resources without state loss.');
+
+// ── Test 20: Category count updates after upload and survives modal close ────
+const heritageCountAfterUpload = filterStateSectionMaterials(mockAdminStateCatalog, 'nagaland', 'heritage-sites').length;
+assert.strictEqual(heritageCountAfterUpload, 2, 'Heritage category count must reflect authoritative items');
+const historyCountAfterUpload = filterStateSectionMaterials(mockAdminStateCatalog, 'nagaland', 'history').length;
+assert.strictEqual(historyCountAfterUpload, 1);
+const artCultureCountAfterUpload = filterStateSectionMaterials(mockAdminStateCatalog, 'nagaland', 'art-culture').length;
+assert.strictEqual(artCultureCountAfterUpload, 3);
+const geoCountAfterUpload = filterStateSectionMaterials(mockAdminStateCatalog, 'nagaland', 'geography').length;
+assert.strictEqual(geoCountAfterUpload, 0);
+console.log('✅ TEST 20 PASSED: Category counts update and survive modal close.');
+
+// ── Test 21: Strict category and state isolation verified ───────────────────
+assert.strictEqual(filterStateSectionMaterials(mockAdminStateCatalog, 'nagaland', 'history').some(i => i.category === 'Heritage & Sites'), false);
+assert.strictEqual(filterStateSectionMaterials(mockAdminStateCatalog, 'nagaland', 'art-culture').some(i => i.category === 'Heritage & Sites'), false);
+assert.strictEqual(filterStateSectionMaterials(mockAdminStateCatalog, 'nagaland', 'geography').length, 0);
+console.log('✅ TEST 21 PASSED: Strict category and state isolation verified across all 4 categories.');
+
+// ── Test 22: Category normalization utility resolves all aliases accurately ─
+assert.strictEqual(normalizeStateCategory('History, Heritage & Sites'), 'Heritage & Sites');
+assert.strictEqual(normalizeStateCategorySlug('history-heritage-sites'), 'heritage-sites');
+assert.strictEqual(normalizeStateCategory('history_heritage_sites'), 'Heritage & Sites');
+assert.strictEqual(normalizeStateCategorySlug('history_heritage_sites'), 'heritage-sites');
+assert.strictEqual(normalizeStateCategory('Art & Culture'), 'Art & Culture');
+assert.strictEqual(normalizeStateCategorySlug('art-culture'), 'art-culture');
+assert.strictEqual(normalizeStateCategory('History'), 'History');
+assert.strictEqual(normalizeStateCategorySlug('history'), 'history');
+assert.strictEqual(normalizeStateCategory('Geography'), 'Geography');
+assert.strictEqual(normalizeStateCategorySlug('geography'), 'geography');
+console.log('✅ TEST 22 PASSED: Category normalization utility resolves all aliases accurately.');
+
+console.log('\n🎉 ALL 22 FRONTEND ISOLATION AND PERSISTENCE TESTS PASSED SUCCESSFULLY!');

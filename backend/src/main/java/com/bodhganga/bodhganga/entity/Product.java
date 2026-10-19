@@ -455,7 +455,11 @@ public void setContentHash(String contentHash) {
                 || clean.equals("heritage-sites-monuments") || clean.equals("monuments")
                 || clean.equals("heritage & sites") || clean.equals("heritage and sites")
                 || clean.equals("heritage_sites") || clean.equals("heritage_monuments")
-                || clean.equals("heritage")) {
+                || clean.equals("heritage")
+                || clean.equals("history, heritage & sites") || clean.equals("history, heritage and sites")
+                || clean.equals("history-heritage-sites") || clean.equals("history_heritage_sites")
+                || clean.equals("history heritage & sites") || clean.equals("history heritage and sites")
+                || clean.equals("heritage sites") || clean.equals("sites")) {
             return CATEGORY_HERITAGE_SITES;
         }
         return null;
@@ -482,7 +486,11 @@ public void setContentHash(String contentHash) {
                 || clean.equals("heritage-sites-monuments") || clean.equals("monuments")
                 || clean.equals("heritage & sites") || clean.equals("heritage and sites")
                 || clean.equals("heritage_sites") || clean.equals("heritage_monuments")
-                || clean.equals("heritage")) {
+                || clean.equals("heritage")
+                || clean.equals("history, heritage & sites") || clean.equals("history, heritage and sites")
+                || clean.equals("history-heritage-sites") || clean.equals("history_heritage_sites")
+                || clean.equals("history heritage & sites") || clean.equals("history heritage and sites")
+                || clean.equals("heritage sites") || clean.equals("sites")) {
             return SLUG_HERITAGE_SITES;
         }
         return null;
@@ -490,6 +498,28 @@ public void setContentHash(String contentHash) {
 
     public static boolean isCanonicalStateCategory(String input) {
         return resolveCanonicalCategory(input) != null;
+    }
+
+    public static boolean isStrictCanonicalCategory(String input) {
+        if (input == null || input.isBlank()) return false;
+        String trimmed = input.trim();
+        return trimmed.equals(CATEGORY_HISTORY)
+                || trimmed.equals(CATEGORY_GEOGRAPHY)
+                || trimmed.equals(CATEGORY_ART_CULTURE)
+                || trimmed.equals(CATEGORY_HERITAGE_SITES);
+    }
+
+    public static boolean isStrictCanonicalSlug(String input) {
+        if (input == null || input.isBlank()) return false;
+        String clean = input.trim().toLowerCase();
+        return clean.equals(SLUG_HISTORY)
+                || clean.equals(SLUG_GEOGRAPHY)
+                || clean.equals(SLUG_ART_CULTURE)
+                || clean.equals(SLUG_HERITAGE_SITES);
+    }
+
+    public String getRawResourceScope() {
+        return this.resourceScope;
     }
 
     public String getResourceScope() {

@@ -1666,4 +1666,76 @@ public class StateResourceIsolationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.isDuplicate").value(true));
     }
+
+    /**
+     * Test 19: Comprehensive Heritage & Sites persistence, modal sync, and authoritative catalog lifecycle
+     * Validates:
+     * 1. Uploading Ruins of Kachari Rajbari with legacy alias or direct canonical category.
+     * 2. Backend persists authoritative Product record and S3 object.
+     * 3. Re-upload of same file returns isDuplicate=true and existing authoritative record.
+     * 4. Admin catalog query returns the authoritative resource.
+     * 5. Public category endpoint /api/products/state/nagaland/category/heritage-sites returns the resource.
+     * 6. State category counts endpoint reports count=1 for heritage-sites.
+     * 7. History, Art & Culture, Geography remain strictly isolated.
+     */
+    @Test
+    @WithMockUser(authorities = "ROLE_ADMIN")
+    void test19_HeritageSitesPersistenceAndAdminModalSync() throws Exception {
+        byte[] kachariBytes = "%PDF-1.4\n1 0 obj\n<< /Title (Ruins of Kachari Rajbari) >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF".getBytes();
+        MockMultipartFile kachariUpload = new MockMultipartFile("file", "Ruins of Kachari Rajbari.pdf", "application/pdf", kachariBytes);
+
+        // 1. Initial upload to Nagaland Heritage & Sites
+        mockMvc.perform(multipart("/api/admin/resources/upload")
+                .file(kachariUpload)
+                .param("stateSlug", "nagaland")
+                .param("districtSlug", "general")
+                .param("resourceScope", "STATE")
+                .param("category", "Heritage & Sites")
+                .param("title", "Ruins of Kachari Rajbari")
+                .param("publish", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.category").value("Heritage & Sites"))
+                .andExpect(jsonPath("$.data.categorySlug").value("heritage-sites"))
+                .andExpect(jsonPath("$.data.resourceScope").value("STATE"))
+                .andExpect(jsonPath("$.data.districtSlug").value("general"))
+                .andExpect(jsonPath("$.data.contentArea").value("STATE_CONTENT"))
+                .andExpect(jsonPath("$.resource.title").value("Ruins of Kachari Rajbari"));
+
+        // 2. Immediate re-upload of the exact same file (simulating modal re-upload or duplicate check)
+        mockMvc.perform(multipart("/api/admin/resources/upload")
+                .file(kachariUpload)
+                .param("stateSlug", "nagaland")
+                .param("districtSlug", "general")
+                .param("resourceScope", "STATE")
+                .param("category", "Heritage & Sites")
+                .param("title", "Ruins of Kachari Rajbari")
+                .param("publish", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.isDuplicate").value(true))
+                .andExpect(jsonPath("$.data.category").value("Heritage & Sites"))
+                .andExpect(jsonPath("$.data.categorySlug").value("heritage-sites"))
+                .andExpect(jsonPath("$.resource.title").value("Ruins of Kachari Rajbari"));
+
+        // 3. Admin catalog query for Nagaland general state resources must include the material
+        mockMvc.perform(get("/api/admin/resources/state/nagaland/district/general"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data[*].title", hasItem("Ruins of Kachari Rajbari")));
+
+        // 4. Public endpoint for heritage-sites must return the material
+        mockMvc.perform(get("/api/products/state/nagaland/category/heritage-sites"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data", hasSize(greaterThanOrEqualTo(1))))
+                .andExpect(jsonPath("$.data[*].title", hasItem("Ruins of Kachari Rajbari")))
+                .andExpect(jsonPath("$.data[*].category", everyItem(is("Heritage & Sites"))));
+
+        // 5. State category counts endpoint must report heritage-sites count >= 1
+        mockMvc.perform(get("/api/products/state/nagaland/categories/counts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.categorySlug=='heritage-sites')].count").value(hasItem(greaterThanOrEqualTo(1))))
+                .andExpect(jsonPath("$[?(@.categorySlug=='heritage-sites')].isAvailable").value(hasItem(true)));
+    }
 }

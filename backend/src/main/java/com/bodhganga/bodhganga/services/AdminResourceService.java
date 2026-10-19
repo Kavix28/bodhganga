@@ -261,10 +261,12 @@ public class AdminResourceService {
                 // District-scoped resources must NEVER be mutated or stolen by state-level uploads
                 if (!isExplicitDistrict && isGeneralScope) {
                     boolean isArchivedOrUnpub = candidate.isArchived() || !candidate.isPublished() || Boolean.TRUE.equals(candidate.getIsDeleted());
-                    boolean hasLegacyScope = candidate.getResourceScope() == null || !Product.SCOPE_STATE.equalsIgnoreCase(candidate.getResourceScope());
-                    boolean hasLegacyCategory = !Product.isCanonicalStateCategory(candidate.getCategory()) && !Product.isCanonicalStateCategory(candidate.getCategorySlug());
+                    boolean hasLegacyScope = candidate.getRawResourceScope() == null || !Product.SCOPE_STATE.equalsIgnoreCase(candidate.getRawResourceScope());
+                    boolean hasLegacyCategory = !Product.isStrictCanonicalCategory(candidate.getCategory()) || !Product.isStrictCanonicalSlug(candidate.getCategorySlug());
+                    boolean isSameCategoryLegacyName = finalCategory.equalsIgnoreCase(Product.resolveCanonicalCategory(candidate.getCategory()))
+                            && (!finalCategory.equalsIgnoreCase(candidate.getCategory()) || !finalCategorySlug.equalsIgnoreCase(candidate.getCategorySlug()));
 
-                    if (isArchivedOrUnpub || hasLegacyScope || hasLegacyCategory) {
+                    if (isArchivedOrUnpub || hasLegacyScope || hasLegacyCategory || isSameCategoryLegacyName) {
                         documentToHeal = candidate;
                         break;
                     }
@@ -685,6 +687,10 @@ public class AdminResourceService {
         }
 
         // 2. Resource Scope Normalization & Match
+        String rawScope = existing.getRawResourceScope();
+        if (rawScope == null || rawScope.isBlank()) {
+            return false; // Legacy/missing scope must be healed
+        }
         String existingScope = existing.getResourceScope();
         if (existingScope == null || existingScope.isBlank()) {
             return false; // Legacy/missing scope must be healed
@@ -705,6 +711,9 @@ public class AdminResourceService {
         }
 
         // 4. Category Slug Normalization & Match
+        if (isStateScope && (!Product.isStrictCanonicalCategory(existing.getCategory()) || !Product.isStrictCanonicalSlug(existing.getCategorySlug()))) {
+            return false; // Legacy category must be healed to canonical name
+        }
         String normTargetCategorySlug = isStateScope
                 ? Product.resolveCanonicalCategorySlug(targetCategorySlug)
                 : (targetIsFree ? "free" : "paid");
