@@ -154,12 +154,12 @@ public class ProductController {
             return ResponseEntity.ok(java.util.Collections.emptyList());
         }
 
-        List<Product> stateProducts = productRepo.findByStateSlugAndDistrictSlugAndArchivedFalse(cleanStateSlug, "general")
+        List<Product> stateProducts = productRepo.findByStateSlug(cleanStateSlug)
                 .stream()
                 .filter(p -> p != null
-                        && cleanStateSlug.equalsIgnoreCase(p.getStateSlug())
+                        && cleanStateSlug.equalsIgnoreCase(Product.generateSlug(p.getStateSlug()))
                         && p.isStateScope()
-                        && Boolean.TRUE.equals(p.isPublished())
+                        && (Boolean.TRUE.equals(p.isPublished()) || Boolean.TRUE.equals(p.getPublished()))
                         && !Boolean.TRUE.equals(p.isArchived())
                         && !Boolean.TRUE.equals(p.getIsDeleted()))
                 .collect(java.util.stream.Collectors.toList());
@@ -217,12 +217,12 @@ public class ProductController {
                     ? Product.resolveCanonicalCategory(category)
                     : null;
 
-            List<Product> products = productRepo.findByStateSlugAndDistrictSlugAndArchivedFalse(cleanSlug, "general")
+            List<Product> products = productRepo.findByStateSlug(cleanSlug)
                     .stream()
                     .filter(p -> p != null
-                            && cleanSlug.equalsIgnoreCase(p.getStateSlug())
+                            && cleanSlug.equalsIgnoreCase(Product.generateSlug(p.getStateSlug()))
                             && p.isStateScope()
-                            && Boolean.TRUE.equals(p.isPublished())
+                            && (Boolean.TRUE.equals(p.isPublished()) || Boolean.TRUE.equals(p.getPublished()))
                             && !Boolean.TRUE.equals(p.isArchived())
                             && !Boolean.TRUE.equals(p.getIsDeleted()))
                     .filter(p -> canonicalCategory == null || p.matchesCategory(canonicalCategory))
@@ -271,13 +271,13 @@ public class ProductController {
                     .build());
         }
 
-        List<Product> products = productRepo.findByStateSlugAndDistrictSlugAndArchivedFalse(cleanStateSlug, "general")
+        List<Product> products = productRepo.findByStateSlug(cleanStateSlug)
                 .stream()
                 .filter(p -> p != null
-                        && cleanStateSlug.equalsIgnoreCase(p.getStateSlug())
+                        && cleanStateSlug.equalsIgnoreCase(Product.generateSlug(p.getStateSlug()))
                         && p.isStateScope()
                         && p.matchesCategory(canonicalCategory)
-                        && Boolean.TRUE.equals(p.isPublished())
+                        && (Boolean.TRUE.equals(p.isPublished()) || Boolean.TRUE.equals(p.getPublished()))
                         && !Boolean.TRUE.equals(p.isArchived())
                         && !Boolean.TRUE.equals(p.getIsDeleted()))
                 .collect(java.util.stream.Collectors.toList());

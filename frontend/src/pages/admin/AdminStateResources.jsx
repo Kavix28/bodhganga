@@ -877,22 +877,10 @@ const AdminStateResources = () => {
                     states={safeStates}
                     districts={safeDistricts}
                     defaultCategory={selectedStateCategory}
-                    onClose={(targetCategory, targetScope, mState, mDistrict) => {
+                    onClose={async (targetCategory, targetScope, mState, mDistrict) => {
                         setIsUploadModalOpen(false);
-                        if (targetScope) setContentScope(targetScope);
-                        if (targetCategory && STATE_RESOURCE_CATEGORIES.includes(targetCategory)) {
-                            setSelectedStateCategory(targetCategory);
-                        }
-                        const tStateSlug = mState?.stateSlug || selectedState?.stateSlug;
-                        if (tStateSlug) {
-                            fetchStateResources(tStateSlug);
-                            const tDistSlug = mDistrict?.districtSlug || selectedDistrict?.districtSlug;
-                            if (tDistSlug && tDistSlug !== 'general') {
-                                fetchDistrictResources(tStateSlug, tDistSlug);
-                            }
-                        }
-                    }}
-                    onSuccess={async (targetCategory, targetScope, mState, mDistrict) => {
+                        if (mState) setSelectedState(mState);
+                        if (mDistrict) setSelectedDistrict(mDistrict);
                         if (targetScope) setContentScope(targetScope);
                         if (targetCategory && STATE_RESOURCE_CATEGORIES.includes(targetCategory)) {
                             setSelectedStateCategory(targetCategory);
@@ -904,7 +892,43 @@ const AdminStateResources = () => {
                             if (tDistSlug && tDistSlug !== 'general') {
                                 await fetchDistrictResources(tStateSlug, tDistSlug);
                             }
-                            fetchStates();
+                            await fetchStates();
+                        }
+                    }}
+                    onSuccess={async (targetCategory, targetScope, mState, mDistrict, authoritativeResource) => {
+                        if (mState) setSelectedState(mState);
+                        if (mDistrict) setSelectedDistrict(mDistrict);
+                        if (targetScope) setContentScope(targetScope);
+                        if (targetCategory && STATE_RESOURCE_CATEGORIES.includes(targetCategory)) {
+                            setSelectedStateCategory(targetCategory);
+                        }
+                        if (authoritativeResource && authoritativeResource.id) {
+                            if (targetScope === 'STATE') {
+                                setStateResources(prev => {
+                                    const exists = prev.some(r => r.id === authoritativeResource.id);
+                                    if (exists) {
+                                        return prev.map(r => r.id === authoritativeResource.id ? { ...r, ...authoritativeResource } : r);
+                                    }
+                                    return [authoritativeResource, ...prev];
+                                });
+                            } else {
+                                setDistrictResources(prev => {
+                                    const exists = prev.some(r => r.id === authoritativeResource.id);
+                                    if (exists) {
+                                        return prev.map(r => r.id === authoritativeResource.id ? { ...r, ...authoritativeResource } : r);
+                                    }
+                                    return [authoritativeResource, ...prev];
+                                });
+                            }
+                        }
+                        const tStateSlug = mState?.stateSlug || selectedState?.stateSlug;
+                        if (tStateSlug) {
+                            await fetchStateResources(tStateSlug);
+                            const tDistSlug = mDistrict?.districtSlug || selectedDistrict?.districtSlug;
+                            if (tDistSlug && tDistSlug !== 'general') {
+                                await fetchDistrictResources(tStateSlug, tDistSlug);
+                            }
+                            await fetchStates();
                         }
                     }}
                 />
@@ -999,6 +1023,19 @@ const AdminResourceUploadModal = ({
     const isStateLevel = isStateScope;
     const [publish, setPublish] = useState(true);
     const [description, setDescription] = useState('');
+
+    useEffect(() => {
+        if (state) setModalState(state);
+    }, [state]);
+    useEffect(() => {
+        if (district) setModalDistrict(district);
+    }, [district]);
+    useEffect(() => {
+        if (defaultCategory) setStateCategory(defaultCategory);
+    }, [defaultCategory]);
+    useEffect(() => {
+        if (initialScope) setScope(initialScope);
+    }, [initialScope]);
 
     const [queue, setQueue] = useState([]);
     const [isDragging, setIsDragging] = useState(false);
@@ -1170,8 +1207,9 @@ const AdminResourceUploadModal = ({
                 errorMessage: null
             } : f));
 
+            const authoritativeResource = res?.resource || res?.data?.resource || res?.data;
             if (onSuccess) {
-                onSuccess(stateCategory, scope, modalState, modalDistrict);
+                onSuccess(stateCategory, scope, modalState, modalDistrict, authoritativeResource);
             }
         } catch (err) {
             activeUploadsRef.current.delete(item.id);

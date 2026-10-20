@@ -547,6 +547,11 @@ public void setContentHash(String contentHash) {
             return false;
         }
         if (districtSlug == null || districtSlug.isBlank()) {
+            if (SCOPE_STATE.equalsIgnoreCase(resourceScope) || "STATE_CONTENT".equalsIgnoreCase(contentArea)) {
+                return isCanonicalStateCategory(category)
+                        || isCanonicalStateCategory(categorySlug)
+                        || isCanonicalStateCategory(sectionSlug);
+            }
             return false;
         }
         String cleanDSlug = districtSlug.trim().toLowerCase();

@@ -186,10 +186,10 @@ export default function StateSectionPage() {
         // 3. Resilient state-scope query: Query state-level resources directly
         if (prodList.length === 0) {
           try {
-            const stateRes = await api.get(`/products/state/${stateSlug}?scope=state`);
+            const stateRes = await api.get(`/products/state/${stateSlug}?scope=state&category=${section}`);
             const list = Array.isArray(stateRes) ? stateRes : (stateRes?.data || []);
             if (list && list.length > 0) {
-              prodList = list;
+              prodList = list.filter(p => normalizeStateCategorySlug(p.categorySlug || p.sectionSlug || p.category) === section);
             }
           } catch {
             // Fall through

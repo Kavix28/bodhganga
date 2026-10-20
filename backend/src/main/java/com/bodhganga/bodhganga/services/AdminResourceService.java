@@ -235,6 +235,68 @@ public class AdminResourceService {
         }
 
         if (exactDuplicate != null) {
+            boolean needsUpdate = false;
+            if (isStateScope) {
+                if (!"general".equalsIgnoreCase(exactDuplicate.getDistrictSlug())) {
+                    exactDuplicate.setDistrictSlug("general");
+                    needsUpdate = true;
+                }
+                if (!"general".equalsIgnoreCase(exactDuplicate.getDistrict())) {
+                    exactDuplicate.setDistrict("general");
+                    needsUpdate = true;
+                }
+                if (!Product.SCOPE_STATE.equalsIgnoreCase(exactDuplicate.getResourceScope())) {
+                    exactDuplicate.setResourceScope(Product.SCOPE_STATE);
+                    needsUpdate = true;
+                }
+                if (!"STATE_CONTENT".equalsIgnoreCase(exactDuplicate.getContentArea())) {
+                    exactDuplicate.setContentArea("STATE_CONTENT");
+                    needsUpdate = true;
+                }
+                if (!finalCategory.equals(exactDuplicate.getCategory())) {
+                    exactDuplicate.setCategory(finalCategory);
+                    needsUpdate = true;
+                }
+                if (!finalCategorySlug.equals(exactDuplicate.getCategorySlug())) {
+                    exactDuplicate.setCategorySlug(finalCategorySlug);
+                    needsUpdate = true;
+                }
+                if (!finalSectionSlug.equals(exactDuplicate.getSectionSlug())) {
+                    exactDuplicate.setSectionSlug(finalSectionSlug);
+                    needsUpdate = true;
+                }
+            } else {
+                if (!cleanDistrictSlug.equalsIgnoreCase(exactDuplicate.getDistrictSlug())) {
+                    exactDuplicate.setDistrictSlug(cleanDistrictSlug);
+                    needsUpdate = true;
+                }
+                if (canonicalDistrictName != null && !canonicalDistrictName.equalsIgnoreCase(exactDuplicate.getDistrict())) {
+                    exactDuplicate.setDistrict(canonicalDistrictName);
+                    needsUpdate = true;
+                }
+                if (!Product.SCOPE_DISTRICT.equalsIgnoreCase(exactDuplicate.getResourceScope())) {
+                    exactDuplicate.setResourceScope(Product.SCOPE_DISTRICT);
+                    needsUpdate = true;
+                }
+            }
+            if (exactDuplicate.isArchived()) {
+                exactDuplicate.setArchived(false);
+                needsUpdate = true;
+            }
+            if (Boolean.TRUE.equals(exactDuplicate.getIsDeleted())) {
+                exactDuplicate.setIsDeleted(false);
+                needsUpdate = true;
+            }
+            if (!Boolean.TRUE.equals(exactDuplicate.isPublished())) {
+                exactDuplicate.setPublished(true);
+                exactDuplicate.setPublishedField(true);
+                needsUpdate = true;
+            }
+            if (needsUpdate) {
+                exactDuplicate.setUpdatedAt(new Date());
+                exactDuplicate = productRepo.save(exactDuplicate);
+            }
+
             String currentLoc = formatDestination(exactDuplicate);
             log.info("ADMIN_RESOURCE_DUPLICATE: Destination match found for hash={}, state={}, scope={}, district={}, categorySlug={}. Idempotent return ID={}",
                     contentHash, cleanStateSlug, finalResourceScope, cleanDistrictSlug, finalCategorySlug, exactDuplicate.getId());
@@ -477,7 +539,32 @@ public class AdminResourceService {
     public List<Product> getDistrictResources(String stateSlug, String districtSlug) {
         String cleanStateSlug = Product.generateSlug(stateSlug);
         String cleanDistrictSlug = Product.generateSlug(districtSlug);
-        return productRepo.findByStateSlugAndDistrictSlugAndArchivedFalse(cleanStateSlug, cleanDistrictSlug);
+
+        List<Product> stateProducts = productRepo.findByStateSlug(cleanStateSlug);
+        if (stateProducts == null || stateProducts.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+
+        boolean isStateLevel = cleanDistrictSlug == null || cleanDistrictSlug.isBlank()
+                || "general".equalsIgnoreCase(cleanDistrictSlug) || "state".equalsIgnoreCase(cleanDistrictSlug);
+
+        if (isStateLevel) {
+            return stateProducts.stream()
+                    .filter(p -> p != null
+                            && p.isStateScope()
+                            && !Boolean.TRUE.equals(p.isArchived())
+                            && !Boolean.TRUE.equals(p.getIsDeleted()))
+                    .collect(Collectors.toList());
+        } else {
+            return stateProducts.stream()
+                    .filter(p -> p != null
+                            && !p.isStateScope()
+                            && !Product.SCOPE_STATE.equalsIgnoreCase(p.getResourceScope())
+                            && cleanDistrictSlug.equalsIgnoreCase(Product.generateSlug(p.getDistrictSlug()))
+                            && !Boolean.TRUE.equals(p.isArchived())
+                            && !Boolean.TRUE.equals(p.getIsDeleted()))
+                    .collect(Collectors.toList());
+        }
     }
 
     public State findCanonicalState(String stateSlug) {
