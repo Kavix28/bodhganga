@@ -126,9 +126,23 @@ public class AdminSystemHealthController {
     @GetMapping("/mongo")
     public ResponseEntity<Map<String, Object>> getMongoHealth() {
         Map<String, Object> m = new LinkedHashMap<>();
-        boolean ok = isMongoConnected();
-        m.put("connected", ok);
-        m.put("database", mongoTemplate.getDb().getName());
+        m.put("database", mongoTemplate.getDb() != null ? mongoTemplate.getDb().getName() : "unknown");
+        long start = System.currentTimeMillis();
+        try {
+            org.bson.Document pingDoc = mongoTemplate.executeCommand("{ping: 1}");
+            m.put("connected", true);
+            m.put("ping", pingDoc);
+            m.put("latencyMs", System.currentTimeMillis() - start);
+        } catch (Exception e) {
+            m.put("connected", false);
+            m.put("latencyMs", System.currentTimeMillis() - start);
+            m.put("errorType", e.getClass().getName());
+            m.put("errorMessage", e.getMessage());
+            if (e.getCause() != null) {
+                m.put("causeType", e.getCause().getClass().getName());
+                m.put("causeMessage", e.getCause().getMessage());
+            }
+        }
         return ResponseEntity.ok(m);
     }
 

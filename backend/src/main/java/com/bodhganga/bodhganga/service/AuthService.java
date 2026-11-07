@@ -289,7 +289,16 @@ public class AuthService {
                         normalizedPhone = normalizedPhone.substring(2);
                 }
 
-                User user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);
+                User user;
+                try {
+                        user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);
+                } catch (Exception e) {
+                        log.error("Database connection failure during admin OTP request: {}", e.getMessage());
+                        return ApiResponseDTO.builder()
+                                        .success(false)
+                                        .message("Database service temporarily unavailable. Please retry shortly.")
+                                        .build();
+                }
 
                 if (user == null) {
                         return ApiResponseDTO.builder()
@@ -388,7 +397,16 @@ public class AuthService {
                                         .build();
                 }
 
-                User user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);
+                User user;
+                try {
+                        user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);
+                } catch (Exception e) {
+                        log.error("Database connection failure during admin OTP request: {}", e.getMessage());
+                        return ApiResponseDTO.builder()
+                                        .success(false)
+                                        .message("Database service temporarily unavailable. Please retry shortly.")
+                                        .build();
+                }
                 if (user == null || !"ADMIN".equals(user.getRole()) || !Boolean.TRUE.equals(user.isActive())
                                 || !user.isVerified()) {
                         log.warn("Admin OTP request rejected: user account null, not ADMIN, inactive, or unverified");
@@ -475,7 +493,16 @@ public class AuthService {
                                         .build();
                 }
 
-                User user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);
+                User user;
+                try {
+                        user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);
+                } catch (Exception e) {
+                        log.error("Database connection failure during admin OTP verify: {}", e.getMessage());
+                        return ApiResponseDTO.builder()
+                                        .success(false)
+                                        .message("Database service temporarily unavailable. Please retry shortly.")
+                                        .build();
+                }
                 if (user == null || !"ADMIN".equals(user.getRole()) || !Boolean.TRUE.equals(user.isActive())
                                 || !user.isVerified()) {
                         log.warn("Admin OTP verification rejected: user not found, not ADMIN, inactive, or unverified");
@@ -485,8 +512,12 @@ public class AuthService {
                                         .build();
                 }
 
-                user.setLastLogin(new Date());
-                userRepo.save(user);
+                try {
+                        user.setLastLogin(new Date());
+                        userRepo.save(user);
+                } catch (Exception e) {
+                        log.warn("Could not record lastLogin timestamp for admin {}: {}", normalizedPhone, e.getMessage());
+                }
 
                 String jwtSubject = user.getEmail() != null ? user.getEmail() : user.getPhoneNo();
                 String token = jwtUtil.generateToken(jwtSubject, user.getId(), user.getRole());
@@ -662,7 +693,16 @@ public class AuthService {
                                 return completeSignup(signupData, true, true);
                         } else {
                                 // Mobile Login Flow
-                                User user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);
+                                User user;
+                try {
+                        user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);
+                } catch (Exception e) {
+                        log.error("Database connection failure during admin OTP request: {}", e.getMessage());
+                        return ApiResponseDTO.builder()
+                                        .success(false)
+                                        .message("Database service temporarily unavailable. Please retry shortly.")
+                                        .build();
+                }
                                 boolean isNewUser = false;
 
                                 if (user == null) {
@@ -736,7 +776,16 @@ public class AuthService {
                                                 .build();
                         }
 
-                        User user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);
+                        User user;
+                try {
+                        user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);
+                } catch (Exception e) {
+                        log.error("Database connection failure during admin OTP request: {}", e.getMessage());
+                        return ApiResponseDTO.builder()
+                                        .success(false)
+                                        .message("Database service temporarily unavailable. Please retry shortly.")
+                                        .build();
+                }
                         if (user == null) {
                                 return ApiResponseDTO.builder()
                                                 .success(false)

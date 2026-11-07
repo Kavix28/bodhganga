@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import com.bodhganga.bodhganga.service.QuizAvailabilityService;
 
@@ -84,10 +85,15 @@ public class StateController {
     public ResponseEntity<List<java.util.Map<String, Object>>> getAvailableStates() {
         // 1. Get published, non-archived product counts per state slug
         Aggregation agg = Aggregation.newAggregation(
-                Aggregation.match(
-                        Criteria.where("isPublished").is(true)
-                                .and("archived").ne(true)
-                                .and("stateSlug").exists(true).ne(null).ne("").ne("general")),
+                Aggregation.match(new Criteria().andOperator(
+                        Criteria.where("archived").ne(true),
+                        Criteria.where("isDeleted").ne(true),
+                        Criteria.where("stateSlug").exists(true).ne(null).ne("").ne("general"),
+                        new Criteria().orOperator(
+                                Criteria.where("isPublished").is(true),
+                                Criteria.where("published").is(true)
+                        )
+                )),
                 Aggregation.group("stateSlug")
                         .first("state").as("name")
                         .count().as("notesCount"),
@@ -117,6 +123,7 @@ public class StateController {
         // 2. Fetch canonical states master data
         List<State> canonicalStates = stateRepo.findAll();
         java.util.Map<String, java.util.Map<String, Object>> resultMap = new java.util.LinkedHashMap<>();
+        Set<String> quizAvailableStates = quizAvailabilityService.getAvailableStateSlugs();
 
         // Populate canonical states first
         for (State s : canonicalStates) {
@@ -132,7 +139,7 @@ public class StateController {
             m.put("name", s.getName());
             m.put("notesCount", count);
             m.put("isAvailable", count > 0);
-            m.put("quizAvailable", quizAvailabilityService.isStateAvailable(slug));
+            m.put("quizAvailable", quizAvailableStates.contains(slug));
             resultMap.put(slug, m);
         }
 
@@ -147,7 +154,7 @@ public class StateController {
                 m.put("name", displayName);
                 m.put("notesCount", entry.getValue());
                 m.put("isAvailable", entry.getValue() > 0);
-                m.put("quizAvailable", quizAvailabilityService.isStateAvailable(slug));
+                m.put("quizAvailable", quizAvailableStates.contains(slug));
                 resultMap.put(slug, m);
             }
         }
@@ -162,9 +169,17 @@ public class StateController {
      */
     @GetMapping("/{stateSlug}/categories")
     public ResponseEntity<List<CategoryInfo>> getAvailableCategories(@PathVariable String stateSlug) {
+        String cleanSlug = Product.generateSlug(stateSlug);
         Aggregation agg = Aggregation.newAggregation(
-            Aggregation.match(Criteria.where("isPublished").is(true)
-                .and("stateSlug").is(stateSlug)),
+            Aggregation.match(new Criteria().andOperator(
+                Criteria.where("stateSlug").is(cleanSlug),
+                Criteria.where("archived").ne(true),
+                Criteria.where("isDeleted").ne(true),
+                new Criteria().orOperator(
+                    Criteria.where("isPublished").is(true),
+                    Criteria.where("published").is(true)
+                )
+            )),
             Aggregation.project()
                 .and(org.springframework.data.mongodb.core.aggregation.ConditionalOperators.ifNull("navbarCategory").thenValueOf("category")).as("effCategory")
                 .and(org.springframework.data.mongodb.core.aggregation.ConditionalOperators.ifNull("navbarSlug").thenValueOf("category")).as("effSlug"),
@@ -188,13 +203,24 @@ public class StateController {
     public ResponseEntity<List<Product>> getProductsByStateAndCategory(
             @PathVariable String stateSlug,
             @PathVariable String categorySlug) {
+        String cleanStateSlug = Product.generateSlug(stateSlug);
+        String canonicalCategory = Product.resolveCanonicalCategory(categorySlug);
         org.springframework.data.mongodb.core.query.Query query = new org.springframework.data.mongodb.core.query.Query();
-        query.addCriteria(Criteria.where("isPublished").is(true)
-                .and("stateSlug").is(stateSlug)
-                .orOperator(
-                    Criteria.where("navbarSlug").is(categorySlug),
-                    Criteria.where("category").is(categorySlug)
-                ));
+        query.addCriteria(new Criteria().andOperator(
+                Criteria.where("stateSlug").is(cleanStateSlug),
+                Criteria.where("archived").ne(true),
+                Criteria.where("isDeleted").ne(true),
+                new Criteria().orOperator(
+                        Criteria.where("isPublished").is(true),
+                        Criteria.where("published").is(true)
+                ),
+                new Criteria().orOperator(
+                        Criteria.where("navbarSlug").is(categorySlug),
+                        Criteria.where("categorySlug").is(categorySlug),
+                        Criteria.where("category").is(categorySlug),
+                        Criteria.where("category").is(canonicalCategory != null ? canonicalCategory : categorySlug)
+                )
+        ));
 
         List<Product> products = mongoTemplate.find(query, Product.class);
         return ResponseEntity.ok(products);

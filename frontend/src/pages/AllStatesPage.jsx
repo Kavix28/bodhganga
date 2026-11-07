@@ -130,33 +130,38 @@ export default function AllStatesPage() {
   const [productCounts, setProductCounts] = useState({});
   const [availability, setAvailability] = useState({});
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
 
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [regionFilter, setRegionFilter] = useState("All");
 
+  const load = async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const res = await api.get("/states/available");
+      const stateList = Array.isArray(res) ? res : (res?.data || []);
+      const counts = {};
+      const avail = {};
+      stateList.forEach((s) => {
+        const slug = s.stateSlug || s.id || (s.name ? s.name.toLowerCase().replace(/\s+/g, "-") : "");
+        if (slug) {
+          counts[slug] = s.notesCount || 0;
+          avail[slug] = s.isAvailable ?? ((s.notesCount || 0) > 0);
+        }
+      });
+      setProductCounts(counts);
+      setAvailability(avail);
+    } catch (err) {
+      console.error("Failed to load canonical states:", err);
+      setLoadError(err?.message || "Unable to connect to service to fetch latest state availability.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await api.get("/states/available");
-        const stateList = Array.isArray(res) ? res : (res?.data || []);
-        const counts = {};
-        const avail = {};
-        stateList.forEach((s) => {
-          const slug = s.stateSlug || s.id || (s.name ? s.name.toLowerCase().replace(/\s+/g, "-") : "");
-          if (slug) {
-            counts[slug] = s.notesCount || 0;
-            avail[slug] = s.isAvailable ?? ((s.notesCount || 0) > 0);
-          }
-        });
-        setProductCounts(counts);
-        setAvailability(avail);
-      } catch (err) {
-        console.error("Failed to load canonical states:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
     load();
   }, []);
 
@@ -239,6 +244,21 @@ export default function AllStatesPage() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 pb-20 space-y-12">
+        {loadError && (
+          <div className="bg-red-950/60 border border-red-800 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-red-200">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">⚠️</span>
+              <span className="text-sm font-medium">{loadError}</span>
+            </div>
+            <button
+              onClick={() => load()}
+              className="px-4 py-1.5 bg-red-700 hover:bg-red-600 text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-colors shadow"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
         {loading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mt-2">
             {Array.from({ length: 12 }).map((_, i) => (
