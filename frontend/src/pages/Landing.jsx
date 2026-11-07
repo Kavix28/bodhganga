@@ -694,8 +694,8 @@ const Landing = () => {
                     {latestVideos.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                             {latestVideos.map((video) => (
-                                <div key={video.id || video.videoId} className="netflix-card shadow-2xl hover:scale-[1.03] transition-all duration-500 relative group border border-gold/10 hover:border-gold/30 rounded-2xl overflow-hidden glow-emerald-card aspect-video h-auto cursor-pointer" onClick={() => window.open(video.youtubeUrl, '_blank')}>
-                                    <img src={video.thumbnailUrl || video.thumbnail} alt={video.title} loading="lazy" className="w-full h-full object-cover group-hover:brightness-[0.7] group-hover:scale-105 transition-all duration-700" />
+                                <div key={video.id || video.videoId} className="netflix-card shadow-2xl hover:scale-[1.03] transition-all duration-500 relative group border border-gold/10 hover:border-gold/30 rounded-2xl overflow-hidden glow-emerald-card aspect-video h-auto cursor-pointer" onClick={() => window.open(video.youtubeUrl || (video.videoId ? `https://www.youtube.com/watch?v=${video.videoId}` : '#'), '_blank')}>
+                                    <img src={video.thumbnailUrl || video.thumbnail || (video.videoId ? `https://img.youtube.com/vi/${video.videoId}/hqdefault.jpg` : '')} alt={video.title} loading="lazy" className="w-full h-full object-cover group-hover:brightness-[0.7] group-hover:scale-105 transition-all duration-700" />
                                     <span className="absolute top-4 left-4 z-20 text-[8px] font-black uppercase bg-gold text-emerald-dark px-2.5 py-0.5 rounded-md tracking-wider">YOUTUBE</span>
                                     <span className="absolute bottom-3 right-3 text-[8px] font-extrabold uppercase px-2 py-0.5 bg-black/80 rounded tracking-widest text-white z-20">
                                         {video.publishedAt ? new Date(video.publishedAt).toLocaleDateString() : 'LATEST'}

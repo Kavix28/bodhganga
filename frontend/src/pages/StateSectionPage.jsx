@@ -2,124 +2,9 @@ import { useEffect, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import StateSectionTabs from "../components/states/StateSectionTabs";
+import ResourceViewerModal from "../components/common/ResourceViewerModal";
 import { decodeMojibake } from "../utils/formatters";
 import { normalizeStateCategory, normalizeStateCategorySlug } from "../utils/categoryNormalization";
-
-function ResourceModal({ resource, onClose }) {
-  const [iframeLoading, setIframeLoading] = useState(true);
-  const ext = (resource.fileExtension || "").toLowerCase();
-  const rawUrl = resource.s3Url || resource.previewUrl || resource.url;
-  const url = rawUrl ? rawUrl.split('/').map((part, i) => i < 3 ? part : encodeURIComponent(part)).join('/') : null;
-  const title = resource.displayTitle || resource.title || resource.fileName;
-
-  const officeExts = ["docx", "doc", "xlsx", "xls", "pptx", "ppt"];
-  const imageExts = ["png", "jpg", "jpeg", "webp"];
-  const audioExts = ["mp3", "m4a", "wav", "aac", "ogg"];
-  const videoExts = ["mp4"];
-
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
-
-  const renderContent = () => {
-    if (ext === "pdf") {
-      const googleUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
-      return (
-        <div className="relative w-full h-full">
-          {iframeLoading && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 rounded-lg z-10">
-              <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4" />
-              <p className="text-gray-400 text-sm">Loading document...</p>
-            </div>
-          )}
-          <iframe
-            src={googleUrl}
-            className="w-full h-full rounded-lg"
-            title={title}
-            onLoad={() => setIframeLoading(false)}
-          />
-        </div>
-      );
-    }
-    if (imageExts.includes(ext)) {
-      return (
-        <div className="w-full h-full flex items-center justify-center overflow-auto">
-          <img src={url} alt={title} className="max-w-full max-h-full object-contain rounded-lg" />
-        </div>
-      );
-    }
-    if (audioExts.includes(ext)) {
-      return (
-        <div className="w-full h-full flex flex-col items-center justify-center gap-6">
-          <div className="text-6xl">🎵</div>
-          <p className="text-white font-semibold text-center px-4">{title}</p>
-          <audio controls className="w-full max-w-md" src={url}>
-            Your browser does not support audio playback.
-          </audio>
-        </div>
-      );
-    }
-    if (videoExts.includes(ext)) {
-      return (
-        <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-black rounded-lg p-4">
-          <video controls className="max-w-full max-h-full rounded-lg shadow-lg" src={url}>
-            Your browser does not support video playback.
-          </video>
-        </div>
-      );
-    }
-    if (officeExts.includes(ext)) {
-      const officeUrl = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(url)}`;
-      return (
-        <iframe
-          src={officeUrl}
-          className="w-full h-full rounded-lg"
-          title={title}
-        />
-      );
-    }
-    return (
-      <div className="w-full h-full flex flex-col items-center justify-center gap-4">
-        <div className="text-6xl">📎</div>
-        <p className="text-gray-400">Preview not available for this file type.</p>
-      </div>
-    );
-  };
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 select-none"
-      onContextMenu={(e) => e.preventDefault()}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-5xl h-[90vh] flex flex-col shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700 flex-shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <span className="text-xl">📄</span>
-            <div className="min-w-0">
-              <h3 className="text-white font-semibold text-sm truncate">{title}</h3>
-              <p className="text-gray-400 text-xs">Protected BodhGanga Study Material (View Only)</p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors text-lg"
-            title="Close Viewer"
-          >
-            ✕
-          </button>
-        </div>
-        <div className="flex-1 overflow-hidden p-4">
-          {renderContent()}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function StateSectionPage() {
   const { stateSlug } = useParams();
@@ -335,7 +220,7 @@ export default function StateSectionPage() {
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       {selectedResource && (
-        <ResourceModal
+        <ResourceViewerModal
           resource={selectedResource}
           onClose={() => setSelectedResource(null)}
         />

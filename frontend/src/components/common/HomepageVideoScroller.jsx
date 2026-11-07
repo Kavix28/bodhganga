@@ -40,7 +40,7 @@ const HomepageVideoScroller = () => {
 
       const latestVideos = Array.isArray(response)
         ? response
-        : [];
+        : (response?.data && Array.isArray(response.data) ? response.data : []);
 
       setVideos(latestVideos);
     } catch (err) {
@@ -302,7 +302,7 @@ const HomepageVideoScroller = () => {
                       {videos.map((video, index) => (
             <a
               key={video.videoId || video.youtubeUrl || index}
-              href={video.youtubeUrl}
+              href={video.youtubeUrl || (video.videoId ? `https://www.youtube.com/watch?v=${video.videoId}` : "#")}
               target="_blank"
               rel="noopener noreferrer"
               data-video-card
@@ -313,7 +313,7 @@ const HomepageVideoScroller = () => {
               <div className="relative overflow-hidden rounded-2xl bg-zinc-900 shadow-lg">
 
                 <img
-                  src={video.thumbnailUrl}
+                  src={video.thumbnailUrl || (video.videoId ? `https://img.youtube.com/vi/${video.videoId}/hqdefault.jpg` : "")}
                   alt={video.title || "Video Thumbnail"}
                   loading={index < 2 ? "eager" : "lazy"}
                   className="

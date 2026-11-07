@@ -5,6 +5,7 @@ import com.bodhganga.bodhganga.dto.ApiResponseDTO;
 import com.bodhganga.bodhganga.services.DriveToS3PipelineTask;
 import com.bodhganga.bodhganga.services.GoogleDriveSyncService;
 import com.bodhganga.bodhganga.services.S3Service;
+import com.bodhganga.bodhganga.services.YouTubeSyncService;
 import com.bodhganga.bodhganga.services.qb.QuestionBankDriveService;
 import com.bodhganga.bodhganga.services.qb.QuestionBankPipelineTask;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,6 +32,7 @@ public class AdminSystemHealthController {
     private final QuestionBankProperties qbProps;
     private final DriveToS3PipelineTask stateTask;
     private final QuestionBankPipelineTask qbTask;
+    private final YouTubeSyncService youTubeSyncService;
 
     @Value("${aws.region:eu-north-1}")
     private String awsRegion;
@@ -44,7 +46,8 @@ public class AdminSystemHealthController {
                                        QuestionBankDriveService qbDriveService,
                                        QuestionBankProperties qbProps,
                                        DriveToS3PipelineTask stateTask,
-                                       QuestionBankPipelineTask qbTask) {
+                                       QuestionBankPipelineTask qbTask,
+                                       org.springframework.beans.factory.annotation.Autowired(required = false) YouTubeSyncService youTubeSyncService) {
         this.mongoTemplate = mongoTemplate;
         this.s3Service = s3Service;
         this.genericDriveService = genericDriveService;
@@ -52,6 +55,7 @@ public class AdminSystemHealthController {
         this.qbProps = qbProps;
         this.stateTask = stateTask;
         this.qbTask = qbTask;
+        this.youTubeSyncService = youTubeSyncService;
     }
 
     /** GET /api/admin/system/health */
@@ -163,6 +167,20 @@ public class AdminSystemHealthController {
         try {
             qbTask.syncQuestionBank(true);
             return ResponseEntity.ok(ApiResponseDTO.builder().success(true).message("Question Bank pipeline triggered successfully.").build());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(ApiResponseDTO.builder().success(false).message("Trigger failed: " + e.getMessage()).build());
+        }
+    }
+
+    /** POST /api/admin/system/youtube-sync */
+    @PostMapping("/youtube-sync")
+    public ResponseEntity<ApiResponseDTO> triggerYouTubeSync() {
+        if (youTubeSyncService == null) {
+            return ResponseEntity.badRequest().body(ApiResponseDTO.builder().success(false).message("YouTube sync service is not available.").build());
+        }
+        try {
+            youTubeSyncService.syncVideos();
+            return ResponseEntity.ok(ApiResponseDTO.builder().success(true).message("YouTube video sync triggered successfully.").build());
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(ApiResponseDTO.builder().success(false).message("Trigger failed: " + e.getMessage()).build());
         }

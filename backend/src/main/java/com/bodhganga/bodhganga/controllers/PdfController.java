@@ -105,8 +105,12 @@ public class PdfController {
                     .success(false).message("Key is required.").build());
         }
 
-        // Strip leading slash if present
-        if (key.startsWith("/")) {
+        try {
+            key = java.net.URLDecoder.decode(key, java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception ignored) {}
+
+        // Strip leading slashes if present
+        while (key.startsWith("/")) {
             key = key.substring(1);
         }
 
@@ -117,28 +121,49 @@ public class PdfController {
             boolean isAdmin = isAuthenticated && authentication.getAuthorities().contains(
                     new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_ADMIN"));
 
+            String resolvedObjectKey = key;
+
             if (!isAdmin) {
                 // Try to find the product matching this key in DB
-                Optional<Product> prodOpt = productRepo.findByS3Key(key);
+                Optional<Product> prodOpt = Optional.empty();
+
+                // 1. Direct MongoDB ID match
+                if (key.length() == 24 && key.matches("^[a-fA-F0-9]+$")) {
+                    prodOpt = productRepo.findById(key);
+                }
+                // 2. Direct S3 key match
+                if (prodOpt.isEmpty()) {
+                    prodOpt = productRepo.findByS3Key(key);
+                }
+                // 3. Storage key match
                 if (prodOpt.isEmpty()) {
                     prodOpt = productRepo.findByStorageKey(key);
                 }
-                if (prodOpt.isEmpty()) {
-                    // Search dynamically matching suffix/substring
-                    final String finalKey = key;
-                    List<Product> matches = productRepo.findAll().stream()
-                            .filter(p -> (p.getS3Key() != null && p.getS3Key().contains(finalKey)) ||
-                                    (p.getStorageKey() != null && p.getStorageKey().contains(finalKey)))
-                            .collect(java.util.stream.Collectors.toList());
-                    if (!matches.isEmpty()) {
-                        prodOpt = Optional.of(matches.get(0));
+                // 4. URL substring extraction if full S3 URL was passed
+                if (prodOpt.isEmpty() && key.contains("amazonaws.com/")) {
+                    String sub = key.substring(key.indexOf("amazonaws.com/") + "amazonaws.com/".length());
+                    prodOpt = productRepo.findByS3Key(sub);
+                    if (prodOpt.isEmpty()) {
+                        prodOpt = productRepo.findByStorageKey(sub);
+                    }
+                    if (prodOpt.isPresent()) {
+                        resolvedObjectKey = sub;
                     }
                 }
 
                 if (prodOpt.isPresent()) {
                     Product product = prodOpt.get();
+                    if (product.getS3Key() != null && !product.getS3Key().isBlank()) {
+                        resolvedObjectKey = product.getS3Key();
+                    } else if (product.getStorageKey() != null && !product.getStorageKey().isBlank()) {
+                        resolvedObjectKey = product.getStorageKey();
+                    }
+
                     boolean isFree = product.isFree()
-                            || (product.getPrice() != null && product.getPrice() == 0.0);
+                            || (product.getPrice() != null && product.getPrice() == 0.0)
+                            || product.isStateScope()
+                            || "STATE".equalsIgnoreCase(product.getResourceScope())
+                            || "general".equalsIgnoreCase(product.getDistrictSlug());
 
                     if (!isFree) {
                         // PAID resource: MUST require authentication
@@ -183,17 +208,25 @@ public class PdfController {
                         }
                     }
                 } else {
-                    // Document not found in catalog. If unauthenticated, return 401; otherwise 403
-                    if (!isAuthenticated) {
-                        return ResponseEntity.status(401).body(ApiResponseDTO.builder()
-                                .success(false).message("Authentication required.").build());
+                    // Document not found in catalog. Check if path represents public state/free content
+                    boolean isPublicFreePath = key.contains("/free/")
+                            || key.contains("/general/")
+                            || key.startsWith("states/")
+                            || key.contains("/state-images/")
+                            || key.contains("sample");
+
+                    if (!isPublicFreePath) {
+                        if (!isAuthenticated) {
+                            return ResponseEntity.status(401).body(ApiResponseDTO.builder()
+                                    .success(false).message("Authentication required.").build());
+                        }
+                        return ResponseEntity.status(403).body(ApiResponseDTO.builder()
+                                .success(false).message("Document not found in catalog or unauthorized.").build());
                     }
-                    return ResponseEntity.status(403).body(ApiResponseDTO.builder()
-                            .success(false).message("Document not found in catalog or unauthorized.").build());
                 }
             }
 
-            String signedUrl = s3Service.generatePresignedUrl(key);
+            String signedUrl = s3Service.generatePresignedUrl(resolvedObjectKey);
 
             if (redirect) {
                 return ResponseEntity.status(302)

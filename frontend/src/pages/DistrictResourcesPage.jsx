@@ -4,6 +4,7 @@ import api from "../services/api";
 import toast from "react-hot-toast";
 import { useAuth } from "../hooks/useAuth";
 import { decodeMojibake } from "../utils/formatters";
+import ResourceViewerModal from "../components/common/ResourceViewerModal";
 
 const FILE_ICONS = {
   pdf:  { icon: "📄", color: "text-red-400",    label: "PDF" },
@@ -74,118 +75,6 @@ function formatSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function ResourceModal({ resource, onClose }) {
-  const [iframeLoading, setIframeLoading] = useState(true);
-  const ext = (resource.fileExtension || "").toLowerCase();
-  const url = resource.s3Url ? resource.s3Url.split('/').map((part, i) => i < 3 ? part : encodeURIComponent(part)).join('/') : null;
-  const title = resource.displayTitle || resource.title || resource.fileName;
-
-  const officeExts = ["docx", "doc", "xlsx", "xls", "pptx", "ppt"];
-  const imageExts = ["png", "jpg", "jpeg", "webp"];
-  const audioExts = ["mp3", "m4a", "wav", "aac", "ogg"];
-  const videoExts = ["mp4"];
-
-  const renderContent = () => {
-    if (ext === "pdf") {
-      const googleUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
-      return (
-        <div className="relative w-full h-full">
-          {iframeLoading && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 rounded-lg z-10">
-              <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-              <p className="text-gray-400 text-sm">Loading document...</p>
-            </div>
-          )}
-          <iframe
-            src={googleUrl}
-            className="w-full h-full rounded-lg"
-            title={title}
-            onLoad={() => setIframeLoading(false)}
-          />
-        </div>
-      );
-    }
-    if (imageExts.includes(ext)) {
-      return (
-        <div className="w-full h-full flex items-center justify-center overflow-auto">
-          <img src={url} alt={title} className="max-w-full max-h-full object-contain rounded-lg" />
-        </div>
-      );
-    }
-    if (audioExts.includes(ext)) {
-      return (
-        <div className="w-full h-full flex flex-col items-center justify-center gap-6">
-          <div className="text-6xl">🎵</div>
-          <p className="text-white font-semibold text-center px-4">{title}</p>
-          <audio controls className="w-full max-w-md" src={url}>
-            Your browser does not support audio playback.
-          </audio>
-        </div>
-      );
-    }
-    if (videoExts.includes(ext)) {
-      return (
-        <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-black rounded-lg p-4">
-          <video controls className="max-w-full max-h-full rounded-lg shadow-lg" src={url}>
-            Your browser does not support video playback.
-          </video>
-        </div>
-      );
-    }
-    if (officeExts.includes(ext)) {
-      const officeUrl = `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(url)}`;
-      return (
-        <iframe
-          src={officeUrl}
-          className="w-full h-full rounded-lg"
-          title={title}
-        />
-      );
-    }
-    return (
-      <div className="w-full h-full flex flex-col items-center justify-center gap-4">
-        <div className="text-6xl">📎</div>
-        <p className="text-gray-400">Preview not available for this file type.</p>
-      </div>
-    );
-  };
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 select-none"
-      onContextMenu={(e) => e.preventDefault()}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-5xl h-[90vh] flex flex-col shadow-2xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700 flex-shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <span className="text-xl flex-shrink-0">
-              {FILE_ICONS[ext]?.icon || "📎"}
-            </span>
-            <div className="min-w-0">
-              <h3 className="text-white font-semibold text-sm truncate">{title}</h3>
-              {resource.fileSize && (
-                <p className="text-gray-500 text-xs">{formatSize(resource.fileSize)}</p>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0 ml-4">
-            <button
-              onClick={onClose}
-              className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors text-lg leading-none"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-        <div className="flex-1 overflow-hidden p-4">
-          {renderContent()}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function DistrictResourcesPage() {
   const { stateSlug, districtSlug } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -246,30 +135,16 @@ export default function DistrictResourcesPage() {
     fetchData();
   }, [stateSlug, districtSlug, isAuthenticated]);
 
-  const handleOpenResource = async (resource) => {
-    const key = resource.s3Key || resource.storageKey;
-    if (!key) {
-      toast.error("Resource storage key is missing.");
+  const handleOpenResource = (resource) => {
+    const isFree = Boolean(resource.free || resource.isFree || resource.price === 0 || String(resource.category || '').toLowerCase() === 'free');
+    if (!isFree && !purchased) {
+      toast.error("District unlock required to access this paid resource.");
+      if (!isAuthenticated && openAuthModal) {
+        openAuthModal('welcome');
+      }
       return;
     }
-    try {
-      const res = await api.get(`/pdf/${key}`);
-      const signedUrl = res.url || res.data?.url || (typeof res.data === 'string' ? res.data : null);
-      if (signedUrl) {
-        setSelectedResource({ ...resource, s3Url: signedUrl });
-      } else {
-        toast.error("Failed to obtain secure viewing link.");
-      }
-    } catch (err) {
-      if (err.response?.status === 401) {
-        toast.error("Please login to access this resource.");
-        if (openAuthModal) openAuthModal('welcome');
-      } else if (err.response?.status === 403) {
-        toast.error("District unlock required to access this paid resource.");
-      } else {
-        toast.error("Could not open resource.");
-      }
-    }
+    setSelectedResource(resource);
   };
 
   useEffect(() => {
@@ -293,7 +168,7 @@ export default function DistrictResourcesPage() {
   return (
     <div className="min-h-screen bg-gray-950 text-white p-6">
       {selectedResource && (
-        <ResourceModal resource={selectedResource} onClose={() => setSelectedResource(null)} />
+        <ResourceViewerModal resource={selectedResource} onClose={() => setSelectedResource(null)} />
       )}
 
       <div className="max-w-6xl mx-auto space-y-6">
