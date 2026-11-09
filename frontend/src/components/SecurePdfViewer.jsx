@@ -94,6 +94,12 @@ export default function SecurePdfViewer({
       try {
         const response = await fetch(pdfUrl);
         if (!response.ok) {
+          if (response.status === 403) {
+            throw new Error("The secure access link has expired. Please refresh to renew access.");
+          }
+          if (response.status === 404) {
+            throw new Error("The PDF document was not found in storage.");
+          }
           throw new Error(`HTTP ${response.status} ${response.statusText} fetching S3 PDF`);
         }
 
@@ -107,6 +113,7 @@ export default function SecurePdfViewer({
 
         if (!magicHeader.startsWith("%PDF")) {
           console.warn("SecurePdfViewer: Magic header is not %PDF:", magicHeader);
+          throw new Error("Document file content is corrupted or not a valid PDF.");
         }
 
         if (!isMounted) return;

@@ -72,7 +72,7 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/products/**").permitAll()
 
                         // Public PDF reads (resource-level authorization enforced in PdfController)
-                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/pdf/**").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/pdf", "/api/pdf/**").permitAll()
                         // Public Test Series catalog reads
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/test-series/**").permitAll()
 

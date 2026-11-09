@@ -47,8 +47,13 @@ const Library = () => {
 
         try {
             setActionId(item.id);
-            // Request presigned URL from secure API
-            const res = await api.get(`/pdf/${storageKey}`);
+            // Request presigned URL from secure API using canonical resource endpoint
+            const res = await api.get('/pdf/resource', {
+                params: {
+                    key: storageKey,
+                    id: item.productId || item.product?.id || item.id
+                }
+            });
             const signedUrl = res.url || res.data?.url;
             
             if (signedUrl) {
