@@ -47,7 +47,7 @@ public class AdminSystemHealthController {
                                        QuestionBankProperties qbProps,
                                        DriveToS3PipelineTask stateTask,
                                        QuestionBankPipelineTask qbTask,
-                                       org.springframework.beans.factory.annotation.Autowired(required = false) YouTubeSyncService youTubeSyncService) {
+                                       @org.springframework.beans.factory.annotation.Autowired(required = false) YouTubeSyncService youTubeSyncService) {
         this.mongoTemplate = mongoTemplate;
         this.s3Service = s3Service;
         this.genericDriveService = genericDriveService;
