@@ -157,12 +157,12 @@ public class PdfController {
             Optional<Product> prodOpt = Optional.empty();
 
             // 1. Direct MongoDB ID match if id param provided
-            if (id != null && id.length() == 24 && id.matches("^[a-fA-F0-9]+$")) {
+            if (id != null && !id.isBlank()) {
                 prodOpt = productRepo.findById(id);
             }
 
-            // 2. Direct MongoDB ID match if key is 24 hex characters
-            if (prodOpt.isEmpty() && key != null && key.length() == 24 && key.matches("^[a-fA-F0-9]+$")) {
+            // 2. Direct MongoDB ID match if key is passed as product ID (contains no slash)
+            if (prodOpt.isEmpty() && key != null && !key.isBlank() && !key.contains("/")) {
                 prodOpt = productRepo.findById(key);
             }
 
@@ -407,10 +407,19 @@ public class PdfController {
             }
         }
 
-        // 4. State Image Asset Classification (states/{stateSlug}/{imageFilename})
+        // 4. Approved Public Storage Layout (canonical district free, legacy district free, state images)
         String s3Key = product.getS3Key() != null ? product.getS3Key() : product.getStorageKey();
-        if (isStateImageLayout(s3Key)) {
+        if (isApprovedPublicStorageLayout(s3Key) || isStateImageLayout(s3Key)) {
             return product.isFree() || (product.getPrice() != null && product.getPrice() == 0.0);
+        }
+
+        // 5. Cataloged product explicitly marked free with zero/null price and no conflicting state scope
+        if (product.isFree() && (product.getPrice() == null || product.getPrice() == 0.0)) {
+            if (product.getStateSlug() != null && !product.getStateSlug().isBlank()
+                    && Product.SCOPE_STATE.equalsIgnoreCase(product.getResourceScope())) {
+                return false; // State scope without canonical category fails closed
+            }
+            return true;
         }
 
         // Fail-closed for all other combinations
