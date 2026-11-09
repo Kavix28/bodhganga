@@ -22,6 +22,7 @@ public class QuizAvailabilityService {
         this(questionRepo, null);
     }
 
+    @org.springframework.beans.factory.annotation.Autowired
     public QuizAvailabilityService(QuestionRepo questionRepo, MongoTemplate mongoTemplate) {
         this.questionRepo = questionRepo;
         this.mongoTemplate = mongoTemplate;
