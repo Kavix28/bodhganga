@@ -393,7 +393,6 @@ public class PdfAuthorizationTests {
     void testCanonicalEndpointUnpublishedResourceForbidden() throws Exception {
         Product p = seedFreeProduct("states/maharashtra/akola/free/draft.pdf", "maharashtra", "akola");
         p.setPublished(false);
-        p.setIsPublished(false);
         productRepo.save(p);
 
         mockMvc.perform(get("/api/pdf/resource").param("key", p.getS3Key()))
