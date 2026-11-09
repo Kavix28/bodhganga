@@ -675,9 +675,9 @@ public class PdfAuthorizationTests {
     @Test
     @WithMockUser(username = TEST_USER_EMAIL)
     void testCanonicalEndpointUncataloguedPaidKeyDeniedForAuthenticatedUser() throws Exception {
-        // Authenticated user without catalog entry must fail closed (404)
+        // Authenticated user without catalog entry must fail closed (403)
         mockMvc.perform(get("/api/pdf/resource").param("key", "states/maharashtra/akola/paid/secret_notes.pdf"))
-                .andExpect(status().isNotFound())
+                .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.success").value(false));
     }
 

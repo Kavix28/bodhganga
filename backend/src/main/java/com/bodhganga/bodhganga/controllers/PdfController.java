@@ -291,7 +291,7 @@ public class PdfController {
                             return ResponseEntity.status(401).body(ApiResponseDTO.builder()
                                     .success(false).message("Authentication required.").build());
                         }
-                        return ResponseEntity.status(404).body(ApiResponseDTO.builder()
+                        return ResponseEntity.status(403).body(ApiResponseDTO.builder()
                                 .success(false).message("Document not found in catalog or unauthorized.").build());
                     }
                 }
