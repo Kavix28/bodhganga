@@ -45,7 +45,8 @@ export default function ResourceViewerModal({ resource, onClose }) {
       return;
     }
 
-    // 2. Identify key for backend presigning
+    // 2. Identify key and id for backend presigning
+    const resourceId = resource.id || resource._id;
     let key = resource.s3Key || resource.storageKey;
     if (!key && resource.s3Url) {
       const match = resource.s3Url.match(/amazonaws\.com\/(.+)$/);
@@ -53,38 +54,94 @@ export default function ResourceViewerModal({ resource, onClose }) {
         key = decodeURIComponent(match[1]);
       }
     }
-    if (!key) {
-      key = resource.id || resource._id;
-    }
 
-    if (!key) {
+    if (!key && !resourceId) {
       if (raw) {
         setSignedUrl(raw);
         setLoading(false);
         return;
       }
-      setError("Unable to locate document storage key.");
+      setError({
+        title: "Missing Storage Key",
+        message: "Unable to locate document storage key or resource identifier.",
+        canRetry: false
+      });
       setLoading(false);
       return;
     }
 
-    // 3. Request presigned URL from backend
+    // 3. Request presigned URL from backend using canonical query parameters
     try {
-      const res = await api.get(`/pdf/${encodeURIComponent(key)}`);
+      const params = {};
+      if (key) params.key = key;
+      if (resourceId) params.id = resourceId;
+
+      const res = await api.get("/pdf/resource", { params });
       const url = res.url || res.data?.url || (typeof res.data === "string" ? res.data : null);
       if (url) {
         setSignedUrl(url);
       } else {
-        setError("Failed to generate secure access link for this material.");
+        setError({
+          title: "Access Error",
+          message: "Failed to generate secure access link for this material.",
+          canRetry: true
+        });
       }
     } catch (err) {
       console.error("ResourceViewerModal: Presigned URL fetch error:", err);
-      if (err.response?.status === 401) {
-        setError("Please login to access this material.");
-      } else if (err.response?.status === 403) {
-        setError("Subscription or purchase required to access this material.");
+      const status = err.status || err.response?.status;
+      const code = err.code;
+
+      if (status === 400) {
+        setError({
+          title: "Malformed Resource Request",
+          message: err.message || "The requested material key or identifier is malformed.",
+          canRetry: false
+        });
+      } else if (status === 401) {
+        setError({
+          title: "Authentication Required",
+          message: "Please sign in to your BodhGanga account to access this material.",
+          canRetry: false,
+          isAuth: true
+        });
+      } else if (status === 403) {
+        setError({
+          title: "Access Restricted",
+          message: err.message || "Subscription or district unlock required to access this material.",
+          canRetry: false
+        });
+      } else if (status === 404) {
+        setError({
+          title: "Material Not Found",
+          message: err.message || "The requested study material could not be found in storage.",
+          canRetry: false
+        });
+      } else if (status === 500) {
+        setError({
+          title: "Server Error",
+          message: "An internal server error occurred while preparing this material.",
+          canRetry: true
+        });
+      } else if (status === 502 || status === 503 || status === 504) {
+        setError({
+          title: "Service Temporarily Unavailable",
+          message: "Storage services are temporarily unreachable. Please retry shortly.",
+          canRetry: true
+        });
+      } else if (code === "TIMEOUT") {
+        setError({
+          title: "Request Timeout",
+          message: "The server took too long to generate access for this material. Please retry.",
+          canRetry: true
+        });
       } else {
-        setError(err?.message || "Failed to secure access link from server.");
+        const isNetwork = err.networkError || (err.message && err.message.includes("Network Error"));
+        setError({
+          title: isNetwork ? "Connection Issue" : "Unable to Open Material",
+          message: err.message || "Failed to secure access link from server.",
+          canRetry: isNetwork
+        });
       }
     } finally {
       setLoading(false);
@@ -148,18 +205,31 @@ export default function ResourceViewerModal({ resource, onClose }) {
             </div>
           ) : error ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center space-y-4">
-              <div className="w-12 h-12 rounded-full bg-red-950 border border-red-800 flex items-center justify-center text-red-400">
+              <div className="w-12 h-12 rounded-full bg-red-950/80 border border-red-800/80 flex items-center justify-center text-red-400">
                 <AlertCircle className="w-6 h-6" />
               </div>
-              <h4 className="text-base font-bold text-white">Unable to open material</h4>
-              <p className="text-xs text-gray-400 max-w-sm">{error}</p>
-              <button
-                onClick={resolveUrl}
-                className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-gray-950 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors inline-flex items-center gap-1.5 shadow"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                Retry
-              </button>
+              <h4 className="text-base font-bold text-white">
+                {typeof error === "object" ? error.title : "Unable to open material"}
+              </h4>
+              <p className="text-xs text-gray-400 max-w-sm">
+                {typeof error === "object" ? error.message : error}
+              </p>
+              {typeof error === "object" && error.canRetry ? (
+                <button
+                  onClick={resolveUrl}
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-gray-950 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors inline-flex items-center gap-1.5 shadow"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Retry
+                </button>
+              ) : (
+                <button
+                  onClick={onClose}
+                  className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-xl text-xs font-semibold uppercase tracking-wider transition-colors inline-flex items-center gap-1.5 border border-gray-700"
+                >
+                  Close Viewer
+                </button>
+              )}
             </div>
           ) : ext === "pdf" ? (
             <SecurePdfViewer

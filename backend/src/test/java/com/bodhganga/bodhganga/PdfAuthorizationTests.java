@@ -263,4 +263,605 @@ public class PdfAuthorizationTests {
         mockMvc.perform(get("/api/admin/resources/state/maharashtra/district/akola"))
                 .andExpect(status().isOk());
     }
+
+    // =========================================================================
+    // CANONICAL RESOURCE ENDPOINT (/api/pdf/resource) TESTS
+    // =========================================================================
+
+    @Test
+    void testCanonicalEndpointFreePdfSimpleFilename() throws Exception {
+        Product p = seedFreeProduct("simple.pdf", "general", "general");
+        mockMvc.perform(get("/api/pdf/resource").param("key", "simple.pdf"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.url").exists());
+    }
+
+    @Test
+    void testCanonicalEndpointFreePdfNestedS3Key() throws Exception {
+        Product p = seedFreeProduct("haryana/kurukshetra/free/history.pdf", "haryana", "kurukshetra");
+        mockMvc.perform(get("/api/pdf/resource").param("key", "haryana/kurukshetra/free/history.pdf"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.url").exists());
+    }
+
+    @Test
+    void testCanonicalEndpointFilenameWithSpaces() throws Exception {
+        String key = "haryana/kurukshetra/free/Kurukshetra Infographic Hindi.png";
+        Product p = seedFreeProduct(key, "haryana", "kurukshetra");
+        mockMvc.perform(get("/api/pdf/resource").param("key", key))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.url").exists());
+    }
+
+    @Test
+    void testCanonicalEndpointFilenameWithUnicodeHindi() throws Exception {
+        String key = "haryana/kurukshetra/free/कुरुक्षेत्र_इतिहास_हिंदी.pdf";
+        Product p = seedFreeProduct(key, "haryana", "kurukshetra");
+        mockMvc.perform(get("/api/pdf/resource").param("key", key))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.url").exists());
+    }
+
+    @Test
+    void testCanonicalEndpointFilenameWithParentheses() throws Exception {
+        String key = "haryana/kurukshetra/free/Kurukshetra_Notes_(Final_Version).pdf";
+        Product p = seedFreeProduct(key, "haryana", "kurukshetra");
+        mockMvc.perform(get("/api/pdf/resource").param("key", key))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.url").exists());
+    }
+
+    @Test
+    void testCanonicalEndpointLookupById() throws Exception {
+        String hexId = "6aa123f5edc2296bdf3a25b6";
+        Product p = new Product();
+        p.setId(hexId);
+        p.setTitle("Hex ID Product");
+        p.setS3Key("haryana/kurukshetra/free/sample.pdf");
+        p.setStorageKey("haryana/kurukshetra/free/sample.pdf");
+        p.setFree(true);
+        p.setPrice(0.0);
+        p.setPublished(true);
+        p.setArchived(false);
+        productRepo.save(p);
+
+        mockMvc.perform(get("/api/pdf/resource").param("id", hexId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.url").exists());
+    }
+
+    @Test
+    @WithMockUser(username = TEST_USER_EMAIL)
+    void testCanonicalEndpointPaidPdfWithValidEntitlement() throws Exception {
+        seedPurchase("maharashtra", "akola");
+        Product prod = seedPaidProduct("states/maharashtra/akola/paid/guide.pdf", "maharashtra", "akola");
+
+        mockMvc.perform(get("/api/pdf/resource").param("key", prod.getS3Key()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.url").exists());
+    }
+
+    @Test
+    void testCanonicalEndpointPaidPdfWithoutAuthentication() throws Exception {
+        Product prod = seedPaidProduct("states/maharashtra/akola/paid/guide.pdf", "maharashtra", "akola");
+
+        mockMvc.perform(get("/api/pdf/resource").param("key", prod.getS3Key()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    @WithMockUser(username = TEST_USER_EMAIL)
+    void testCanonicalEndpointPaidPdfWithoutEntitlement() throws Exception {
+        Product prod = seedPaidProduct("states/maharashtra/akola/paid/guide.pdf", "maharashtra", "akola");
+
+        mockMvc.perform(get("/api/pdf/resource").param("key", prod.getS3Key()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void testCanonicalEndpointNonexistentResourceGuestDenied() throws Exception {
+        mockMvc.perform(get("/api/pdf/resource").param("key", "private/vault/secret.pdf"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void testCanonicalEndpointArchivedResourceForbidden() throws Exception {
+        Product p = seedFreeProduct("states/maharashtra/akola/free/archived.pdf", "maharashtra", "akola");
+        p.setArchived(true);
+        productRepo.save(p);
+
+        mockMvc.perform(get("/api/pdf/resource").param("key", p.getS3Key()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("Material is archived."));
+    }
+
+    @Test
+    void testCanonicalEndpointDeletedResourceNotFound() throws Exception {
+        Product p = seedFreeProduct("states/maharashtra/akola/free/deleted.pdf", "maharashtra", "akola");
+        p.setIsDeleted(true);
+        productRepo.save(p);
+
+        mockMvc.perform(get("/api/pdf/resource").param("key", p.getS3Key()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Material has been removed."));
+    }
+
+    @Test
+    void testCanonicalEndpointUnpublishedResourceForbidden() throws Exception {
+        Product p = seedFreeProduct("states/maharashtra/akola/free/draft.pdf", "maharashtra", "akola");
+        p.setPublished(false);
+        productRepo.save(p);
+
+        mockMvc.perform(get("/api/pdf/resource").param("key", p.getS3Key()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("Material is not published."));
+    }
+
+    @Test
+    void testCanonicalEndpointMissingKeyAndIdBadRequest() throws Exception {
+        mockMvc.perform(get("/api/pdf/resource"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Resource key or id is required."));
+    }
+
+    @Test
+    void testCanonicalEndpointPathTraversalBlocked() throws Exception {
+        mockMvc.perform(get("/api/pdf/resource").param("key", "../../etc/passwd"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Invalid resource path."));
+    }
+
+    @Test
+    void testCanonicalEndpointKeyWithPlusSignPreserved() throws Exception {
+        // Legitimate S3 key containing '+' must NOT be double-decoded into space ' '
+        String key = "states/haryana/kurukshetra/free/math+science.pdf";
+        mockMvc.perform(get("/api/pdf/resource").param("key", key))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.url").value(org.hamcrest.Matchers.containsString("math+science.pdf")));
+    }
+
+    @Test
+    void testCanonicalEndpointEncodedTraversalAttemptBlocked() throws Exception {
+        // Direct encoded traversal (%2e%2e is ..) must be rejected with 400 Bad Request
+        mockMvc.perform(get("/api/pdf/resource").param("key", "%2e%2e/etc/passwd"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Invalid resource path."));
+
+        mockMvc.perform(get("/api/pdf/resource").param("key", "states/%2e%2e/secret.pdf"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void testCanonicalEndpointDoubleEncodedTraversalAttemptBlocked() throws Exception {
+        // Double-encoded traversal (%252e%252e) must be rejected with 400 Bad Request
+        mockMvc.perform(get("/api/pdf/resource").param("key", "%252e%252e/etc/passwd"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Invalid resource path."));
+
+        mockMvc.perform(get("/api/pdf/resource").param("key", "states/%252e%252e/secret.pdf"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    // =========================================================================
+    // CONTRADICTORY METADATA COMBINATION TESTS (FAIL-CLOSED)
+    // =========================================================================
+
+    @Test
+    void testContradictoryMetadataPricePositiveOverridesIsFreeTrueDenied() throws Exception {
+        // isFree is true, BUT price is 99.0 -> Must FAIL CLOSED (401 for guest)
+        Product p = new Product();
+        p.setId(UUID.randomUUID().toString());
+        p.setTitle("Contradictory Product 1");
+        p.setS3Key("states/maharashtra/akola/free/sample.pdf");
+        p.setStorageKey("states/maharashtra/akola/free/sample.pdf");
+        p.setFree(true);
+        p.setPrice(99.0);
+        p.setStateSlug("maharashtra");
+        p.setDistrictSlug("akola");
+        p.setPublished(true);
+        p.setArchived(false);
+        productRepo.save(p);
+
+        mockMvc.perform(get("/api/pdf/resource").param("id", p.getId()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void testContradictoryMetadataPaidKeyOverridesIsFreeTrueDenied() throws Exception {
+        // isFree is true, price is 0.0, BUT storage key has /paid/ -> Must FAIL CLOSED
+        Product p = new Product();
+        p.setId(UUID.randomUUID().toString());
+        p.setTitle("Contradictory Product 2");
+        p.setS3Key("states/maharashtra/akola/paid/exam_blueprint.pdf");
+        p.setStorageKey("states/maharashtra/akola/paid/exam_blueprint.pdf");
+        p.setFree(true);
+        p.setPrice(0.0);
+        p.setStateSlug("maharashtra");
+        p.setDistrictSlug("akola");
+        p.setPublished(true);
+        p.setArchived(false);
+        productRepo.save(p);
+
+        mockMvc.perform(get("/api/pdf/resource").param("id", p.getId()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void testContradictoryMetadataPaidCategoryOverridesIsFreeTrueDenied() throws Exception {
+        // isFree is true, price is 0.0, BUT category is "paid resources" -> Must FAIL CLOSED
+        Product p = new Product();
+        p.setId(UUID.randomUUID().toString());
+        p.setTitle("Contradictory Product 3");
+        p.setS3Key("states/maharashtra/akola/notes.pdf");
+        p.setStorageKey("states/maharashtra/akola/notes.pdf");
+        p.setFree(true);
+        p.setPrice(0.0);
+        p.setCategory("paid resources");
+        p.setCategorySlug("paid");
+        p.setStateSlug("maharashtra");
+        p.setDistrictSlug("akola");
+        p.setPublished(true);
+        p.setArchived(false);
+        productRepo.save(p);
+
+        mockMvc.perform(get("/api/pdf/resource").param("id", p.getId()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void testContradictoryMetadataDistrictGeneralWithPositivePriceDenied() throws Exception {
+        // districtSlug is "general", BUT price is 99.0 -> Must FAIL CLOSED
+        Product p = new Product();
+        p.setId(UUID.randomUUID().toString());
+        p.setTitle("General Slug with Price");
+        p.setS3Key("nagaland/general/guide.pdf");
+        p.setStorageKey("nagaland/general/guide.pdf");
+        p.setFree(false);
+        p.setPrice(99.0);
+        p.setStateSlug("nagaland");
+        p.setDistrictSlug("general");
+        p.setPublished(true);
+        p.setArchived(false);
+        productRepo.save(p);
+
+        mockMvc.perform(get("/api/pdf/resource").param("id", p.getId()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void testContradictoryMetadataStateScopeWithNonCanonicalCategoryDenied() throws Exception {
+        // resourceScope is "STATE", districtSlug is "general", price is 0.0, BUT category is not a canonical state category
+        Product p = new Product();
+        p.setId(UUID.randomUUID().toString());
+        p.setTitle("Non-Canonical State Material");
+        p.setS3Key("nagaland/secret_exam/notes.pdf");
+        p.setStorageKey("nagaland/secret_exam/notes.pdf");
+        p.setFree(false);
+        p.setPrice(0.0);
+        p.setStateSlug("nagaland");
+        p.setDistrictSlug("general");
+        p.setResourceScope(Product.SCOPE_STATE);
+        p.setCategory("Secret Exam Series");
+        p.setCategorySlug("secret-exam-series");
+        p.setPublished(true);
+        p.setArchived(false);
+        productRepo.save(p);
+
+        mockMvc.perform(get("/api/pdf/resource").param("id", p.getId()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void testContradictoryMetadataCategoryFreeWithPositivePriceDenied() throws Exception {
+        // category is "free", BUT price is 149.0 -> Must FAIL CLOSED
+        Product p = new Product();
+        p.setId(UUID.randomUUID().toString());
+        p.setTitle("Category Free But Paid Price");
+        p.setS3Key("states/haryana/kurukshetra/notes.pdf");
+        p.setStorageKey("states/haryana/kurukshetra/notes.pdf");
+        p.setFree(false);
+        p.setPrice(149.0);
+        p.setStateSlug("haryana");
+        p.setDistrictSlug("kurukshetra");
+        p.setCategory("free");
+        p.setCategorySlug("free");
+        p.setPublished(true);
+        p.setArchived(false);
+        productRepo.save(p);
+
+        mockMvc.perform(get("/api/pdf/resource").param("id", p.getId()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void testContradictoryMetadataDistrictResourceWithStateScopeConflictDenied() throws Exception {
+        // Product has actual district "dimapur", but claims resourceScope = "STATE" -> Contradictory scope, fail closed
+        Product p = new Product();
+        p.setId(UUID.randomUUID().toString());
+        p.setTitle("Conflicting District and State Scope");
+        p.setS3Key("nagaland/dimapur/notes.pdf");
+        p.setStorageKey("nagaland/dimapur/notes.pdf");
+        p.setFree(false);
+        p.setPrice(0.0);
+        p.setStateSlug("nagaland");
+        p.setDistrictSlug("dimapur");
+        p.setResourceScope(Product.SCOPE_STATE);
+        p.setPublished(true);
+        p.setArchived(false);
+        productRepo.save(p);
+
+        mockMvc.perform(get("/api/pdf/resource").param("id", p.getId()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    // =========================================================================
+    // AUTHORITATIVE PUBLIC RESOURCE TESTS
+    // =========================================================================
+
+    @Test
+    void testAuthoritativeStateResourceHistoryAllowed() throws Exception {
+        // Valid canonical state educational material: Nagaland History
+        Product p = new Product();
+        p.setId(UUID.randomUUID().toString());
+        p.setTitle("Battle of Kohima (1944)");
+        p.setS3Key("nagaland/history/Battle_of_Kohima.pdf");
+        p.setStorageKey("nagaland/history/Battle_of_Kohima.pdf");
+        p.setStateSlug("nagaland");
+        p.setDistrictSlug("general");
+        p.setResourceScope(Product.SCOPE_STATE);
+        p.setContentArea("STATE_CONTENT");
+        p.setCategory(Product.CATEGORY_HISTORY);
+        p.setCategorySlug(Product.SLUG_HISTORY);
+        p.setFree(true);
+        p.setPrice(0.0);
+        p.setPublished(true);
+        p.setArchived(false);
+        productRepo.save(p);
+
+        mockMvc.perform(get("/api/pdf/resource").param("id", p.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.url").exists());
+    }
+
+    @Test
+    void testAuthoritativeDistrictFreeResourceAllowed() throws Exception {
+        // Valid district free resource: Dimapur free sample notes
+        Product p = new Product();
+        p.setId(UUID.randomUUID().toString());
+        p.setTitle("Dimapur Free Sample Notes");
+        p.setS3Key("states/nagaland/dimapur/free/sample_notes.pdf");
+        p.setStorageKey("states/nagaland/dimapur/free/sample_notes.pdf");
+        p.setStateSlug("nagaland");
+        p.setDistrictSlug("dimapur");
+        p.setFree(true);
+        p.setPrice(0.0);
+        p.setPublished(true);
+        p.setArchived(false);
+        productRepo.save(p);
+
+        mockMvc.perform(get("/api/pdf/resource").param("id", p.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.url").exists());
+    }
+
+    // =========================================================================
+    // STRICT SEGMENT-AWARE STORAGE LAYOUT & SECURITY TESTS
+    // =========================================================================
+
+    @Test
+    void testCanonicalEndpointUncataloguedPaidKeyDeniedForGuest() throws Exception {
+        // Any uncataloged key containing a "paid" segment MUST be denied
+        mockMvc.perform(get("/api/pdf/resource").param("key", "states/maharashtra/akola/paid/secret_notes.pdf"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    @WithMockUser(username = TEST_USER_EMAIL)
+    void testCanonicalEndpointUncataloguedPaidKeyDeniedForAuthenticatedUser() throws Exception {
+        // Authenticated user without catalog entry must fail closed (403)
+        mockMvc.perform(get("/api/pdf/resource").param("key", "states/maharashtra/akola/paid/secret_notes.pdf"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void testCanonicalEndpointUncataloguedSampleKeyDenied() throws Exception {
+        // Filenames or paths containing "sample" cannot bypass authorization
+        mockMvc.perform(get("/api/pdf/resource").param("key", "private/notes/Sample_Paid_Doc.pdf"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void testCanonicalEndpointUncataloguedUnrelatedFreeSubstringDenied() throws Exception {
+        // Broad substring "/free/" in non-approved layout cannot bypass authorization
+        mockMvc.perform(get("/api/pdf/resource").param("key", "unrelated/free-for-all/paid_document.pdf"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void testCanonicalEndpointUncataloguedArbitraryStatesKeyDenied() throws Exception {
+        // Arbitrary keys under states/ that do not match an approved public layout MUST fail closed
+        mockMvc.perform(get("/api/pdf/resource").param("key", "states/secret_folder/confidential.pdf"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void testCanonicalEndpointMismatchedIdAndKeyRejected() throws Exception {
+        // Legitimate free product ID
+        String hexId = "6aa123f5edc2296bdf3a25b7";
+        Product p = new Product();
+        p.setId(hexId);
+        p.setTitle("Free Public Material");
+        p.setS3Key("states/haryana/kurukshetra/free/genuine.pdf");
+        p.setStorageKey("states/haryana/kurukshetra/free/genuine.pdf");
+        p.setFree(true);
+        p.setPrice(0.0);
+        p.setPublished(true);
+        p.setArchived(false);
+        productRepo.save(p);
+
+        // Attacker attempts parameter mismatch: valid free id with an attacker-chosen paid S3 key
+        mockMvc.perform(get("/api/pdf/resource")
+                .param("id", hexId)
+                .param("key", "states/haryana/kurukshetra/paid/premium_exam.pdf"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Resource identifier does not match the requested storage key."));
+    }
+
+    @Test
+    void testCanonicalEndpointInvalidIdWithValidKeyRejected() throws Exception {
+        // Valid cataloged free product exists
+        String validId = "6aa123f5edc2296bdf3a25b8";
+        String validKey = "states/haryana/kurukshetra/free/valid_doc.pdf";
+        Product p = new Product();
+        p.setId(validId);
+        p.setTitle("Valid Document");
+        p.setS3Key(validKey);
+        p.setStorageKey(validKey);
+        p.setFree(true);
+        p.setPrice(0.0);
+        p.setPublished(true);
+        p.setArchived(false);
+        productRepo.save(p);
+
+        // Caller pairs valid key with an invalid/mismatched ID -> must be rejected
+        mockMvc.perform(get("/api/pdf/resource")
+                .param("id", "000000000000000000000000")
+                .param("key", validKey))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Resource identifier does not match the requested storage key."));
+    }
+
+    @Test
+    void testCanonicalEndpointIdBelongingToOneDistrictAndKeyBelongingToAnotherRejected() throws Exception {
+        // District A Product (Kurukshetra)
+        String idA = "6aa123f5edc2296bdf3a25c1";
+        String keyA = "states/haryana/kurukshetra/free/kurukshetra_doc.pdf";
+        Product pA = new Product();
+        pA.setId(idA);
+        pA.setTitle("Kurukshetra Doc");
+        pA.setS3Key(keyA);
+        pA.setStorageKey(keyA);
+        pA.setFree(true);
+        pA.setPrice(0.0);
+        pA.setPublished(true);
+        pA.setArchived(false);
+        productRepo.save(pA);
+
+        // District B Product (Dimapur)
+        String idB = "6aa123f5edc2296bdf3a25c2";
+        String keyB = "states/nagaland/dimapur/free/dimapur_doc.pdf";
+        Product pB = new Product();
+        pB.setId(idB);
+        pB.setTitle("Dimapur Doc");
+        pB.setS3Key(keyB);
+        pB.setStorageKey(keyB);
+        pB.setFree(true);
+        pB.setPrice(0.0);
+        pB.setPublished(true);
+        pB.setArchived(false);
+        productRepo.save(pB);
+
+        // Caller pairs ID of District A with Key of District B -> must be rejected
+        mockMvc.perform(get("/api/pdf/resource")
+                .param("id", idA)
+                .param("key", keyB))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Resource identifier does not match the requested storage key."));
+    }
+
+    @Test
+    void testCanonicalEndpointNonexistentIdAloneReturnsNotFound() throws Exception {
+        // Request with non-existent ID and no key must return 404
+        mockMvc.perform(get("/api/pdf/resource")
+                .param("id", "000000000000000000000000"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    @WithMockUser(username = TEST_USER_EMAIL)
+    void testCanonicalEndpointPaidCannotBeOpenedByAnotherUsersPurchase() throws Exception {
+        // User owns Akola district purchase
+        seedPurchase("maharashtra", "akola");
+
+        // Product belongs to Pune district
+        Product puneProduct = seedPaidProduct("states/maharashtra/pune/paid/guide.pdf", "maharashtra", "pune");
+
+        mockMvc.perform(get("/api/pdf/resource").param("key", puneProduct.getS3Key()))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void testApprovedPublicStorageLayoutCanonicalFreeDistrictAllowed() throws Exception {
+        // Layout 2: states/{stateSlug}/{districtSlug}/free/{filename} (5 segments)
+        mockMvc.perform(get("/api/pdf/resource").param("key", "states/haryana/kurukshetra/free/infographic.png"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.url").exists());
+    }
+
+    @Test
+    void testApprovedPublicStorageLayoutAdminStateGeneralFreeAllowed() throws Exception {
+        // Layout 2: states/{stateSlug}/general/free/{filename} (5 segments, admin state-level free upload)
+        mockMvc.perform(get("/api/pdf/resource").param("key", "states/nagaland/general/free/overview.pdf"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.url").exists());
+    }
+
+    @Test
+    void testApprovedPublicStorageLayoutLegacyFreeDistrictAllowed() throws Exception {
+        // Layout 3: {stateSlug}/{districtSlug}/free/{filename} (4 segments)
+        mockMvc.perform(get("/api/pdf/resource").param("key", "haryana/kurukshetra/free/infographic.png"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.url").exists());
+    }
+
+    @Test
+    void testRemovedSpeculativeLayoutFailsClosed() throws Exception {
+        // Old speculative Layout 4 (states/{stateSlug}/general/{categorySlug}/{filename}) was removed.
+        // Uncataloged keys in this format must FAIL CLOSED (401 for guest).
+        mockMvc.perform(get("/api/pdf/resource").param("key", "states/nagaland/general/history/battle_of_kohima.pdf"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    @Test
+    void testApprovedPublicStorageLayoutStateImageAllowed() throws Exception {
+        // Layout 1: states/{stateSlug}/{imageFilename} (3 segments, valid image extension)
+        mockMvc.perform(get("/api/pdf/resource").param("key", "states/haryana/Haryana-cover.png"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.url").exists());
+    }
+
+    @Test
+    void testApprovedPublicStorageLayoutStateImageNonImageDenied() throws Exception {
+        // 3 segments under states/ but NOT an image extension (e.g. .pdf) -> rejected
+        mockMvc.perform(get("/api/pdf/resource").param("key", "states/haryana/confidential.pdf"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success").value(false));
+    }
 }

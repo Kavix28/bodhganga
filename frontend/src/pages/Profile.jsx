@@ -49,7 +49,12 @@ const Profile = () => {
         }
         try {
             toast.loading('Opening PDF...', { id: 'view-pdf' });
-            const res = await api.get(`/pdf/${storageKey}`);
+            const res = await api.get('/pdf/resource', {
+                params: {
+                    key: storageKey,
+                    id: product?.id
+                }
+            });
             const signedUrl = res?.url || res?.data?.url;
             if (signedUrl) {
                 toast.success('PDF loaded in secure reader!', { id: 'view-pdf' });

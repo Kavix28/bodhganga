@@ -247,7 +247,8 @@ console.log('✅ TEST 9 PASSED: Admin resource management and upload capabilitie
 const stateSectionContent = fs.readFileSync(path.join(__dirname, '../pages/StateSectionPage.jsx'), 'utf8');
 assert.ok(stateSectionContent.includes('sectionMaterials.length'), 'StateSectionPage must dynamically compute count from filtered sectionMaterials');
 assert.ok(stateSectionContent.includes('effectiveSectionAvailability'), 'StateSectionPage must pass effectiveSectionAvailability to tabs');
-assert.ok(stateSectionContent.includes('ResourceModal'), 'StateSectionPage must use in-app ResourceModal for secure view only');
+assert.ok(stateSectionContent.includes('ResourceViewerModal'), 'StateSectionPage must use in-app ResourceViewerModal for secure view only');
+assert.ok(stateSectionContent.includes('<ResourceViewerModal'), 'StateSectionPage must render in-app ResourceViewerModal');
 assert.ok(!stateSectionContent.includes('<a download'), 'StateSectionPage must not contain download link');
 assert.ok(!stateSectionContent.includes('>Download'), 'StateSectionPage must not contain download button');
 

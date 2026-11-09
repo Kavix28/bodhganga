@@ -631,6 +631,7 @@ public class QuestionBankPipelineTask {
 
             int invalidCount = 0;
             int duplicateCount = 0;
+            Set<String> seenHashesInBatch = new HashSet<>();
             List<QBQuestion> qbQuestionsToSave = new ArrayList<>();
             List<QBImportItem> importItemsToSave = new ArrayList<>();
 
@@ -670,14 +671,14 @@ public class QuestionBankPipelineTask {
 
                 String qHash = GeminiQuestionParserService.calculateSHA256(mq.getQuestion() + "|" + optsSb.toString());
 
-                Optional<QBQuestion> existingHashOpt = questionRepo.findByQuestionHash(qHash);
-                if (existingHashOpt.isPresent()) {
+                if (seenHashesInBatch.contains(qHash) || questionRepo.findByQuestionHash(qHash).isPresent()) {
                     duplicateCount++;
                     item.setStatus("DUPLICATE");
-                    item.setErrorMessage("Duplicate question hash already exists in mongo: " + qHash);
+                    item.setErrorMessage("Duplicate question hash already exists: " + qHash);
                     importItemsToSave.add(item);
                     continue;
                 }
+                seenHashesInBatch.add(qHash);
 
                 item.setStatus("REVIEW_REQUIRED".equalsIgnoreCase(mq.getStatus()) ? "UNMATCHED" : "MATCHED");
                 importItemsToSave.add(item);
