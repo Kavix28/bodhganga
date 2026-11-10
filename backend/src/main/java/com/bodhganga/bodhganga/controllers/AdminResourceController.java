@@ -21,9 +21,12 @@ public class AdminResourceController {
     private static final Logger log = LoggerFactory.getLogger(AdminResourceController.class);
 
     private final AdminResourceService adminResourceService;
+    private final com.bodhganga.bodhganga.services.S3Service s3Service;
 
-    public AdminResourceController(AdminResourceService adminResourceService) {
+    public AdminResourceController(AdminResourceService adminResourceService,
+                                   com.bodhganga.bodhganga.services.S3Service s3Service) {
         this.adminResourceService = adminResourceService;
+        this.s3Service = s3Service;
     }
 
     /**
@@ -86,8 +89,18 @@ public class AdminResourceController {
             data.put("sectionSlug", p.getSectionSlug());
             data.put("resourceScope", p.getResourceScope());
             data.put("contentArea", p.getContentArea());
-            data.put("s3Key", p.getS3Key());
-            data.put("s3Url", p.getS3Url());
+            String effectiveKey = p.getS3Key() != null ? p.getS3Key() : p.getStorageKey();
+            String previewUrl = null;
+            if (effectiveKey != null && !effectiveKey.isBlank()) {
+                try {
+                    previewUrl = s3Service.generatePresignedGetUrl(effectiveKey);
+                } catch (Exception e) {
+                    log.warn("Could not generate presigned preview URL for key: {}", effectiveKey);
+                }
+            }
+            data.put("s3Key", effectiveKey);
+            data.put("s3Url", previewUrl != null ? previewUrl : (p.getS3Url() != null ? p.getS3Url() : effectiveKey));
+            data.put("previewUrl", previewUrl);
             data.put("published", p.isPublished());
             data.put("isPublished", p.isPublished());
             data.put("archived", p.isArchived());

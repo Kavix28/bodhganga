@@ -455,17 +455,17 @@ public class DriveToS3PipelineTask {
         // ── Step 4: Atomic S3 Upload ─────────────────────────────────────────
         try (InputStream uploadStream = new java.io.ByteArrayInputStream(fileBytes)) {
             String returnedKey = s3Service.uploadFileWithKey(uploadStream, size, s3Key, fileMimeType);
-            String s3Url = s3Service.getS3Url(returnedKey);
+            String canonicalKey = s3Service.getObjectKey(returnedKey);
 
-            product.setS3Key(returnedKey);
-            product.setStorageKey(returnedKey);
-            product.setS3Url(s3Url);
+            product.setS3Key(canonicalKey);
+            product.setStorageKey(canonicalKey);
+            product.setS3Url(canonicalKey);
             product.setIngestionStatus(IngestionStatus.COMPLETED);
             product.setUpdatedAt(new Date());
             product = productRepo.save(product);
 
-            log.info("[GENERIC PIPELINE] SUCCESS state={} navbarCategory={} s3Url={}",
-                    state, navbarCategory, s3Url);
+            log.info("[GENERIC PIPELINE] SUCCESS state={} navbarCategory={} s3Key={}",
+                    state, navbarCategory, canonicalKey);
 
             // ── Step 5: Archive ONLY After S3 + Mongo Success ─────────────────────
             if (archiveFolderId != null && !archiveFolderId.isEmpty() && !archiveFolderId.equals("null")) {

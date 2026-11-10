@@ -51,8 +51,6 @@ public class SecurityConfig {
                                 "/api/auth/admin/otp/**",
                                 "/api/admin/auth/otp/**",
                                 "/api/auth/**",
-                                "/api/admin/system/**",
-                                "/api/admin/recovery/**",
                                 "/error",
 
                                 "/actuator/health"
@@ -154,6 +152,9 @@ public class SecurityConfig {
                         .hasAuthority("ROLE_ADMIN")
                         .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/products/**")
                         .hasAuthority("ROLE_ADMIN")
+                        // Administrative system & recovery endpoints — MUST have ADMIN role
+                        .requestMatchers("/api/admin/system/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers("/api/admin/recovery/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
 
                         // Disallow everything else

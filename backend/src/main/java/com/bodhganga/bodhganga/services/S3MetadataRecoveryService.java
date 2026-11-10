@@ -94,8 +94,10 @@ public class S3MetadataRecoveryService {
         String rawFileName = parts[parts.length - 1];
 
         Product p = new Product();
-        p.setS3Key(s3Key);
-        p.setS3Url(s3Service.getS3Url(s3Key));
+        String canonicalKey = s3Service.getObjectKey(s3Key);
+        p.setS3Key(canonicalKey);
+        p.setStorageKey(canonicalKey);
+        p.setS3Url(canonicalKey);
         p.setState(stateName);
         p.setStateSlug(stateSlug);
         p.setOriginalFileName(rawFileName);

@@ -82,6 +82,14 @@ public class AdminResourceSystemTests {
                 when(s3Service.getS3Url(anyString()))
                                 .thenAnswer(invocation -> "https://s3.amazonaws.com/test-bucket/"
                                                 + invocation.getArgument(0));
+                when(s3Service.generatePresignedGetUrl(anyString()))
+                                .thenAnswer(invocation -> "https://s3.amazonaws.com/test-bucket/"
+                                                + invocation.getArgument(0) + "?presigned=true");
+                when(s3Service.generatePresignedUrl(anyString()))
+                                .thenAnswer(invocation -> "https://s3.amazonaws.com/test-bucket/"
+                                                + invocation.getArgument(0) + "?presigned=true");
+                when(s3Service.getObjectKey(anyString()))
+                                .thenAnswer(invocation -> invocation.getArgument(0));
         }
 
         @Test

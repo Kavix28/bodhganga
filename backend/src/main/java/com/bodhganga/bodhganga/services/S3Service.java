@@ -146,6 +146,58 @@ public class S3Service {
     }
 
     /**
+     * Generate an ephemeral presigned GET URL for client delivery (15 minutes duration, inline disposition).
+     */
+    public String generatePresignedGetUrl(String objectKey) {
+        return generatePresignedUrl(objectKey, 15);
+    }
+
+    /**
+     * Generate an ephemeral presigned GET URL for client delivery with custom duration and inline disposition.
+     */
+    public String generatePresignedGetUrl(String objectKey, int expiryMinutes) {
+        return generatePresignedUrl(objectKey, expiryMinutes);
+    }
+
+    /**
+     * Extracts the canonical relative object key/path from a relative key or legacy full S3 URL.
+     * Removes full URL prefix (e.g. https://...amazonaws.com/), other URI schemes, query parameters,
+     * fragments, and leading slashes while preventing double-decoding errors.
+     */
+    public String getObjectKey(String rawKeyOrUrl) {
+        if (rawKeyOrUrl == null || rawKeyOrUrl.isBlank()) {
+            return rawKeyOrUrl;
+        }
+        String key = rawKeyOrUrl.trim();
+
+        if (key.contains("amazonaws.com/")) {
+            key = key.substring(key.indexOf("amazonaws.com/") + "amazonaws.com/".length());
+        } else if (key.contains("://")) {
+            int schemeIdx = key.indexOf("://");
+            int pathIdx = key.indexOf('/', schemeIdx + 3);
+            if (pathIdx >= 0) {
+                key = key.substring(pathIdx);
+            }
+        }
+
+        int queryIdx = key.indexOf('?');
+        if (queryIdx >= 0) {
+            key = key.substring(0, queryIdx);
+        }
+
+        int fragIdx = key.indexOf('#');
+        if (fragIdx >= 0) {
+            key = key.substring(0, fragIdx);
+        }
+
+        while (key.startsWith("/")) {
+            key = key.substring(1);
+        }
+
+        return key;
+    }
+
+    /**
      * Upload a file with an explicit S3 key.
      */
     public String uploadFileWithKey(java.io.InputStream inputStream, long size, String s3Key, String contentType) {
@@ -174,8 +226,28 @@ public class S3Service {
 
     /**
      * Get S3 URL for a given key.
+     *
+     * @deprecated Direct S3 public URLs are deprecated as the production bucket enforces Block All Public Access.
+     * Use {@link #generatePresignedGetUrl(String)} for ephemeral client access or {@link #getObjectKey(String)}
+     * for canonical persistent object keys. Retained for backward-compatibility; generates a safe presigned URL.
      */
+    @Deprecated
     public String getS3Url(String s3Key) {
+        if (s3Key == null || s3Key.isBlank()) {
+            return s3Key;
+        }
+        try {
+            return generatePresignedGetUrl(getObjectKey(s3Key));
+        } catch (Exception e) {
+            return "https://" + bucketName + ".s3." + awsRegion + ".amazonaws.com/" + s3Key;
+        }
+    }
+
+    /**
+     * Constructs a direct unauthenticated S3 URL string for legacy diagnostics only.
+     * WARNING: Production S3 bucket is private; direct access will return HTTP 403 Forbidden.
+     */
+    public String getDirectPublicUrl(String s3Key) {
         return "https://" + bucketName + ".s3." + awsRegion + ".amazonaws.com/" + s3Key;
     }
 

@@ -11,6 +11,7 @@ import com.bodhganga.bodhganga.services.qb.QuestionBankPipelineTask;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.LinkedHashMap;
@@ -152,6 +153,7 @@ public class AdminSystemHealthController {
 
     /** POST /api/admin/system/state-sync */
     @PostMapping("/state-sync")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<ApiResponseDTO> triggerStateSync() {
         try {
             stateTask.syncDriveToS3(true);
@@ -163,6 +165,7 @@ public class AdminSystemHealthController {
 
     /** POST /api/admin/system/qb-sync */
     @PostMapping("/qb-sync")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<ApiResponseDTO> triggerQbSync() {
         try {
             qbTask.syncQuestionBank(true);
@@ -174,6 +177,7 @@ public class AdminSystemHealthController {
 
     /** POST /api/admin/system/youtube-sync */
     @PostMapping("/youtube-sync")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<ApiResponseDTO> triggerYouTubeSync() {
         if (youTubeSyncService == null) {
             return ResponseEntity.badRequest().body(ApiResponseDTO.builder().success(false).message("YouTube sync service is not available.").build());

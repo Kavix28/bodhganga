@@ -69,7 +69,7 @@ public class PdfController {
 
         try {
             String key = s3Service.uploadPdf(file);
-            String url = s3Service.generatePresignedUrl(key);
+            String url = s3Service.generatePresignedGetUrl(key);
 
             log.info("Successfully uploaded PDF to S3: key={}", key);
 
@@ -145,6 +145,15 @@ public class PdfController {
                 return ResponseEntity.badRequest().body(ApiResponseDTO.builder()
                         .success(false).message("Invalid resource path.").build());
             }
+
+            // Canonicalize key from legacy full URLs or paths
+            key = extractObjectKey(key);
+
+            // Re-validate canonicalized key against path traversal
+            if (isPathTraversalOrMalformed(key)) {
+                return ResponseEntity.badRequest().body(ApiResponseDTO.builder()
+                        .success(false).message("Invalid resource path.").build());
+            }
         }
 
         try {
@@ -178,7 +187,7 @@ public class PdfController {
 
             // 5. URL substring extraction if full S3 URL was passed
             if (prodOpt.isEmpty() && key != null && key.contains("amazonaws.com/")) {
-                String sub = key.substring(key.indexOf("amazonaws.com/") + "amazonaws.com/".length());
+                String sub = extractObjectKey(key);
                 prodOpt = productRepo.findByS3Key(sub);
                 if (prodOpt.isEmpty()) {
                     prodOpt = productRepo.findByStorageKey(sub);
@@ -193,8 +202,8 @@ public class PdfController {
                 // Parameter Mismatch Protection:
                 // If both id and key were provided, verify key and id both belong to this product.
                 if (id != null && !id.isBlank() && key != null && !key.isBlank()) {
-                    String pS3 = product.getS3Key();
-                    String pStorage = product.getStorageKey();
+                    String pS3 = product.getS3Key() != null ? extractObjectKey(product.getS3Key()) : null;
+                    String pStorage = product.getStorageKey() != null ? extractObjectKey(product.getStorageKey()) : null;
                     String pId = product.getId();
                     boolean keyMatches = (pS3 != null && pS3.equalsIgnoreCase(key))
                             || (pStorage != null && pStorage.equalsIgnoreCase(key));
@@ -227,9 +236,9 @@ public class PdfController {
 
                 // Resolve S3 key from authoritative product metadata
                 if (product.getS3Key() != null && !product.getS3Key().isBlank()) {
-                    resolvedObjectKey = product.getS3Key();
+                    resolvedObjectKey = extractObjectKey(product.getS3Key());
                 } else if (product.getStorageKey() != null && !product.getStorageKey().isBlank()) {
-                    resolvedObjectKey = product.getStorageKey();
+                    resolvedObjectKey = extractObjectKey(product.getStorageKey());
                 }
 
                 boolean isFree = isAuthoritativePublicFree(product);
@@ -302,7 +311,10 @@ public class PdfController {
                         .success(false).message("No storage object associated with this material.").build());
             }
 
-            String signedUrl = s3Service.generatePresignedUrl(resolvedObjectKey);
+            String signedUrl = s3Service.generatePresignedGetUrl(resolvedObjectKey);
+            if (signedUrl == null) {
+                signedUrl = s3Service.generatePresignedUrl(resolvedObjectKey);
+            }
 
             if (redirect) {
                 return ResponseEntity.status(302)
@@ -319,6 +331,33 @@ public class PdfController {
             return ResponseEntity.status(404).body(ApiResponseDTO.builder()
                     .success(false).message("PDF file not found or failed to generate access link.").build());
         }
+    }
+
+    private String extractObjectKey(String raw) {
+        if (raw == null || raw.isBlank()) return raw;
+        if (s3Service != null) {
+            try {
+                String k = s3Service.getObjectKey(raw);
+                if (k != null && !k.isBlank()) return k;
+            } catch (Exception ignored) {
+            }
+        }
+        String key = raw.trim();
+        if (key.contains("amazonaws.com/")) {
+            key = key.substring(key.indexOf("amazonaws.com/") + "amazonaws.com/".length());
+        } else if (key.contains("://")) {
+            int schemeIdx = key.indexOf("://");
+            int pathIdx = key.indexOf('/', schemeIdx + 3);
+            if (pathIdx >= 0) {
+                key = key.substring(pathIdx);
+            }
+        }
+        int queryIdx = key.indexOf('?');
+        if (queryIdx >= 0) key = key.substring(0, queryIdx);
+        int fragIdx = key.indexOf('#');
+        if (fragIdx >= 0) key = key.substring(0, fragIdx);
+        while (key.startsWith("/")) key = key.substring(1);
+        return key;
     }
 
     private String normalizeSlug(String raw) {

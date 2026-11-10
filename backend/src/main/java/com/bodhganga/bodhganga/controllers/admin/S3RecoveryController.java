@@ -3,6 +3,7 @@ package com.bodhganga.bodhganga.controllers.admin;
 import com.bodhganga.bodhganga.services.S3RecoveryService;
 import com.bodhganga.bodhganga.services.S3RecoveryService.RecoveryResult;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -25,6 +26,7 @@ public class S3RecoveryController {
      * Triggers one-time recovery tool that recreates Product documents from existing S3 bucket objects.
      */
     @PostMapping("/s3-to-products")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<RecoveryResult> recoverS3ToProducts() {
         RecoveryResult result = s3RecoveryService.recoverS3ObjectsToProducts();
         return ResponseEntity.ok(result);

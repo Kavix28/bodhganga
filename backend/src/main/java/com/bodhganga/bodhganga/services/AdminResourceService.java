@@ -421,17 +421,9 @@ public class AdminResourceService {
                 }
                 existing.setS3Key(targetS3Key);
                 existing.setStorageKey(targetS3Key);
-                try {
-                    existing.setS3Url(s3Service.getS3Url(targetS3Key));
-                } catch (Exception e) {
-                    // fallback URL
-                }
-            } else if (existing.getS3Url() == null || existing.getS3Url().isBlank()) {
-                try {
-                    existing.setS3Url(s3Service.getS3Url(targetS3Key));
-                } catch (Exception e) {
-                    // fallback URL
-                }
+                existing.setS3Url(targetS3Key);
+            } else if (existing.getS3Url() == null || existing.getS3Url().isBlank() || existing.getS3Url().contains("amazonaws.com/")) {
+                existing.setS3Url(targetS3Key);
             }
 
             existing = productRepo.save(existing);
@@ -462,8 +454,6 @@ public class AdminResourceService {
             throw new RuntimeException("STORAGE_UPLOAD_FAILED: Failed to upload file to S3 storage", e);
         }
 
-        String s3Url = s3Service.getS3Url(s3Key);
-
         // 10. Create and Save Product Document
         Product product = new Product();
         product.setTitle(effectiveTitle);
@@ -482,7 +472,7 @@ public class AdminResourceService {
         product.setResourceScope(isStateScope ? Product.SCOPE_STATE : Product.SCOPE_DISTRICT);
         product.setS3Key(s3Key);
         product.setStorageKey(s3Key);
-        product.setS3Url(s3Url);
+        product.setS3Url(s3Key);
         product.setContentHash(contentHash);
         product.setPublished(publish);
         product.setArchived(false);

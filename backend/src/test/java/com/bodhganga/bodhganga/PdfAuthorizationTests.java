@@ -20,7 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.Date;
 import java.util.UUID;
 
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -64,6 +64,12 @@ public class PdfAuthorizationTests {
 
         when(s3Service.generatePresignedUrl(anyString()))
                 .thenAnswer(inv -> "https://s3.amazonaws.com/presigned/" + inv.getArgument(0));
+        when(s3Service.generatePresignedGetUrl(anyString()))
+                .thenAnswer(inv -> "https://s3.amazonaws.com/presigned/" + inv.getArgument(0));
+        when(s3Service.generatePresignedGetUrl(anyString(), anyInt()))
+                .thenAnswer(inv -> "https://s3.amazonaws.com/presigned/" + inv.getArgument(0));
+        when(s3Service.getObjectKey(anyString()))
+                .thenCallRealMethod();
     }
 
     private Product seedPaidProduct(String key, String stateSlug, String districtSlug) {

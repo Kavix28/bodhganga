@@ -187,9 +187,10 @@ public class S3RecoveryService {
         product.setPrice(price);
         product.setCategory(navbarCategory != null ? navbarCategory : (isFree ? "Free Resources" : "Paid Resources"));
 
-        product.setS3Key(s3Key);
-        product.setStorageKey(s3Key);
-        product.setS3Url(s3Service.getS3Url(s3Key));
+        String canonicalKey = s3Service.getObjectKey(s3Key);
+        product.setS3Key(canonicalKey);
+        product.setStorageKey(canonicalKey);
+        product.setS3Url(canonicalKey);
         product.setIngestionStatus(IngestionStatus.COMPLETED);
         product.setArchived(false);
         product.setIsDeleted(false);
