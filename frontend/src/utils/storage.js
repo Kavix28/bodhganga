@@ -142,6 +142,18 @@ export const removeUserData = () => {
 export const clearAuthData = () => {
     removeAuthToken();
     removeUserData();
+    try {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('token');
+        localStorage.removeItem('signupData');
+        localStorage.removeItem('user');
+        sessionStorage.removeItem('auth_token');
+        sessionStorage.removeItem('authToken');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
+    } catch {
+        // Ignore storage access errors
+    }
 };
 
 

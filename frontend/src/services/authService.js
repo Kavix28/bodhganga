@@ -9,7 +9,38 @@ import api from './api';
  * @returns {Promise}
  */
 export const login = async (emailOrPhone, password) => {
-    return api.post('/auth/login', { emailOrPhone, password });
+    const sanitized = String(emailOrPhone || '').trim();
+    const normalized = sanitized.includes('@') ? sanitized.toLowerCase() : sanitized;
+    return api.post('/auth/login', { emailOrPhone: normalized, password });
+};
+
+/**
+ * Request password reset via Email (dispatches reset link with time-limited token)
+ * @param {string} email
+ * @returns {Promise}
+ */
+export const forgotPassword = async (email) => {
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    return api.post('/auth/forgot-password', { email: normalizedEmail });
+};
+
+/**
+ * Validate password reset token
+ * @param {string} token
+ * @returns {Promise}
+ */
+export const verifyResetToken = async (token) => {
+    return api.get(`/auth/verify-reset-token?token=${encodeURIComponent(token)}`);
+};
+
+/**
+ * Reset password using email reset token
+ * @param {string} token
+ * @param {string} newPassword
+ * @returns {Promise}
+ */
+export const resetPassword = async (token, newPassword) => {
+    return api.post('/auth/reset-password', { token, newPassword });
 };
 
 /**

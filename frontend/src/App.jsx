@@ -18,12 +18,13 @@ import './utils/healthCheck';
 import ChatWidget from './components/ChatWidget';
 import { useAuth } from './hooks/useAuth';
 import InternsPage from "./pages/InternsPage";
-// ── Lazy loaded Pages ────────────────────────────────────────────────────────
+// â”€â”€ Lazy loaded Pages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const Landing          = lazy(() => import('./pages/Landing'));
 const Register         = lazy(() => import('./pages/Register'));
 const VerifyMobileOtp  = lazy(() => import('./pages/VerifyMobileOtp'));
 const Login            = lazy(() => import('./pages/Login'));
 const ForgotPassword   = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword    = lazy(() => import('./pages/ResetPassword'));
 const Dashboard        = lazy(() => import('./pages/Dashboard'));
 const StudentDashboard = lazy(() => import('./pages/StudentDashboard'));
 const Courses          = lazy(() => import('./pages/Courses'));
@@ -56,12 +57,12 @@ const StatePage        = lazy(() => import('./pages/StatePage'));
 const DistrictPage     = lazy(() => import('./pages/DistrictPage'));
 const ResourcesPage    = lazy(() => import('./pages/ResourcesPage'));
 
-// Existing States → Districts → Resources flow (/states-browse)
+// Existing States â†’ Districts â†’ Resources flow (/states-browse)
 const StatesPage             = lazy(() => import('./pages/StatesPage'));
 const DistrictsPage          = lazy(() => import('./pages/DistrictsPage'));
 const DistrictResourcesPage  = lazy(() => import('./pages/DistrictResourcesPage'));
 
-// NEW: All-India states page → districts → products  (/state/...)
+// NEW: All-India states page â†’ districts â†’ products  (/state/...)
 const ExplorePage = lazy(() => import('./pages/ExplorePage'));
 const AllStatesPage              = lazy(() => import('./pages/AllStatesPage'));
 const StateDistrictsPage         = lazy(() => import('./pages/StateDistrictsPage'));
@@ -125,7 +126,7 @@ function App() {
                                 <ErrorBoundary>
                                     <Suspense fallback={<Loader fullScreen />}>
                                         <Routes>
-                                            {/* ── Public Routes ─────────────────────────────── */}
+                                            {/* â”€â”€ Public Routes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
                                             <Route path="/"               element={<Landing />} />
                                             <Route path="/about"          element={<About />} />
                                             <Route path="/ndde"           element={<Ndde />} />
@@ -136,30 +137,31 @@ function App() {
                                             <Route path="/verify-mobile-otp" element={<VerifyMobileOtp />} />
                                             <Route path="/login"          element={<Login />} />
                                             <Route path="/forgot-password" element={<ForgotPassword />} />
+                                            <Route path="/reset-password" element={<ResetPassword />} />
                                             <Route path="/error"          element={<ErrorPage />} />
                                             <Route path="/dev/dashboard"  element={<StudentDashboard />} />
                                             <Route path="/interns" element={<InternsPage />} />
 
-                                            {/* ── Old states/UTs routes — kept for backward compat ── */}
+                                            {/* â”€â”€ Old states/UTs routes â€” kept for backward compat â”€â”€ */}
                                                                                         <Route path="/union-territories" element={<ProtectedRoute><UnionTerritories /></ProtectedRoute>} />
                                             <Route path="/states/:id"     element={<ProtectedRoute><StateDetail /></ProtectedRoute>} />
                                             <Route path="/union-territories/:id" element={<ProtectedRoute><StateDetail /></ProtectedRoute>} />
                                             <Route path="/states/:stateSlug/resources" element={<ProtectedRoute><ResourcePage /></ProtectedRoute>} />
                                             <Route path="/union-territories/:stateSlug/resources" element={<ProtectedRoute><ResourcePage /></ProtectedRoute>} />
 
-                                            {/* ── Existing /states-browse flow ─────────────── */}
+                                            {/* â”€â”€ Existing /states-browse flow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
                                                                                         <Route path="/states-browse/:stateSlug"                        element={<DistrictsPage />} />
                                             <Route path="/states-browse/:stateSlug/:districtSlug"          element={<DistrictResourcesPage />} />
 
-                                            {/* ── Old store URLs → redirect ──────────────── */}
+                                            {/* â”€â”€ Old store URLs â†’ redirect â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
                                             <Route path="/store"                           element={<Navigate to="/state" replace />} />
                                             <Route path="/store/:stateSlug"                element={<Navigate to="/state" replace />} />
                                             <Route path="/store/:stateSlug/:districtSlug"  element={<Navigate to="/state" replace />} />
 
-                                            {/* ── NEW: All-India States page (/state) ──────── */}
+                                            {/* â”€â”€ NEW: All-India States page (/state) â”€â”€â”€â”€â”€â”€â”€â”€ */}
 
-                                            
-                                            
+
+
                                             <Route path="/explore" element={<ExplorePage />} />
                                             <Route path="/state" element={<AllStatesPage />} />
                                             <Route path="/state/:stateSlug" element={<StateRootRedirect />} />
@@ -173,19 +175,19 @@ function App() {
                                             <Route path="/state/:stateSlug/monuments" element={<StateSectionPage />} />
                                             <Route path="/state/:stateSlug/art-and-culture" element={<StateSectionPage />} />
                                             <Route path="/state/:stateSlug/heritage-sites" element={<StateSectionPage />} />
-                                            
+
                                             <Route path="/state/:stateSlug/districts" element={<StateDistrictsPage />} />
                                             <Route path="/state/:stateSlug/district/:districtSlug" element={<StateDistrictProductsPage />} />
                                             <Route path="/state/:stateSlug/district/:districtSlug/products" element={<StateDistrictProductsPage />} />
 
-                                            {/* ── Test Your Knowledge Routes ─────────────────── */}
+                                            {/* â”€â”€ Test Your Knowledge Routes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
                                             <Route path="/test-series" element={<TestYourKnowledge />} />
                                             <Route path="/test-series/:stateId" element={<StateTestZone />} />
                                             <Route path="/test-series/:stateId/:districtId" element={<DistrictTestPage />} />
                                             <Route path="/test-series/:stateId/:districtId/quiz/:testType" element={<QuizEngine />} />
                                             <Route path="/test-series/:stateId/:districtId/result" element={<TestResult />} />
 
-                                            {/* ── Question Bank Test Engine ───────────────────── */}
+                                            {/* â”€â”€ Question Bank Test Engine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
                                             <Route path="/question-bank/tests/:testId" element={<QBTestEngine />} />
 
                                             <Route path="/states/:stateSlug/history" element={<StateSectionPage />} />
@@ -193,7 +195,7 @@ function App() {
                                             <Route path="/states/:stateSlug/geography" element={<StateSectionPage />} />
                                             <Route path="/states/:stateSlug/art-culture" element={<StateSectionPage />} />
 
-                                            {/* ── Protected User Routes ─────────────────────── */}
+                                            {/* â”€â”€ Protected User Routes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
                                             <Route path="/question-bank"  element={<ProtectedRoute><QuestionBank /></ProtectedRoute>} />
                                             <Route path="/subjects"       element={<ProtectedRoute><Subjects /></ProtectedRoute>} />
                                             <Route path="/cart"           element={<ProtectedRoute><Cart /></ProtectedRoute>} />
@@ -211,7 +213,7 @@ function App() {
                                             <Route path="/profile"        element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                                             <Route path="/ai-companion"   element={<ProtectedRoute><AiCompanionPage /></ProtectedRoute>} />
 
-                                            {/* ── Admin Routes ──────────────────────────────── */}
+                                            {/* â”€â”€ Admin Routes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
                                             <Route path="/admin/login" element={<AdminLogin />} />
                                             <Route path="/admin" element={<AdminProtectedRoute><AdminLayout /></AdminProtectedRoute>}>
                                                 <Route index            element={<Navigate to="/admin/dashboard" replace />} />
@@ -225,7 +227,7 @@ function App() {
                                                 <Route path="orders"    element={<AdminOrders />} />
                                             </Route>
 
-                                            {/* ── 404 ───────────────────────────────────────── */}
+                                            {/* â”€â”€ 404 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
                                             <Route path="/404" element={<NotFound />} />
                                             <Route path="*"    element={<Navigate to="/404" replace />} />
                                         </Routes>

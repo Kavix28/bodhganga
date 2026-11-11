@@ -4,7 +4,10 @@ import com.bodhganga.bodhganga.dto.ApiResponseDTO;
 import com.bodhganga.bodhganga.dto.LoginRequestDTO;
 import com.bodhganga.bodhganga.dto.SignupRequestDTO;
 import com.bodhganga.bodhganga.dto.RegisterRequestDTO;
+import com.bodhganga.bodhganga.dto.ForgotPasswordRequestDTO;
+import com.bodhganga.bodhganga.dto.ResetPasswordRequestDTO;
 import com.bodhganga.bodhganga.service.AuthService;
+import com.bodhganga.bodhganga.services.PasswordResetService;
 import com.bodhganga.bodhganga.repo.*;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -23,6 +26,7 @@ public class AuthController {
     private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
     private final AuthService authService;
+    private final PasswordResetService passwordResetService;
     private final UserRepo userRepo;
     private final CourseRepo courseRepo;
     private final EnrollmentRepo enrollmentRepo;
@@ -32,10 +36,11 @@ public class AuthController {
     private final ProductRepo productRepo;
     private final PurchaseRepo purchaseRepo;
 
-    public AuthController(AuthService authService, UserRepo userRepo, CourseRepo courseRepo,
+    public AuthController(AuthService authService, PasswordResetService passwordResetService, UserRepo userRepo, CourseRepo courseRepo,
             EnrollmentRepo enrollmentRepo, BlogPostRepo blogPostRepo, StateRepo stateRepo,
             ContentRepo contentRepo, ProductRepo productRepo, PurchaseRepo purchaseRepo) {
         this.authService = authService;
+        this.passwordResetService = passwordResetService;
         this.userRepo = userRepo;
         this.courseRepo = courseRepo;
         this.enrollmentRepo = enrollmentRepo;
@@ -55,8 +60,7 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponseDTO> register(@Valid @RequestBody RegisterRequestDTO dto) {
-        // Normalize phone number to check if it already exists before doing everything
-        // else
+        // Normalize phone number to check if it already exists before doing everything else
         String normalizedPhone = dto.getPhoneNo() != null ? dto.getPhoneNo().replaceAll("[^0-9]", "") : "";
         if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
             normalizedPhone = normalizedPhone.substring(2);
@@ -69,9 +73,11 @@ public class AuthController {
                     .build(), HttpStatus.CONFLICT);
         }
 
-        // Check if email already exists if email is provided
+        // Check if email already exists if email is provided (case-insensitive)
         if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
-            if (userRepo.existsByEmail(dto.getEmail())) {
+            String normalizedEmail = dto.getEmail().trim().toLowerCase();
+            dto.setEmail(normalizedEmail);
+            if (userRepo.existsByEmailIgnoreCase(normalizedEmail)) {
                 return new ResponseEntity<>(ApiResponseDTO.builder()
                         .success(false)
                         .message("Email already registered")
@@ -81,6 +87,27 @@ public class AuthController {
 
         ApiResponseDTO response = authService.registerDirect(dto);
         HttpStatus status = response.isSuccess() ? HttpStatus.CREATED : HttpStatus.BAD_REQUEST;
+        return new ResponseEntity<>(response, status);
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponseDTO> forgotPassword(@Valid @RequestBody ForgotPasswordRequestDTO dto) {
+        ApiResponseDTO response = passwordResetService.createPasswordResetToken(dto.getEmail());
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return new ResponseEntity<>(response, status);
+    }
+
+    @GetMapping("/verify-reset-token")
+    public ResponseEntity<ApiResponseDTO> verifyResetToken(@RequestParam("token") String token) {
+        ApiResponseDTO response = passwordResetService.validatePasswordResetToken(token);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return new ResponseEntity<>(response, status);
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponseDTO> resetPassword(@Valid @RequestBody ResetPasswordRequestDTO dto) {
+        ApiResponseDTO response = passwordResetService.resetPassword(dto.getToken(), dto.getNewPassword());
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
         return new ResponseEntity<>(response, status);
     }
 
@@ -205,6 +232,27 @@ public class AuthController {
 
         ApiResponseDTO response = authService.resetPasswordWithMsg91(accessToken, password);
         HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.UNAUTHORIZED;
+        return new ResponseEntity<>(response, status);
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponseDTO> forgotPassword(@Valid @RequestBody ForgotPasswordRequestDTO dto) {
+        ApiResponseDTO response = passwordResetService.createPasswordResetToken(dto.getEmail());
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return new ResponseEntity<>(response, status);
+    }
+
+    @GetMapping("/verify-reset-token")
+    public ResponseEntity<ApiResponseDTO> verifyResetToken(@RequestParam(value = "token", required = false) String token) {
+        ApiResponseDTO response = passwordResetService.validatePasswordResetToken(token);
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        return new ResponseEntity<>(response, status);
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponseDTO> resetPassword(@Valid @RequestBody ResetPasswordRequestDTO dto) {
+        ApiResponseDTO response = passwordResetService.resetPassword(dto.getToken(), dto.getNewPassword());
+        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
         return new ResponseEntity<>(response, status);
     }
 

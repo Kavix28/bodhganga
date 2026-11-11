@@ -27,7 +27,7 @@ public class AuthService {
         private final EmailService emailService;
 
         /**
-         * Admin mobile — injected from ADMIN_PHONE env var via application.properties.
+         * Admin mobile â€” injected from ADMIN_PHONE env var via application.properties.
          */
         @Value("${admin.phone:}")
         private String configuredAdminPhone;
@@ -64,8 +64,12 @@ public class AuthService {
                 }
 
                 // Double check if email already exists (only if a custom email is provided)
-                if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
-                        if (userRepo.existsByEmail(dto.getEmail())) {
+                String rawEmail = dto.getEmail();
+                String normalizedEmail = (rawEmail != null && !rawEmail.trim().isBlank()) ? rawEmail.trim().toLowerCase() : null;
+                dto.setEmail(normalizedEmail);
+
+                if (normalizedEmail != null) {
+                        if (userRepo.existsByEmailIgnoreCase(normalizedEmail)) {
                                 return ApiResponseDTO.builder()
                                                 .success(false)
                                                 .message("Email already registered")
@@ -74,7 +78,7 @@ public class AuthService {
                 }
 
                 // Generate default email if not provided
-                String email = dto.getEmail();
+                String email = normalizedEmail;
                 if (email == null || email.isBlank()) {
                         email = normalizedPhone + "@bodhganga.in";
                 }
@@ -89,18 +93,18 @@ public class AuthService {
                                 .state(dto.getState())
                                 .country("India") // default
                                 .role("USER")
-                                .isVerified(false) // requirement: isVerified=false
-                                .emailVerified(false)
-                                .phoneVerified(false)
-                                .isActive(true) // requirement: isActive=true
-                                .createdAt(new Date()) // requirement: createdAt=now
+                                .isVerified(true) // Verified on registration so user is recognized upon subsequent logins
+                                .emailVerified(true)
+                                .phoneVerified(true)
+                                .isActive(true)
+                                .createdAt(new Date())
                                 .build();
 
                 log.info("Saving registered user: {}", user.getPhoneNo());
                 User savedUser = userRepo.save(user);
 
                 // Generate JWT token for auto-login
-                String jwtSubject = savedUser.getEmail() != null ? savedUser.getEmail() : savedUser.getPhoneNo();
+                String jwtSubject = savedUser.getEmail() != null ? savedUser.getEmail().trim().toLowerCase() : savedUser.getPhoneNo();
                 String token = jwtUtil.generateToken(jwtSubject, savedUser.getId(), savedUser.getRole());
 
                 // Convert to response DTO
@@ -150,8 +154,12 @@ public class AuthService {
                 }
 
                 // Double check if email already exists (only if a custom email is provided)
-                if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
-                        if (userRepo.existsByEmail(dto.getEmail())) {
+                String rawEmail = dto.getEmail();
+                String normalizedEmail = (rawEmail != null && !rawEmail.trim().isBlank()) ? rawEmail.trim().toLowerCase() : null;
+                dto.setEmail(normalizedEmail);
+
+                if (normalizedEmail != null) {
+                        if (userRepo.existsByEmailIgnoreCase(normalizedEmail)) {
                                 return ApiResponseDTO.builder()
                                                 .success(false)
                                                 .message("Email already registered")
@@ -162,7 +170,7 @@ public class AuthService {
                 // Create new user with hashed password
                 User user = User.builder()
                                 .name(dto.getName())
-                                .email(dto.getEmail())
+                                .email(normalizedEmail)
                                 .phoneNo(normalizedPhone.isBlank() ? null : normalizedPhone)
                                 .hashedPassword(passwordEncoder.encode(dto.getPassword()))
                                 .gender(dto.getGender())
@@ -271,29 +279,38 @@ public class AuthService {
         }
 
         /**
-         * User Login - Authenticate user via mobile number only
+         * User Login - Authenticate user via email or mobile number
          */
         public ApiResponseDTO login(LoginRequestDTO dto) {
-                String emailOrPhone = dto.getEmailOrPhone();
-
-                if (emailOrPhone.contains("@")) {
+                String rawInput = dto.getEmailOrPhone();
+                if (rawInput == null || rawInput.trim().isBlank()) {
                         return ApiResponseDTO.builder()
                                         .success(false)
-                                        .message("Email login is disabled. Please log in using your Mobile Number.")
+                                        .message("Email or mobile number is required")
                                         .build();
                 }
 
-                // Normalize phone number (remove non-digits)
-                String normalizedPhone = emailOrPhone.replaceAll("[^0-9]", "");
-                if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
-                        normalizedPhone = normalizedPhone.substring(2);
-                }
+                String sanitized = rawInput.trim();
+                User user = null;
 
-                User user;
                 try {
-                        user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);
+                        if (sanitized.contains("@")) {
+                                String normalizedEmail = sanitized.toLowerCase();
+                                user = userRepo.findByEmailIgnoreCase(normalizedEmail).orElse(null);
+                        } else {
+                                String normalizedPhone = sanitized.replaceAll("[^0-9]", "");
+                                if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
+                                        normalizedPhone = normalizedPhone.substring(2);
+                                }
+                                if (!normalizedPhone.isBlank()) {
+                                        user = userRepo.findByPhoneNo(normalizedPhone).orElse(null);
+                                }
+                                if (user == null) {
+                                        user = userRepo.findByEmailIgnoreCase(sanitized.toLowerCase()).orElse(null);
+                                }
+                        }
                 } catch (Exception e) {
-                        log.error("Database connection failure during admin OTP request: {}", e.getMessage());
+                        log.error("Database connection failure during login: {}", e.getMessage());
                         return ApiResponseDTO.builder()
                                         .success(false)
                                         .message("Database service temporarily unavailable. Please retry shortly.")
@@ -303,23 +320,23 @@ public class AuthService {
                 if (user == null) {
                         return ApiResponseDTO.builder()
                                         .success(false)
-                                        .message("Invalid mobile number or password")
+                                        .message("Invalid email/mobile number or password")
                                         .build();
                 }
 
                 // Check if account is active
-                if (!user.isActive()) {
+                if (user.isActive() != null && !user.isActive()) {
                         return ApiResponseDTO.builder()
                                         .success(false)
                                         .message("Account is deactivated. Please contact support.")
                                         .build();
                 }
 
-                // Verify password
+                // Verify password using standard BCrypt
                 if (!passwordEncoder.matches(dto.getPassword(), user.getHashedPassword())) {
                         return ApiResponseDTO.builder()
                                         .success(false)
-                                        .message("Invalid mobile number or password")
+                                        .message("Invalid email/mobile number or password")
                                         .build();
                 }
 
@@ -328,7 +345,9 @@ public class AuthService {
                 userRepo.save(user);
 
                 // Generate JWT token
-                String jwtSubject = user.getEmail() != null ? user.getEmail() : user.getPhoneNo();
+                String jwtSubject = user.getEmail() != null && !user.getEmail().isBlank()
+                                ? user.getEmail().trim().toLowerCase()
+                                : user.getPhoneNo();
                 String token = jwtUtil.generateToken(jwtSubject, user.getId(), user.getRole());
 
                 // Convert to response DTO

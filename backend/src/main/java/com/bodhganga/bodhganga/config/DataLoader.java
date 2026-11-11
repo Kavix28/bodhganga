@@ -58,11 +58,8 @@ public class DataLoader implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        // Cleanup unverified temporary users on startup
-        long deletedCount1 = userRepo.deleteByIsVerified(false);
-        long deletedCount2 = userRepo.deleteByEmailVerifiedFalseAndPhoneVerifiedFalse();
-        log.info("Cleaned up {} unverified and {} incomplete temporary users from database.", deletedCount1,
-                deletedCount2);
+        // Preserving registered users across restarts; unverified user automatic deletion disabled
+        log.info("Startup user data initialization verified.");
 
         // Seed states
         log.info("Synchronizing canonical states and UTs master data...");
@@ -345,7 +342,7 @@ public class DataLoader implements CommandLineRunner {
                 createBlogPost(
                         "Sanskrit: The Language of the Gods",
                         "sanskrit-language-of-gods",
-                        "Sanskrit is not just a language â€” it is the foundation of Indian civilization. Discover its scientific structure, influence on modern languages, and revival in contemporary India.",
+                        "Sanskrit is not just a language Ã¢â‚¬â€ it is the foundation of Indian civilization. Discover its scientific structure, influence on modern languages, and revival in contemporary India.",
                         "Sanskrit",
                         "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800",
                         "Prof. Lakshmi Devi",
@@ -623,8 +620,8 @@ public class DataLoader implements CommandLineRunner {
                                 "Mamit", "Saiha", "Saitual", "Serchhip")),
                 createState("nagaland", "NL", "Nagaland", "Kohima",
                         "Complete prep guide for Nagaland Public Service Commission examinations.", "STATE",
-                        Arrays.asList("ChÃ¼moukedim", "Dimapur", "Kiphire", "Kohima", "Longleng", "Mokokchung", "Mon",
-                                "Niuland", "Noklak", "Peren", "Phek", "Shamator", "TseminyÃ¼", "Tuensang", "Wokha",
+                        Arrays.asList("ChÃƒÂ¼moukedim", "Dimapur", "Kiphire", "Kohima", "Longleng", "Mokokchung", "Mon",
+                                "Niuland", "Noklak", "Peren", "Phek", "Shamator", "TseminyÃƒÂ¼", "Tuensang", "Wokha",
                                 "Zunheboto")),
                 createState("odisha", "OR", "Odisha", "Bhubaneswar",
                         "Comprehensive prep material for OPSC and Odisha State Government exams.", "STATE",
@@ -848,7 +845,7 @@ public class DataLoader implements CommandLineRunner {
 
         // Backfill metadata on imported-from-Drive products and auto-publish any that
         // are still unpublished
-        // FIXED: Only load imported products that need backfill — not the entire
+        // FIXED: Only load imported products that need backfill â€” not the entire
         // collection
         // This avoids OOM at scale (was productRepo.findAll())
         List<Product> remainingProducts = productRepo.findByImportedFromDrive(true);

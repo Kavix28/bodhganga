@@ -74,4 +74,27 @@ public class EmailService {
             }
         });
     }
+
+    public void sendPasswordResetEmail(String toEmail, String name, String resetUrl, int expiryMinutes) {
+        CompletableFuture.runAsync(() -> {
+            try {
+                if (mailSender == null) {
+                    log.warn("JavaMailSender is null; skipping password reset email to: {}", toEmail);
+                    return;
+                }
+                String displayName = (name != null && !name.isBlank()) ? name : "Scholar";
+                String html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><style>body{font-family:Arial,sans-serif;background:#f4f4f4;margin:0;padding:0}.container{max-width:560px;margin:30px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08)}.header{background:#064e3b;padding:32px;text-align:center}.header h1{color:#fff;margin:0;font-size:22px;font-weight:700}.header p{color:#6ee7b7;margin:6px 0 0;font-size:13px}.body{padding:28px 32px}.btn{display:inline-block;background:#064e3b;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;margin:20px 0}.footer{background:#f9fafb;padding:20px 32px;text-align:center;font-size:11px;color:#9ca3af;border-top:1px solid #e5e7eb}</style></head><body><div class='container'><div class='header'><h1>Bodhganga Academy</h1><p>Password Reset Request</p></div><div class='body'><p style='color:#374151'>Dear <strong>" + displayName + "</strong>,</p><p style='color:#374151'>We received a request to reset the password for your BodhGanga Academy account. Click the button below to choose a new password:</p><div style='text-align:center'><a class='btn' href='" + resetUrl + "'>Reset Password</a></div><p style='color:#6b7280;font-size:12px'>This link will expire in <strong>" + expiryMinutes + " minutes</strong>. If you did not request a password reset, you can safely ignore this email.</p><p style='color:#9ca3af;font-size:11px;word-break:break-all'>If the button doesn't work, copy and paste this link into your browser:<br>" + resetUrl + "</p></div><div class='footer'><p>Need help? Contact <a href='mailto:support@bodhganga.in' style='color:#064e3b'>support@bodhganga.in</a></p><p style='margin-top:8px'>2026 Bodhganga Academy. All rights reserved.</p></div></div></body></html>";
+
+                MimeMessage mimeMessage = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+                helper.setTo(toEmail);
+                helper.setSubject("Reset Your Password | Bodhganga Academy");
+                helper.setText(html, true);
+                mailSender.send(mimeMessage);
+                log.info("Password reset email sent successfully to: {}", toEmail);
+            } catch (Exception e) {
+                log.error("Failed to send password reset email to {}: {}", toEmail, e.getMessage());
+            }
+        });
+    }
 }

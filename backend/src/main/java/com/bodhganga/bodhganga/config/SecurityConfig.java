@@ -18,6 +18,12 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import com.bodhganga.bodhganga.repo.UserRepo;
+import com.bodhganga.bodhganga.entity.User;
 
 @Configuration
 @EnableWebSecurity
@@ -33,6 +39,54 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public UserDetailsService userDetailsService(UserRepo userRepo) {
+        return username -> {
+            if (username == null || username.trim().isBlank()) {
+                throw new UsernameNotFoundException("Username/email cannot be empty");
+            }
+            String sanitized = username.trim();
+            User user = null;
+            if (sanitized.contains("@")) {
+                user = userRepo.findByEmailIgnoreCase(sanitized.toLowerCase()).orElse(null);
+            } else {
+                String phone = sanitized.replaceAll("[^0-9]", "");
+                if (phone.startsWith("91") && phone.length() == 12) phone = phone.substring(2);
+                if (!phone.isBlank()) {
+                    user = userRepo.findByPhoneNo(phone).orElse(null);
+                }
+                if (user == null) {
+                    user = userRepo.findByEmailIgnoreCase(sanitized.toLowerCase()).orElse(null);
+                }
+            }
+
+            if (user == null) {
+                throw new UsernameNotFoundException("User not found with identifier: " + username);
+            }
+
+            boolean enabled = user.isActive() == null || user.isActive();
+            String role = user.getRole() != null ? user.getRole().toUpperCase() : "USER";
+            if (role.startsWith("ROLE_")) {
+                role = role.substring(5);
+            }
+
+            return org.springframework.security.core.userdetails.User.builder()
+                    .username(user.getEmail() != null ? user.getEmail().trim().toLowerCase() : user.getPhoneNo())
+                    .password(user.getHashedPassword())
+                    .disabled(!enabled)
+                    .accountLocked(false)
+                    .accountExpired(false)
+                    .credentialsExpired(false)
+                    .roles(role)
+                    .build();
+        };
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
     }
 
     @Bean
@@ -79,19 +133,19 @@ public class SecurityConfig {
                         // .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/pdf/**").permitAll()
 
 
-                        // Question Bank — catalog and search are public; test execution and dashboard require auth
+                        // Question Bank â€” catalog and search are public; test execution and dashboard require auth
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/question-bank/tests").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/question-bank/tests/**").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/question-bank/search").permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/question-bank/tests/*/submit").authenticated()
                         .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/question-bank/dashboard").authenticated()
 
-                        // Test Execution, Evaluation & Analytics — require authentication
+                        // Test Execution, Evaluation & Analytics â€” require authentication
                         .requestMatchers("/api/test-execution/**").authenticated()
                         .requestMatchers("/api/test-evaluation/**").authenticated()
                         .requestMatchers("/api/test-analytics/**").authenticated()
 
-                        // AI companion — general is public, study requires auth
+                        // AI companion â€” general is public, study requires auth
                         .requestMatchers("/api/ai/general").permitAll()
                         .requestMatchers("/api/ai/study").authenticated()
                         .requestMatchers("/api/payment/webhook", "/api/payment/check-purchase/**",
@@ -99,14 +153,14 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers("/api/payment/**").authenticated()
 
-                        // Cart — count is public (returns 0 for guests), rest requires auth
+                        // Cart â€” count is public (returns 0 for guests), rest requires auth
                         .requestMatchers("/api/cart/count").permitAll()
                         .requestMatchers("/api/cart/**").authenticated()
 
-                        // User orders — require auth
+                        // User orders â€” require auth
                         .requestMatchers("/api/orders").authenticated()
 
-                        // Admin orders — require ADMIN role
+                        // Admin orders â€” require ADMIN role
                         .requestMatchers("/api/admin/orders/**").hasAuthority("ROLE_ADMIN")
 
                         // Dashboard admin-stats is called with admin token; revenue/content/storage
@@ -127,7 +181,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/courses/my-courses").authenticated()
                         .requestMatchers("/api/courses/**").authenticated()
 
-                        // Admin write endpoints — MUST have ADMIN role
+                        // Admin write endpoints â€” MUST have ADMIN role
                         .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/states/**")
                         .hasAuthority("ROLE_ADMIN")
                         .requestMatchers(org.springframework.http.HttpMethod.PUT, "/api/states/**")
@@ -152,7 +206,7 @@ public class SecurityConfig {
                         .hasAuthority("ROLE_ADMIN")
                         .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/products/**")
                         .hasAuthority("ROLE_ADMIN")
-                        // Administrative system & recovery endpoints — MUST have ADMIN role
+                        // Administrative system & recovery endpoints â€” MUST have ADMIN role
                         .requestMatchers("/api/admin/system/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/admin/recovery/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
@@ -191,7 +245,7 @@ public class SecurityConfig {
 
         configuration.setAllowedOriginPatterns(origins);
         configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        // Explicit header allowlist — no wildcard
+        // Explicit header allowlist â€” no wildcard
         configuration.setAllowedHeaders(java.util.List.of(
             "Authorization",
             "Content-Type",

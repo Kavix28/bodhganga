@@ -82,11 +82,18 @@ const Login = () => {
 
     const validatePasswordForm = () => {
         const e = {};
-        const cleaned = form.emailOrPhone.trim().replace(/\D/g, '');
-        if (!cleaned) {
-            e.emailOrPhone = 'Mobile number is required';
-        } else if (cleaned.length < 10) {
-            e.emailOrPhone = 'Mobile number must be 10 digits';
+        const val = form.emailOrPhone.trim();
+        if (!val) {
+            e.emailOrPhone = 'Email or mobile number is required';
+        } else if (val.includes('@')) {
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+                e.emailOrPhone = 'Please enter a valid email address';
+            }
+        } else {
+            const cleaned = val.replace(/\D/g, '');
+            if (cleaned.length < 10) {
+                e.emailOrPhone = 'Please enter a valid 10-digit mobile number or email';
+            }
         }
         if (!form.password) e.password = 'Password is required';
         setErrors(e);
@@ -106,7 +113,9 @@ const Login = () => {
         if (!validatePasswordForm()) return;
         setLoading(true);
         try {
-            const res = await loginService(form.emailOrPhone, form.password);
+            const input = form.emailOrPhone.trim();
+            const normalizedInput = input.includes('@') ? input.toLowerCase() : input;
+            const res = await loginService(normalizedInput, form.password);
             if (res?.success && res.data?.token) {
                 login(res.data.token, res.data.user);
                 toast.success(`Welcome back, ${res.data.user?.name?.split(' ')[0] || 'Scholar'}!`);
@@ -217,7 +226,7 @@ const Login = () => {
             <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-b from-emerald-dark to-emerald-950 relative overflow-hidden flex-col items-center justify-center p-16">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(201,169,97,0.03)_1px,transparent_1px),linear-gradient(to_bottom,rgba(201,169,97,0.03)_1px,transparent_1px)] bg-[size:3.5rem_3.5rem]" />
                 <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-gold/5 rounded-full blur-[100px] pointer-events-none" />
-                
+
                 <div className="relative text-center space-y-8 max-w-sm z-10">
                     <Logo variant="primary" size="lg" showGlow={true} />
                     <p className="text-white/60 text-base leading-relaxed font-medium">
@@ -276,27 +285,23 @@ const Login = () => {
                     {loginMethod === 'password' ? (
                         /* Password Form */
                         <form onSubmit={handleSubmit} className="space-y-6">
-                            {/* Mobile Number */}
+                            {/* Email or Mobile Number */}
                             <div className="space-y-1.5">
-                                <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Mobile Number</label>
+                                <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Email or Mobile Number</label>
                                 <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-emerald/60">+91</span>
-                                    <input 
-                                        name="emailOrPhone" 
-                                        type="tel" 
-                                        value={form.emailOrPhone} 
-                                        onChange={e => {
-                                            const val = e.target.value.replace(/\D/g, '').substring(0, 10);
-                                            setForm(p => ({ ...p, emailOrPhone: val }));
-                                            if (errors.emailOrPhone) setErrors(p => ({ ...p, emailOrPhone: '' }));
-                                        }}
-                                        placeholder="9876543210"
+                                    <FiMail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/60" />
+                                    <input
+                                        name="emailOrPhone"
+                                        type="text"
+                                        value={form.emailOrPhone}
+                                        onChange={handleChange}
+                                        placeholder="scholar@example.com or 9876543210"
                                         disabled={loading}
-                                        className={`w-full py-3 pl-14 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
+                                        autoComplete="username"
+                                        className={`w-full py-3 pl-11 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
                                             errors.emailOrPhone ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
-                                        }`} 
+                                        }`}
                                     />
-                                    <FiPhone className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/40" />
                                 </div>
                                 {errors.emailOrPhone && <p className="text-[10px] text-red-500 font-bold uppercase tracking-wider mt-1">{errors.emailOrPhone}</p>}
                             </div>
@@ -309,19 +314,19 @@ const Login = () => {
                                 </div>
                                 <div className="relative">
                                     <FiLock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/60" />
-                                    <input 
-                                        name="password" 
-                                        type={showPw ? 'text' : 'password'} 
-                                        value={form.password} 
+                                    <input
+                                        name="password"
+                                        type={showPw ? 'text' : 'password'}
+                                        value={form.password}
                                         onChange={handleChange}
-                                        placeholder="••••••••"
+                                        placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                                         disabled={loading}
                                         className={`w-full py-3 pl-11 pr-11 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
                                             errors.password ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
-                                        }`} 
+                                        }`}
                                     />
-                                    <button 
-                                        type="button" 
+                                    <button
+                                        type="button"
                                         onClick={() => setShowPw(!showPw)}
                                         className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald/60 hover:text-emerald transition-colors"
                                     >
@@ -332,8 +337,8 @@ const Login = () => {
                             </div>
 
                             {/* Submit Button */}
-                            <button 
-                                type="submit" 
+                            <button
+                                type="submit"
                                 disabled={loading}
                                 className="w-full py-3.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-gold/10 hover:shadow-gold/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-2"
                             >
@@ -352,9 +357,9 @@ const Login = () => {
                                     <label className="block text-xs font-bold uppercase tracking-wider text-emerald-dark">Mobile Number</label>
                                     <div className="relative">
                                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-bold text-emerald/60">+91</span>
-                                        <input 
-                                            type="tel" 
-                                            value={phone} 
+                                        <input
+                                            type="tel"
+                                            value={phone}
                                             onChange={(e) => {
                                                 const val = e.target.value.replace(/\D/g, '').substring(0, 10);
                                                 setPhone(val);
@@ -364,7 +369,7 @@ const Login = () => {
                                             disabled={otpLoading || !scriptLoaded}
                                             className={`w-full py-3 pl-14 pr-4 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
                                                 errors.phone ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''
-                                            }`} 
+                                            }`}
                                         />
                                         <FiPhone className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald/40" />
                                     </div>
@@ -372,8 +377,8 @@ const Login = () => {
                                     <p className="text-[10px] text-emerald-dark/50 font-medium">OTP will be sent to this number via SMS / WhatsApp.</p>
                                 </div>
 
-                                <button 
-                                    type="submit" 
+                                <button
+                                    type="submit"
                                     disabled={otpLoading || !scriptLoaded}
                                     className="w-full py-3.5 bg-gradient-to-r from-gold to-gold-dark text-emerald-dark font-extrabold text-xs uppercase tracking-widest rounded-xl shadow-lg shadow-gold/10 hover:shadow-gold/25 hover:-translate-y-0.5 active:scale-95 transition-all duration-300 disabled:opacity-60 disabled:pointer-events-none flex items-center justify-center gap-2"
                                 >
@@ -394,7 +399,7 @@ const Login = () => {
                     </div>
 
                     {/* Register CTA */}
-                    <Link 
+                    <Link
                         to="/register"
                         className="w-full py-3.5 border border-emerald/10 text-emerald font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-emerald-50/50 hover:border-emerald transition-all duration-300 flex items-center justify-center gap-2"
                     >
