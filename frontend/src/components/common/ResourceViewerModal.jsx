@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import api from "../../services/api";
 import SecurePdfViewer from "../SecurePdfViewer";
 import { X, AlertCircle, RefreshCw, Lock } from "lucide-react";
@@ -8,10 +8,38 @@ const AUDIO_EXTS = ["mp3", "m4a", "wav", "aac", "ogg"];
 const VIDEO_EXTS = ["mp4", "webm", "mkv"];
 const OFFICE_EXTS = ["docx", "doc", "xlsx", "xls", "pptx", "ppt"];
 
+// Canonical helper to extract storage key from diverse resource properties or legacy S3 URLs
+export function extractStorageKey(resource) {
+  if (!resource) return null;
+  if (resource.s3Key && typeof resource.s3Key === "string" && resource.s3Key.trim()) {
+    return resource.s3Key.trim();
+  }
+  if (resource.storageKey && typeof resource.storageKey === "string" && resource.storageKey.trim()) {
+    return resource.storageKey.trim();
+  }
+
+  // Check raw URLs for S3 object key (stripping query parameters and extracting canonical key)
+  const candidates = [resource.s3Url, resource.previewUrl, resource.url, resource.signedUrl];
+  for (const cand of candidates) {
+    if (!cand || typeof cand !== "string") continue;
+    const clean = cand.split("?")[0].trim();
+    const match = clean.match(/amazonaws\.com\/(.+)$/);
+    if (match) {
+      return decodeURIComponent(match[1]);
+    }
+    // If cand does not start with http(s):// but contains a dot extension, treat as relative key
+    if (!clean.startsWith("http://") && !clean.startsWith("https://") && clean.includes(".")) {
+      return clean;
+    }
+  }
+  return null;
+}
+
 export default function ResourceViewerModal({ resource, onClose }) {
   const [signedUrl, setSignedUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const retryCountRef = useRef(0);
 
   const title = resource?.displayTitle || resource?.title || resource?.fileName || "Protected Document";
 
@@ -30,32 +58,19 @@ export default function ResourceViewerModal({ resource, onClose }) {
 
   const ext = getExtension();
 
-  // Fetch or resolve secure presigned URL
+  // Fetch or resolve secure presigned URL (always fresh on mount/open, no stale signature reuse)
   const resolveUrl = useCallback(async () => {
     if (!resource) return;
 
     setLoading(true);
     setError(null);
 
-    // 1. If already presigned (contains AWS signature params), use directly
-    const raw = resource.signedUrl || resource.previewUrl || resource.url || resource.s3Url;
-    if (raw && (raw.includes("X-Amz-Signature") || raw.includes("X-Amz-Credential"))) {
-      setSignedUrl(raw);
-      setLoading(false);
-      return;
-    }
-
-    // 2. Identify key and id for backend presigning
     const resourceId = resource.id || resource._id;
-    let key = resource.s3Key || resource.storageKey;
-    if (!key && resource.s3Url) {
-      const match = resource.s3Url.match(/amazonaws\.com\/(.+)$/);
-      if (match) {
-        key = decodeURIComponent(match[1]);
-      }
-    }
+    const key = extractStorageKey(resource);
 
+    // If neither key nor resourceId can be resolved, fallback to raw url if provided
     if (!key && !resourceId) {
+      const raw = resource.signedUrl || resource.previewUrl || resource.url || resource.s3Url;
       if (raw) {
         setSignedUrl(raw);
         setLoading(false);
@@ -70,7 +85,7 @@ export default function ResourceViewerModal({ resource, onClose }) {
       return;
     }
 
-    // 3. Request presigned URL from backend using canonical query parameters
+    // Request fresh presigned URL from backend
     try {
       const params = {};
       if (key) params.key = key;
@@ -148,7 +163,41 @@ export default function ResourceViewerModal({ resource, onClose }) {
     }
   }, [resource]);
 
+  // Handle viewer error with silent renewal for expired tokens
+  const handleViewerError = useCallback((viewerErr) => {
+    console.warn("ResourceViewerModal: Viewer reported load error:", viewerErr);
+    const isExpired = viewerErr?.isExpired ||
+      viewerErr?.status === 403 ||
+      viewerErr?.status === 410 ||
+      (viewerErr?.message && (
+        viewerErr.message.toLowerCase().includes("expired") ||
+        viewerErr.message.includes("403") ||
+        viewerErr.message.includes("SignatureDoesNotMatch") ||
+        viewerErr.message.includes("AccessDenied")
+      ));
+
+    // Silent recovery: request fresh presigned URL once without unmounting or reloading app
+    if (isExpired && retryCountRef.current < 1) {
+      retryCountRef.current += 1;
+      console.info("ResourceViewerModal: Document access token expired; silently refreshing presigned URL from backend...");
+      resolveUrl();
+      return;
+    }
+
+    setError({
+      title: isExpired ? "Access Expired" : "Document Load Error",
+      message: viewerErr?.message || "Failed to load document.",
+      canRetry: true
+    });
+  }, [resolveUrl]);
+
+  const handleManualRetry = () => {
+    retryCountRef.current = 0;
+    resolveUrl();
+  };
+
   useEffect(() => {
+    retryCountRef.current = 0;
     resolveUrl();
   }, [resolveUrl]);
 
@@ -216,12 +265,19 @@ export default function ResourceViewerModal({ resource, onClose }) {
               </p>
               {typeof error === "object" && error.canRetry ? (
                 <button
-                  onClick={resolveUrl}
+                  onClick={handleManualRetry}
                   className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-gray-950 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors inline-flex items-center gap-1.5 shadow"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   Retry
                 </button>
+              ) : typeof error === "object" && error.isAuth ? (
+                <a
+                  href="/login"
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-gray-950 rounded-xl text-xs font-bold uppercase tracking-wider transition-colors inline-flex items-center gap-1.5 shadow"
+                >
+                  Sign In
+                </a>
               ) : (
                 <button
                   onClick={onClose}
@@ -237,6 +293,7 @@ export default function ResourceViewerModal({ resource, onClose }) {
               title={title}
               watermarkText="BodhGanga Academy • Protected Document"
               onClose={onClose}
+              onError={handleViewerError}
               className="w-full h-full rounded-none border-none"
             />
           ) : IMAGE_EXTS.includes(ext) ? (
@@ -245,6 +302,7 @@ export default function ResourceViewerModal({ resource, onClose }) {
                 src={signedUrl}
                 alt={title}
                 onContextMenu={(e) => e.preventDefault()}
+                onError={() => handleViewerError({ status: 403, isExpired: true, message: "Media access token expired or failed to load." })}
                 className="max-w-full max-h-full object-contain rounded-lg shadow-lg pointer-events-none"
               />
             </div>
@@ -259,6 +317,7 @@ export default function ResourceViewerModal({ resource, onClose }) {
                 controlsList="nodownload"
                 className="w-full max-w-md"
                 src={signedUrl}
+                onError={() => handleViewerError({ status: 403, isExpired: true, message: "Audio access expired or failed to load." })}
               >
                 Your browser does not support audio playback.
               </audio>
@@ -271,6 +330,7 @@ export default function ResourceViewerModal({ resource, onClose }) {
                 disablePictureInPicture
                 className="max-w-full max-h-full rounded-lg shadow-2xl"
                 src={signedUrl}
+                onError={() => handleViewerError({ status: 403, isExpired: true, message: "Video access expired or failed to load." })}
               >
                 Your browser does not support video playback.
               </video>

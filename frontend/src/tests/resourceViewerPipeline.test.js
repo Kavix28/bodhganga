@@ -1,4 +1,10 @@
 import assert from 'node:assert';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 console.log('🧪 Running Resource Viewer & Canonical PDF Pipeline Tests...\n');
 
@@ -361,5 +367,222 @@ const res20D = validateIdAndKeyParameters(catalogedProduct, '6aa123f5edc2296bdf3
 assert.strictEqual(res20D.valid, false);
 assert.strictEqual(res20D.status, 400);
 console.log('✅ Test 20 Passed: ID vs Key parameter mismatch checks strictly enforce metadata pairing.');
+
+// =========================================================================
+// 7. Frontend Viewer Durability, Ephemeral Resolution & Silent Renewal Pipeline
+// =========================================================================
+
+function extractStorageKey(resource) {
+    if (!resource) return null;
+    if (resource.s3Key && typeof resource.s3Key === "string" && resource.s3Key.trim()) {
+        return resource.s3Key.trim();
+    }
+    if (resource.storageKey && typeof resource.storageKey === "string" && resource.storageKey.trim()) {
+        return resource.storageKey.trim();
+    }
+
+    const candidates = [resource.s3Url, resource.previewUrl, resource.url, resource.signedUrl];
+    for (const cand of candidates) {
+        if (!cand || typeof cand !== "string") continue;
+        const clean = cand.split("?")[0].trim();
+        const match = clean.match(/amazonaws\.com\/(.+)$/);
+        if (match) {
+            return decodeURIComponent(match[1]);
+        }
+        if (!clean.startsWith("http://") && !clean.startsWith("https://") && clean.includes(".")) {
+            return clean;
+        }
+    }
+    return null;
+}
+
+async function simulateModalResolution(resource, apiClient) {
+    const resourceId = resource?.id || resource?._id;
+    const key = extractStorageKey(resource);
+
+    if (!key && !resourceId) {
+        const raw = resource?.signedUrl || resource?.previewUrl || resource?.url || resource?.s3Url;
+        if (raw) return { url: raw, freshFetch: false };
+        throw new Error("Missing Storage Key");
+    }
+
+    const params = {};
+    if (key) params.key = key;
+    if (resourceId) params.id = resourceId;
+
+    const res = await apiClient.get('/pdf/resource', { params });
+    return { url: res.data?.url || res.url, freshFetch: true, params };
+}
+
+// Test 21: Opening modal with existing product triggers fresh /api/pdf/resource call (no stale signature reuse)
+const apiCalls = [];
+const mockApiClient = {
+    get: async (endpoint, config) => {
+        apiCalls.push({ endpoint, config });
+        return { data: { url: `https://bodhganga-pdf-storage-prod.s3.eu-north-1.amazonaws.com/${config.params.key}?X-Amz-Signature=freshSig_${Date.now()}` } };
+    }
+};
+
+const staleProduct = {
+    id: '6aa123f5edc2296bdf3a25b1',
+    s3Key: 'states/haryana/kurukshetra/free/infographic.png',
+    s3Url: 'https://bodhganga-pdf-storage-prod.s3.eu-north-1.amazonaws.com/states/haryana/kurukshetra/free/infographic.png?X-Amz-Signature=staleOldSignature'
+};
+
+const resolveRes = await simulateModalResolution(staleProduct, mockApiClient);
+assert.strictEqual(apiCalls.length, 1, 'Opening modal must trigger /api/pdf/resource call');
+assert.strictEqual(apiCalls[0].endpoint, '/pdf/resource');
+assert.strictEqual(apiCalls[0].config.params.key, 'states/haryana/kurukshetra/free/infographic.png');
+assert.strictEqual(apiCalls[0].config.params.id, '6aa123f5edc2296bdf3a25b1');
+assert.ok(resolveRes.url.includes('freshSig_'), 'Must use freshly generated signature rather than staleOldSignature');
+assert.ok(!resolveRes.url.includes('staleOldSignature'), 'Must not reuse stale signature');
+console.log('✅ Test 21 Passed: Opening modal with existing product triggers fresh /api/pdf/resource call.');
+
+// Test 22: Expired signed link triggers refresh callback and successfully delivers newly signed URL
+class MockViewerSession {
+    constructor(initialResource, apiClient) {
+        this.resource = initialResource;
+        this.apiClient = apiClient;
+        this.signedUrl = null;
+        this.retryCount = 0;
+        this.error = null;
+    }
+
+    async open() {
+        const res = await simulateModalResolution(this.resource, this.apiClient);
+        this.signedUrl = res.url;
+        this.retryCount = 0;
+    }
+
+    async handleViewerError(viewerErr) {
+        const isExpired = viewerErr?.isExpired ||
+            viewerErr?.status === 403 ||
+            viewerErr?.status === 410 ||
+            (viewerErr?.message && (
+                viewerErr.message.toLowerCase().includes("expired") ||
+                viewerErr.message.includes("403") ||
+                viewerErr.message.includes("SignatureDoesNotMatch") ||
+                viewerErr.message.includes("AccessDenied")
+            ));
+
+        if (isExpired && this.retryCount < 1) {
+            this.retryCount += 1;
+            const res = await simulateModalResolution(this.resource, this.apiClient);
+            this.signedUrl = res.url;
+            return { refreshed: true, newUrl: this.signedUrl };
+        }
+
+        this.error = {
+            title: isExpired ? "Access Expired" : "Document Load Error",
+            message: viewerErr?.message || "Failed to load document.",
+            canRetry: true
+        };
+        return { refreshed: false, error: this.error };
+    }
+}
+
+let refreshCounter = 1;
+const renewingApiClient = {
+    get: async (endpoint, config) => {
+        return {
+            data: {
+                url: `https://bodhganga-pdf-storage-prod.s3.eu-north-1.amazonaws.com/${config.params.key}?tokenVersion=${refreshCounter++}`
+            }
+        };
+    }
+};
+
+const session = new MockViewerSession({
+    id: '6aa123f5edc2296bdf3a25b2',
+    s3Key: 'states/nagaland/dimapur/free/notes.pdf'
+}, renewingApiClient);
+
+await session.open();
+assert.ok(session.signedUrl.includes('tokenVersion=1'), 'Initial session gets token version 1');
+
+// Simulate token expiration encountered by viewer
+const refreshResult = await session.handleViewerError({
+    status: 403,
+    isExpired: true,
+    message: 'The secure access link has expired. Please refresh to renew access.'
+});
+
+assert.strictEqual(refreshResult.refreshed, true, 'Must silently refresh on expired token');
+assert.ok(session.signedUrl.includes('tokenVersion=2'), 'Viewer receives newly signed URL');
+assert.strictEqual(session.retryCount, 1, 'Retry count tracked at 1');
+assert.strictEqual(session.error, null, 'No error screen shown when silent recovery succeeds');
+
+// Simulate a second failure on the refreshed token (max 1 retry prevention)
+const secondFail = await session.handleViewerError({
+    status: 403,
+    isExpired: true,
+    message: 'The secure access link has expired.'
+});
+
+assert.strictEqual(secondFail.refreshed, false, 'Must not retry infinitely');
+assert.strictEqual(session.error?.title, 'Access Expired', 'Transitions to clean error UI on terminal failure');
+console.log('✅ Test 22 Passed: Expired signed link triggers refresh callback and delivers newly signed URL.');
+
+// Test 23: Direct unauthenticated S3 URLs passed as props are sanitized and routed through /api/pdf/resource
+const rawUrls = [
+    'https://bodhganga-pdf-storage-prod.s3.eu-north-1.amazonaws.com/states/haryana/kurukshetra/free/infographic.png',
+    'https://bodhganga-pdf-storage-prod.s3.amazonaws.com/states/nagaland/general/free/study_notes.pdf?response-content-disposition=inline',
+    'states/maharashtra/akola/free/sample.pdf'
+];
+
+for (const rawUrl of rawUrls) {
+    const key = extractStorageKey({ s3Url: rawUrl });
+    assert.ok(key, `Key must be extracted from ${rawUrl}`);
+    assert.ok(!key.startsWith('http://') && !key.startsWith('https://'), 'Key must not be a full URL');
+    assert.ok(!key.includes('amazonaws.com'), 'Key must not contain aws host');
+    assert.ok(!key.includes('?'), 'Key must not contain query parameters');
+
+    const routedCalls = [];
+    const testClient = {
+        get: async (endpoint, config) => {
+            routedCalls.push({ endpoint, params: config.params });
+            return { data: { url: `https://bodhganga-pdf-storage-prod.s3.eu-north-1.amazonaws.com/${key}?signed=true` } };
+        }
+    };
+
+    const res = await simulateModalResolution({ s3Url: rawUrl }, testClient);
+    assert.strictEqual(routedCalls.length, 1);
+    assert.strictEqual(routedCalls[0].endpoint, '/pdf/resource');
+    assert.strictEqual(routedCalls[0].params.key, key);
+    assert.ok(res.url.includes('signed=true'));
+}
+console.log('✅ Test 23 Passed: Raw direct S3 URLs passed as props are sanitized and routed through /api/pdf/resource.');
+
+// Test 24: Source code audit for ResourceViewerModal, SecurePdfViewer, and consumer pages
+const modalSrc = fs.readFileSync(path.join(__dirname, '../components/common/ResourceViewerModal.jsx'), 'utf8');
+const viewerSrc = fs.readFileSync(path.join(__dirname, '../components/SecurePdfViewer.jsx'), 'utf8');
+const districtPageSrc = fs.readFileSync(path.join(__dirname, '../pages/DistrictResourcesPage.jsx'), 'utf8');
+const stateSectionSrc = fs.readFileSync(path.join(__dirname, '../pages/StateSectionPage.jsx'), 'utf8');
+const stateDistrictSrc = fs.readFileSync(path.join(__dirname, '../pages/StateDistrictProductsPage.jsx'), 'utf8');
+
+// Invariants in ResourceViewerModal.jsx
+assert.ok(modalSrc.includes('extractStorageKey'), 'ResourceViewerModal must export/use extractStorageKey');
+assert.ok(modalSrc.includes('handleViewerError'), 'ResourceViewerModal must implement handleViewerError');
+assert.ok(modalSrc.includes('retryCountRef'), 'ResourceViewerModal must use retryCountRef for loop prevention');
+assert.ok(modalSrc.includes('onError={handleViewerError}'), 'ResourceViewerModal must pass onError to SecurePdfViewer');
+assert.ok(!modalSrc.includes('localStorage.setItem'), 'Must not cache signed URLs in localStorage');
+assert.ok(!modalSrc.includes('sessionStorage.setItem'), 'Must not cache signed URLs in sessionStorage');
+
+// Invariants in SecurePdfViewer.jsx
+assert.ok(viewerSrc.includes('onError'), 'SecurePdfViewer must accept onError prop');
+assert.ok(viewerSrc.includes("mode: 'cors'"), 'SecurePdfViewer must enforce CORS fetch mode');
+assert.ok(viewerSrc.includes('isExpired'), 'SecurePdfViewer must flag isExpired for token expiration');
+
+// Invariants in consumer pages
+for (const [pageName, pageSrc] of [
+    ['DistrictResourcesPage', districtPageSrc],
+    ['StateSectionPage', stateSectionSrc],
+    ['StateDistrictProductsPage', stateDistrictSrc]
+]) {
+    assert.ok(pageSrc.includes('ResourceViewerModal'), `${pageName} must import and use ResourceViewerModal`);
+    assert.ok(!pageSrc.includes('s3.amazonaws.com/'), `${pageName} must not construct raw S3 links`);
+    assert.ok(!pageSrc.includes('<a download'), `${pageName} must not contain download links`);
+}
+console.log('✅ Test 24 Passed: Source code architectural invariants verified across viewer components and consumer pages.');
 
 console.log('\n🎉 ALL RESOURCE VIEWER PIPELINE TESTS PASSED SUCCESSFULLY!');

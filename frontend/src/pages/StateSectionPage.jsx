@@ -340,7 +340,7 @@ export default function StateSectionPage() {
                       <span className="text-[11px] text-gray-500">
                         {res.type || res.fileExtension?.toUpperCase() || "PDF"}
                       </span>
-                      {res.s3Url || res.previewUrl || res.url ? (
+                      {res.s3Url || res.previewUrl || res.url || res.s3Key || res.storageKey ? (
                         <button
                           type="button"
                           onClick={() => setSelectedResource(res)}

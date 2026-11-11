@@ -29,6 +29,7 @@ export default function SecurePdfViewer({
   title = "Protected Document", 
   watermarkText = "BodhGanga Digital Learning • Protected Content",
   onClose,
+  onError,
   className = ""
 }) {
   const [pdfDoc, setPdfDoc] = useState(null);
@@ -92,15 +93,26 @@ export default function SecurePdfViewer({
 
     async function loadPdf() {
       try {
-        const response = await fetch(pdfUrl);
+        const response = await fetch(pdfUrl, { mode: 'cors' });
         if (!response.ok) {
-          if (response.status === 403) {
-            throw new Error("The secure access link has expired. Please refresh to renew access.");
+          const isExpired = response.status === 403 || response.status === 410;
+          const errObj = {
+            status: response.status,
+            isExpired,
+            message: isExpired
+              ? "The secure access link has expired. Please refresh to renew access."
+              : response.status === 404
+              ? "The PDF document was not found in storage."
+              : `HTTP ${response.status} ${response.statusText} fetching S3 PDF`
+          };
+          if (onError) {
+            onError(errObj);
           }
-          if (response.status === 404) {
-            throw new Error("The PDF document was not found in storage.");
-          }
-          throw new Error(`HTTP ${response.status} ${response.statusText} fetching S3 PDF`);
+          const err = new Error(errObj.message);
+          err.handledByOnError = true;
+          err.status = response.status;
+          err.isExpired = isExpired;
+          throw err;
         }
 
         const arrayBuffer = await response.arrayBuffer();
@@ -113,6 +125,23 @@ export default function SecurePdfViewer({
 
         if (!magicHeader.startsWith("%PDF")) {
           console.warn("SecurePdfViewer: Magic header is not %PDF:", magicHeader);
+          const textPreview = new TextDecoder().decode(bytes.subarray(0, 300));
+          const isS3Error = textPreview.includes("<Error>") || textPreview.includes("RequestExpired") || textPreview.includes("AccessDenied");
+          if (isS3Error) {
+            const errObj = {
+              status: 403,
+              isExpired: textPreview.includes("RequestExpired") || textPreview.includes("AccessDenied"),
+              message: "Document access token expired or access denied by storage."
+            };
+            if (onError) {
+              onError(errObj);
+            }
+            const err = new Error(errObj.message);
+            err.handledByOnError = true;
+            err.status = 403;
+            err.isExpired = true;
+            throw err;
+          }
           throw new Error("Document file content is corrupted or not a valid PDF.");
         }
 
@@ -141,6 +170,19 @@ export default function SecurePdfViewer({
           name: err?.name,
           stack: err?.stack,
         });
+        const isExpired = err?.isExpired ||
+          (err?.message && (
+            err.message.toLowerCase().includes("expired") ||
+            err.message.includes("403") ||
+            err.message.includes("SignatureDoesNotMatch")
+          ));
+        if (onError && !err?.handledByOnError) {
+          onError({
+            status: err?.status || (isExpired ? 403 : 500),
+            isExpired: Boolean(isExpired),
+            message: err?.message || "Failed to load secure PDF material. Please verify access permissions."
+          });
+        }
         setError(err?.message || "Failed to load secure PDF material. Please verify access permissions.");
         setLoading(false);
       }
