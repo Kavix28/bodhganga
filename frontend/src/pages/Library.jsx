@@ -18,6 +18,7 @@ const Library = () => {
     const [activePdfModal, setActivePdfModal] = useState({
         isOpen: false,
         pdfUrl: '',
+        resourceId: null,
         title: ''
     });
 
@@ -60,6 +61,7 @@ const Library = () => {
                 setActivePdfModal({
                     isOpen: true,
                     pdfUrl: signedUrl,
+                    resourceId: item.productId || item.product?.id || item.id,
                     title: item.product?.title || item.title || "Study Material"
                 });
             } else {
@@ -231,8 +233,9 @@ const Library = () => {
 
             <SecurePdfViewerModal
                 isOpen={activePdfModal.isOpen}
-                onClose={() => setActivePdfModal({ isOpen: false, pdfUrl: '', title: '' })}
+                onClose={() => setActivePdfModal({ isOpen: false, pdfUrl: '', resourceId: null, title: '' })}
                 pdfUrl={activePdfModal.pdfUrl}
+                resourceId={activePdfModal.resourceId}
                 title={activePdfModal.title}
                 watermarkText={`${user?.email || user?.name || 'Student'} • BodhGanga Protected Copy`}
             />

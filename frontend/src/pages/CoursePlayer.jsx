@@ -255,6 +255,7 @@ const CoursePlayer = () => {
                         isOpen={pdfModalOpen}
                         onClose={() => setPdfModalOpen(false)}
                         pdfUrl={course?.pdfUrl || (course?.pdfStorageKey ? `/api/pdf/${course.pdfStorageKey}` : `/api/content/${courseId}/pdf`)}
+                        resourceId={course?.id || courseId}
                         title={course?.pdfFileName || course?.title || "Course Material"}
                         watermarkText={`${user?.email || 'Student'} • BodhGanga Protected Copy`}
                     />

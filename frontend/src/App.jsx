@@ -1,5 +1,6 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import api from './services/api';
 import ScrollToTop from './components/common/ScrollToTop';
 import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
@@ -110,6 +111,17 @@ function ChatWidgetWrapper() {
 function App() {
     const isAdminRoute   = window.location.pathname.startsWith('/admin');
     const isAdminLoggedIn = isAdminAuthenticated();
+
+    useEffect(() => {
+        try {
+            if (!sessionStorage.getItem('bg_visited')) {
+                api.post('/analytics/visit').catch(() => {});
+                sessionStorage.setItem('bg_visited', 'true');
+            }
+        } catch {
+            // Analytics tracking must never interrupt app mount
+        }
+    }, []);
 
     return (
         <QueryClientProvider client={queryClient}>

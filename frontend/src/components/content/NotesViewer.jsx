@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { FileText, BookOpen, ChevronRight } from 'lucide-react';
+import { trackResourceView } from '../../services/analyticsService';
 
 /**
  * NotesViewer Component
@@ -49,6 +50,7 @@ const NotesViewer = ({ stateId, stateName }) => {
 
     const handleView = (topic) => {
         setSelectedTopic(topic);
+        trackResourceView(topic?.id);
         // Frontend-only - actual PDF viewing will be handled by backend
         console.log(`Viewing: ${topic.title}`);
     };

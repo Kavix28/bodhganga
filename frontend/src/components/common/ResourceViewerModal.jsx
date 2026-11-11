@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import api from "../../services/api";
+import { trackResourceView } from "../../services/analyticsService";
 import SecurePdfViewer from "../SecurePdfViewer";
 import { X, AlertCircle, RefreshCw, Lock } from "lucide-react";
 
@@ -73,6 +74,9 @@ export default function ResourceViewerModal({ resource, onClose }) {
       const raw = resource.signedUrl || resource.previewUrl || resource.url || resource.s3Url;
       if (raw) {
         setSignedUrl(raw);
+        if (retryCountRef.current === 0) {
+          trackResourceView(resourceId);
+        }
         setLoading(false);
         return;
       }
@@ -95,6 +99,9 @@ export default function ResourceViewerModal({ resource, onClose }) {
       const url = res.url || res.data?.url || (typeof res.data === "string" ? res.data : null);
       if (url) {
         setSignedUrl(url);
+        if (retryCountRef.current === 0) {
+          trackResourceView(resourceId);
+        }
       } else {
         setError({
           title: "Access Error",

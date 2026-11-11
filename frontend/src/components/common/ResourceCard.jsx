@@ -9,6 +9,7 @@ import {
   ExternalLink,
   Video,
 } from 'lucide-react';
+import { trackResourceView } from '../../services/analyticsService';
 
 /**
  * ResourceCard — displays a single ingested file from the S3 pipeline.
@@ -21,7 +22,7 @@ import {
  *  - s3Url        : direct S3/CDN download URL
  *  - districtName : district label (name or slug)
  */
-const ResourceCard = ({ title, fileName, fileType, mimeType, s3Url, districtName }) => {
+const ResourceCard = ({ id, _id, title, fileName, fileType, mimeType, s3Url, districtName }) => {
   /**
    * Resolve display style from mimeType (preferred) or file extension.
    * Order of precedence: mimeType → fileType prop → inferred from fileName extension.
@@ -205,6 +206,7 @@ const ResourceCard = ({ title, fileName, fileType, mimeType, s3Url, districtName
           href={s3Url}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => trackResourceView(id || _id)}
           className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald to-emerald-dark text-white hover:from-gold hover:to-gold-dark text-[11px] font-bold uppercase tracking-wider shadow-sm transition-all duration-300 hover:shadow-md active:scale-95"
         >
           <span>View</span>

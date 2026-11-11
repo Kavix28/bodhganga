@@ -67,7 +67,9 @@ api.interceptors.response.use(
                 requestUrl.includes('/auth/reset-password') ||
                 requestUrl.includes('/auth/admin/login') ||
                 requestUrl.includes('/admin/otp') ||
-                requestUrl.includes('/admin/auth/otp');
+                requestUrl.includes('/admin/auth/otp') ||
+                requestUrl.includes('/analytics/visit') ||
+                requestUrl.includes('/analytics/resource-view');
 
             // Handle 401 Unauthorized - Redirect only on protected session expiry
             if (status === 401) {

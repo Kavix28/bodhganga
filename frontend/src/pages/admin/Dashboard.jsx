@@ -9,11 +9,12 @@ import {
     Users, BookOpen, ShoppingBag, FileText, TrendingUp,
     Activity, MapPin, ArrowRight, CheckCircle, AlertCircle,
     DollarSign, BarChart2, Sparkles, RefreshCw, Flame, Award, Clock,
-    TrendingDown, Package, HardDrive
+    TrendingDown, Package, HardDrive, Globe, UserCheck, Eye
 } from 'lucide-react';
 import { getAdminSession } from '../../utils/adminAuth';
 import { API_BASE_URL } from '../../utils/constants';
 import { getAdminMetrics, getRevenueChart, getStorageStats, getLiveActivity } from '../../services/adminService';
+import { getAnalyticsStats } from '../../services/analyticsService';
 
 // ── Stat Card ─────────────────────────────────────────────────────
 const StatCard = ({ icon: Icon, label, value, sub, to, loading }) => {
@@ -118,6 +119,17 @@ const AdminDashboard = () => {
         refetchInterval: 60000,
     });
 
+    // ── Live atomic traffic & engagement counters ───────────────────
+    const {
+        data: analyticsStats = {},
+        isLoading: analyticsLoading,
+        refetch: refetchAnalytics,
+    } = useQuery({
+        queryKey: ['admin-analytics-stats'],
+        queryFn: () => getAnalyticsStats().catch(() => ({})),
+        refetchInterval: 30000,
+    });
+
     // ── Revenue chart ───────────────────────────────────────────────
     const { data: revData = {}, isLoading: revLoading } = useQuery({
         queryKey: ['admin-revenue', revPeriod],
@@ -195,6 +207,38 @@ const AdminDashboard = () => {
         },
     ];
 
+    const liveAnalyticsCards = [
+        {
+            icon: Globe,
+            label: 'Total Website Visits',
+            value: analyticsStats.totalVisits != null
+                ? Number(analyticsStats.totalVisits).toLocaleString('en-IN')
+                : '—',
+            sub: 'Unique session-deduplicated visits',
+            to: null,
+        },
+        {
+            icon: UserCheck,
+            label: 'Active Signed-in Users',
+            value: analyticsStats.activeSignedInUsers != null
+                ? Number(analyticsStats.activeSignedInUsers).toLocaleString('en-IN')
+                : '—',
+            sub: analyticsStats.totalUsersRegistered != null
+                ? `${Number(analyticsStats.totalUsersRegistered).toLocaleString('en-IN')} total registered accounts`
+                : 'Active in last 24h / verified learners',
+            to: null,
+        },
+        {
+            icon: Eye,
+            label: 'Total Resource Views',
+            value: analyticsStats.totalResourceViews != null
+                ? Number(analyticsStats.totalResourceViews).toLocaleString('en-IN')
+                : '—',
+            sub: 'Notes, PDFs, maps & podcast opens',
+            to: null,
+        },
+    ];
+
     const quickActions = [
         { label: 'Question Bank OCR', href: '/admin/question-bank', icon: '🤖', desc: 'Ingest & parse dual PDFs via OCR' },
         { label: 'Manage States & UTs',  href: '/admin/states',              icon: '🗺️', desc: 'Regulate prep portals' },
@@ -227,7 +271,7 @@ const AdminDashboard = () => {
                 </div>
                 <div className="flex items-center gap-3">
                     <button
-                        onClick={() => refetch()}
+                        onClick={() => { refetch(); refetchAnalytics(); }}
                         className="p-2.5 bg-slate-900 border border-emerald-950 hover:border-gold/30 rounded-xl text-slate-400 hover:text-white transition-colors"
                         title="Force Refresh Data"
                     >
@@ -266,6 +310,13 @@ const AdminDashboard = () => {
 
             {activeTab === 'overview' && (
                 <>
+                    {/* Live Atomic Telemetry Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        {liveAnalyticsCards.map((card, i) => (
+                            <StatCard key={i} {...card} loading={analyticsLoading} />
+                        ))}
+                    </div>
+
                     {/* Stats Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                         {metrics.map((s, i) => <StatCard key={i} {...s} loading={isLoading} />)}

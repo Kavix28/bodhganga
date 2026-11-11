@@ -26,6 +26,9 @@ public interface UserRepo extends MongoRepository<User, String> {
 
     long deleteByEmailVerifiedFalseAndPhoneVerifiedFalse();
 
+    /** Count verified users */
+    long countByIsVerifiedTrue();
+
     /** Count users registered after the given date (for weekly/monthly growth) */
     long countByCreatedAtAfter(Date date);
 

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { X, ShieldAlert } from 'lucide-react';
 import SecurePdfViewer from './SecurePdfViewer';
+import { trackResourceView } from '../services/analyticsService';
 
 /**
  * SecurePdfViewerModal Component
@@ -10,9 +11,16 @@ export default function SecurePdfViewerModal({
   isOpen, 
   onClose, 
   pdfUrl, 
+  resourceId = null,
   title = "Protected Document",
   watermarkText
 }) {
+  useEffect(() => {
+    if (isOpen && pdfUrl) {
+      trackResourceView(resourceId);
+    }
+  }, [isOpen, pdfUrl, resourceId]);
+
   if (!isOpen || !pdfUrl) return null;
 
   return (

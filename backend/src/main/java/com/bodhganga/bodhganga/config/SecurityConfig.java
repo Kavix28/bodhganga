@@ -206,10 +206,14 @@ public class SecurityConfig {
                         .hasAuthority("ROLE_ADMIN")
                         .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/products/**")
                         .hasAuthority("ROLE_ADMIN")
-                        // Administrative system & recovery endpoints â€” MUST have ADMIN role
+                        // Administrative system & recovery endpoints — MUST have ADMIN role
                         .requestMatchers("/api/admin/system/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/admin/recovery/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
+
+                        // Real-time analytics: public ingestion, strict ADMIN reporting
+                        .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/analytics/visit", "/api/analytics/resource-view").permitAll()
+                        .requestMatchers("/api/analytics/admin/**").hasAuthority("ROLE_ADMIN")
 
                         // Disallow everything else
                         .anyRequest().authenticated())
