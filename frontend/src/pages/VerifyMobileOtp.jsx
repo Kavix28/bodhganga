@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { FiArrowLeft, FiShield } from 'react-icons/fi';
 import { useAuth } from '../hooks/useAuth';
-import api from '../services/api';
+import { verifyMsg91 } from '../services/authService';
+import { MSG91_CONFIG, normalizePhoneNumber, extractMsg91AccessToken } from '../utils/constants';
 import toast from 'react-hot-toast';
 
 const VerifyMobileOtp = () => {
@@ -46,8 +47,12 @@ const VerifyMobileOtp = () => {
     }, []);
 
     const handleOtpSuccess = (data) => {
-        console.log("MSG91 raw success payload:", data);
-        handleRegister();
+        const accessToken = extractMsg91AccessToken(data);
+        if (!accessToken) {
+            toast.error("OTP verification did not return a valid token. Please try again.");
+            return;
+        }
+        handleVerifyAndRegister(accessToken);
     };
 
     const handleOpenPopup = () => {
@@ -57,15 +62,14 @@ const VerifyMobileOtp = () => {
                 return;
             }
 
-            const MSG91_AUTH_TOKEN = import.meta.env.VITE_MSG91_AUTH_TOKEN || "520206TlW19nvH5k6a15f8a5P1";
-            const mobile = `91${phone.replace(/\D/g, "")}`;
+            const cleanPhone = normalizePhoneNumber(phone);
+            const mobile = `91${cleanPhone}`;
 
             const config = {
-                widgetId: import.meta.env.VITE_MSG91_WIDGET_ID || "36657a734e31333338323730",
-                tokenAuth: MSG91_AUTH_TOKEN,
+                widgetId: MSG91_CONFIG.WIDGET_ID,
+                tokenAuth: MSG91_CONFIG.AUTH_TOKEN,
                 identifier: mobile,
                 success: (data) => {
-                    console.log("MSG91 SUCCESS:", data);
                     handleOtpSuccess(data);
                 },
                 failure: (error) => {
@@ -84,7 +88,7 @@ const VerifyMobileOtp = () => {
         }
     };
 
-    const handleRegister = async () => {
+    const handleVerifyAndRegister = async (accessToken) => {
         if (!signupData) {
             toast.error("Session expired. Please register again.");
             navigate('/register');
@@ -93,24 +97,16 @@ const VerifyMobileOtp = () => {
 
         setIsLoading(true);
         try {
-            const payload = {
-                name:     signupData.fullName    || signupData.name,
-                email:    signupData.email       || '',
-                phoneNo:  signupData.phoneNumber || signupData.phoneNo,
-                password: signupData.password,
-                city:     signupData.city,
-                state:    signupData.state,
-                country:  signupData.country     || 'India',
-            };
+            const cleanPhone = normalizePhoneNumber(signupData.phoneNumber || signupData.phoneNo || phone);
+            const res = await verifyMsg91(accessToken, cleanPhone, signupData);
 
-            console.log("Registering with payload:", payload);
-            const res = await api.post('/auth/register', payload);
-            console.log("Backend response:", res);
+            const authToken = res?.data?.token || res?.token;
+            const authUser = res?.data?.user || res?.user;
 
-            if (res?.success && res?.token || res?.data?.token) {
+            if (res?.success && authToken) {
                 localStorage.removeItem('signupData');
                 toast.success('Account created successfully! Welcome to Bodhganga!');
-                login(res?.token || res?.data?.token, res?.user || res?.data?.user);
+                login(authToken, authUser);
                 setTimeout(() => navigate("/dashboard", { replace: true }), 150);
             } else {
                 throw new Error(res?.message || 'Registration failed');

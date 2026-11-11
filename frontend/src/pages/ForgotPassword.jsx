@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FiMail, FiArrowLeft, FiCheckCircle, FiLock, FiPhone, FiEye, FiEyeOff } from 'react-icons/fi';
 import { forgotPassword, forgotPasswordMobileRequest, forgotPasswordMobileVerify, resetPasswordMobile } from '../services/authService';
+import { MSG91_CONFIG, normalizePhoneNumber, extractMsg91AccessToken } from '../utils/constants';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -53,9 +54,9 @@ const ForgotPassword = () => {
     };
 
     const validatePhone = (num) => {
-        const cleaned = num.trim().replace(/\D/g, '');
+        const cleaned = normalizePhoneNumber(num);
         if (!cleaned) return 'Phone number is required';
-        if (cleaned.length < 10) return 'Phone number must be 10 digits';
+        if (cleaned.length !== 10) return 'Phone number must be 10 digits';
         return '';
     };
 
@@ -99,17 +100,14 @@ const ForgotPassword = () => {
         setLoading(true);
 
         try {
+            const cleanPhone = normalizePhoneNumber(phone);
             // Backend checks database if mobile exists
-            const res = await forgotPasswordMobileRequest(phone);
+            const res = await forgotPasswordMobileRequest(cleanPhone);
             if (!res?.success) {
                 throw new Error(res?.message || 'Verification failed');
             }
 
-            // Normalizing phone and calling MSG91
-            let formattedPhone = phone.trim().replace(/\D/g, '');
-            if (formattedPhone.length === 10) {
-                formattedPhone = '91' + formattedPhone;
-            }
+            const formattedPhone = `91${cleanPhone}`;
 
             if (!window.initSendOTP) {
                 toast.error("OTP service is initializing. Please wait a moment.");
@@ -118,17 +116,16 @@ const ForgotPassword = () => {
             }
 
             // Configure MSG91 widget configuration dynamically
-            const MSG91_AUTH_TOKEN = import.meta.env.VITE_MSG91_AUTH_TOKEN || "520206TlW19nvH5k6a15f8a5P1";
-
             const config = {
-                widgetId: import.meta.env.VITE_MSG91_WIDGET_ID || "36657a734e31333338323730",
-                tokenAuth: MSG91_AUTH_TOKEN,
+                widgetId: MSG91_CONFIG.WIDGET_ID,
+                tokenAuth: MSG91_CONFIG.AUTH_TOKEN,
                 identifier: formattedPhone,
                 success: (response) => {
-                    console.log("MSG91 success", response);
-                    const token = typeof response === 'string' ? response : (response?.message || response?.['access-token'] || response?.token);
+                    const token = extractMsg91AccessToken(response);
                     if (token) {
                         handleVerifyOtpToken(token);
+                    } else {
+                        toast.error("OTP verification did not return a valid token. Please try again.");
                     }
                 },
                 failure: (error) => {
@@ -158,7 +155,7 @@ const ForgotPassword = () => {
         try {
             const res = await forgotPasswordMobileVerify(accessToken);
             if (res?.success) {
-                setVerifiedToken(accessToken);
+                setVerifiedToken(res?.data?.resetToken || accessToken);
                 setOtpStep('RESET_PASSWORD');
                 toast.success("OTP verified successfully!");
             } else {

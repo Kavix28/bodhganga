@@ -30,6 +30,42 @@ export const OTP_CONFIG = {
     RESEND_COOLDOWN_SECONDS: 60,
 };
 
+// MSG91 Widget Configuration
+export const MSG91_CONFIG = {
+    WIDGET_ID: import.meta.env.VITE_MSG91_WIDGET_ID || '36657a734e31333338323730',
+    AUTH_TOKEN: import.meta.env.VITE_MSG91_AUTH_TOKEN || '520206TlW19nvH5k6a15f8a5P1',
+};
+
+/**
+ * Normalize an Indian mobile number string to 10 canonical digits
+ * (preserving valid 10-digit numbers that begin with 91).
+ */
+export const normalizePhoneNumber = (raw = '') => {
+    const digits = String(raw || '').replace(/\D/g, '');
+    if (digits.startsWith('0091') && digits.length === 14) return digits.slice(4);
+    if (digits.startsWith('91') && digits.length === 12) return digits.slice(2);
+    if (digits.startsWith('0') && digits.length === 11) return digits.slice(1);
+    return digits;
+};
+
+/**
+ * Extract the MSG91 access token from the Web SDK success callback payload.
+ */
+export const extractMsg91AccessToken = (payload) => {
+    if (!payload) return '';
+    if (typeof payload === 'string') return payload.trim();
+    return String(
+        payload.accessToken ||
+        payload['access-token'] ||
+        payload.token ||
+        payload.message ||
+        payload?.data?.accessToken ||
+        payload?.data?.token ||
+        (typeof payload?.data === 'string' ? payload.data : '') ||
+        ''
+    ).trim();
+};
+
 // Routes
 export const ROUTES = {
     HOME: '/',

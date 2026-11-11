@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { FiShield, FiPhone, FiKey, FiRefreshCw, FiArrowLeft } from 'react-icons/fi';
 import { requestAdminOtp, verifyAdminOtp, isAdminAuthenticated } from '../../utils/adminAuth';
+import { MSG91_CONFIG, normalizePhoneNumber, extractMsg91AccessToken } from '../../utils/constants';
 import toast from 'react-hot-toast';
 
 const AdminLogin = () => {
@@ -46,9 +47,9 @@ const AdminLogin = () => {
     }, [cooldown]);
 
     const validatePhone = (num) => {
-        const cleaned = num.trim().replace(/\D/g, '');
+        const cleaned = normalizePhoneNumber(num);
         if (!cleaned) return 'Admin mobile number is required';
-        if (cleaned.length < 10) return 'Mobile number must be 10 digits';
+        if (cleaned.length !== 10) return 'Mobile number must be 10 digits';
         return '';
     };
 
@@ -66,7 +67,7 @@ const AdminLogin = () => {
         setErrorMsg('');
         setIsLoading(true);
 
-        const cleanedPhone = phoneNo.trim().replace(/\D/g, '');
+        const cleanedPhone = normalizePhoneNumber(phoneNo);
 
         try {
             const res = await requestAdminOtp(cleanedPhone);
@@ -77,13 +78,12 @@ const AdminLogin = () => {
 
                 // Trigger MSG91 widget if present
                 if (window.initSendOTP) {
-                    const MSG91_AUTH_TOKEN = import.meta.env.VITE_MSG91_AUTH_TOKEN || "520206TlW19nvH5k6a15f8a5P1";
                     const config = {
-                        widgetId: import.meta.env.VITE_MSG91_WIDGET_ID || "36657a734e31333338323730",
-                        tokenAuth: MSG91_AUTH_TOKEN,
+                        widgetId: MSG91_CONFIG.WIDGET_ID,
+                        tokenAuth: MSG91_CONFIG.AUTH_TOKEN,
                         identifier: `91${cleanedPhone}`,
                         success: (response) => {
-                            const token = typeof response === 'string' ? response : (response?.message || response?.['access-token'] || response?.token);
+                            const token = extractMsg91AccessToken(response);
                             if (token) {
                                 executeVerify(cleanedPhone, token);
                             }
@@ -146,7 +146,7 @@ const AdminLogin = () => {
             toast.error('Please enter the OTP code.');
             return;
         }
-        const cleanedPhone = phoneNo.trim().replace(/\D/g, '');
+        const cleanedPhone = normalizePhoneNumber(phoneNo);
         executeVerify(cleanedPhone, otpCode.trim());
     };
 

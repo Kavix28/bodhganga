@@ -41,6 +41,9 @@ public class StartupValidator {
     @Value("${otp.enabled:true}")
     private boolean otpEnabled;
 
+    @Value("${msg91.auth.key:}")
+    private String msg91AuthKey;
+
     @Value("${gemini.api.key:}")
     private String geminiApiKey;
 
@@ -100,8 +103,11 @@ public class StartupValidator {
         }
 
         // ── 3. MSG91 / OTP ───────────────────────────────────────────────────
-        if (otpEnabled && isBlank(System.getenv("MSG91_AUTH_KEY"))) {
-            fail("OTP is enabled but MSG91_AUTH_KEY is missing.");
+        if (otpEnabled
+                && isBlank(System.getenv("MSG91_AUTH_KEY"))
+                && isBlank(System.getenv("MSG91_AUTHKEY"))
+                && isBlank(msg91AuthKey)) {
+            fail("OTP is enabled but MSG91_AUTH_KEY / msg91.auth.key is missing.");
         }
 
         // ── 4. Question Bank Pipeline ─────────────────────────────────────────

@@ -11,8 +11,8 @@ public class SignupRequestDTO {
     private String email;
 
     @NotBlank(message = "Phone number is required")
-    @Pattern(regexp = "^[0-9]{10}$", message = "Phone must be 10 digits")
-    @com.fasterxml.jackson.annotation.JsonAlias({"phone", "phoneNo"})
+    @Pattern(regexp = "^[+0-9\\s()-]{10,18}$", message = "Phone must be a valid 10-digit mobile number")
+    @com.fasterxml.jackson.annotation.JsonAlias({"phone", "phoneNo", "phoneNumber"})
     private String phoneNo;
 
     @NotBlank(message = "Password is required")

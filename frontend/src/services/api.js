@@ -58,9 +58,28 @@ api.interceptors.response.use(
     (error) => {
         if (error.response) {
             const { status, data } = error.response;
+            const requestUrl = String(error.config?.url || '');
+            const isPublicAuthRequest =
+                requestUrl.includes('/auth/login') ||
+                requestUrl.includes('/auth/register') ||
+                requestUrl.includes('/auth/msg91') ||
+                requestUrl.includes('/auth/forgot-password') ||
+                requestUrl.includes('/auth/reset-password') ||
+                requestUrl.includes('/auth/admin/login') ||
+                requestUrl.includes('/admin/otp') ||
+                requestUrl.includes('/admin/auth/otp');
 
-            // Handle 401 Unauthorized - Token expired or invalid
+            // Handle 401 Unauthorized - Redirect only on protected session expiry
             if (status === 401) {
+                if (isPublicAuthRequest) {
+                    return Promise.reject({
+                        message: data?.message || 'Authentication failed. Please check your details and try again.',
+                        code: ERROR_CODES.UNAUTHORIZED,
+                        status: 401,
+                        ...data,
+                    });
+                }
+
                 clearAuthData();
                 window.location.href = '/login';
                 return Promise.reject({

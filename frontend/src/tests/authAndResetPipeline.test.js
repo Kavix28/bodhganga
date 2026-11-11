@@ -90,4 +90,77 @@ assert.ok(resetPwContent.includes('Password Reset Successfully'), 'ResetPassword
 assert.ok(resetPwContent.includes('Link Expired or Invalid'), 'ResetPassword.jsx must handle expired or invalid tokens cleanly');
 console.log('âœ… Test 6 Passed: ResetPassword.jsx token validation and form submission verified.');
 
+// 7. Verify VerifyMobileOtp.jsx calls /auth/msg91/verify via verifyMsg91 with extracted accessToken
+const verifyOtpPath = path.join(__dirname, '../pages/VerifyMobileOtp.jsx');
+const verifyOtpContent = fs.readFileSync(verifyOtpPath, 'utf8');
+
+assert.ok(
+    verifyOtpContent.includes('extractMsg91AccessToken') && verifyOtpContent.includes('verifyMsg91('),
+    'VerifyMobileOtp.jsx must extract MSG91 accessToken and verify it server-side via verifyMsg91'
+);
+assert.ok(
+    !verifyOtpContent.includes("'/auth/register'"),
+    'VerifyMobileOtp.jsx must NOT bypass OTP verification with /auth/register'
+);
+assert.ok(
+    authServiceContent.includes("'/auth/msg91/verify'") && authServiceContent.includes('signupData'),
+    'authService.verifyMsg91 must post accessToken and optional signupData to /auth/msg91/verify'
+);
+console.log('âœ… Test 7 Passed: VerifyMobileOtp.jsx enforces server-side MSG91 verification.');
+
+// 8. Verify api.js 401 handler preserves auth error feedback on public auth endpoints
+const apiPath = path.join(__dirname, '../services/api.js');
+const apiContent = fs.readFileSync(apiPath, 'utf8');
+
+assert.ok(
+    apiContent.includes('isPublicAuthRequest') &&
+    apiContent.includes("'/auth/login'") &&
+    apiContent.includes("'/auth/msg91'") &&
+    apiContent.includes("'/auth/reset-password'"),
+    'api.js must avoid clearing auth / reloading /login on 401 from auth/OTP endpoints'
+);
+console.log('âœ… Test 8 Passed: api.js 401 interceptor preserves error feedback on public auth routes.');
+
+// 9. Verify Login.jsx exposes Mobile OTP tab and uses clean UI characters
+assert.ok(
+    !loginContent.includes("display:'none'") && !loginContent.includes('display: \'none\''),
+    'Login.jsx Mobile OTP tab must not be hidden with display:none'
+);
+assert.ok(
+    !loginContent.includes('â€¢'),
+    'Login.jsx must not contain mojibake password placeholders'
+);
+console.log('âœ… Test 9 Passed: Login.jsx Mobile OTP tab visibility and clean encoding verified.');
+
+// 10. Verify ForgotPassword.jsx stores single-use resetToken on OTP verify
+assert.ok(
+    forgotPwContent.includes('res?.data?.resetToken || accessToken'),
+    'ForgotPassword.jsx must capture single-use backend resetToken so MSG91 accessToken is never verified twice'
+);
+console.log('âœ… Test 10 Passed: ForgotPassword.jsx two-step mobile reset token handoff verified.');
+
+// 11. Verify backend AuthController deduplication & MSG91 config defaults
+const authControllerPath = path.join(__dirname, '../../../backend/src/main/java/com/bodhganga/bodhganga/controllers/AuthController.java');
+const authControllerContent = fs.readFileSync(authControllerPath, 'utf8');
+
+const forgotCount = (authControllerContent.match(/@PostMapping\("\/forgot-password"\)/g) || []).length;
+const verifyResetCount = (authControllerContent.match(/@GetMapping\("\/verify-reset-token"\)/g) || []).length;
+const resetCount = (authControllerContent.match(/@PostMapping\("\/reset-password"\)/g) || []).length;
+
+assert.strictEqual(forgotCount, 1, 'AuthController must define /forgot-password exactly once');
+assert.strictEqual(verifyResetCount, 1, 'AuthController must define /verify-reset-token exactly once');
+assert.strictEqual(resetCount, 1, 'AuthController must define /reset-password exactly once');
+
+const appPropsPath = path.join(__dirname, '../../../backend/src/main/resources/application.properties');
+const appPropsContent = fs.readFileSync(appPropsPath, 'utf8');
+assert.ok(appPropsContent.includes('msg91.auth.key=${MSG91_AUTH_KEY:'), 'application.properties must define msg91.auth.key with fallback');
+assert.ok(appPropsContent.includes('msg91.widget.id='), 'application.properties must define msg91.widget.id');
+assert.ok(appPropsContent.includes('msg91.auth.token='), 'application.properties must define msg91.auth.token');
+
+const dockerComposePath = path.join(__dirname, '../../../docker-compose.yml');
+const dockerComposeContent = fs.readFileSync(dockerComposePath, 'utf8');
+assert.ok(!dockerComposeContent.includes('MSG91_AUTH_KEY: ${MSG91_AUTH_KEY:-}\n') && dockerComposeContent.includes('MSG91_AUTH_KEY: ${MSG91_AUTH_KEY:-'),
+    'docker-compose.yml must provide non-empty MSG91_AUTH_KEY default fallback');
+console.log('âœ… Test 11 Passed: Backend AuthController deduplication and MSG91 configuration verified.');
+
 console.log('\nðŸŽ‰ ALL AUTHENTICATION & PASSWORD RESET INTEGRATION TESTS PASSED SUCCESSFULLY!\n');

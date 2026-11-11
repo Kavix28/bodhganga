@@ -4,6 +4,7 @@ import { FiMail, FiLock, FiEye, FiEyeOff, FiPhone } from 'react-icons/fi';
 import { BookOpen } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { login as loginService, verifyMsg91 } from '../services/authService';
+import { MSG91_CONFIG, normalizePhoneNumber, extractMsg91AccessToken } from '../utils/constants';
 import toast from 'react-hot-toast';
 import Logo from '../components/common/Logo';
 
@@ -90,8 +91,8 @@ const Login = () => {
                 e.emailOrPhone = 'Please enter a valid email address';
             }
         } else {
-            const cleaned = val.replace(/\D/g, '');
-            if (cleaned.length < 10) {
+            const cleaned = normalizePhoneNumber(val);
+            if (cleaned.length !== 10) {
                 e.emailOrPhone = 'Please enter a valid 10-digit mobile number or email';
             }
         }
@@ -101,9 +102,9 @@ const Login = () => {
     };
 
     const validatePhone = (num) => {
-        const cleaned = num.trim().replace(/\D/g, '');
+        const cleaned = normalizePhoneNumber(num);
         if (!cleaned) return 'Phone number is required';
-        if (cleaned.length < 10) return 'Phone number must be 10 digits';
+        if (cleaned.length !== 10) return 'Phone number must be 10 digits';
         return '';
     };
 
@@ -114,7 +115,7 @@ const Login = () => {
         setLoading(true);
         try {
             const input = form.emailOrPhone.trim();
-            const normalizedInput = input.includes('@') ? input.toLowerCase() : input;
+            const normalizedInput = input.includes('@') ? input.toLowerCase() : normalizePhoneNumber(input);
             const res = await loginService(normalizedInput, form.password);
             if (res?.success && res.data?.token) {
                 login(res.data.token, res.data.user);
@@ -143,10 +144,8 @@ const Login = () => {
         setErrors({});
         setOtpLoading(true);
 
-        let formattedPhone = phone.trim().replace(/\D/g, '');
-        if (formattedPhone.length === 10) {
-            formattedPhone = '91' + formattedPhone;
-        }
+        const cleanPhone = normalizePhoneNumber(phone);
+        const formattedPhone = `91${cleanPhone}`;
 
         if (!window.initSendOTP) {
             toast.error("OTP service is initializing. Please wait a moment.");
@@ -154,10 +153,7 @@ const Login = () => {
             return;
         }
 
-        // Single source of truth for MSG91 auth token
-        const MSG91_AUTH_TOKEN = import.meta.env.VITE_MSG91_AUTH_TOKEN || "520206TlW19nvH5k6a15f8a5P1";
-
-        if (!MSG91_AUTH_TOKEN) {
+        if (!MSG91_CONFIG.AUTH_TOKEN) {
             console.error("MSG91 tokenAuth is not configured.");
             toast.error("OTP service is not configured. Please contact support.");
             setOtpLoading(false);
@@ -166,14 +162,15 @@ const Login = () => {
 
         // Configure MSG91 widget configuration dynamically
         const config = {
-            widgetId: import.meta.env.VITE_MSG91_WIDGET_ID || "36657a734e31333338323730",
-            tokenAuth: MSG91_AUTH_TOKEN,
+            widgetId: MSG91_CONFIG.WIDGET_ID,
+            tokenAuth: MSG91_CONFIG.AUTH_TOKEN,
             identifier: formattedPhone,
             success: (response) => {
-                console.log("MSG91 success", response);
-                const token = typeof response === 'string' ? response : (response?.message || response?.['access-token'] || response?.token);
+                const token = extractMsg91AccessToken(response);
                 if (token) {
-                    handleVerifyToken(token);
+                    handleVerifyToken(token, cleanPhone);
+                } else {
+                    toast.error("OTP verification did not return a valid token. Please try again.");
                 }
             },
             failure: (error) => {
@@ -197,12 +194,12 @@ const Login = () => {
     };
 
     // Verify token with backend to login / signup
-    const handleVerifyToken = async (accessToken) => {
+    const handleVerifyToken = async (accessToken, targetPhone = phone) => {
         if (isLoggingIn) return;
         setIsLoggingIn(true);
         setOtpLoading(true);
         try {
-            const res = await verifyMsg91(accessToken, phone);
+            const res = await verifyMsg91(accessToken, normalizePhoneNumber(targetPhone));
             if (res?.success && res.data?.token) {
                 login(res.data.token, res.data.user);
                 toast.success(`Welcome back, ${res.data.user?.name?.split(' ')[0] || 'Scholar'}!`);
@@ -270,7 +267,7 @@ const Login = () => {
                         </button>
                         <button
                             type="button"
-                            onClick={() => setLoginMethod('otp')} style={{display:'none'}}
+                            onClick={() => setLoginMethod('otp')}
                             className={`flex-1 pb-3 text-xs font-bold uppercase tracking-widest transition-all duration-300 border-b-2 ${
                                 loginMethod === 'otp'
                                     ? 'border-gold text-emerald-dark'
@@ -319,7 +316,7 @@ const Login = () => {
                                         type={showPw ? 'text' : 'password'}
                                         value={form.password}
                                         onChange={handleChange}
-                                        placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                                        placeholder="••••••••"
                                         disabled={loading}
                                         className={`w-full py-3 pl-11 pr-11 rounded-xl border border-emerald/10 bg-white text-sm font-semibold transition-all duration-300 focus:border-emerald focus:ring-4 focus:ring-emerald/10 outline-none ${
                                             errors.password ? 'border-red-400 focus:border-red-400 focus:ring-red-400/10' : ''

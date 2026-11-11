@@ -9,7 +9,7 @@ public class RegisterRequestDTO {
     private String name;
 
     @NotBlank(message = "Phone number is required")
-    @Pattern(regexp = "^[0-9]{10}$", message = "Phone must be 10 digits")
+    @Pattern(regexp = "^[+0-9\\s()-]{10,18}$", message = "Phone must be a valid 10-digit mobile number")
     private String phoneNo;
 
     @NotBlank(message = "Password is required")

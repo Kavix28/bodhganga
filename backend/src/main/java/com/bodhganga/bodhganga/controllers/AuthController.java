@@ -60,11 +60,15 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<ApiResponseDTO> register(@Valid @RequestBody RegisterRequestDTO dto) {
-        // Normalize phone number to check if it already exists before doing everything else
-        String normalizedPhone = dto.getPhoneNo() != null ? dto.getPhoneNo().replaceAll("[^0-9]", "") : "";
-        if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
-            normalizedPhone = normalizedPhone.substring(2);
+        // Normalize phone number consistently before uniqueness checks and persistence
+        String normalizedPhone = AuthService.normalizePhone(dto.getPhoneNo());
+        if (normalizedPhone.length() != 10) {
+            return new ResponseEntity<>(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("Phone must be 10 digits")
+                    .build(), HttpStatus.BAD_REQUEST);
         }
+        dto.setPhoneNo(normalizedPhone);
 
         if (userRepo.existsByPhoneNo(normalizedPhone)) {
             return new ResponseEntity<>(ApiResponseDTO.builder()
@@ -98,7 +102,7 @@ public class AuthController {
     }
 
     @GetMapping("/verify-reset-token")
-    public ResponseEntity<ApiResponseDTO> verifyResetToken(@RequestParam("token") String token) {
+    public ResponseEntity<ApiResponseDTO> verifyResetToken(@RequestParam(value = "token", required = false) String token) {
         ApiResponseDTO response = passwordResetService.validatePasswordResetToken(token);
         HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
         return new ResponseEntity<>(response, status);
@@ -114,8 +118,8 @@ public class AuthController {
     @PostMapping("/msg91/verify")
     public ResponseEntity<ApiResponseDTO> verifyMsg91(@RequestBody Map<String, Object> body) {
         try {
-            String accessToken = (String) body.get("accessToken");
-            String phoneNumber = (String) body.get("phoneNumber");
+            String accessToken = firstNonBlankString(body, "accessToken", "access-token", "token");
+            String phoneNumber = firstNonBlankString(body, "phoneNumber", "phoneNo", "phone");
 
             if (accessToken == null || accessToken.isBlank()) {
                 return new ResponseEntity<>(ApiResponseDTO.builder()
@@ -124,34 +128,17 @@ public class AuthController {
                         .build(), HttpStatus.BAD_REQUEST);
             }
 
-            // Extract optional signupData if present
+            // Extract optional signupData if present (nested or flat)
             SignupRequestDTO signupData = null;
-            if (body.containsKey("signupData") && body.get("signupData") != null) {
-                Object rawSignupData = body.get("signupData");
-                if (rawSignupData instanceof Map) {
-                    Map<String, Object> signupMap = (Map<String, Object>) rawSignupData;
-                    signupData = new SignupRequestDTO();
-                    signupData.setName(signupMap.containsKey("fullName") ? (String) signupMap.get("fullName")
-                            : (String) signupMap.get("name"));
-                    signupData.setEmail((String) signupMap.get("email"));
-                    signupData.setPhoneNo(signupMap.containsKey("phoneNumber") ? (String) signupMap.get("phoneNumber")
-                            : (String) signupMap.get("phoneNo"));
-                    signupData.setPassword((String) signupMap.get("password"));
-                    signupData.setCity((String) signupMap.get("city"));
-                    signupData.setState((String) signupMap.get("state"));
-                    signupData.setCountry((String) signupMap.get("country"));
-                }
-            } else if (body.containsKey("name") || body.containsKey("fullName")) {
-                signupData = new SignupRequestDTO();
-                signupData.setName(
-                        body.containsKey("fullName") ? (String) body.get("fullName") : (String) body.get("name"));
-                signupData.setEmail((String) body.get("email"));
-                signupData.setPhoneNo(body.containsKey("phoneNumber") ? (String) body.get("phoneNumber")
-                        : (String) body.get("phoneNo"));
-                signupData.setPassword((String) body.get("password"));
-                signupData.setCity((String) body.get("city"));
-                signupData.setState((String) body.get("state"));
-                signupData.setCountry((String) body.get("country"));
+            Object rawSignupData = body != null ? body.get("signupData") : null;
+            if (rawSignupData instanceof Map<?, ?> signupMap) {
+                signupData = buildSignupDto(signupMap);
+            } else if (body != null && (body.containsKey("name") || body.containsKey("fullName"))) {
+                signupData = buildSignupDto(body);
+            }
+
+            if ((phoneNumber == null || phoneNumber.isBlank()) && signupData != null) {
+                phoneNumber = signupData.getPhoneNo();
             }
 
             ApiResponseDTO response = authService.verifyMsg91Token(accessToken, phoneNumber, signupData);
@@ -168,7 +155,7 @@ public class AuthController {
 
     @PostMapping("/forgot-password/mobile/request")
     public ResponseEntity<ApiResponseDTO> forgotPasswordRequest(@RequestBody Map<String, String> body) {
-        String phoneNo = body.get("phoneNo");
+        String phoneNo = firstNonBlankString(body, "phoneNo", "phoneNumber", "phone");
         if (phoneNo == null || phoneNo.isBlank()) {
             return new ResponseEntity<>(ApiResponseDTO.builder()
                     .success(false)
@@ -176,11 +163,12 @@ public class AuthController {
                     .build(), HttpStatus.BAD_REQUEST);
         }
 
-        // Normalize phone number (remove non-digits, remove leading 91 if it's 12
-        // digits total)
-        String normalizedPhone = phoneNo.replaceAll("[^0-9]", "");
-        if (normalizedPhone.startsWith("91") && normalizedPhone.length() == 12) {
-            normalizedPhone = normalizedPhone.substring(2);
+        String normalizedPhone = AuthService.normalizePhone(phoneNo);
+        if (normalizedPhone.length() != 10) {
+            return new ResponseEntity<>(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("Please enter a valid 10-digit mobile number")
+                    .build(), HttpStatus.BAD_REQUEST);
         }
 
         boolean exists = userRepo.existsByPhoneNo(normalizedPhone);
@@ -199,7 +187,7 @@ public class AuthController {
 
     @PostMapping("/forgot-password/mobile/verify")
     public ResponseEntity<ApiResponseDTO> forgotPasswordVerify(@RequestBody Map<String, String> body) {
-        String accessToken = body.get("accessToken");
+        String accessToken = firstNonBlankString(body, "accessToken", "access-token", "token");
         if (accessToken == null || accessToken.isBlank()) {
             return new ResponseEntity<>(ApiResponseDTO.builder()
                     .success(false)
@@ -214,10 +202,10 @@ public class AuthController {
 
     @PostMapping("/reset-password/mobile")
     public ResponseEntity<ApiResponseDTO> resetPasswordMobile(@RequestBody Map<String, String> body) {
-        String accessToken = body.get("accessToken");
-        String password = body.get("password");
+        String resetOrAccessToken = firstNonBlankString(body, "resetToken", "accessToken", "access-token", "token");
+        String password = firstNonBlankString(body, "password", "newPassword");
 
-        if (accessToken == null || accessToken.isBlank()) {
+        if (resetOrAccessToken == null || resetOrAccessToken.isBlank()) {
             return new ResponseEntity<>(ApiResponseDTO.builder()
                     .success(false)
                     .message("accessToken is required")
@@ -229,31 +217,46 @@ public class AuthController {
                     .message("password is required")
                     .build(), HttpStatus.BAD_REQUEST);
         }
+        if (password.length() < 6) {
+            return new ResponseEntity<>(ApiResponseDTO.builder()
+                    .success(false)
+                    .message("Password must be at least 6 characters")
+                    .build(), HttpStatus.BAD_REQUEST);
+        }
 
-        ApiResponseDTO response = authService.resetPasswordWithMsg91(accessToken, password);
+        ApiResponseDTO response = authService.resetPasswordWithMsg91(resetOrAccessToken, password);
         HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.UNAUTHORIZED;
         return new ResponseEntity<>(response, status);
     }
 
-    @PostMapping("/forgot-password")
-    public ResponseEntity<ApiResponseDTO> forgotPassword(@Valid @RequestBody ForgotPasswordRequestDTO dto) {
-        ApiResponseDTO response = passwordResetService.createPasswordResetToken(dto.getEmail());
-        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
-        return new ResponseEntity<>(response, status);
+    private SignupRequestDTO buildSignupDto(Map<?, ?> map) {
+        SignupRequestDTO signup = new SignupRequestDTO();
+        signup.setName(firstNonBlankString(map, "fullName", "name"));
+        signup.setEmail(firstNonBlankString(map, "email"));
+        signup.setPhoneNo(firstNonBlankString(map, "phoneNumber", "phoneNo", "phone"));
+        Object rawPwd = map.get("password");
+        signup.setPassword(rawPwd != null ? String.valueOf(rawPwd) : null);
+        signup.setCity(firstNonBlankString(map, "city"));
+        signup.setState(firstNonBlankString(map, "state"));
+        String country = firstNonBlankString(map, "country");
+        signup.setCountry(country != null ? country : "India");
+        return signup;
     }
 
-    @GetMapping("/verify-reset-token")
-    public ResponseEntity<ApiResponseDTO> verifyResetToken(@RequestParam(value = "token", required = false) String token) {
-        ApiResponseDTO response = passwordResetService.validatePasswordResetToken(token);
-        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
-        return new ResponseEntity<>(response, status);
-    }
-
-    @PostMapping("/reset-password")
-    public ResponseEntity<ApiResponseDTO> resetPassword(@Valid @RequestBody ResetPasswordRequestDTO dto) {
-        ApiResponseDTO response = passwordResetService.resetPassword(dto.getToken(), dto.getNewPassword());
-        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
-        return new ResponseEntity<>(response, status);
+    private String firstNonBlankString(Map<?, ?> map, String... keys) {
+        if (map == null || keys == null) {
+            return null;
+        }
+        for (String key : keys) {
+            Object val = map.get(key);
+            if (val != null) {
+                String str = String.valueOf(val).trim();
+                if (!str.isBlank() && !"null".equalsIgnoreCase(str)) {
+                    return str;
+                }
+            }
+        }
+        return null;
     }
 
     @PostMapping("/admin/login")

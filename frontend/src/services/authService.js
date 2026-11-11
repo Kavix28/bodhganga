@@ -1,6 +1,5 @@
 import api from './api';
-
-
+import { normalizePhoneNumber } from '../utils/constants';
 
 /**
  * Login user
@@ -10,7 +9,9 @@ import api from './api';
  */
 export const login = async (emailOrPhone, password) => {
     const sanitized = String(emailOrPhone || '').trim();
-    const normalized = sanitized.includes('@') ? sanitized.toLowerCase() : sanitized;
+    const normalized = sanitized.includes('@')
+        ? sanitized.toLowerCase()
+        : normalizePhoneNumber(sanitized);
     return api.post('/auth/login', { emailOrPhone: normalized, password });
 };
 
@@ -47,10 +48,24 @@ export const resetPassword = async (token, newPassword) => {
  * Verify MSG91 Access Token
  * @param {string} accessToken
  * @param {string} phoneNumber
+ * @param {object|null} signupData
  * @returns {Promise}
  */
-export const verifyMsg91 = async (accessToken, phoneNumber) => {
-    return api.post('/auth/msg91/verify', { accessToken, phoneNumber });
+export const verifyMsg91 = async (accessToken, phoneNumber, signupData = null) => {
+    const cleanPhone = normalizePhoneNumber(phoneNumber);
+    const body = { accessToken, phoneNumber: cleanPhone };
+    if (signupData) {
+        body.signupData = {
+            name: String(signupData.fullName || signupData.name || '').trim(),
+            email: String(signupData.email || '').trim().toLowerCase(),
+            phoneNo: normalizePhoneNumber(signupData.phoneNumber || signupData.phoneNo || cleanPhone),
+            password: signupData.password,
+            city: String(signupData.city || '').trim(),
+            state: String(signupData.state || '').trim(),
+            country: String(signupData.country || 'India').trim() || 'India',
+        };
+    }
+    return api.post('/auth/msg91/verify', body);
 };
 
 /**
@@ -59,7 +74,7 @@ export const verifyMsg91 = async (accessToken, phoneNumber) => {
  * @returns {Promise}
  */
 export const forgotPasswordMobileRequest = async (phoneNo) => {
-    return api.post('/auth/forgot-password/mobile/request', { phoneNo });
+    return api.post('/auth/forgot-password/mobile/request', { phoneNo: normalizePhoneNumber(phoneNo) });
 };
 
 /**
@@ -72,13 +87,17 @@ export const forgotPasswordMobileVerify = async (accessToken) => {
 };
 
 /**
- * Reset password using verified MSG91 token and new password
- * @param {string} accessToken
+ * Reset password using verified single-use resetToken (or MSG91 token) and new password
+ * @param {string} resetOrAccessToken
  * @param {string} password
  * @returns {Promise}
  */
-export const resetPasswordMobile = async (accessToken, password) => {
-    return api.post('/auth/reset-password/mobile', { accessToken, password });
+export const resetPasswordMobile = async (resetOrAccessToken, password) => {
+    return api.post('/auth/reset-password/mobile', {
+        resetToken: resetOrAccessToken,
+        accessToken: resetOrAccessToken,
+        password,
+    });
 };
 
 /**

@@ -15,6 +15,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -22,12 +23,13 @@ import java.util.Date;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.doReturn;
 
 @SpringBootTest(classes = BodhgangaApplication.class)
 @ActiveProfiles("test")
 public class AuthLifecycleAndRecoveryTests {
 
-    @Autowired
+    @SpyBean
     private AuthService authService;
 
     @Autowired
@@ -216,6 +218,102 @@ public class AuthLifecycleAndRecoveryTests {
         ApiResponseDTO response = authService.login(loginDTO);
         assertFalse(response.isSuccess(), "Deactivated user must not be permitted to log in");
         assertTrue(response.getMessage().toLowerCase().contains("deactivated"), "Message should notify deactivation");
+    }
+
+    @Test
+    @DisplayName("Phone normalization strips country prefixes without corrupting 10-digit numbers starting with 91")
+    public void testPhoneNormalizationAndFormattedLogin() {
+        assertEquals("9111111111", AuthService.normalizePhone("9111111111"),
+                "10-digit mobile starting with 91 must be preserved");
+        assertEquals("9876543210", AuthService.normalizePhone("+91 98765-43210"));
+        assertEquals("9876543210", AuthService.normalizePhone("09876543210"));
+        assertEquals("9876543210", AuthService.normalizePhone("00919876543210"));
+
+        User user = User.builder()
+                .name("Formatted Login User")
+                .email(TEST_EMAIL)
+                .phoneNo(TEST_PHONE)
+                .hashedPassword(passwordEncoder.encode(INITIAL_PASSWORD))
+                .role("USER")
+                .isVerified(true)
+                .emailVerified(true)
+                .phoneVerified(true)
+                .isActive(true)
+                .createdAt(new Date())
+                .build();
+        userRepo.save(user);
+
+        LoginRequestDTO formattedLogin = new LoginRequestDTO();
+        formattedLogin.setEmailOrPhone("+91 " + TEST_PHONE);
+        formattedLogin.setPassword(INITIAL_PASSWORD);
+
+        ApiResponseDTO res = authService.login(formattedLogin);
+        assertTrue(res.isSuccess(), "Login with +91 prefixed mobile number should succeed");
+    }
+
+    @Test
+    @DisplayName("Mobile forgot-password issues single-use resetToken on OTP verify to avoid MSG91 double consumption")
+    @SuppressWarnings("unchecked")
+    public void testMobileForgotPasswordTwoStepResetTokenFlow() throws Exception {
+        User user = User.builder()
+                .name("Mobile Reset Scholar")
+                .email(TEST_EMAIL)
+                .phoneNo(TEST_PHONE)
+                .hashedPassword(passwordEncoder.encode(INITIAL_PASSWORD))
+                .role("USER")
+                .isVerified(true)
+                .emailVerified(true)
+                .phoneVerified(true)
+                .isActive(true)
+                .createdAt(new Date())
+                .build();
+        userRepo.save(user);
+
+        doReturn(TEST_PHONE).when(authService).getMobileFromMsg91("msg91-otp-1");
+
+        // Step 1: Verify MSG91 accessToken once -> receive single-use internal resetToken
+        ApiResponseDTO verifyRes = authService.verifyMsg91TokenOnly("msg91-otp-1");
+        assertTrue(verifyRes.isSuccess(), "Mobile OTP verification should succeed");
+        Map<String, Object> verifyData = (Map<String, Object>) verifyRes.getData();
+        assertNotNull(verifyData, "Verify response should include resetToken data");
+        String resetToken = (String) verifyData.get("resetToken");
+        assertNotNull(resetToken, "Verify response must mint a resetToken");
+
+        // Step 2: Redeem internal resetToken to set new BCrypt password (no second MSG91 call needed)
+        ApiResponseDTO resetRes = authService.resetPasswordWithMsg91(resetToken, NEW_PASSWORD);
+        assertTrue(resetRes.isSuccess(), "Password reset with minted resetToken should succeed");
+
+        // Step 3: Replay must be rejected
+        ApiResponseDTO replayRes = authService.resetPasswordWithMsg91(resetToken, "ReplayPass999!");
+        assertFalse(replayRes.isSuccess(), "Spent resetToken must not be reusable");
+
+        // Step 4: Confirm new password authenticates while old password fails
+        LoginRequestDTO newPwLogin = new LoginRequestDTO();
+        newPwLogin.setEmailOrPhone(TEST_PHONE);
+        newPwLogin.setPassword(NEW_PASSWORD);
+        assertTrue(authService.login(newPwLogin).isSuccess(), "User must be able to log in with updated password");
+    }
+
+    @Test
+    @DisplayName("Mobile OTP login blocks deactivated accounts")
+    public void testOtpLoginBlocksDeactivatedUser() throws Exception {
+        User user = User.builder()
+                .name("Inactive OTP User")
+                .email(TEST_EMAIL)
+                .phoneNo(TEST_PHONE)
+                .hashedPassword(passwordEncoder.encode(INITIAL_PASSWORD))
+                .role("USER")
+                .isVerified(true)
+                .isActive(false)
+                .createdAt(new Date())
+                .build();
+        userRepo.save(user);
+
+        doReturn(TEST_PHONE).when(authService).getMobileFromMsg91("msg91-deactivated-otp");
+
+        ApiResponseDTO res = authService.verifyMsg91Token("msg91-deactivated-otp", TEST_PHONE, null);
+        assertFalse(res.isSuccess(), "Deactivated account must not log in via OTP");
+        assertTrue(res.getMessage().toLowerCase().contains("deactivated"));
     }
 }
 
