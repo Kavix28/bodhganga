@@ -235,27 +235,6 @@ public class AuthController {
         return new ResponseEntity<>(response, status);
     }
 
-    @PostMapping("/forgot-password")
-    public ResponseEntity<ApiResponseDTO> forgotPassword(@Valid @RequestBody ForgotPasswordRequestDTO dto) {
-        ApiResponseDTO response = passwordResetService.createPasswordResetToken(dto.getEmail());
-        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
-        return new ResponseEntity<>(response, status);
-    }
-
-    @GetMapping("/verify-reset-token")
-    public ResponseEntity<ApiResponseDTO> verifyResetToken(@RequestParam(value = "token", required = false) String token) {
-        ApiResponseDTO response = passwordResetService.validatePasswordResetToken(token);
-        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
-        return new ResponseEntity<>(response, status);
-    }
-
-    @PostMapping("/reset-password")
-    public ResponseEntity<ApiResponseDTO> resetPassword(@Valid @RequestBody ResetPasswordRequestDTO dto) {
-        ApiResponseDTO response = passwordResetService.resetPassword(dto.getToken(), dto.getNewPassword());
-        HttpStatus status = response.isSuccess() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
-        return new ResponseEntity<>(response, status);
-    }
-
     @PostMapping("/admin/login")
     public ResponseEntity<ApiResponseDTO> adminLogin(@Valid @RequestBody LoginRequestDTO dto) {
         ApiResponseDTO response = authService.adminLogin(dto);
