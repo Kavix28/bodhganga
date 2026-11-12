@@ -71,8 +71,14 @@ public class IngestionPipelineTests {
                 ReflectionTestUtils.setField(pipelineTask, "pipelineEnabled", true);
 
                 // Standard mocks
+                configureDefaultServiceMocks();
+        }
+
+        private void configureDefaultServiceMocks() {
                 when(googleDriveSyncService.isConfigured()).thenReturn(true);
                 when(s3Service.getBucketName()).thenReturn("test-bucket-name");
+                doCallRealMethod().when(s3Service).getObjectKey(anyString());
+                doCallRealMethod().when(s3Service).getObjectKey(isNull());
         }
 
         // ─────────────────────────────────────────────────────────────────────────
@@ -175,7 +181,7 @@ public class IngestionPipelineTests {
                 // ── Duplicate detection: second sync must skip ────────────────────
                 reset(s3Service);
                 reset(googleDriveSyncService);
-                when(googleDriveSyncService.isConfigured()).thenReturn(true);
+                configureDefaultServiceMocks();
                 when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(stateFolder));
                 when(googleDriveSyncService.listFilesInFolder("state-folder-id")).thenReturn(List.of(districtFolder));
                 when(googleDriveSyncService.listFilesInFolder("district-folder-id")).thenReturn(List.of(paidFolder));
@@ -521,6 +527,9 @@ public class IngestionPipelineTests {
                 assertTrue(p.isPublished());
                 assertTrue(p.isArchived());
                 assertNotNull(p.getS3Url());
+                assertEquals(s3Key, p.getS3Url());
+                assertEquals(s3Key, p.getS3Key());
+                assertEquals(s3Key, p.getStorageKey());
 
                 verify(googleDriveSyncService, times(1)).downloadFile("sd-download-id");
                 verify(s3Service, times(1)).uploadFileWithKey(any(), anyLong(), eq(s3Key), eq("application/pdf"));
@@ -651,7 +660,7 @@ public class IngestionPipelineTests {
                 reset(s3Service);
                 reset(googleDriveSyncService);
 
-                when(googleDriveSyncService.isConfigured()).thenReturn(true);
+                configureDefaultServiceMocks();
                 when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(stateFolder));
                 when(googleDriveSyncService.listFilesInFolder("ap-state-id")).thenReturn(List.of(districtFolder));
                 when(googleDriveSyncService.listFilesInFolder("alluri-dist-id")).thenReturn(List.of(paidFolder));
@@ -672,7 +681,7 @@ public class IngestionPipelineTests {
                 // --- THIRD RUN ---
                 reset(s3Service);
                 reset(googleDriveSyncService);
-                when(googleDriveSyncService.isConfigured()).thenReturn(true);
+                configureDefaultServiceMocks();
                 when(googleDriveSyncService.listFilesInFolder("source-folder-id")).thenReturn(List.of(stateFolder));
                 when(googleDriveSyncService.listFilesInFolder("ap-state-id")).thenReturn(List.of(districtFolder));
                 when(googleDriveSyncService.listFilesInFolder("alluri-dist-id")).thenReturn(List.of(paidFolder));
